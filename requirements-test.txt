@@ -1,0 +1,60 @@
+# Printernizer Test Dependencies
+# Core testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+pytest-timeout>=2.1.0
+pytest-xdist>=3.3.0
+
+# HTTP testing
+requests>=2.31.0
+responses>=0.23.0
+httpx>=0.24.0
+
+# WebSocket testing
+websocket-client>=1.6.0
+pytest-websocket>=0.2.0
+
+# Database testing
+sqlite3  # Built-in
+pytest-sqlite>=0.1.0
+
+# Mock and fixtures
+factory-boy>=3.3.0
+freezegun>=1.2.0
+faker>=19.0.0
+
+# Performance testing
+pytest-benchmark>=4.0.0
+memory-profiler>=0.61.0
+
+# Async testing
+aiohttp>=3.8.0
+aiofiles>=23.0.0
+
+# German locale and timezone
+pytz>=2023.3
+babel>=2.12.0
+
+# File handling
+python-magic>=0.4.27
+
+# 3D file processing (for file content tests)
+trimesh>=3.23.0
+numpy>=1.25.0
+matplotlib>=3.7.0
+
+# Utilities
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Development utilities
+coverage>=7.2.0
+pytest-html>=3.2.0
+pytest-json-report>=1.5.0
+
+# Frontend testing (Node.js dependencies - install separately)
+# jest>=29.0.0
+# @testing-library/dom>=9.0.0
+# jsdom>=22.0.0

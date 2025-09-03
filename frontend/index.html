@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printernizer - 3D-Drucker Verwaltung</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="assets/logo.png" alt="Printernizer" class="logo">
+                <span class="brand-text">Printernizer</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#dashboard" class="nav-link active" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </a>
+                <a href="#printers" class="nav-link" data-page="printers">
+                    <span class="nav-icon">🖨️</span>
+                    Drucker
+                </a>
+                <a href="#jobs" class="nav-link" data-page="jobs">
+                    <span class="nav-icon">⚙️</span>
+                    Aufträge
+                </a>
+                <a href="#files" class="nav-link" data-page="files">
+                    <span class="nav-icon">📁</span>
+                    Dateien
+                </a>
+            </div>
+            <div class="nav-status">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-dot disconnected"></div>
+                    <span class="status-text">Verbindung...</span>
+                </div>
+                <div class="system-time" id="systemTime"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshDashboard()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Overview Cards -->
+            <div class="overview-cards">
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Drucker Status</h3>
+                        <span class="card-icon">🖨️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="printerCount">-</div>
+                        <div class="stat-label">Drucker Online</div>
+                        <div class="stat-detail" id="printerDetail">Lade...</div>
+                    </div>
+                </div>
+
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Aktive Aufträge</h3>
+                        <span class="card-icon">⚙️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="activeJobsCount">-</div>
+                        <div class="stat-label">Druckaufträge</div>
+                        <div class="stat-detail" id="jobsDetail">Lade...</div>
+                    </div>
+                </div>
+
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Dateien</h3>
+                        <span class="card-icon">📁</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="filesCount">-</div>
+                        <div class="stat-label">Verfügbare Dateien</div>
+                        <div class="stat-detail" id="filesDetail">Lade...</div>
+                    </div>
+                </div>
+
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Heute</h3>
+                        <span class="card-icon">📈</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="todayJobsCount">-</div>
+                        <div class="stat-label">Aufträge heute</div>
+                        <div class="stat-detail" id="todayDetail">Lade...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Printer Status Cards -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Drucker Status</h2>
+                    <button class="btn btn-primary" onclick="showAddPrinter()">
+                        <span class="btn-icon">➕</span>
+                        Drucker hinzufügen
+                    </button>
+                </div>
+                <div class="printer-grid" id="printerGrid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Drucker...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Jobs -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Aktuelle Aufträge</h2>
+                    <a href="#jobs" class="btn btn-secondary" onclick="showPage('jobs')">
+                        Alle anzeigen
+                    </a>
+                </div>
+                <div class="jobs-preview" id="recentJobs">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Aufträge...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Printers Page -->
+        <div id="printers" class="page">
+            <div class="page-header">
+                <h1>Drucker Verwaltung</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="showAddPrinter()">
+                        <span class="btn-icon">➕</span>
+                        Drucker hinzufügen
+                    </button>
+                </div>
+            </div>
+
+            <div class="printers-container">
+                <div class="printers-list" id="printersList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Drucker...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jobs Page -->
+        <div id="jobs" class="page">
+            <div class="page-header">
+                <h1>Druckaufträge</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="jobStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="printing">Druckt</option>
+                            <option value="queued">Warteschlange</option>
+                            <option value="completed">Abgeschlossen</option>
+                            <option value="failed">Fehlgeschlagen</option>
+                            <option value="cancelled">Abgebrochen</option>
+                        </select>
+                        <select id="jobPrinterFilter" class="filter-select">
+                            <option value="">Alle Drucker</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshJobs()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <div class="jobs-container">
+                <div class="jobs-list" id="jobsList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Aufträge...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files Page -->
+        <div id="files" class="page">
+            <div class="page-header">
+                <h1>Drucker-Dateien</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="fileStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="available">📁 Verfügbar</option>
+                            <option value="downloaded">✓ Heruntergeladen</option>
+                            <option value="local">💾 Lokal</option>
+                        </select>
+                        <select id="filePrinterFilter" class="filter-select">
+                            <option value="">Alle Drucker</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshFiles()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <div class="files-stats" id="filesStats">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Dateien-Statistiken...</p>
+                </div>
+            </div>
+
+            <div class="files-container">
+                <div class="files-list" id="filesList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Dateien...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Add Printer Modal -->
+    <div id="addPrinterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Drucker hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('addPrinterModal')">&times;</button>
+            </div>
+            <form id="addPrinterForm" class="modal-body">
+                <div class="form-group">
+                    <label for="printerType">Drucker Typ</label>
+                    <select id="printerType" class="form-control" required>
+                        <option value="">Typ auswählen</option>
+                        <option value="bambu_lab">Bambu Lab A1</option>
+                        <option value="prusa">Prusa Core One</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="printerName">Name</label>
+                    <input type="text" id="printerName" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="printerIP">IP-Adresse</label>
+                    <input type="text" id="printerIP" class="form-control" required placeholder="192.168.1.100">
+                </div>
+                
+                <div id="bambuFields" class="printer-specific-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="accessCode">Access Code</label>
+                        <input type="text" id="accessCode" class="form-control" placeholder="12345678">
+                    </div>
+                    <div class="form-group">
+                        <label for="serialNumber">Seriennummer</label>
+                        <input type="text" id="serialNumber" class="form-control" placeholder="AC12345678">
+                    </div>
+                </div>
+                
+                <div id="prusaFields" class="printer-specific-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="apiKey">API Key</label>
+                        <input type="text" id="apiKey" class="form-control" placeholder="API Key">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="printerActive" checked>
+                        <span class="checkbox-custom"></span>
+                        Drucker aktivieren
+                    </label>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addPrinterModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="addPrinterForm" class="btn btn-primary">
+                    <span class="btn-icon">➕</span>
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Details Modal -->
+    <div id="jobDetailsModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Auftrag Details</h3>
+                <button class="modal-close" onclick="closeModal('jobDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="jobDetailsContent">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div id="filePreviewModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Datei Vorschau</h3>
+                <button class="modal-close" onclick="closeModal('filePreviewModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="filePreviewContent">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Vorschau...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/printers.js"></script>
+    <script src="js/jobs.js"></script>
+    <script src="js/files.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

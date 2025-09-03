@@ -1,0 +1,1 @@
+"""Frontend component tests for Printernizer Phase 1"""
