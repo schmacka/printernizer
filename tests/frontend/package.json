@@ -1,0 +1,50 @@
+{
+  "name": "printernizer-frontend-tests",
+  "version": "1.0.0",
+  "description": "Frontend test suite for Printernizer Phase 1",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "lint": "eslint ../../frontend/js/**/*.js",
+    "lint:fix": "eslint ../../frontend/js/**/*.js --fix"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@testing-library/dom": "^9.3.3",
+    "@testing-library/user-event": "^14.5.1",
+    "@testing-library/jest-dom": "^6.1.4",
+    "jsdom": "^22.1.0",
+    "fetch-mock": "^9.11.0",
+    "jest-websocket-mock": "^2.5.0",
+    "mock-websocket": "^1.0.1",
+    "eslint": "^8.54.0",
+    "eslint-plugin-jest": "^27.6.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "../../frontend/js/**/*.js",
+      "!../../frontend/js/config.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 85,
+        "lines": 85,
+        "statements": 85
+      }
+    },
+    "moduleNameMapping": {
+      "^@/(.*)$": "<rootDir>/../../frontend/js/$1"
+    }
+  }
+}
