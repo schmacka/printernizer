@@ -1,0 +1,96 @@
+"""File management endpoints - Drucker-Dateien system."""
+
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
+import structlog
+
+from models.file import File, FileStatus, FileSource
+from services.file_service import FileService
+from utils.dependencies import get_file_service
+
+
+logger = structlog.get_logger()
+router = APIRouter()
+
+
+class FileResponse(BaseModel):
+    """Response model for file data."""
+    id: UUID
+    printer_id: UUID
+    filename: str
+    source: FileSource
+    status: FileStatus
+    file_size_bytes: Optional[int]
+    local_path: Optional[str]
+    printer_path: Optional[str]
+    checksum: Optional[str]
+    downloaded_at: Optional[str]
+    created_at: str
+    updated_at: str
+
+
+@router.get("/", response_model=List[FileResponse])
+async def list_files(
+    printer_id: Optional[UUID] = Query(None, description="Filter by printer ID"),
+    status: Optional[FileStatus] = Query(None, description="Filter by file status"),
+    source: Optional[FileSource] = Query(None, description="Filter by file source"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """List files from printers and local storage."""
+    try:
+        files = await file_service.list_files(
+            printer_id=printer_id,
+            status=status,
+            source=source
+        )
+        return [FileResponse.model_validate(file.__dict__) for file in files]
+    except Exception as e:
+        logger.error("Failed to list files", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve files"
+        )
+
+
+@router.post("/{file_id}/download")
+async def download_file(
+    file_id: UUID,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Download a file from printer to local storage."""
+    try:
+        success = await file_service.download_file(file_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to download file"
+            )
+        return {"status": "downloaded"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to download file", file_id=str(file_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download file"
+        )
+
+
+@router.post("/sync")
+async def sync_printer_files(
+    printer_id: Optional[UUID] = Query(None, description="Sync specific printer, or all if not specified"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """Synchronize file list with printers."""
+    try:
+        await file_service.sync_printer_files(printer_id)
+        return {"status": "synced"}
+    except Exception as e:
+        logger.error("Failed to sync files", printer_id=str(printer_id) if printer_id else "all", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to sync files"
+        )
