@@ -1,0 +1,248 @@
+# Printernizer Backup and Recovery System
+# Kubernetes CronJobs for automated backup operations
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: printernizer
+data:
+  database-backup.sh: |
+    #!/bin/bash
+    set -e
+    
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_DIR="/backups/database"
+    DATABASE_PATH="/app/data/printernizer.db"
+    
+    mkdir -p $BACKUP_DIR
+    
+    # Create database backup
+    echo "Creating database backup: $TIMESTAMP"
+    sqlite3 $DATABASE_PATH ".backup $BACKUP_DIR/printernizer_$TIMESTAMP.db"
+    
+    # Compress backup
+    gzip "$BACKUP_DIR/printernizer_$TIMESTAMP.db"
+    
+    # Create checksum
+    sha256sum "$BACKUP_DIR/printernizer_$TIMESTAMP.db.gz" > "$BACKUP_DIR/printernizer_$TIMESTAMP.db.gz.sha256"
+    
+    # Upload to S3 if configured
+    if [ -n "$AWS_S3_BUCKET" ]; then
+      aws s3 cp "$BACKUP_DIR/printernizer_$TIMESTAMP.db.gz" "s3://$AWS_S3_BUCKET/database/"
+      aws s3 cp "$BACKUP_DIR/printernizer_$TIMESTAMP.db.gz.sha256" "s3://$AWS_S3_BUCKET/database/"
+    fi
+    
+    # Cleanup old local backups (keep 7 days)
+    find $BACKUP_DIR -name "*.gz" -mtime +7 -delete
+    find $BACKUP_DIR -name "*.sha256" -mtime +7 -delete
+    
+    echo "Database backup completed: printernizer_$TIMESTAMP.db.gz"
+
+  files-backup.sh: |
+    #!/bin/bash
+    set -e
+    
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    BACKUP_DIR="/backups/files"
+    FILES_DIR="/app/uploads"
+    
+    mkdir -p $BACKUP_DIR
+    
+    # Create files backup using tar
+    echo "Creating files backup: $TIMESTAMP"
+    tar -czf "$BACKUP_DIR/files_$TIMESTAMP.tar.gz" -C "$FILES_DIR" .
+    
+    # Create checksum
+    sha256sum "$BACKUP_DIR/files_$TIMESTAMP.tar.gz" > "$BACKUP_DIR/files_$TIMESTAMP.tar.gz.sha256"
+    
+    # Upload to S3 if configured
+    if [ -n "$AWS_S3_BUCKET" ]; then
+      aws s3 cp "$BACKUP_DIR/files_$TIMESTAMP.tar.gz" "s3://$AWS_S3_BUCKET/files/"
+      aws s3 cp "$BACKUP_DIR/files_$TIMESTAMP.tar.gz.sha256" "s3://$AWS_S3_BUCKET/files/"
+    fi
+    
+    # Cleanup old local backups (keep 30 days)
+    find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
+    find $BACKUP_DIR -name "*.sha256" -mtime +30 -delete
+    
+    echo "Files backup completed: files_$TIMESTAMP.tar.gz"
+
+  restore-database.sh: |
+    #!/bin/bash
+    set -e
+    
+    if [ -z "$1" ]; then
+      echo "Usage: $0 <backup_filename>"
+      echo "Available backups:"
+      ls -la /backups/database/*.gz
+      exit 1
+    fi
+    
+    BACKUP_FILE="$1"
+    DATABASE_PATH="/app/data/printernizer.db"
+    
+    # Verify backup exists
+    if [ ! -f "/backups/database/$BACKUP_FILE" ]; then
+      echo "Backup file not found: /backups/database/$BACKUP_FILE"
+      exit 1
+    fi
+    
+    # Verify checksum if exists
+    if [ -f "/backups/database/$BACKUP_FILE.sha256" ]; then
+      echo "Verifying backup integrity..."
+      cd /backups/database
+      sha256sum -c "$BACKUP_FILE.sha256"
+    fi
+    
+    # Create database backup before restore
+    CURRENT_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    sqlite3 $DATABASE_PATH ".backup /backups/database/pre_restore_$CURRENT_TIMESTAMP.db"
+    
+    # Decompress and restore
+    echo "Restoring database from: $BACKUP_FILE"
+    gunzip -c "/backups/database/$BACKUP_FILE" > "$DATABASE_PATH.tmp"
+    mv "$DATABASE_PATH.tmp" "$DATABASE_PATH"
+    
+    echo "Database restored successfully from: $BACKUP_FILE"
+    echo "Pre-restore backup saved as: pre_restore_$CURRENT_TIMESTAMP.db"
+
+---
+# Database Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: printernizer
+spec:
+  # Run every 6 hours
+  schedule: "0 */6 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: alpine:latest
+            command: ["/bin/sh"]
+            args: ["/scripts/database-backup.sh"]
+            env:
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: s3-bucket
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: aws-access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: aws-secret-key
+            volumeMounts:
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+            - name: backups
+              mountPath: /backups
+            - name: scripts
+              mountPath: /scripts
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: printernizer-data
+          - name: backups
+            persistentVolumeClaim:
+              claimName: printernizer-backups
+          - name: scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          restartPolicy: OnFailure
+
+---
+# Files Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: files-backup
+  namespace: printernizer
+spec:
+  # Run daily at 2 AM
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: alpine:latest
+            command: ["/bin/sh"]
+            args: ["/scripts/files-backup.sh"]
+            env:
+            - name: AWS_S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: s3-bucket
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: aws-access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: aws-secret-key
+            volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+              readOnly: true
+            - name: backups
+              mountPath: /backups
+            - name: scripts
+              mountPath: /scripts
+          volumes:
+          - name: uploads
+            persistentVolumeClaim:
+              claimName: printernizer-uploads
+          - name: backups
+            persistentVolumeClaim:
+              claimName: printernizer-backups
+          - name: scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          restartPolicy: OnFailure
+
+---
+# Backup Storage PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: printernizer-backups
+  namespace: printernizer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
+
+---
+# Backup Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-secrets
+  namespace: printernizer
+type: Opaque
+stringData:
+  s3-bucket: "printernizer-backups-porcus3d"
+  aws-access-key: ""
+  aws-secret-key: ""

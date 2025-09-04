@@ -1,0 +1,73 @@
+# Prometheus configuration for Printernizer monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Rule files for alerting
+rule_files:
+  - "rules/*.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # Add alertmanager if needed
+          # - alertmanager:9093
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Printernizer Backend API
+  - job_name: 'printernizer-backend'
+    static_configs:
+      - targets: ['printernizer-backend:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'printernizer_.*'
+        target_label: 'service'
+        replacement: 'printernizer'
+      - source_labels: [__name__]
+        regex: 'printernizer_print_job_.*'
+        target_label: 'category'
+        replacement: 'print_jobs'
+      - source_labels: [__name__]
+        regex: 'printernizer_business_.*'
+        target_label: 'category'
+        replacement: 'business_metrics'
+
+  # Nginx Frontend
+  - job_name: 'printernizer-frontend'
+    static_configs:
+      - targets: ['printernizer-frontend:80']
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  # Redis monitoring
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['printernizer-redis:6379']
+
+  # Node Exporter (if deployed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # Docker daemon metrics (if available)
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['docker-exporter:9323']
+    scrape_interval: 30s
+
+# Remote write for long-term storage (optional)
+# remote_write:
+#   - url: "https://your-remote-prometheus-endpoint/api/v1/write"
