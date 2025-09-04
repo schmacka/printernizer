@@ -1,0 +1,49 @@
+# Printernizer - Professional 3D Print Management System
+# Requirements for Milestone 1.1: Project Setup & Architecture
+
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database - Using aiosqlite for async SQLite
+aiosqlite==0.19.0
+
+# HTTP Client for Prusa API
+aiohttp==3.9.1
+
+# MQTT Client for Bambu Lab (handle import gracefully if not available)
+# bambulabs-api==1.0.0  # Uncomment when bambulabs-api is available
+
+# Structured Logging
+structlog==23.2.0
+
+# Prometheus Metrics
+prometheus-client==0.19.0
+
+# Configuration Management
+python-dotenv==1.0.0
+pathlib2==2.3.7
+
+# Date and Time Handling
+python-dateutil==2.8.2
+
+# German Business Support
+pytz==2023.3
+
+# Development Dependencies (for testing)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+
+# Production Server
+gunicorn==21.2.0
+
+# Optional: 3D File Processing (Phase 5 - not needed for Milestone 1.1)
+# trimesh==4.0.5
+# numpy-stl==3.0.1
+# matplotlib==3.8.2
+
+# Security Headers and Middleware
+python-multipart==0.0.6

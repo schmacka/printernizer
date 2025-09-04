@@ -1,0 +1,211 @@
+"""Printer management endpoints."""
+
+from typing import List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+import structlog
+
+from models.printer import Printer, PrinterType, PrinterStatus
+from services.printer_service import PrinterService
+from utils.dependencies import get_printer_service
+
+
+logger = structlog.get_logger()
+router = APIRouter()
+
+
+class PrinterCreateRequest(BaseModel):
+    """Request model for creating a new printer."""
+    name: str
+    printer_type: PrinterType
+    connection_config: dict
+    location: Optional[str] = None
+    description: Optional[str] = None
+
+
+class PrinterUpdateRequest(BaseModel):
+    """Request model for updating printer configuration."""
+    name: Optional[str] = None
+    connection_config: Optional[dict] = None
+    location: Optional[str] = None
+    description: Optional[str] = None
+    is_enabled: Optional[bool] = None
+
+
+class PrinterResponse(BaseModel):
+    """Response model for printer data."""
+    id: UUID
+    name: str
+    printer_type: PrinterType
+    status: PrinterStatus
+    location: Optional[str]
+    description: Optional[str]
+    is_enabled: bool
+    last_seen: Optional[str]
+    current_job_id: Optional[UUID]
+    created_at: str
+    updated_at: str
+
+
+@router.get("/", response_model=List[PrinterResponse])
+async def list_printers(
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """List all configured printers."""
+    try:
+        printers = await printer_service.list_printers()
+        return [PrinterResponse.model_validate(printer.__dict__) for printer in printers]
+    except Exception as e:
+        logger.error("Failed to list printers", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve printers"
+        )
+
+
+@router.post("/", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
+async def create_printer(
+    printer_data: PrinterCreateRequest,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Create a new printer configuration."""
+    try:
+        printer = await printer_service.create_printer(
+            name=printer_data.name,
+            printer_type=printer_data.printer_type,
+            connection_config=printer_data.connection_config,
+            location=printer_data.location,
+            description=printer_data.description
+        )
+        return PrinterResponse.model_validate(printer.__dict__)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("Failed to create printer", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create printer"
+        )
+
+
+@router.get("/{printer_id}", response_model=PrinterResponse)
+async def get_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Get printer details by ID."""
+    try:
+        printer = await printer_service.get_printer(printer_id)
+        if not printer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Printer not found"
+            )
+        return PrinterResponse.model_validate(printer.__dict__)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve printer"
+        )
+
+
+@router.put("/{printer_id}", response_model=PrinterResponse)
+async def update_printer(
+    printer_id: UUID,
+    printer_data: PrinterUpdateRequest,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Update printer configuration."""
+    try:
+        printer = await printer_service.update_printer(printer_id, **printer_data.model_dump(exclude_unset=True))
+        if not printer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Printer not found"
+            )
+        return PrinterResponse.model_validate(printer.__dict__)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("Failed to update printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update printer"
+        )
+
+
+@router.delete("/{printer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Delete a printer configuration."""
+    try:
+        success = await printer_service.delete_printer(printer_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Printer not found"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to delete printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete printer"
+        )
+
+
+@router.post("/{printer_id}/connect")
+async def connect_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Connect to printer."""
+    try:
+        success = await printer_service.connect_printer(printer_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to connect to printer"
+            )
+        return {"status": "connected"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to connect printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to printer"
+        )
+
+
+@router.post("/{printer_id}/disconnect")
+async def disconnect_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Disconnect from printer."""
+    try:
+        await printer_service.disconnect_printer(printer_id)
+        return {"status": "disconnected"}
+    except Exception as e:
+        logger.error("Failed to disconnect printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to disconnect from printer"
+        )
