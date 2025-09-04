@@ -1,0 +1,86 @@
+# Printernizer Security Policy Configuration
+# Kubernetes Pod Security Policy for production deployment
+
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: printernizer-security-policy
+  namespace: printernizer
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'docker/default,runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+spec:
+  # Privilege and access controls
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  # Host controls
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  # SELinux
+  seLinux:
+    rule: RunAsAny
+  # Run as non-root
+  runAsUser:
+    rule: MustRunAsNonRoot
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1
+        max: 65535
+  # File system
+  fsGroup:
+    rule: RunAsAny
+  readOnlyRootFilesystem: false
+  # Volumes
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+
+---
+# RBAC Role for Printernizer
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: printernizer
+  name: printernizer-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+
+---
+# RBAC RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: printernizer-binding
+  namespace: printernizer
+subjects:
+- kind: ServiceAccount
+  name: printernizer-service-account
+  namespace: printernizer
+roleRef:
+  kind: Role
+  name: printernizer-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: printernizer-service-account
+  namespace: printernizer
+automountServiceAccountToken: false
