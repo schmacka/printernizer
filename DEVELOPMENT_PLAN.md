@@ -22,7 +22,7 @@
   - [ ] Connection establishment with IP + Access Code + Serial
   - [ ] Real-time status monitoring
   - [ ] Temperature and job progress tracking
-- [ ] Implement Prusa Core One HTTP API integration
+- [ ] Implement Prusa Core One HTTP API integration https://connect-mobile-api.prusa3d.com/api/docs
   - [ ] PrusaLink API key authentication
   - [ ] Job status and file list retrieval
   - [ ] 30-second polling implementation

@@ -181,6 +181,34 @@ function isValidEmail(email) {
 }
 
 /**
+ * Validate Bambu Lab access code (8 digits)
+ */
+function isValidAccessCode(code) {
+    return /^\d{8}$/.test(code);
+}
+
+/**
+ * Validate Bambu Lab serial number
+ */
+function isValidSerialNumber(serial) {
+    return /^[A-Z0-9]{8,12}$/.test(serial);
+}
+
+/**
+ * Validate printer name (3-50 characters, alphanumeric and spaces)
+ */
+function isValidPrinterName(name) {
+    return /^[a-zA-Z0-9\s\-_]{3,50}$/.test(name);
+}
+
+/**
+ * Validate API key format
+ */
+function isValidApiKey(key) {
+    return key && key.length >= 16 && key.length <= 64;
+}
+
+/**
  * Validate required fields in form
  */
 function validateForm(form) {
@@ -188,10 +216,13 @@ function validateForm(form) {
     const requiredFields = form.querySelectorAll('[required]');
     
     requiredFields.forEach(field => {
-        if (!field.value.trim()) {
+        const label = getFieldLabel(field);
+        const value = field.value.trim();
+        
+        if (!value) {
             errors.push({
                 field: field.name || field.id,
-                message: `${field.labels?.[0]?.textContent || field.name} ist erforderlich`
+                message: `${label} ist erforderlich`
             });
             field.classList.add('error');
         } else {
@@ -205,13 +236,106 @@ function validateForm(form) {
         if (field.value && !isValidIP(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'Ungültige IP-Adresse'
+                message: 'Ungültige IP-Adresse (Format: xxx.xxx.xxx.xxx)'
+            });
+            field.classList.add('error');
+        }
+    });
+    
+    // Validate printer names
+    const nameFields = form.querySelectorAll('[data-validate="printer-name"]');
+    nameFields.forEach(field => {
+        if (field.value && !isValidPrinterName(field.value)) {
+            errors.push({
+                field: field.name || field.id,
+                message: 'Druckername muss 3-50 Zeichen lang sein (Buchstaben, Zahlen, Leerzeichen)'
+            });
+            field.classList.add('error');
+        }
+    });
+    
+    // Validate access codes
+    const accessCodeFields = form.querySelectorAll('[data-validate="access-code"]');
+    accessCodeFields.forEach(field => {
+        if (field.value && !isValidAccessCode(field.value)) {
+            errors.push({
+                field: field.name || field.id,
+                message: 'Access Code muss genau 8 Ziffern enthalten'
+            });
+            field.classList.add('error');
+        }
+    });
+    
+    // Validate serial numbers
+    const serialFields = form.querySelectorAll('[data-validate="serial-number"]');
+    serialFields.forEach(field => {
+        if (field.value && !isValidSerialNumber(field.value)) {
+            errors.push({
+                field: field.name || field.id,
+                message: 'Seriennummer muss 8-12 Zeichen (Buchstaben und Zahlen) enthalten'
+            });
+            field.classList.add('error');
+        }
+    });
+    
+    // Validate API keys
+    const apiKeyFields = form.querySelectorAll('[data-validate="api-key"]');
+    apiKeyFields.forEach(field => {
+        if (field.value && !isValidApiKey(field.value)) {
+            errors.push({
+                field: field.name || field.id,
+                message: 'API Key muss zwischen 16 und 64 Zeichen lang sein'
             });
             field.classList.add('error');
         }
     });
     
     return errors;
+}
+
+/**
+ * Get field label for error messages
+ */
+function getFieldLabel(field) {
+    // Try to find associated label
+    const label = document.querySelector(`label[for="${field.id}"]`);
+    if (label) {
+        return label.textContent.replace(':', '').trim();
+    }
+    
+    // Use placeholder or field name/id as fallback
+    return field.placeholder || field.name || field.id || 'Feld';
+}
+
+/**
+ * Show field validation error
+ */
+function showFieldError(field, message) {
+    field.classList.add('error');
+    
+    // Remove existing error message
+    const existingError = field.parentNode.querySelector('.field-error');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Add new error message
+    const errorElement = document.createElement('div');
+    errorElement.className = 'field-error';
+    errorElement.textContent = message;
+    field.parentNode.appendChild(errorElement);
+}
+
+/**
+ * Clear field validation error
+ */
+function clearFieldError(field) {
+    field.classList.remove('error');
+    
+    const errorElement = field.parentNode.querySelector('.field-error');
+    if (errorElement) {
+        errorElement.remove();
+    }
 }
 
 /**
