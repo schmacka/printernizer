@@ -1,0 +1,134 @@
+# Printernizer .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+
+# Application specific
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Log files
+*.log
+logs/
+log/
+
+# Configuration with sensitive data
+printers.json
+.env
+
+# Uploaded files
+uploads/
+printer-files/
+temp/
+backups/
+
+# Development files
+test_*
+*.backup
+server.log
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Monitoring
+prometheus_data/
+grafana_data/
+
+# Node modules (if any frontend dependencies)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Certificates
+*.pem
+*.key
+*.crt
+*.cert
+
+# Secrets
+secrets/
+.secrets
+
+# Home Assistant addon development
+addon_config/
+
+# Local development overrides
+docker-compose.local.yml
+config.local.json
+settings.local.json
