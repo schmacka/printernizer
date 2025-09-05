@@ -1,0 +1,21 @@
+# Home Assistant Add-on Build Configuration
+# Multi-architecture build support for Printernizer
+
+build_from:
+  aarch64: "ghcr.io/hassio-addons/base/aarch64:latest"
+  amd64: "ghcr.io/hassio-addons/base/amd64:latest" 
+  armhf: "ghcr.io/hassio-addons/base/armhf:latest"
+  armv7: "ghcr.io/hassio-addons/base/armv7:latest"
+  i386: "ghcr.io/hassio-addons/base/i386:latest"
+
+labels:
+  org.opencontainers.image.title: "Printernizer"
+  org.opencontainers.image.description: "Professional 3D print management system for Bambu Lab and Prusa printers"
+  org.opencontainers.image.source: "https://github.com/porcus3d/printernizer"
+  org.opencontainers.image.url: "https://github.com/porcus3d/printernizer"
+  org.opencontainers.image.documentation: "https://github.com/porcus3d/printernizer/blob/main/README.md"
+  org.opencontainers.image.vendor: "Porcus3D"
+  org.opencontainers.image.licenses: "MIT"
+
+args:
+  PRINTERNIZER_VERSION: "1.0.0"

@@ -33,6 +33,7 @@ from api.routers import (
     system_router,
     websocket_router
 )
+from api.routers.homeassistant import router as homeassistant_router
 from database.database import Database
 from services.event_service import EventService
 from services.config_service import ConfigService
@@ -100,6 +101,10 @@ async def lifespan(app: FastAPI):
 def create_application() -> FastAPI:
     """Create FastAPI application with production configuration."""
     
+    # Initialize settings to get configuration
+    from services.config_service import Settings
+    settings = Settings()
+    
     app = FastAPI(
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
@@ -110,9 +115,14 @@ def create_application() -> FastAPI:
     )
     
     # CORS Configuration for German market
+    cors_origins = settings.get_cors_origins()
+    # Add localhost for development
+    if settings.environment == "development":
+        cors_origins.extend(["http://localhost:3000", "http://127.0.0.1:3000"])
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["https://porcus3d.de", "https://www.porcus3d.de"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         allow_headers=["*"],
@@ -132,6 +142,7 @@ def create_application() -> FastAPI:
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+    app.include_router(homeassistant_router, prefix="/api/v1", tags=["Home Assistant"])
     
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
