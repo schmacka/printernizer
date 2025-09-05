@@ -1,8 +1,13 @@
 # Prometheus configuration for Printernizer monitoring
+# Enhanced for Milestone 1.2: Printer API Integration
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    location: 'kornwestheim_germany'
+    service: 'printernizer'
 
 # Rule files for alerting
 rule_files:
@@ -23,18 +28,22 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Printernizer Backend API
+  # Printernizer Backend API with Printer Integration
   - job_name: 'printernizer-backend'
     static_configs:
       - targets: ['printernizer-backend:8000']
     metrics_path: '/metrics'
-    scrape_interval: 30s
+    scrape_interval: 15s  # Faster scraping for real-time printer data
     scrape_timeout: 10s
     metric_relabel_configs:
       - source_labels: [__name__]
         regex: 'printernizer_.*'
         target_label: 'service'
         replacement: 'printernizer'
+      - source_labels: [__name__]
+        regex: 'printernizer_printer_.*'
+        target_label: 'category'
+        replacement: 'printer_metrics'
       - source_labels: [__name__]
         regex: 'printernizer_print_job_.*'
         target_label: 'category'
@@ -43,6 +52,14 @@ scrape_configs:
         regex: 'printernizer_business_.*'
         target_label: 'category'
         replacement: 'business_metrics'
+      - source_labels: [__name__]
+        regex: 'printernizer_websocket_.*'
+        target_label: 'category'
+        replacement: 'websocket_metrics'
+      - source_labels: [__name__]
+        regex: 'printernizer_file_.*'
+        target_label: 'category'
+        replacement: 'file_management'
 
   # Nginx Frontend
   - job_name: 'printernizer-frontend'
@@ -67,6 +84,47 @@ scrape_configs:
     static_configs:
       - targets: ['docker-exporter:9323']
     scrape_interval: 30s
+
+  # Printer Connectivity Monitoring (Custom Exporters)
+  - job_name: 'bambu-printers'
+    static_configs:
+      - targets: ['printernizer-backend:8000']
+    metrics_path: '/metrics/printers/bambu'
+    scrape_interval: 30s
+    params:
+      printer_type: ['bambu']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'bambu_.*'
+        target_label: 'printer_brand'
+        replacement: 'bambu_lab'
+
+  - job_name: 'prusa-printers'
+    static_configs:
+      - targets: ['printernizer-backend:8000']
+    metrics_path: '/metrics/printers/prusa'
+    scrape_interval: 30s
+    params:
+      printer_type: ['prusa']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'prusa_.*'
+        target_label: 'printer_brand'
+        replacement: 'prusa'
+
+  # WebSocket Connection Monitoring
+  - job_name: 'websocket-connections'
+    static_configs:
+      - targets: ['printernizer-backend:8000']
+    metrics_path: '/metrics/websockets'
+    scrape_interval: 15s
+
+  # File Download Performance
+  - job_name: 'file-operations'
+    static_configs:
+      - targets: ['printernizer-backend:8000']
+    metrics_path: '/metrics/files'
+    scrape_interval: 60s
 
 # Remote write for long-term storage (optional)
 # remote_write:

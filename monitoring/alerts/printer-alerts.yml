@@ -1,0 +1,161 @@
+# Printernizer Alert Rules for Printer Monitoring
+# Enhanced for Milestone 1.2: Real-time Printer Integration
+
+groups:
+  - name: printernizer_printer_alerts
+    interval: 30s
+    rules:
+      # Printer Connectivity Alerts
+      - alert: PrinterDisconnected
+        expr: printernizer_printer_connected == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: printernizer
+          category: connectivity
+        annotations:
+          summary: "Printer {{ $labels.printer_name }} is disconnected"
+          description: "The printer {{ $labels.printer_name }} has been disconnected for more than 2 minutes. Check network connectivity and printer status."
+          runbook_url: "https://docs.porcus3d.de/troubleshooting/printer-connectivity"
+
+      - alert: PrinterTemperatureHigh
+        expr: printernizer_printer_temperature{type="hotend"} > 280
+        for: 1m
+        labels:
+          severity: critical
+          service: printernizer
+          category: temperature
+        annotations:
+          summary: "High hotend temperature on {{ $labels.printer_name }}"
+          description: "Hotend temperature on {{ $labels.printer_name }} is {{ $value }}°C, which is above the safe threshold of 280°C."
+          runbook_url: "https://docs.porcus3d.de/troubleshooting/temperature-alerts"
+
+      - alert: PrintJobFailed
+        expr: printernizer_print_job_status{status="failed"} == 1
+        for: 0s
+        labels:
+          severity: warning
+          service: printernizer
+          category: print_job
+        annotations:
+          summary: "Print job failed on {{ $labels.printer_name }}"
+          description: "Print job '{{ $labels.job_name }}' has failed on {{ $labels.printer_name }}. Check printer status and logs."
+          runbook_url: "https://docs.porcus3d.de/troubleshooting/print-failures"
+
+  - name: printernizer_system_alerts
+    interval: 60s
+    rules:
+      # WebSocket Connection Monitoring
+      - alert: WebSocketConnectionsHigh
+        expr: printernizer_websocket_connections > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: printernizer
+          category: websocket
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "There are {{ $value }} active WebSocket connections, which may impact performance."
+
+      # File System Alerts
+      - alert: FileDownloadFailureRate
+        expr: rate(printernizer_file_download_failures_total[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: printernizer
+          category: file_management
+        annotations:
+          summary: "High file download failure rate"
+          description: "File download failure rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      # Business Logic Alerts
+      - alert: DatabaseConnectionLost
+        expr: printernizer_database_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: printernizer
+          category: database
+        annotations:
+          summary: "Database connection lost"
+          description: "The application has lost connection to the SQLite database."
+
+  - name: printernizer_performance_alerts
+    interval: 60s
+    rules:
+      # Performance Monitoring
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="printernizer-backend"} > 536870912  # 512MB
+        for: 5m
+        labels:
+          severity: warning
+          service: printernizer
+          category: performance
+        annotations:
+          summary: "High memory usage detected"
+          description: "Printernizer backend is using {{ $value | humanizeBytes }} of memory, which is above the 512MB threshold."
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="printernizer-backend"}[5m]) * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: printernizer
+          category: performance
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Printernizer backend CPU usage is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+  - name: printernizer_business_alerts
+    interval: 300s  # Check business metrics every 5 minutes
+    rules:
+      # German Business Compliance
+      - alert: VATCalculationError
+        expr: increase(printernizer_business_vat_calculation_errors_total[1h]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          service: printernizer
+          category: business_compliance
+        annotations:
+          summary: "VAT calculation error detected"
+          description: "There have been {{ $value }} VAT calculation errors in the last hour. This may affect German tax compliance."
+          runbook_url: "https://docs.porcus3d.de/compliance/german-vat"
+
+      - alert: ExcessiveFileStorage
+        expr: printernizer_file_storage_bytes > 10737418240  # 10GB
+        for: 1h
+        labels:
+          severity: warning
+          service: printernizer
+          category: storage
+        annotations:
+          summary: "File storage usage is high"
+          description: "Printer file storage is using {{ $value | humanizeBytes }}, which is above the 10GB threshold. Consider cleaning up old files."
+
+# Notification channels configuration (to be customized)
+# alertmanager:
+#   smtp_smarthost: 'smtp.gmail.com:587'
+#   smtp_from: 'alerts@porcus3d.de'
+#   smtp_auth_username: 'alerts@porcus3d.de'
+#   smtp_auth_password: '<password>'
+#   
+#   routes:
+#     - match:
+#         severity: critical
+#       receiver: 'email-critical'
+#     - match:
+#         severity: warning
+#       receiver: 'email-warning'
+#   
+#   receivers:
+#     - name: 'email-critical'
+#       email_configs:
+#         - to: 'sebastian@porcus3d.de'
+#           subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+#           body: |
+#             {{ range .Alerts }}
+#             Alert: {{ .Annotations.summary }}
+#             Description: {{ .Annotations.description }}
+#             {{ end }}

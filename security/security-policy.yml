@@ -1,5 +1,5 @@
 # Printernizer Security Policy Configuration
-# Kubernetes Pod Security Policy for production deployment
+# Enhanced for Milestone 1.2: Printer API Integration Security
 
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
@@ -59,6 +59,14 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["get", "list", "watch"]
+# Additional permissions for printer credential management
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["bambu-printer-credentials", "prusa-printer-credentials"]
+  verbs: ["get"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list"]
 
 ---
 # RBAC RoleBinding
@@ -84,3 +92,10 @@ metadata:
   name: printernizer-service-account
   namespace: printernizer
 automountServiceAccountToken: false
+  labels:
+    app: printernizer
+    component: security
+    printer-access: "enabled"
+  annotations:
+    security.porcus3d.de/printer-credentials: "restricted"
+    compliance.porcus3d.de/gdpr-enabled: "true"
