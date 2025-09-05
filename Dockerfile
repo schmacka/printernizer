@@ -9,11 +9,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Install system dependencies for Milestone 1.2
 RUN apt-get update && apt-get install -y \
     build-essential \
     libffi-dev \
     libssl-dev \
+    libmagic-dev \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Create application directory
@@ -36,10 +38,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ENVIRONMENT=production \
     TZ=Europe/Berlin
 
-# Install runtime dependencies
+# Install runtime dependencies for printer communication
 RUN apt-get update && apt-get install -y \
     libmagic1 \
     curl \
+    telnet \
+    netcat-openbsd \
+    iputils-ping \
+    dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
@@ -60,8 +66,8 @@ COPY frontend/ ./frontend/
 COPY database_schema.sql .
 COPY pytest.ini .
 
-# Create directories for data persistence
-RUN mkdir -p /app/data /app/logs /app/backups /app/uploads && \
+# Create directories for data persistence and printer files
+RUN mkdir -p /app/data /app/logs /app/backups /app/uploads /app/printer-files /app/temp && \
     chown -R appuser:appuser /app
 
 # Copy startup script
@@ -78,9 +84,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Set volumes for persistent data
-VOLUME ["/app/data", "/app/logs", "/app/backups"]
+# Set volumes for persistent data and printer files
+VOLUME ["/app/data", "/app/logs", "/app/backups", "/app/printer-files"]
 
-# Default command
+# Default command with WebSocket support
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--ws", "websockets"]
