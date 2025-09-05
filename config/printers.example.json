@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "updated_at": "2025-09-05T00:00:00.000000",
+  "printers": {
+    "bambu_a1_example": {
+      "name": "Bambu Lab A1 Example",
+      "type": "bambu_lab",
+      "ip_address": "192.168.1.100",
+      "api_key": null,
+      "access_code": "12345678",
+      "serial_number": "01P00A123456789",
+      "is_active": true
+    },
+    "prusa_core_example": {
+      "name": "Prusa Core One Example",
+      "type": "prusa_core",
+      "ip_address": "192.168.1.101",
+      "api_key": "your_prusa_api_key_here",
+      "access_code": null,
+      "serial_number": null,
+      "is_active": true
+    }
+  }
+}
