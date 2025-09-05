@@ -14,14 +14,12 @@ from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 
 # Import will be handled gracefully if bambulabs-api is not installed
 try:
-    from bambulabs_api import BambuClient
-    from bambulabs_api.models import Device, Job
+    from bambulabs_api import Printer, PrinterMQTTClient
     BAMBU_AVAILABLE = True
 except ImportError:
     BAMBU_AVAILABLE = False
-    BambuClient = None
-    Device = None
-    Job = None
+    Printer = None
+    PrinterMQTTClient = None
 
 logger = structlog.get_logger()
 
@@ -40,8 +38,7 @@ class BambuLabPrinter(BasePrinter):
             
         self.access_code = access_code
         self.serial_number = serial_number
-        self.client: Optional[BambuClient] = None
-        self._device: Optional[Device] = None
+        self.client: Optional[Printer] = None
         
     async def connect(self) -> bool:
         """Establish MQTT connection to Bambu Lab printer."""
@@ -54,22 +51,17 @@ class BambuLabPrinter(BasePrinter):
                        printer_id=self.printer_id, ip=self.ip_address)
             
             # Initialize Bambu Lab client
-            self.client = BambuClient(
-                host=self.ip_address,
+            self.client = Printer(
+                ip_address=self.ip_address,
                 access_code=self.access_code,
                 serial=self.serial_number
             )
             
-            # Establish connection
-            await asyncio.wait_for(self.client.connect(), timeout=10.0)
-            
-            # Get device information
-            self._device = await self.client.get_device()
+            # Connection is established automatically when client is created
             
             self.is_connected = True
             logger.info("Successfully connected to Bambu Lab printer",
-                       printer_id=self.printer_id,
-                       model=getattr(self._device, 'model', 'Unknown'))
+                       printer_id=self.printer_id)
             return True
             
         except Exception as e:
@@ -84,11 +76,10 @@ class BambuLabPrinter(BasePrinter):
             
         try:
             if self.client:
-                await self.client.disconnect()
+                # Note: bambulabs_api Printer doesn't have async disconnect method
+                self.client = None
                 
             self.is_connected = False
-            self.client = None
-            self._device = None
             
             logger.info("Disconnected from Bambu Lab printer", printer_id=self.printer_id)
             
@@ -103,32 +94,27 @@ class BambuLabPrinter(BasePrinter):
             
         try:
             # Get current status from Bambu Lab API
-            status_data = await self.client.get_status()
-            
-            # Map Bambu Lab status to our PrinterStatus
-            bambu_status = status_data.get('print', {}).get('gcode_state', 'UNKNOWN')
+            bambu_status = self.client.get_current_state()
             printer_status = self._map_bambu_status(bambu_status)
             
             # Extract temperature data
-            temp_data = status_data.get('temp', {})
-            bed_temp = temp_data.get('bed_temper', 0)
-            nozzle_temp = temp_data.get('nozzle_temper', 0)
+            bed_temp = self.client.get_bed_temperature()
+            nozzle_temp = self.client.get_nozzle_temperature()
             
             # Extract job information
-            print_data = status_data.get('print', {})
-            current_job = print_data.get('subtask_name', '')
-            progress = print_data.get('mc_percent', 0)
+            current_job = self.client.subtask_name if hasattr(self.client, 'subtask_name') else None
+            progress = self.client.get_percentage()
             
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
                 status=printer_status,
                 message=f"Bambu Lab status: {bambu_status}",
-                temperature_bed=float(bed_temp),
-                temperature_nozzle=float(nozzle_temp),
-                progress=int(progress),
+                temperature_bed=float(bed_temp) if bed_temp else 0.0,
+                temperature_nozzle=float(nozzle_temp) if nozzle_temp else 0.0,
+                progress=int(progress) if progress else 0,
                 current_job=current_job if current_job else None,
                 timestamp=datetime.now(),
-                raw_data=status_data
+                raw_data={"state": bambu_status, "bed_temp": bed_temp, "nozzle_temp": nozzle_temp}
             )
             
         except Exception as e:
@@ -160,21 +146,19 @@ class BambuLabPrinter(BasePrinter):
             return None
             
         try:
-            status_data = await self.client.get_status()
-            print_data = status_data.get('print', {})
+            job_name = self.client.subtask_name if hasattr(self.client, 'subtask_name') else None
             
-            if not print_data.get('subtask_name'):
+            if not job_name:
                 return None  # No active job
                 
-            job_name = print_data.get('subtask_name', 'Unknown Job')
-            progress = int(print_data.get('mc_percent', 0))
+            progress = self.client.get_percentage()
             
             # Map Bambu status to JobStatus
-            bambu_status = print_data.get('gcode_state', 'UNKNOWN')
+            bambu_status = self.client.get_current_state()
             job_status = self._map_job_status(bambu_status)
             
-            # Time information
-            remaining_time = print_data.get('mc_remaining_time', 0)
+            # Time information (not directly available in this API version)
+            remaining_time = 0
             
             job_info = JobInfo(
                 job_id=f"{self.printer_id}_{job_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
@@ -209,23 +193,11 @@ class BambuLabPrinter(BasePrinter):
             raise PrinterConnectionError(self.printer_id, "Not connected")
             
         try:
-            # Get file list from Bambu Lab
-            files_data = await self.client.get_files()
-            printer_files = []
-            
-            for file_data in files_data:
-                file_obj = PrinterFile(
-                    filename=file_data.get('name', 'Unknown'),
-                    size=file_data.get('size'),
-                    modified=datetime.fromtimestamp(file_data.get('modified', 0)) 
-                             if file_data.get('modified') else None,
-                    path=file_data.get('path', file_data.get('name', ''))
-                )
-                printer_files.append(file_obj)
-                
-            logger.info("Retrieved file list from Bambu Lab",
-                       printer_id=self.printer_id, file_count=len(printer_files))
-            return printer_files
+            # File listing not yet implemented for this API version
+            # Return empty list for now
+            logger.info("File listing not yet implemented for Bambu Lab API",
+                       printer_id=self.printer_id)
+            return []
             
         except Exception as e:
             logger.error("Failed to list files from Bambu Lab",
@@ -238,19 +210,10 @@ class BambuLabPrinter(BasePrinter):
             raise PrinterConnectionError(self.printer_id, "Not connected")
             
         try:
-            logger.info("Starting file download from Bambu Lab",
-                       printer_id=self.printer_id, filename=filename, local_path=local_path)
-                       
-            # Download file using Bambu Lab client
-            file_content = await self.client.download_file(filename)
-            
-            # Write to local file
-            with open(local_path, 'wb') as f:
-                f.write(file_content)
-                
-            logger.info("Successfully downloaded file from Bambu Lab",
+            # File download not yet implemented for this API version
+            logger.info("File download not yet implemented for Bambu Lab API",
                        printer_id=self.printer_id, filename=filename)
-            return True
+            return False
             
         except Exception as e:
             logger.error("Failed to download file from Bambu Lab",

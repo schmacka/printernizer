@@ -80,8 +80,8 @@ class Settings(BaseSettings):
     debug: bool = False
     environment: str = "production"
     
-    # CORS - Enhanced for Porcus3D
-    cors_origins: List[str] = ["https://porcus3d.de", "https://www.porcus3d.de", "http://localhost:3000"]
+    # CORS - Enhanced for Porcus3D (will be parsed from comma-separated string)
+    cors_origins: str = "https://porcus3d.de,https://www.porcus3d.de,http://localhost:3000"
     
     # Logging
     log_level: str = "INFO"
@@ -99,10 +99,15 @@ class Settings(BaseSettings):
     monitoring_interval: int = 30  # seconds
     connection_timeout: int = 10  # seconds
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        env_prefix = "PRINTERNIZER_"
+    def get_cors_origins(self) -> List[str]:
+        """Parse CORS origins from comma-separated string."""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+    
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore"  # Allow extra fields from .env to be ignored
+    }
 
 
 class ConfigService:
