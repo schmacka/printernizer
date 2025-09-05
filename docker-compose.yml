@@ -4,7 +4,7 @@
 version: '3.8'
 
 services:
-  # Backend API Service
+  # Backend API Service with WebSocket Support
   printernizer-backend:
     build:
       context: .
@@ -16,15 +16,21 @@ services:
       - ENVIRONMENT=production
       - TZ=Europe/Berlin
       - PORT=8000
-      - WORKERS=4
+      - WORKERS=1  # Single worker for WebSocket support
       - LOG_LEVEL=info
       - DATABASE_PATH=/app/data/printernizer.db
       - CORS_ORIGINS=https://porcus3d.de,https://www.porcus3d.de
+      - REDIS_URL=redis://printernizer-redis:6379
+      - ENABLE_WEBSOCKETS=true
+      - PRINTER_POLLING_INTERVAL=30
+      - MAX_CONCURRENT_DOWNLOADS=5
     volumes:
       - printernizer-data:/app/data
       - printernizer-logs:/app/logs
       - printernizer-backups:/app/backups
       - printernizer-uploads:/app/uploads
+      - printernizer-printer-files:/app/printer-files
+      - printernizer-temp:/app/temp
     networks:
       - printernizer-network
     healthcheck:
@@ -39,6 +45,11 @@ services:
       - "traefik.http.routers.printernizer-api.tls=true"
       - "traefik.http.routers.printernizer-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.printernizer-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.printernizer-ws.rule=Host(`api.porcus3d.de`) && PathPrefix(`/ws`)"
+      - "traefik.http.routers.printernizer-ws.tls=true"
+      - "traefik.http.routers.printernizer-ws.tls.certresolver=letsencrypt"
+      - "traefik.http.services.printernizer-ws.loadbalancer.server.port=8000"
+      - "traefik.http.services.printernizer-ws.loadbalancer.sticky.cookie=true"
 
   # Frontend Nginx Service
   printernizer-frontend:
@@ -186,4 +197,10 @@ volumes:
     driver: local
   printernizer-grafana-data:
     name: printernizer-grafana-data
+    driver: local
+  printernizer-printer-files:
+    name: printernizer-printer-files
+    driver: local
+  printernizer-temp:
+    name: printernizer-temp
     driver: local

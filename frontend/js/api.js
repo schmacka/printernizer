@@ -196,6 +196,109 @@ class ApiClient {
     async getPrinterStatistics(printerId, period = 'month') {
         return this.get(CONFIG.ENDPOINTS.STATISTICS_PRINTER(printerId), { period });
     }
+
+    // ========================================
+    // MILESTONE 1.2: ENHANCED API ENDPOINTS
+    // ========================================
+
+    // Real-time Printer Status Endpoints
+    async getPrinterStatus(printerId) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_STATUS(printerId));
+    }
+
+    async getPrinterStatusHistory(printerId, hours = 24) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_STATUS_HISTORY(printerId), { hours });
+    }
+
+    // Real-time Monitoring Endpoints
+    async startPrinterMonitoring(printerId) {
+        return this.post(CONFIG.ENDPOINTS.PRINTER_MONITORING_START(printerId));
+    }
+
+    async stopPrinterMonitoring(printerId) {
+        return this.post(CONFIG.ENDPOINTS.PRINTER_MONITORING_STOP(printerId));
+    }
+
+    // Enhanced File Management Endpoints
+    async getPrinterFiles(printerId, includeStatus = true) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_FILES(printerId), { include_status: includeStatus });
+    }
+
+    async downloadPrinterFile(printerId, filename, onProgress = null) {
+        const endpoint = CONFIG.ENDPOINTS.PRINTER_FILE_DOWNLOAD(printerId, filename);
+        
+        // For progress tracking, we need to handle this differently
+        if (onProgress) {
+            return this.downloadWithProgress(endpoint, onProgress);
+        }
+        
+        return this.post(endpoint);
+    }
+
+    async getPrinterFileDownloadStatus(printerId, filename) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_FILE_DOWNLOAD_STATUS(printerId, filename));
+    }
+
+    // Enhanced Job Endpoints
+    async getCurrentJob(printerId) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_CURRENT_JOB(printerId));
+    }
+
+    async syncJobHistory(printerId) {
+        return this.post(CONFIG.ENDPOINTS.PRINTER_SYNC_JOBS(printerId));
+    }
+
+    // Connection Status Endpoint
+    async getPrinterConnectionStatus(printerId) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_CONNECTION_STATUS(printerId));
+    }
+
+    /**
+     * Download file with progress tracking
+     */
+    async downloadWithProgress(endpoint, onProgress) {
+        const url = `${this.baseURL}${endpoint}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: this.defaultHeaders
+        });
+
+        if (!response.ok) {
+            throw new ApiError(response.status, 'Download failed', 'DOWNLOAD_ERROR');
+        }
+
+        const reader = response.body.getReader();
+        const contentLength = parseInt(response.headers.get('content-length'), 10);
+        let receivedLength = 0;
+        const chunks = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            
+            if (done) break;
+            
+            chunks.push(value);
+            receivedLength += value.length;
+            
+            if (onProgress && contentLength) {
+                onProgress({
+                    progress: (receivedLength / contentLength) * 100,
+                    loaded: receivedLength,
+                    total: contentLength
+                });
+            }
+        }
+
+        return new Uint8Array(receivedLength).map((_, i) => {
+            let offset = 0;
+            for (const chunk of chunks) {
+                if (i >= offset && i < offset + chunk.length) {
+                    return chunk[i - offset];
+                }
+                offset += chunk.length;
+            }
+        });
+    }
 }
 
 /**

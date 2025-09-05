@@ -208,7 +208,29 @@ const CONFIG = {
         
         // Statistics
         STATISTICS_OVERVIEW: '/statistics/overview',
-        STATISTICS_PRINTER: (id) => `/statistics/printers/${id}`
+        STATISTICS_PRINTER: (id) => `/statistics/printers/${id}`,
+
+        // ========================================
+        // MILESTONE 1.2: ENHANCED ENDPOINTS
+        // ========================================
+        
+        // Real-time Printer Status
+        PRINTER_STATUS: (id) => `/printers/${id}/status`,
+        PRINTER_STATUS_HISTORY: (id) => `/printers/${id}/status/history`,
+        PRINTER_CONNECTION_STATUS: (id) => `/printers/${id}/connection`,
+        
+        // Real-time Monitoring
+        PRINTER_MONITORING_START: (id) => `/printers/${id}/monitoring/start`,
+        PRINTER_MONITORING_STOP: (id) => `/printers/${id}/monitoring/stop`,
+        
+        // Enhanced File Management (Drucker-Dateien)
+        PRINTER_FILES: (id) => `/printers/${id}/files`,
+        PRINTER_FILE_DOWNLOAD: (id, filename) => `/printers/${id}/files/${filename}/download`,
+        PRINTER_FILE_DOWNLOAD_STATUS: (id, filename) => `/printers/${id}/files/${filename}/status`,
+        
+        // Enhanced Job Management
+        PRINTER_CURRENT_JOB: (id) => `/printers/${id}/jobs/current`,
+        PRINTER_SYNC_JOBS: (id) => `/printers/${id}/jobs/sync`
     },
     
     // WebSocket Message Types

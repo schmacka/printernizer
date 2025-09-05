@@ -4,23 +4,26 @@
  */
 
 /**
- * Printer Card Component
+ * Enhanced Printer Card Component with Real-time Status
  */
 class PrinterCard {
     constructor(printer) {
         this.printer = printer;
         this.element = null;
+        this.statusUpdateInterval = null;
+        this.isMonitoring = false;
+        this.connectionQuality = 'good';
     }
 
     /**
-     * Render printer card HTML
+     * Render printer card HTML with enhanced real-time features
      */
     render() {
         const status = getStatusConfig('printer', this.printer.status);
         const printerType = CONFIG.PRINTER_TYPES[this.printer.type] || { label: this.printer.type };
         
         this.element = document.createElement('div');
-        this.element.className = `printer-card card status-${this.printer.status}`;
+        this.element.className = `printer-card card status-${this.printer.status} ${this.isMonitoring ? 'monitoring-active' : ''}`;
         this.element.setAttribute('data-printer-id', this.printer.id);
         
         this.element.innerHTML = `
@@ -28,10 +31,15 @@ class PrinterCard {
                 <div class="printer-title">
                     <h3>${escapeHtml(this.printer.name)}</h3>
                     <span class="printer-type">${printerType.label}</span>
+                    ${this.renderConnectionIndicator()}
                 </div>
                 <div class="printer-actions">
+                    ${this.renderMonitoringToggle()}
                     <button class="btn btn-sm btn-secondary" onclick="showPrinterDetails('${this.printer.id}')" title="Details anzeigen">
                         <span class="btn-icon">👁️</span>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="showPrinterFiles('${this.printer.id}')" title="Drucker-Dateien">
+                        <span class="btn-icon">📁</span>
                     </button>
                     <button class="btn btn-sm btn-secondary" onclick="editPrinter('${this.printer.id}')" title="Bearbeiten">
                         <span class="btn-icon">✏️</span>
@@ -43,18 +51,137 @@ class PrinterCard {
                     <div class="printer-status-info">
                         <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
                         <span class="printer-ip text-muted">${this.printer.ip_address}</span>
+                        ${this.renderLastCommunication()}
                     </div>
-                    <span class="printer-last-seen text-muted">
-                        ${this.printer.last_seen ? `Zuletzt gesehen: ${getRelativeTime(this.printer.last_seen)}` : 'Nie gesehen'}
-                    </span>
+                    <div class="printer-quick-stats">
+                        ${this.renderQuickStats()}
+                    </div>
                 </div>
                 
                 ${this.renderCurrentJob()}
                 ${this.renderTemperatures()}
+                ${this.renderRealtimeProgress()}
             </div>
         `;
         
+        // Auto-start monitoring if printer is printing
+        if (this.printer.status === 'printing') {
+            this.startRealtimeMonitoring();
+        }
+        
         return this.element;
+    }
+
+    /**
+     * Render connection quality indicator
+     */
+    renderConnectionIndicator() {
+        const qualityIcons = {
+            'excellent': '📶',
+            'good': '📶',
+            'poor': '📶',
+            'disconnected': '📶'
+        };
+        
+        const qualityColors = {
+            'excellent': '#22c55e',
+            'good': '#eab308',
+            'poor': '#f97316',
+            'disconnected': '#ef4444'
+        };
+        
+        return `
+            <div class="connection-indicator" title="Verbindungsqualität: ${this.connectionQuality}">
+                <span style="color: ${qualityColors[this.connectionQuality]}">${qualityIcons[this.connectionQuality]}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Render monitoring toggle button
+     */
+    renderMonitoringToggle() {
+        const isActive = this.isMonitoring;
+        const buttonClass = isActive ? 'btn-primary' : 'btn-secondary';
+        const buttonIcon = isActive ? '⏹️' : '▶️';
+        const buttonTitle = isActive ? 'Überwachung stoppen' : 'Überwachung starten';
+        
+        return `
+            <button class="btn btn-sm ${buttonClass} monitoring-toggle" 
+                    onclick="togglePrinterMonitoring('${this.printer.id}')" 
+                    title="${buttonTitle}"
+                    data-monitoring="${isActive}">
+                <span class="btn-icon">${buttonIcon}</span>
+            </button>
+        `;
+    }
+
+    /**
+     * Render last communication info
+     */
+    renderLastCommunication() {
+        if (!this.printer.last_communication) {
+            return '<span class="text-muted">Nie verbunden</span>';
+        }
+        
+        const timeSinceLastComm = Date.now() - new Date(this.printer.last_communication).getTime();
+        const isRecent = timeSinceLastComm < 60000; // Less than 1 minute
+        
+        return `
+            <span class="last-communication ${isRecent ? 'text-success' : 'text-warning'}" title="Letzte Kommunikation">
+                ${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_communication)}
+            </span>
+        `;
+    }
+
+    /**
+     * Render quick stats (uptime, jobs today, etc.)
+     */
+    renderQuickStats() {
+        const stats = [];
+        
+        if (this.printer.uptime) {
+            stats.push(`<span class="quick-stat" title="Betriebszeit">⏱️ ${formatDuration(this.printer.uptime)}</span>`);
+        }
+        
+        if (this.printer.jobs_today !== undefined) {
+            stats.push(`<span class="quick-stat" title="Aufträge heute">📊 ${this.printer.jobs_today}</span>`);
+        }
+        
+        return stats.join('');
+    }
+
+    /**
+     * Render real-time progress section
+     */
+    renderRealtimeProgress() {
+        if (!this.printer.current_job || this.printer.status !== 'printing') {
+            return '';
+        }
+        
+        const job = this.printer.current_job;
+        return `
+            <div class="realtime-progress">
+                <div class="progress-header">
+                    <span class="progress-label">Live-Fortschritt</span>
+                    <span class="progress-percentage">${formatPercentage(job.progress || 0)}</span>
+                </div>
+                <div class="progress progress-animated">
+                    <div class="progress-bar" style="width: ${job.progress || 0}%"></div>
+                </div>
+                <div class="progress-details">
+                    ${job.layer_current && job.layer_total ? `
+                        <span>Schicht ${job.layer_current}/${job.layer_total}</span>
+                    ` : ''}
+                    ${job.estimated_remaining ? `
+                        <span>⏰ ${formatDuration(job.estimated_remaining)} verbleibend</span>
+                    ` : ''}
+                    ${job.print_speed ? `
+                        <span>⚡ ${job.print_speed}%</span>
+                    ` : ''}
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -162,16 +289,244 @@ class PrinterCard {
     }
 
     /**
+     * Start real-time monitoring for this printer
+     */
+    async startRealtimeMonitoring() {
+        if (this.isMonitoring) return;
+        
+        try {
+            await api.startPrinterMonitoring(this.printer.id);
+            this.isMonitoring = true;
+            
+            // Update monitoring button
+            this.updateMonitoringButton();
+            
+            // Start periodic status updates
+            this.statusUpdateInterval = setInterval(async () => {
+                try {
+                    const status = await api.getPrinterStatus(this.printer.id);
+                    this.updateRealtimeData(status);
+                } catch (error) {
+                    console.warn(`Failed to update printer ${this.printer.id} status:`, error);
+                }
+            }, CONFIG.PRINTER_STATUS_INTERVAL);
+            
+            // Add monitoring-active class
+            this.element.classList.add('monitoring-active');
+            
+        } catch (error) {
+            console.error('Failed to start monitoring:', error);
+            showToast('Überwachung konnte nicht gestartet werden', 'error');
+        }
+    }
+
+    /**
+     * Stop real-time monitoring for this printer
+     */
+    async stopRealtimeMonitoring() {
+        if (!this.isMonitoring) return;
+        
+        try {
+            await api.stopPrinterMonitoring(this.printer.id);
+            this.isMonitoring = false;
+            
+            // Clear update interval
+            if (this.statusUpdateInterval) {
+                clearInterval(this.statusUpdateInterval);
+                this.statusUpdateInterval = null;
+            }
+            
+            // Update monitoring button
+            this.updateMonitoringButton();
+            
+            // Remove monitoring-active class
+            this.element.classList.remove('monitoring-active');
+            
+        } catch (error) {
+            console.error('Failed to stop monitoring:', error);
+            showToast('Überwachung konnte nicht gestoppt werden', 'error');
+        }
+    }
+
+    /**
+     * Update monitoring button appearance
+     */
+    updateMonitoringButton() {
+        const button = this.element.querySelector('.monitoring-toggle');
+        if (!button) return;
+        
+        const isActive = this.isMonitoring;
+        button.className = `btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'} monitoring-toggle`;
+        button.title = isActive ? 'Überwachung stoppen' : 'Überwachung starten';
+        button.querySelector('.btn-icon').textContent = isActive ? '⏹️' : '▶️';
+        button.setAttribute('data-monitoring', isActive);
+    }
+
+    /**
+     * Update real-time data without full re-render
+     */
+    updateRealtimeData(statusData) {
+        // Update connection quality
+        if (statusData.connection_quality) {
+            this.connectionQuality = statusData.connection_quality;
+            this.updateConnectionIndicator();
+        }
+        
+        // Update temperatures
+        if (statusData.temperatures) {
+            this.updateTemperatureDisplay(statusData.temperatures);
+        }
+        
+        // Update job progress
+        if (statusData.current_job) {
+            this.updateJobProgress(statusData.current_job);
+        }
+        
+        // Update last communication
+        if (statusData.last_communication) {
+            this.printer.last_communication = statusData.last_communication;
+            this.updateLastCommunication();
+        }
+        
+        // Update status if changed
+        if (statusData.status && statusData.status !== this.printer.status) {
+            this.printer.status = statusData.status;
+            this.updateStatusBadge();
+        }
+    }
+
+    /**
+     * Update connection indicator
+     */
+    updateConnectionIndicator() {
+        const indicator = this.element.querySelector('.connection-indicator span');
+        if (!indicator) return;
+        
+        const qualityColors = {
+            'excellent': '#22c55e',
+            'good': '#eab308', 
+            'poor': '#f97316',
+            'disconnected': '#ef4444'
+        };
+        
+        indicator.style.color = qualityColors[this.connectionQuality];
+        indicator.parentElement.title = `Verbindungsqualität: ${this.connectionQuality}`;
+    }
+
+    /**
+     * Update temperature displays
+     */
+    updateTemperatureDisplay(temperatures) {
+        Object.keys(temperatures).forEach(tempType => {
+            const tempElement = this.element.querySelector(`[data-temp-type="${tempType}"] .temp-value`);
+            if (tempElement) {
+                const temp = temperatures[tempType];
+                let tempValue = '';
+                
+                if (typeof temp === 'object') {
+                    tempValue = `${temp.current}°C`;
+                    const isHeating = temp.target && Math.abs(temp.current - temp.target) > 2;
+                    tempElement.className = `temp-value ${isHeating ? 'temp-heating' : ''}`;
+                } else {
+                    tempValue = `${temp}°C`;
+                }
+                
+                tempElement.textContent = tempValue;
+            }
+        });
+    }
+
+    /**
+     * Update job progress
+     */
+    updateJobProgress(jobData) {
+        // Update main progress bar
+        const progressBar = this.element.querySelector('.progress-bar');
+        if (progressBar && jobData.progress !== undefined) {
+            progressBar.style.width = `${jobData.progress}%`;
+        }
+        
+        // Update progress percentage
+        const progressPercentage = this.element.querySelector('.progress-percentage');
+        if (progressPercentage && jobData.progress !== undefined) {
+            progressPercentage.textContent = formatPercentage(jobData.progress);
+        }
+        
+        // Update layer info
+        if (jobData.layer_current && jobData.layer_total) {
+            const layerInfo = this.element.querySelector('.layer-info span');
+            if (layerInfo) {
+                layerInfo.textContent = `Schicht: ${jobData.layer_current}/${jobData.layer_total}`;
+            }
+        }
+        
+        // Update remaining time
+        const remainingTimeElement = this.element.querySelector('.estimated-time');
+        if (remainingTimeElement && jobData.estimated_remaining) {
+            remainingTimeElement.textContent = `Noch ${formatDuration(jobData.estimated_remaining)}`;
+        }
+    }
+
+    /**
+     * Update last communication display
+     */
+    updateLastCommunication() {
+        const commElement = this.element.querySelector('.last-communication');
+        if (!commElement || !this.printer.last_communication) return;
+        
+        const timeSinceLastComm = Date.now() - new Date(this.printer.last_communication).getTime();
+        const isRecent = timeSinceLastComm < 60000;
+        
+        commElement.className = `last-communication ${isRecent ? 'text-success' : 'text-warning'}`;
+        commElement.innerHTML = `${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_communication)}`;
+    }
+
+    /**
+     * Update status badge
+     */
+    updateStatusBadge() {
+        const statusBadge = this.element.querySelector('.status-badge');
+        if (!statusBadge) return;
+        
+        const status = getStatusConfig('printer', this.printer.status);
+        statusBadge.className = `status-badge ${status.class}`;
+        statusBadge.innerHTML = `${status.icon} ${status.label}`;
+        
+        // Update card class
+        this.element.className = `printer-card card status-${this.printer.status} ${this.isMonitoring ? 'monitoring-active' : ''}`;
+    }
+
+    /**
      * Update printer card with new data
      */
     update(printerData) {
         this.printer = { ...this.printer, ...printerData };
-        const oldElement = this.element;
-        this.render();
-        if (oldElement && oldElement.parentNode) {
-            oldElement.parentNode.replaceChild(this.element, oldElement);
+        
+        // If we're monitoring, just update real-time data
+        if (this.isMonitoring) {
+            this.updateRealtimeData(printerData);
+        } else {
+            // Full re-render for major changes
+            const oldElement = this.element;
+            this.render();
+            if (oldElement && oldElement.parentNode) {
+                oldElement.parentNode.replaceChild(this.element, oldElement);
+            }
         }
+        
         return this.element;
+    }
+
+    /**
+     * Cleanup when component is destroyed
+     */
+    destroy() {
+        if (this.statusUpdateInterval) {
+            clearInterval(this.statusUpdateInterval);
+        }
+        if (this.isMonitoring) {
+            this.stopRealtimeMonitoring();
+        }
     }
 }
 
@@ -668,6 +1023,732 @@ class Pagination {
 }
 
 /**
+ * Enhanced Drucker-Dateien File Management Component
+ */
+class DruckerDateienManager {
+    constructor(containerId, printerId = null) {
+        this.containerId = containerId;
+        this.printerId = printerId;
+        this.container = null;
+        this.files = [];
+        this.downloadProgress = new Map(); // Track individual file download progress
+        this.refreshInterval = null;
+        this.filters = {
+            status: 'all',
+            printer: 'all',
+            type: 'all',
+            search: ''
+        };
+    }
+
+    /**
+     * Initialize the file manager
+     */
+    async init() {
+        this.container = document.getElementById(this.containerId);
+        if (!this.container) {
+            throw new Error(`Container with ID ${this.containerId} not found`);
+        }
+
+        this.render();
+        await this.loadFiles();
+        
+        // Auto-refresh every 30 seconds
+        this.refreshInterval = setInterval(() => {
+            this.loadFiles();
+        }, 30000);
+    }
+
+    /**
+     * Render the file manager interface
+     */
+    render() {
+        this.container.innerHTML = `
+            <div class="drucker-dateien-manager">
+                <div class="file-manager-header">
+                    <div class="header-title">
+                        <h2>📁 Drucker-Dateien</h2>
+                        <span class="subtitle">Einheitliche Verwaltung aller Drucker-Dateien</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="refreshFiles()" title="Dateien aktualisieren">
+                            <span class="btn-icon">🔄</span> Aktualisieren
+                        </button>
+                        <button class="btn btn-success" onclick="downloadAllAvailable()" title="Alle verfügbaren Dateien herunterladen">
+                            <span class="btn-icon">⬇️</span> Alle laden
+                        </button>
+                    </div>
+                </div>
+
+                <div class="file-filters">
+                    <div class="filter-group">
+                        <label for="status-filter">Status:</label>
+                        <select id="status-filter" class="form-control">
+                            <option value="all">Alle Status</option>
+                            <option value="available">📁 Verfügbar</option>
+                            <option value="downloaded">✓ Heruntergeladen</option>
+                            <option value="local">💾 Lokal</option>
+                            <option value="downloading">⬇️ Lädt herunter</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="printer-filter">Drucker:</label>
+                        <select id="printer-filter" class="form-control">
+                            <option value="all">Alle Drucker</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="type-filter">Dateityp:</label>
+                        <select id="type-filter" class="form-control">
+                            <option value="all">Alle Typen</option>
+                            <option value="3mf">📦 3MF</option>
+                            <option value="stl">🔺 STL</option>
+                            <option value="gcode">⚙️ G-Code</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group search-group">
+                        <label for="file-search">Suche:</label>
+                        <input type="text" id="file-search" class="form-control" placeholder="Dateiname suchen...">
+                    </div>
+                </div>
+
+                <div class="file-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Gesamt:</span>
+                        <span class="stat-value" id="total-files">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Verfügbar:</span>
+                        <span class="stat-value" id="available-files">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Heruntergeladen:</span>
+                        <span class="stat-value" id="downloaded-files">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Gesamtgröße:</span>
+                        <span class="stat-value" id="total-size">0 MB</span>
+                    </div>
+                </div>
+
+                <div class="files-container">
+                    <div id="files-list" class="files-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Lade Dateien...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bulk-actions" style="display: none;">
+                    <div class="selected-info">
+                        <span id="selected-count">0</span> Dateien ausgewählt
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="downloadSelected()">
+                            <span class="btn-icon">⬇️</span> Ausgewählte laden
+                        </button>
+                        <button class="btn btn-error" onclick="deleteSelected()">
+                            <span class="btn-icon">🗑️</span> Ausgewählte löschen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.setupEventListeners();
+    }
+
+    /**
+     * Setup event listeners for filters and interactions
+     */
+    setupEventListeners() {
+        // Filter change handlers
+        const statusFilter = this.container.querySelector('#status-filter');
+        const printerFilter = this.container.querySelector('#printer-filter');
+        const typeFilter = this.container.querySelector('#type-filter');
+        const searchInput = this.container.querySelector('#file-search');
+
+        statusFilter.addEventListener('change', (e) => {
+            this.filters.status = e.target.value;
+            this.applyFilters();
+        });
+
+        printerFilter.addEventListener('change', (e) => {
+            this.filters.printer = e.target.value;
+            this.applyFilters();
+        });
+
+        typeFilter.addEventListener('change', (e) => {
+            this.filters.type = e.target.value;
+            this.applyFilters();
+        });
+
+        // Search with debouncing
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.filters.search = e.target.value.trim();
+                this.applyFilters();
+            }, 300);
+        });
+    }
+
+    /**
+     * Load files from all printers or specific printer
+     */
+    async loadFiles() {
+        try {
+            let files = [];
+            
+            if (this.printerId) {
+                // Load files for specific printer
+                const response = await api.getPrinterFiles(this.printerId);
+                files = response.files || [];
+            } else {
+                // Load files from all printers
+                const printers = await api.getPrinters({ active: true });
+                for (const printer of printers.data || []) {
+                    try {
+                        const response = await api.getPrinterFiles(printer.id);
+                        const printerFiles = (response.files || []).map(file => ({
+                            ...file,
+                            printer_id: printer.id,
+                            printer_name: printer.name
+                        }));
+                        files = files.concat(printerFiles);
+                    } catch (error) {
+                        console.warn(`Failed to load files for printer ${printer.name}:`, error);
+                    }
+                }
+            }
+
+            this.files = files;
+            this.updateStats();
+            this.updatePrinterFilter();
+            this.applyFilters();
+            
+        } catch (error) {
+            console.error('Failed to load files:', error);
+            this.showError('Fehler beim Laden der Dateien');
+        }
+    }
+
+    /**
+     * Update file statistics
+     */
+    updateStats() {
+        const stats = {
+            total: this.files.length,
+            available: this.files.filter(f => f.status === 'available').length,
+            downloaded: this.files.filter(f => f.status === 'downloaded').length,
+            totalSize: this.files.reduce((sum, f) => sum + (f.file_size || 0), 0)
+        };
+
+        document.getElementById('total-files').textContent = stats.total;
+        document.getElementById('available-files').textContent = stats.available;
+        document.getElementById('downloaded-files').textContent = stats.downloaded;
+        document.getElementById('total-size').textContent = formatBytes(stats.totalSize);
+    }
+
+    /**
+     * Update printer filter options
+     */
+    updatePrinterFilter() {
+        const printerFilter = this.container.querySelector('#printer-filter');
+        const printers = [...new Set(this.files.map(f => f.printer_name))].sort();
+        
+        // Clear existing options except "Alle Drucker"
+        while (printerFilter.children.length > 1) {
+            printerFilter.removeChild(printerFilter.lastChild);
+        }
+        
+        printers.forEach(printerName => {
+            if (printerName) {
+                const option = document.createElement('option');
+                option.value = printerName;
+                option.textContent = printerName;
+                printerFilter.appendChild(option);
+            }
+        });
+    }
+
+    /**
+     * Apply current filters to file list
+     */
+    applyFilters() {
+        let filteredFiles = this.files;
+
+        // Status filter
+        if (this.filters.status !== 'all') {
+            filteredFiles = filteredFiles.filter(f => f.status === this.filters.status);
+        }
+
+        // Printer filter
+        if (this.filters.printer !== 'all') {
+            filteredFiles = filteredFiles.filter(f => f.printer_name === this.filters.printer);
+        }
+
+        // Type filter
+        if (this.filters.type !== 'all') {
+            filteredFiles = filteredFiles.filter(f => {
+                const ext = f.filename.split('.').pop().toLowerCase();
+                return ext === this.filters.type;
+            });
+        }
+
+        // Search filter
+        if (this.filters.search) {
+            const searchTerm = this.filters.search.toLowerCase();
+            filteredFiles = filteredFiles.filter(f => 
+                f.filename.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        this.renderFileList(filteredFiles);
+    }
+
+    /**
+     * Render filtered file list
+     */
+    renderFileList(files) {
+        const filesList = this.container.querySelector('#files-list');
+        
+        if (files.length === 0) {
+            filesList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>Keine Dateien gefunden</h3>
+                    <p>Mit den aktuellen Filtern wurden keine Dateien gefunden.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const fileItems = files.map(file => this.renderFileItem(file)).join('');
+        
+        filesList.innerHTML = `
+            <div class="files-grid">
+                ${fileItems}
+            </div>
+        `;
+    }
+
+    /**
+     * Render individual file item
+     */
+    renderFileItem(file) {
+        const status = getStatusConfig('file', file.status);
+        const fileIcon = this.getFileIcon(file.filename);
+        const downloadProgress = this.downloadProgress.get(file.id);
+        
+        return `
+            <div class="file-card ${file.status}" data-file-id="${file.id}">
+                <div class="file-header">
+                    <input type="checkbox" class="file-checkbox" value="${file.id}">
+                    <div class="file-icon">${fileIcon}</div>
+                    <div class="file-status">
+                        <span class="status-badge ${status.class}">${status.icon}</span>
+                    </div>
+                </div>
+                
+                <div class="file-info">
+                    <div class="file-name" title="${escapeHtml(file.filename)}">${escapeHtml(file.filename)}</div>
+                    <div class="file-details">
+                        <span class="file-size">${formatBytes(file.file_size)}</span>
+                        ${file.printer_name ? `<span class="file-printer">${escapeHtml(file.printer_name)}</span>` : ''}
+                    </div>
+                    <div class="file-meta">
+                        <span class="file-date">
+                            ${file.created_on_printer ? formatDateTime(file.created_on_printer) : 'Unbekannt'}
+                        </span>
+                    </div>
+                </div>
+                
+                ${downloadProgress ? this.renderDownloadProgress(downloadProgress) : ''}
+                
+                <div class="file-actions">
+                    ${this.renderFileActions(file)}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render file actions based on status
+     */
+    renderFileActions(file) {
+        const actions = [];
+
+        switch (file.status) {
+            case 'available':
+                actions.push(`
+                    <button class="btn btn-sm btn-primary" onclick="downloadFile('${file.id}')" title="Datei herunterladen">
+                        <span class="btn-icon">⬇️</span>
+                    </button>
+                `);
+                break;
+
+            case 'downloaded':
+                actions.push(`
+                    <button class="btn btn-sm btn-success" onclick="openLocalFile('${file.id}')" title="Lokale Datei öffnen">
+                        <span class="btn-icon">📂</span>
+                    </button>
+                    <button class="btn btn-sm btn-error" onclick="deleteLocalFile('${file.id}')" title="Lokale Datei löschen">
+                        <span class="btn-icon">🗑️</span>
+                    </button>
+                `);
+                break;
+
+            case 'downloading':
+                actions.push(`
+                    <button class="btn btn-sm btn-secondary" disabled title="Download läuft">
+                        <span class="btn-icon">⏳</span>
+                    </button>
+                `);
+                break;
+        }
+
+        // Preview button for supported formats
+        if (this.isPreviewSupported(file.filename)) {
+            actions.push(`
+                <button class="btn btn-sm btn-secondary" onclick="previewFile('${file.id}')" title="Vorschau anzeigen">
+                    <span class="btn-icon">👁️</span>
+                </button>
+            `);
+        }
+
+        return actions.join('');
+    }
+
+    /**
+     * Render download progress for a file
+     */
+    renderDownloadProgress(progress) {
+        return `
+            <div class="download-progress-overlay">
+                <div class="progress">
+                    <div class="progress-bar" style="width: ${progress.percentage}%"></div>
+                </div>
+                <div class="progress-text">${Math.round(progress.percentage)}% - ${formatBytes(progress.speed * 1024)}/s</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get appropriate icon for file type
+     */
+    getFileIcon(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        const icons = {
+            '3mf': '📦',
+            'stl': '🔺',
+            'obj': '🔷',
+            'gcode': '⚙️',
+            'amf': '📄',
+            'ply': '🔶'
+        };
+        return icons[extension] || '📄';
+    }
+
+    /**
+     * Check if file format supports preview
+     */
+    isPreviewSupported(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        return ['3mf', 'stl', 'obj'].includes(extension);
+    }
+
+    /**
+     * Start file download with progress tracking
+     */
+    async downloadFile(fileId) {
+        const file = this.files.find(f => f.id === fileId);
+        if (!file) return;
+
+        try {
+            // Update file status to downloading
+            file.status = 'downloading';
+            this.applyFilters();
+
+            // Start download with progress tracking
+            await api.downloadPrinterFile(file.printer_id, file.filename, (progress) => {
+                this.downloadProgress.set(fileId, {
+                    percentage: progress.progress,
+                    loaded: progress.loaded,
+                    total: progress.total,
+                    speed: progress.speed || 0
+                });
+                
+                // Update progress display
+                this.updateDownloadProgress(fileId);
+            });
+
+            // Download completed
+            file.status = 'downloaded';
+            this.downloadProgress.delete(fileId);
+            this.applyFilters();
+            
+            showToast(`Datei "${file.filename}" erfolgreich heruntergeladen`, 'success');
+
+        } catch (error) {
+            console.error('Download failed:', error);
+            file.status = 'available'; // Reset status
+            this.downloadProgress.delete(fileId);
+            this.applyFilters();
+            showToast(`Download fehlgeschlagen: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Update download progress display for a specific file
+     */
+    updateDownloadProgress(fileId) {
+        const fileCard = this.container.querySelector(`[data-file-id="${fileId}"]`);
+        const progress = this.downloadProgress.get(fileId);
+        
+        if (!fileCard || !progress) return;
+
+        let progressOverlay = fileCard.querySelector('.download-progress-overlay');
+        if (!progressOverlay) {
+            progressOverlay = document.createElement('div');
+            progressOverlay.className = 'download-progress-overlay';
+            fileCard.appendChild(progressOverlay);
+        }
+
+        progressOverlay.innerHTML = this.renderDownloadProgress(progress);
+    }
+
+    /**
+     * Show error message
+     */
+    showError(message) {
+        const filesList = this.container.querySelector('#files-list');
+        filesList.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">⚠️</div>
+                <h3>Fehler</h3>
+                <p>${escapeHtml(message)}</p>
+                <button class="btn btn-primary" onclick="location.reload()">Seite neu laden</button>
+            </div>
+        `;
+    }
+
+    /**
+     * Cleanup when component is destroyed
+     */
+    destroy() {
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+        }
+        
+        // Clear any ongoing downloads
+        this.downloadProgress.clear();
+    }
+}
+
+/**
+ * Status History Chart Component
+ */
+class StatusHistoryChart {
+    constructor(containerId, printerId) {
+        this.containerId = containerId;
+        this.printerId = printerId;
+        this.container = null;
+        this.chart = null;
+        this.updateInterval = null;
+    }
+
+    /**
+     * Initialize the chart
+     */
+    async init() {
+        this.container = document.getElementById(this.containerId);
+        if (!this.container) {
+            throw new Error(`Container with ID ${this.containerId} not found`);
+        }
+
+        this.render();
+        await this.loadData();
+        
+        // Auto-refresh every 2 minutes
+        this.updateInterval = setInterval(() => {
+            this.loadData();
+        }, 120000);
+    }
+
+    /**
+     * Render chart container
+     */
+    render() {
+        this.container.innerHTML = `
+            <div class="status-history-chart">
+                <div class="chart-header">
+                    <h3>📊 Temperaturverlauf (24h)</h3>
+                    <div class="chart-controls">
+                        <select class="form-control chart-period" onchange="updateChartPeriod(this.value)">
+                            <option value="1">1 Stunde</option>
+                            <option value="6">6 Stunden</option>
+                            <option value="24" selected>24 Stunden</option>
+                            <option value="168">7 Tage</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="temperature-chart-${this.printerId}" width="400" height="200"></canvas>
+                </div>
+                <div class="chart-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #ef4444;"></span>
+                        <span>Düse</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #3b82f6;"></span>
+                        <span>Bett</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: #10b981;"></span>
+                        <span>Kammer</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Load historical data and update chart
+     */
+    async loadData(hours = 24) {
+        try {
+            const data = await api.getPrinterStatusHistory(this.printerId, hours);
+            this.updateChart(data);
+        } catch (error) {
+            console.error('Failed to load status history:', error);
+            this.showError('Fehler beim Laden der Verlaufsdaten');
+        }
+    }
+
+    /**
+     * Update chart with new data (simplified implementation)
+     */
+    updateChart(data) {
+        const canvas = this.container.querySelector(`#temperature-chart-${this.printerId}`);
+        const ctx = canvas.getContext('2d');
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (!data || data.length === 0) {
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Keine Daten verfügbar', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        // Simple line chart implementation
+        // Note: In production, you'd use a proper charting library like Chart.js
+        this.drawSimpleChart(ctx, canvas, data);
+    }
+
+    /**
+     * Draw a simple temperature chart
+     */
+    drawSimpleChart(ctx, canvas, data) {
+        const margin = 40;
+        const width = canvas.width - margin * 2;
+        const height = canvas.height - margin * 2;
+        
+        // Find min/max temperatures
+        let minTemp = 0;
+        let maxTemp = 100;
+        
+        data.forEach(point => {
+            if (point.temperature_nozzle) maxTemp = Math.max(maxTemp, point.temperature_nozzle);
+            if (point.temperature_bed) maxTemp = Math.max(maxTemp, point.temperature_bed);
+        });
+        
+        maxTemp += 10; // Add some padding
+        
+        // Draw axes
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.beginPath();
+        ctx.moveTo(margin, margin);
+        ctx.lineTo(margin, margin + height);
+        ctx.lineTo(margin + width, margin + height);
+        ctx.stroke();
+        
+        // Draw temperature lines
+        if (data.length > 1) {
+            // Nozzle temperature (red)
+            this.drawTemperatureLine(ctx, data, 'temperature_nozzle', '#ef4444', margin, width, height, minTemp, maxTemp);
+            
+            // Bed temperature (blue)
+            this.drawTemperatureLine(ctx, data, 'temperature_bed', '#3b82f6', margin, width, height, minTemp, maxTemp);
+        }
+        
+        // Draw labels
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${maxTemp}°C`, margin - 5, margin + 5);
+        ctx.fillText(`${minTemp}°C`, margin - 5, margin + height + 5);
+    }
+
+    /**
+     * Draw a temperature line on the chart
+     */
+    drawTemperatureLine(ctx, data, tempField, color, margin, width, height, minTemp, maxTemp) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        let firstPoint = true;
+        data.forEach((point, index) => {
+            if (point[tempField] !== undefined) {
+                const x = margin + (index / (data.length - 1)) * width;
+                const y = margin + height - ((point[tempField] - minTemp) / (maxTemp - minTemp)) * height;
+                
+                if (firstPoint) {
+                    ctx.moveTo(x, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+        });
+        
+        ctx.stroke();
+    }
+
+    /**
+     * Show error state
+     */
+    showError(message) {
+        const container = this.container.querySelector('.chart-container');
+        container.innerHTML = `
+            <div class="chart-error">
+                <div class="error-icon">⚠️</div>
+                <p>${escapeHtml(message)}</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Cleanup when component is destroyed
+     */
+    destroy() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+    }
+}
+
+/**
  * Search Component
  */
 class SearchBox {
@@ -780,6 +1861,8 @@ if (typeof module !== 'undefined' && module.exports) {
         FileListItem,
         StatCard,
         Pagination,
-        SearchBox
+        SearchBox,
+        DruckerDateienManager,
+        StatusHistoryChart
     };
 }

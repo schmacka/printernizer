@@ -1,0 +1,416 @@
+# Printernizer File Storage Optimization Configuration
+# Enhanced for Milestone 1.2: Drucker-Dateien Performance
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: file-storage-config
+  namespace: printernizer
+  labels:
+    app: printernizer
+    component: file-storage
+data:
+  # Storage configuration
+  storage_backend: "local"  # Options: local, s3, gcs, azure
+  base_path: "/app/printer-files"
+  temp_path: "/app/temp"
+  
+  # File download optimization
+  max_concurrent_downloads: "5"
+  download_timeout_seconds: "300"  # 5 minutes per file
+  chunk_size_bytes: "8192"  # 8KB chunks for streaming
+  resume_downloads: "true"
+  verify_checksums: "true"
+  
+  # Caching configuration
+  enable_file_cache: "true"
+  cache_size_mb: "1024"  # 1GB cache
+  cache_ttl_hours: "24"
+  compress_cached_files: "true"
+  
+  # Performance tuning
+  io_buffer_size_bytes: "65536"  # 64KB buffer
+  async_io_enabled: "true"
+  connection_pool_size: "10"
+  retry_attempts: "3"
+  retry_backoff_seconds: "2"
+  
+  # File organization
+  organize_by_date: "true"
+  organize_by_printer: "true"
+  cleanup_temp_files: "true"
+  temp_file_ttl_hours: "2"
+  
+  # German business compliance
+  audit_file_access: "true"
+  encrypt_sensitive_files: "true"
+  gdpr_compliant_naming: "true"
+  
+  # Monitoring
+  track_download_metrics: "true"
+  log_file_operations: "true"
+  alert_on_failures: "true"
+
+---
+# Persistent Volume for File Storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: printernizer-file-storage
+  namespace: printernizer
+  labels:
+    app: printernizer
+    component: file-storage
+spec:
+  accessModes:
+    - ReadWriteMany  # Allow multiple pods to access files
+  resources:
+    requests:
+      storage: 100Gi  # 100GB for printer files
+  storageClassName: fast-ssd
+  volumeMode: Filesystem
+
+---
+# Cache Volume for Performance
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: printernizer-file-cache
+  namespace: printernizer
+  labels:
+    app: printernizer
+    component: file-cache
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi  # 10GB cache
+  storageClassName: fast-ssd
+  volumeMode: Filesystem
+
+---
+# File Storage Service Configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-storage-service
+  namespace: printernizer
+  labels:
+    app: printernizer
+    component: file-storage
+spec:
+  selector:
+    app: printernizer-backend
+  ports:
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+    name: file-api
+  type: ClusterIP
+
+---
+# File Storage Deployment (if separate service)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: printernizer-file-storage
+  namespace: printernizer
+  labels:
+    app: printernizer-file-storage
+    component: file-storage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: printernizer-file-storage
+  template:
+    metadata:
+      labels:
+        app: printernizer-file-storage
+        component: file-storage
+    spec:
+      containers:
+      - name: file-storage
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: file-storage
+          mountPath: /usr/share/nginx/html/files
+        - name: file-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: file-storage
+        persistentVolumeClaim:
+          claimName: printernizer-file-storage
+      - name: file-cache
+        persistentVolumeClaim:
+          claimName: printernizer-file-cache
+      - name: nginx-config
+        configMap:
+          name: file-storage-nginx-config
+
+---
+# Nginx Configuration for File Storage
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: file-storage-nginx-config
+  namespace: printernizer
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Performance optimizations
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        keepalive_requests 1000;
+        
+        # File serving optimizations
+        open_file_cache max=10000 inactive=60s;
+        open_file_cache_valid 120s;
+        open_file_cache_min_uses 2;
+        open_file_cache_errors off;
+        
+        # Gzip compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1000;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types
+            text/plain
+            text/css
+            text/xml
+            text/javascript
+            application/javascript
+            application/xml+rss
+            application/json
+            application/octet-stream;
+        
+        # Rate limiting for downloads
+        limit_req_zone $binary_remote_addr zone=downloads:10m rate=10r/s;
+        limit_conn_zone $binary_remote_addr zone=download_conn:10m;
+        
+        # Logging
+        access_log /var/log/nginx/access.log combined;
+        error_log /var/log/nginx/error.log warn;
+        
+        server {
+            listen 80;
+            server_name file-storage-service;
+            
+            # File serving location
+            location /files/ {
+                alias /usr/share/nginx/html/files/;
+                
+                # Rate limiting
+                limit_req zone=downloads burst=20 nodelay;
+                limit_conn download_conn 5;
+                
+                # Security headers
+                add_header X-Frame-Options DENY;
+                add_header X-Content-Type-Options nosniff;
+                add_header X-XSS-Protection "1; mode=block";
+                
+                # CORS for API access
+                add_header Access-Control-Allow-Origin "https://porcus3d.de";
+                add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS";
+                add_header Access-Control-Allow-Headers "Range, Content-Type";
+                add_header Access-Control-Expose-Headers "Content-Length, Content-Range, Accept-Ranges";
+                
+                # Enable range requests for large files
+                location ~* \.(3mf|stl|gcode|uf2)$ {
+                    add_header Accept-Ranges bytes;
+                    
+                    # Cache control for 3D files
+                    expires 7d;
+                    add_header Cache-Control "public, immutable";
+                }
+                
+                # Directory listings disabled for security
+                autoindex off;
+                
+                # File size limits
+                client_max_body_size 100m;
+                
+                # Timeout settings
+                proxy_read_timeout 300s;
+                proxy_send_timeout 300s;
+                
+                # Error pages
+                error_page 404 /404.html;
+                error_page 403 /403.html;
+            }
+            
+            # Health check endpoint
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+            
+            # Metrics endpoint for monitoring
+            location /metrics {
+                stub_status on;
+                access_log off;
+                
+                # Only allow internal access
+                allow 10.0.0.0/8;
+                allow 172.16.0.0/12;
+                allow 192.168.0.0/16;
+                deny all;
+            }
+        }
+    }
+
+---
+# File Storage Monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: file-storage-monitor
+  namespace: printernizer
+  labels:
+    app: printernizer-file-storage
+spec:
+  selector:
+    matchLabels:
+      app: printernizer-file-storage
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+# File Storage Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: file-storage-alerts
+  namespace: printernizer
+  labels:
+    app: printernizer
+    component: file-storage
+spec:
+  groups:
+  - name: file_storage_alerts
+    interval: 30s
+    rules:
+    - alert: HighFileStorageUsage
+      expr: (1 - (node_filesystem_avail_bytes{mountpoint="/app/printer-files"} / node_filesystem_size_bytes{mountpoint="/app/printer-files"})) > 0.85
+      for: 5m
+      labels:
+        severity: warning
+        component: file-storage
+      annotations:
+        summary: "High file storage usage detected"
+        description: "File storage usage is above 85% on {{ $labels.instance }}"
+    
+    - alert: FileDownloadFailureRate
+      expr: rate(nginx_http_requests_total{status=~"4..|5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.1
+      for: 3m
+      labels:
+        severity: warning
+        component: file-storage
+      annotations:
+        summary: "High file download failure rate"
+        description: "File download failure rate is {{ $value | humanizePercentage }}"
+    
+    - alert: SlowFileDownloads
+      expr: histogram_quantile(0.95, rate(nginx_http_request_duration_seconds_bucket[5m])) > 30
+      for: 5m
+      labels:
+        severity: warning
+        component: file-storage
+      annotations:
+        summary: "Slow file downloads detected"
+        description: "95th percentile download time is {{ $value }}s"
+
+---
+# Cleanup CronJob for Old Files
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: file-cleanup
+  namespace: printernizer
+  labels:
+    app: printernizer
+    component: file-cleanup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: file-cleanup
+            image: alpine:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting file cleanup..."
+              
+              # Clean up temporary files older than 2 hours
+              find /app/temp -type f -mtime +0.083 -delete
+              echo "Cleaned up temporary files"
+              
+              # Clean up downloaded files older than 30 days (configurable)
+              find /app/printer-files -name "*.tmp" -mtime +30 -delete
+              echo "Cleaned up old temporary downloads"
+              
+              # Compress old files (older than 7 days)
+              find /app/printer-files -name "*.3mf" -o -name "*.stl" -mtime +7 -not -name "*.gz" -exec gzip {} \;
+              echo "Compressed old 3D files"
+              
+              # Log cleanup results
+              echo "File cleanup completed at $(date)"
+              df -h /app/printer-files
+            volumeMounts:
+            - name: file-storage
+              mountPath: /app/printer-files
+            - name: temp-storage
+              mountPath: /app/temp
+          volumes:
+          - name: file-storage
+            persistentVolumeClaim:
+              claimName: printernizer-file-storage
+          - name: temp-storage
+            emptyDir: {}
+          restartPolicy: OnFailure
