@@ -1,0 +1,91 @@
+# Home Assistant Addon Configuration for Printernizer
+# Professional 3D Print Management System for Porcus3D
+
+name: Printernizer - 3D Print Management
+version: "1.0.0"
+slug: printernizer
+description: Professional 3D print management system for Bambu Lab and Prusa printers with German business features
+url: https://github.com/porcus3d/printernizer
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+startup: services
+boot: auto
+init: false
+options:
+  timezone: Europe/Berlin
+  log_level: info
+  cors_origins: []
+  printer_polling_interval: 30
+  max_concurrent_downloads: 5
+  enable_websockets: true
+  business_features:
+    enable_german_compliance: true
+    vat_rate: 19.0
+    currency: EUR
+  printers: []
+schema:
+  timezone: str
+  log_level: list(debug|info|warning|error|critical)?
+  cors_origins: [str]
+  printer_polling_interval: int(10,300)
+  max_concurrent_downloads: int(1,10)
+  enable_websockets: bool
+  business_features:
+    enable_german_compliance: bool
+    vat_rate: float(0,100)
+    currency: str
+  printers:
+    - printer_id: str
+      name: str
+      type: list(bambu_lab|prusa)
+      ip_address: str
+      api_key: password?
+      access_code: password?
+      serial_number: str?
+      is_active: bool?
+ports:
+  8000/tcp: 8000
+ports_description:
+  8000/tcp: Printernizer Web Interface and API
+webui: http://[HOST]:[PORT:8000]
+panel_icon: mdi:printer-3d
+panel_title: Printernizer
+homeassistant: "2023.1.0"
+image: ghcr.io/porcus3d/printernizer-addon
+services:
+  - mqtt:standalone
+hassio_role: manager
+hassio_api: true
+host_network: false
+privileged: []
+full_access: false
+devices:
+  - /dev/ttyUSB0
+  - /dev/ttyACM0
+udev: true
+audio: false
+video: false
+gpio: false
+usb: true
+uart: false
+kernel_modules: false
+devicetree: false
+docker_api: false
+environment:
+  TZ: Europe/Berlin
+  ENVIRONMENT: production
+  DATABASE_PATH: /data/printernizer.db
+  CORS_ORIGINS: ""
+  ENABLE_WEBSOCKETS: "true"
+  LOG_LEVEL: info
+map:
+  - addon_config:/data
+  - share:/share
+  - media:/media
+  - ssl:/ssl
+backup: include
+watchdog: http://localhost:8000/api/v1/health

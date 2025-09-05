@@ -25,13 +25,42 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
 ## 🚀 Quick Start
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Python Development Setup (Recommended)
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/schmacka/printernizer.git
-cd printernizer
+# 1. Create virtual environment (optional but recommended)
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
 
+# 2. Install core dependencies
+pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles
+
+# 3. Create environment file (already exists)
+# Edit .env with your printer configurations if needed
+
+# 4. Start the backend
+cd src
+python main.py
+
+# 5. Start the frontend (optional - open new terminal)
+cd frontend
+python -m http.server 3000
+
+# 6. Access the application
+# Backend API: http://localhost:8000
+# Frontend: http://localhost:3000 (if started separately)
+# API Docs: http://localhost:8000/docs
+```
+
+### Option 2: Docker Compose (Requires Docker Desktop)
+
+**Note**: Requires Docker Desktop to be running first.
+
+```bash
+# 1. Ensure Docker Desktop is running
 # 2. Create environment file
 cp .env.example .env
 # Edit .env with your printer configurations
@@ -43,36 +72,6 @@ docker-compose up -d
 # Frontend: http://localhost:3000
 # API: http://localhost:8000/api/v1
 # WebSocket: ws://localhost:8000/ws
-```
-
-### Option 2: Development Setup
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/schmacka/printernizer.git
-cd printernizer
-
-# 2. Create virtual environment
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# 3. Install dependencies  
-pip install -r requirements.txt
-
-# 4. Create environment file
-cp .env.example .env
-# Edit .env with your settings
-
-# 5. Start the backend
-cd src
-python main.py
-
-# 6. Open frontend in browser
-# Open frontend/index.html in your browser
-# Or serve via: python -m http.server 3000 (in frontend/ directory)
 ```
 
 ### Option 3: Production Kubernetes

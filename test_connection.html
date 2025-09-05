@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connection Test</title>
+</head>
+<body>
+    <h1>Testing Backend Connection</h1>
+    <div id="result">Testing...</div>
+
+    <script>
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/health');
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <h2>✅ Connection Success!</h2>
+                    <p><strong>Status:</strong> ${data.status}</p>
+                    <p><strong>Version:</strong> ${data.version}</p>
+                    <p><strong>Environment:</strong> ${data.environment}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                resultDiv.style.color = 'green';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h2>❌ Connection Failed!</h2>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Make sure the backend is running on http://localhost:8000</p>
+                `;
+                resultDiv.style.color = 'red';
+            }
+        }
+
+        testConnection();
+    </script>
+</body>
+</html>

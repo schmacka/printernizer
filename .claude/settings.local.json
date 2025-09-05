@@ -105,7 +105,13 @@
       "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer\\monitoring/**)",
       "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer\\.github\\workflows/**)",
       "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer\\scaling/**)",
-      "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer\\security/**)"
+      "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer\\security/**)",
+      "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer/**)",
+      "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer\\src/**)",
+      "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer/**)",
+      "Read(/C:\\Users\\sebas\\OneDrive\\porcus3D\\printernizer/**)",
+      "Bash(docker:*)",
+      "Bash(ping:*)"
     ],
     "deny": [],
     "ask": []
