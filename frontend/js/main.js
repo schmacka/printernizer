@@ -7,12 +7,12 @@ class PrinternizerApp {
     constructor() {
         this.currentPage = 'dashboard';
         this.pageManagers = {
-            dashboard: dashboard,
-            printers: printerManager,
-            jobs: jobManager,
-            files: fileManager,
-            settings: settingsManager,
-            debug: debugManager
+            dashboard: typeof dashboard !== 'undefined' ? dashboard : null,
+            printers: typeof printerManager !== 'undefined' ? printerManager : null,
+            jobs: typeof jobManager !== 'undefined' ? jobManager : null,
+            files: typeof fileManager !== 'undefined' ? fileManager : null,
+            settings: typeof settingsManager !== 'undefined' ? settingsManager : null,
+            debug: typeof debugManager !== 'undefined' ? debugManager : null
         };
     }
 
@@ -119,6 +119,19 @@ class PrinternizerApp {
             setTimeout(() => {
                 newManager.init();
             }, 50);
+        } else if (!newManager) {
+            console.warn(`Page manager for '${pageName}' not found or not loaded yet`);
+            // Try to get manager from global scope
+            const globalManagerName = pageName === 'settings' ? 'settingsManager' : 
+                                    pageName === 'debug' ? 'debugManager' : null;
+            if (globalManagerName && typeof window[globalManagerName] !== 'undefined') {
+                this.pageManagers[pageName] = window[globalManagerName];
+                if (typeof window[globalManagerName].init === 'function') {
+                    setTimeout(() => {
+                        window[globalManagerName].init();
+                    }, 50);
+                }
+            }
         }
         
         console.log(`Navigated to page: ${pageName}`);
