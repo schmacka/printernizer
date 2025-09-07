@@ -10,6 +10,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 import structlog
+from utils.config import get_settings
 
 logger = structlog.get_logger()
 
@@ -325,3 +326,47 @@ class ConfigService:
         except Exception as e:
             logger.error("Failed to reload configuration", error=str(e))
             return False
+    
+    def get_watch_folders(self) -> List[str]:
+        """Get list of configured watch folders."""
+        settings = get_settings()
+        return settings.watch_folders_list
+    
+    def is_watch_folders_enabled(self) -> bool:
+        """Check if watch folders monitoring is enabled."""
+        settings = get_settings()
+        return settings.watch_folders_enabled
+    
+    def is_recursive_watching_enabled(self) -> bool:
+        """Check if recursive folder watching is enabled."""
+        settings = get_settings()
+        return settings.watch_recursive
+    
+    def validate_watch_folder(self, folder_path: str) -> Dict[str, Any]:
+        """Validate a watch folder path."""
+        try:
+            path = Path(folder_path)
+            
+            if not path.exists():
+                return {"valid": False, "error": "Path does not exist"}
+            
+            if not path.is_dir():
+                return {"valid": False, "error": "Path is not a directory"}
+            
+            if not os.access(path, os.R_OK):
+                return {"valid": False, "error": "Directory is not readable"}
+            
+            return {"valid": True, "message": "Watch folder is valid"}
+            
+        except Exception as e:
+            return {"valid": False, "error": f"Invalid path: {str(e)}"}
+    
+    def get_watch_folder_settings(self) -> Dict[str, Any]:
+        """Get all watch folder related settings."""
+        settings = get_settings()
+        return {
+            "watch_folders": settings.watch_folders_list,
+            "enabled": settings.watch_folders_enabled,
+            "recursive": settings.watch_recursive,
+            "supported_extensions": ['.stl', '.3mf', '.gcode', '.obj', '.ply']
+        }

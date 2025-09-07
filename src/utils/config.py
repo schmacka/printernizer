@@ -30,6 +30,11 @@ class PrinternizerSettings(BaseSettings):
     printer_polling_interval: int = Field(default=30, env="PRINTER_POLLING_INTERVAL")
     max_concurrent_downloads: int = Field(default=5, env="MAX_CONCURRENT_DOWNLOADS")
     
+    # Watch Folders Settings
+    watch_folders: str = Field(default="", env="WATCH_FOLDERS")
+    watch_folders_enabled: bool = Field(default=True, env="WATCH_FOLDERS_ENABLED")
+    watch_recursive: bool = Field(default=True, env="WATCH_RECURSIVE")
+    
     # WebSocket Configuration
     enable_websockets: bool = Field(default=True, env="ENABLE_WEBSOCKETS")
     
@@ -58,6 +63,13 @@ class PrinternizerSettings(BaseSettings):
         if not self.cors_origins:
             return []
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+    
+    @property
+    def watch_folders_list(self) -> List[str]:
+        """Get watch folders as list."""
+        if not self.watch_folders:
+            return []
+        return [folder.strip() for folder in self.watch_folders.split(",") if folder.strip()]
     
     @property
     def is_homeassistant_addon(self) -> bool:
