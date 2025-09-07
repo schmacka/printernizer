@@ -190,8 +190,8 @@ const CONFIG = {
         SYSTEM_INFO: '/system/info',
         
         // Printers
-        PRINTERS: '/printers',
-        PRINTER_DETAIL: (id) => `/printers/${id}`,
+        PRINTERS: '/printers/',
+        PRINTER_DETAIL: (id) => `/printers/${id}/`,
         
         // Jobs
         JOBS: '/jobs',

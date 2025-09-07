@@ -49,6 +49,23 @@ class PrinterResponse(BaseModel):
     updated_at: str
 
 
+def _printer_to_response(printer: Printer) -> PrinterResponse:
+    """Convert a Printer model to PrinterResponse."""
+    return PrinterResponse(
+        id=printer.id,
+        name=printer.name,
+        printer_type=printer.type,
+        status=printer.status,
+        location=getattr(printer, 'location', None),
+        description=getattr(printer, 'description', None),
+        is_enabled=printer.is_active,
+        last_seen=printer.last_seen.isoformat() if printer.last_seen else None,
+        current_job_id=None,  # Not implemented yet
+        created_at=printer.created_at.isoformat(),
+        updated_at=printer.created_at.isoformat()  # Use created_at as fallback
+    )
+
+
 @router.get("/", response_model=List[PrinterResponse])
 async def list_printers(
     printer_service: PrinterService = Depends(get_printer_service)
@@ -56,7 +73,7 @@ async def list_printers(
     """List all configured printers."""
     try:
         printers = await printer_service.list_printers()
-        return [PrinterResponse.model_validate(printer.__dict__) for printer in printers]
+        return [_printer_to_response(printer) for printer in printers]
     except Exception as e:
         logger.error("Failed to list printers", error=str(e))
         raise HTTPException(
@@ -79,7 +96,10 @@ async def create_printer(
             location=printer_data.location,
             description=printer_data.description
         )
-        return PrinterResponse.model_validate(printer.__dict__)
+        logger.info("Created printer", printer_type=type(printer).__name__, printer_dict=printer.__dict__)
+        response = _printer_to_response(printer)
+        logger.info("Converted to response", response_dict=response.model_dump())
+        return response
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -106,7 +126,7 @@ async def get_printer(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Printer not found"
             )
-        return PrinterResponse.model_validate(printer.__dict__)
+        return _printer_to_response(printer)
     except HTTPException:
         raise
     except Exception as e:
@@ -131,7 +151,7 @@ async def update_printer(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Printer not found"
             )
-        return PrinterResponse.model_validate(printer.__dict__)
+        return _printer_to_response(printer)
     except HTTPException:
         raise
     except ValueError as e:
