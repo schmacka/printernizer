@@ -90,7 +90,7 @@ class PrinterFormHandler {
         if (printerType === 'bambu_lab' && bambuFields) {
             bambuFields.style.display = 'block';
             this.setFieldsRequired(bambuFields, true);
-        } else if (printerType === 'prusa' && prusaFields) {
+        } else if (printerType === 'prusa_core' && prusaFields) {
             prusaFields.style.display = 'block';
             this.setFieldsRequired(prusaFields, true);
         }
@@ -341,21 +341,34 @@ class PrinterFormHandler {
      * Collect form data
      */
     collectFormData() {
-        const formData = new FormData(this.form);
-        const data = {
-            type: formData.get('printerType') || document.getElementById('printerType').value,
-            name: formData.get('printerName') || document.getElementById('printerName').value,
-            ip_address: formData.get('printerIP') || document.getElementById('printerIP').value,
-            is_active: document.getElementById('printerActive').checked
+        const printerType = document.getElementById('printerType').value;
+        const name = document.getElementById('printerName').value;
+        const ipAddress = document.getElementById('printerIP').value;
+        const isActive = document.getElementById('printerActive').checked;
+        
+        // Build connection config based on printer type
+        const connectionConfig = {
+            ip_address: ipAddress
         };
 
-        // Add printer-specific fields
-        const printerType = data.type;
+        // Add printer-specific fields to connection config
         if (printerType === 'bambu_lab') {
-            data.access_code = document.getElementById('accessCode').value;
-            data.serial_number = document.getElementById('serialNumber').value;
-        } else if (printerType === 'prusa') {
-            data.api_key = document.getElementById('apiKey').value;
+            connectionConfig.access_code = document.getElementById('accessCode').value;
+            connectionConfig.serial_number = document.getElementById('serialNumber').value;
+        } else if (printerType === 'prusa_core') {
+            connectionConfig.api_key = document.getElementById('apiKey').value;
+        }
+
+        // Format data according to backend API expectations
+        const data = {
+            name: name,
+            printer_type: printerType,
+            connection_config: connectionConfig
+        };
+
+        // Add optional fields if needed
+        if (!isActive) {
+            data.is_enabled = false;
         }
 
         return data;

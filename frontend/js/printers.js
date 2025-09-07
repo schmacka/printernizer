@@ -57,9 +57,9 @@ class PrinterManager {
             this.printers.clear();
             printersList.innerHTML = '';
             
-            if (response.printers && response.printers.length > 0) {
+            if (response && Array.isArray(response) && response.length > 0) {
                 // Create printer cards
-                response.printers.forEach(printer => {
+                response.forEach(printer => {
                     const printerCard = this.createPrinterManagementCard(printer);
                     printersList.appendChild(printerCard);
                     
@@ -382,7 +382,7 @@ class PrinterManager {
         // Show relevant fields
         if (printerType === 'bambu_lab' && bambuFields) {
             bambuFields.style.display = 'block';
-        } else if (printerType === 'prusa' && prusaFields) {
+        } else if (printerType === 'prusa_core' && prusaFields) {
             prusaFields.style.display = 'block';
         }
     }
@@ -405,20 +405,34 @@ class PrinterManager {
         try {
             // Prepare printer data
             const formData = new FormData(form);
-            const printerData = {
-                id: `${formData.get('printerType')}_${Date.now()}`,
-                name: formData.get('printerName'),
-                type: formData.get('printerType'),
-                ip_address: formData.get('printerIP'),
-                is_active: formData.get('printerActive') === 'on'
-            };
+            const printerType = formData.get('printerType');
+            const name = formData.get('printerName');
+            const ipAddress = formData.get('printerIP');
+            const isActive = formData.get('printerActive') === 'on';
             
-            // Add type-specific fields
-            if (printerData.type === 'bambu_lab') {
-                printerData.access_code = formData.get('accessCode');
-                printerData.serial_number = formData.get('serialNumber');
-            } else if (printerData.type === 'prusa') {
-                printerData.api_key = formData.get('apiKey');
+            // Build connection config based on printer type
+            const connectionConfig = {
+                ip_address: ipAddress
+            };
+
+            // Add printer-specific fields to connection config
+            if (printerType === 'bambu_lab') {
+                connectionConfig.access_code = formData.get('accessCode');
+                connectionConfig.serial_number = formData.get('serialNumber');
+            } else if (printerType === 'prusa_core') {
+                connectionConfig.api_key = formData.get('apiKey');
+            }
+
+            // Format data according to backend API expectations
+            const printerData = {
+                name: name,
+                printer_type: printerType,
+                connection_config: connectionConfig
+            };
+
+            // Add optional fields if needed
+            if (!isActive) {
+                printerData.is_enabled = false;
             }
             
             // Add printer via API
