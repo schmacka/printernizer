@@ -219,3 +219,72 @@ class BambuLabPrinter(BasePrinter):
             logger.error("Failed to download file from Bambu Lab",
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
+            
+    async def pause_print(self) -> bool:
+        """Pause the current print job on Bambu Lab printer."""
+        if not self.is_connected or not self.client:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            logger.info("Pausing print on Bambu Lab printer", printer_id=self.printer_id)
+            
+            # Send pause command using bambulabs-api
+            result = self.client.pause()
+            
+            if result:
+                logger.info("Successfully paused print", printer_id=self.printer_id)
+                return True
+            else:
+                logger.warning("Failed to pause print", printer_id=self.printer_id)
+                return False
+                
+        except Exception as e:
+            logger.error("Error pausing print on Bambu Lab",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+            
+    async def resume_print(self) -> bool:
+        """Resume the paused print job on Bambu Lab printer."""
+        if not self.is_connected or not self.client:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            logger.info("Resuming print on Bambu Lab printer", printer_id=self.printer_id)
+            
+            # Send resume command using bambulabs-api
+            result = self.client.resume()
+            
+            if result:
+                logger.info("Successfully resumed print", printer_id=self.printer_id)
+                return True
+            else:
+                logger.warning("Failed to resume print", printer_id=self.printer_id)
+                return False
+                
+        except Exception as e:
+            logger.error("Error resuming print on Bambu Lab",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+            
+    async def stop_print(self) -> bool:
+        """Stop/cancel the current print job on Bambu Lab printer."""
+        if not self.is_connected or not self.client:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            logger.info("Stopping print on Bambu Lab printer", printer_id=self.printer_id)
+            
+            # Send stop command using bambulabs-api
+            result = self.client.stop()
+            
+            if result:
+                logger.info("Successfully stopped print", printer_id=self.printer_id)
+                return True
+            else:
+                logger.warning("Failed to stop print", printer_id=self.printer_id)
+                return False
+                
+        except Exception as e:
+            logger.error("Error stopping print on Bambu Lab",
+                        printer_id=self.printer_id, error=str(e))
+            return False

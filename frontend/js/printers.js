@@ -289,8 +289,33 @@ class PrinterManager {
             </button>
         `);
         
-        // Printer controls (if online)
-        if (printer.status === 'online') {
+        // Printer controls based on status
+        if (printer.status === 'printing') {
+            // Show pause and stop buttons when printing
+            buttons.push(`
+                <button class="btn btn-sm btn-warning" onclick="printerManager.pausePrint('${printer.id}')" title="Druck pausieren">
+                    <span class="btn-icon">⏸️</span>
+                    Pausieren
+                </button>
+                <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="Druck stoppen">
+                    <span class="btn-icon">⏹️</span>
+                    Stoppen
+                </button>
+            `);
+        } else if (printer.status === 'paused') {
+            // Show resume and stop buttons when paused
+            buttons.push(`
+                <button class="btn btn-sm btn-success" onclick="printerManager.resumePrint('${printer.id}')" title="Druck fortsetzen">
+                    <span class="btn-icon">▶️</span>
+                    Fortsetzen
+                </button>
+                <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="Druck stoppen">
+                    <span class="btn-icon">⏹️</span>
+                    Stoppen
+                </button>
+            `);
+        } else if (printer.status === 'online') {
+            // Show generic control button when online but not printing
             buttons.push(`
                 <button class="btn btn-sm btn-secondary" onclick="printerManager.showPrinterControl('${printer.id}')" title="Drucker steuern">
                     <span class="btn-icon">🎮</span>
@@ -520,7 +545,85 @@ class PrinterManager {
      * Show printer control interface
      */
     showPrinterControl(printerId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Drucker-Steuerung wird in Phase 2 implementiert');
+        showToast('info', 'Drucker-Steuerung', 'Verwenden Sie die Druck-Steuerungstasten zum Pausieren/Stoppen von Druckaufträgen');
+    }
+    
+    /**
+     * Pause print job
+     */
+    async pausePrint(printerId) {
+        const printer = this.printers.get(printerId);
+        if (!printer) return;
+        
+        const confirmed = confirm(`Möchten Sie den Druckauftrag auf "${printer.data.name}" pausieren?`);
+        if (!confirmed) return;
+        
+        try {
+            showToast('info', 'Pausieren', 'Pausiere Druckauftrag...');
+            
+            await api.pausePrinter(printerId);
+            showToast('success', 'Erfolg', 'Druckauftrag wurde pausiert');
+            
+            // Refresh printer status
+            this.refreshPrinters();
+            
+        } catch (error) {
+            console.error('Failed to pause print:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Pausieren des Druckauftrags';
+            showToast('error', 'Fehler', message);
+        }
+    }
+    
+    /**
+     * Resume print job
+     */
+    async resumePrint(printerId) {
+        const printer = this.printers.get(printerId);
+        if (!printer) return;
+        
+        const confirmed = confirm(`Möchten Sie den Druckauftrag auf "${printer.data.name}" fortsetzen?`);
+        if (!confirmed) return;
+        
+        try {
+            showToast('info', 'Fortsetzen', 'Setze Druckauftrag fort...');
+            
+            await api.resumePrinter(printerId);
+            showToast('success', 'Erfolg', 'Druckauftrag wurde fortgesetzt');
+            
+            // Refresh printer status
+            this.refreshPrinters();
+            
+        } catch (error) {
+            console.error('Failed to resume print:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Fortsetzen des Druckauftrags';
+            showToast('error', 'Fehler', message);
+        }
+    }
+    
+    /**
+     * Stop print job
+     */
+    async stopPrint(printerId) {
+        const printer = this.printers.get(printerId);
+        if (!printer) return;
+        
+        const confirmed = confirm(`Möchten Sie den Druckauftrag auf "${printer.data.name}" wirklich stoppen? Dies kann nicht rückgängig gemacht werden.`);
+        if (!confirmed) return;
+        
+        try {
+            showToast('info', 'Stoppen', 'Stoppe Druckauftrag...');
+            
+            await api.stopPrinter(printerId);
+            showToast('success', 'Erfolg', 'Druckauftrag wurde gestoppt');
+            
+            // Refresh printer status
+            this.refreshPrinters();
+            
+        } catch (error) {
+            console.error('Failed to stop print:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Stoppen des Druckauftrags';
+            showToast('error', 'Fehler', message);
+        }
     }
 
     /**

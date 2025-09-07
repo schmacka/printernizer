@@ -89,6 +89,21 @@ class PrinterInterface(ABC):
     async def download_file(self, filename: str, local_path: str) -> bool:
         """Download a file from the printer."""
         pass
+        
+    @abstractmethod
+    async def pause_print(self) -> bool:
+        """Pause the current print job."""
+        pass
+        
+    @abstractmethod
+    async def resume_print(self) -> bool:
+        """Resume the paused print job."""
+        pass
+        
+    @abstractmethod
+    async def stop_print(self) -> bool:
+        """Stop/cancel the current print job."""
+        pass
 
 
 class BasePrinter(PrinterInterface):
