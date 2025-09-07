@@ -505,3 +505,45 @@ class PrinterService:
         # Remove from configuration
         return self.config_service.remove_printer(printer_id_str)
         
+    async def pause_printer(self, printer_id: str) -> bool:
+        """Pause printing on a specific printer."""
+        instance = self.printer_instances.get(printer_id)
+        if not instance:
+            raise NotFoundError("Printer", printer_id)
+            
+        try:
+            if not instance.is_connected:
+                await instance.connect()
+            return await instance.pause_print()
+        except Exception as e:
+            logger.error("Failed to pause printer", printer_id=printer_id, error=str(e))
+            raise PrinterConnectionError(printer_id, str(e))
+            
+    async def resume_printer(self, printer_id: str) -> bool:
+        """Resume printing on a specific printer."""
+        instance = self.printer_instances.get(printer_id)
+        if not instance:
+            raise NotFoundError("Printer", printer_id)
+            
+        try:
+            if not instance.is_connected:
+                await instance.connect()
+            return await instance.resume_print()
+        except Exception as e:
+            logger.error("Failed to resume printer", printer_id=printer_id, error=str(e))
+            raise PrinterConnectionError(printer_id, str(e))
+            
+    async def stop_printer(self, printer_id: str) -> bool:
+        """Stop/cancel printing on a specific printer."""
+        instance = self.printer_instances.get(printer_id)
+        if not instance:
+            raise NotFoundError("Printer", printer_id)
+            
+        try:
+            if not instance.is_connected:
+                await instance.connect()
+            return await instance.stop_print()
+        except Exception as e:
+            logger.error("Failed to stop printer", printer_id=printer_id, error=str(e))
+            raise PrinterConnectionError(printer_id, str(e))
+        

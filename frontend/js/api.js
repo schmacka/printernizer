@@ -130,6 +130,21 @@ class ApiClient {
     async deletePrinter(printerId) {
         return this.delete(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId));
     }
+    
+    /**
+     * Printer Control Functions
+     */
+    async pausePrinter(printerId) {
+        return this.post(`${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}/pause`);
+    }
+    
+    async resumePrinter(printerId) {
+        return this.post(`${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}/resume`);
+    }
+    
+    async stopPrinter(printerId) {
+        return this.post(`${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}/stop`);
+    }
 
     // Job Endpoints
     async getJobs(filters = {}) {
