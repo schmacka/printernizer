@@ -3,7 +3,7 @@ File models for Printernizer.
 Pydantic models for 3D file data validation and serialization.
 """
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,7 @@ class FileSource(str, Enum):
     PRINTER = "printer"         # File discovered on printer
     LOCAL = "local"            # Local file upload
     IMPORTED = "imported"      # Imported from external source
+    LOCAL_WATCH = "local_watch" # File discovered in watch folder
 
 
 class File(BaseModel):
@@ -39,6 +40,11 @@ class File(BaseModel):
     downloaded_at: Optional[datetime] = Field(None, description="Download completion time")
     created_at: datetime = Field(default_factory=datetime.now)
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional file metadata")
+    
+    # Watch folder specific fields
+    watch_folder_path: Optional[str] = Field(None, description="Watch folder path for local files")
+    relative_path: Optional[str] = Field(None, description="Relative path within watch folder")
+    modified_time: Optional[datetime] = Field(None, description="File modification time")
     
     class Config:
         """Pydantic configuration."""
@@ -69,3 +75,30 @@ class FileFilter(BaseModel):
     status: Optional[FileStatus] = None
     source: Optional[FileSource] = None
     file_type: Optional[str] = None
+    watch_folder_path: Optional[str] = None
+
+
+class WatchFolderConfig(BaseModel):
+    """Watch folder configuration model."""
+    path: str = Field(..., description="Folder path to watch")
+    enabled: bool = Field(True, description="Whether watching is enabled")
+    recursive: bool = Field(True, description="Watch subdirectories recursively")
+
+
+class WatchFolderStatus(BaseModel):
+    """Watch folder status model."""
+    path: str
+    enabled: bool
+    recursive: bool
+    is_accessible: bool
+    file_count: int
+    last_scan: Optional[datetime] = None
+    error: Optional[str] = None
+
+
+class WatchFolderSettings(BaseModel):
+    """Watch folder settings response model."""
+    watch_folders: List[str]
+    enabled: bool
+    recursive: bool
+    supported_extensions: List[str]
