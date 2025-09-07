@@ -38,6 +38,16 @@
                     <span class="nav-icon" aria-hidden="true">📁</span>
                     Dateien
                 </a>
+                <a href="#settings" class="nav-link" data-page="settings" 
+                   role="button" aria-describedby="nav-settings-desc">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span>
+                    Einstellungen
+                </a>
+                <a href="#debug" class="nav-link" data-page="debug" 
+                   role="button" aria-describedby="nav-debug-desc">
+                    <span class="nav-icon" aria-hidden="true">🐛</span>
+                    Debug
+                </a>
             </div>
             <!-- Screen reader descriptions -->
             <div class="sr-only">
@@ -45,6 +55,8 @@
                 <div id="nav-printers-desc">Verwaltung und Konfiguration der 3D-Drucker</div>
                 <div id="nav-jobs-desc">Übersicht und Verwaltung der Druckaufträge</div>
                 <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
+                <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
+                <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
             </div>
             <div class="nav-status">
                 <div class="connection-status" id="connectionStatus">
@@ -251,6 +263,233 @@
                 </div>
             </div>
         </div>
+
+        <!-- Settings Page -->
+        <div id="settings" class="page">
+            <div class="page-header">
+                <h1>Einstellungen</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadSettings()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <span class="btn-icon">💾</span>
+                        Speichern
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-container">
+                <div class="settings-grid">
+                    <!-- Application Settings -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Allgemeine Einstellungen</h3>
+                            <span class="card-icon">⚙️</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="applicationSettingsForm" class="settings-form">
+                                <div class="form-group">
+                                    <label for="logLevel">Log-Level</label>
+                                    <select id="logLevel" name="log_level" class="form-control">
+                                        <option value="DEBUG">Debug</option>
+                                        <option value="INFO">Info</option>
+                                        <option value="WARNING">Warning</option>
+                                        <option value="ERROR">Error</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="monitoringInterval">Überwachungsintervall (Sekunden)</label>
+                                    <input type="number" id="monitoringInterval" name="monitoring_interval" 
+                                           class="form-control" min="5" max="300" step="5">
+                                    <small class="form-text text-muted">Intervall für Druckerstatusabfragen (5-300 Sekunden)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="connectionTimeout">Verbindungs-Timeout (Sekunden)</label>
+                                    <input type="number" id="connectionTimeout" name="connection_timeout" 
+                                           class="form-control" min="5" max="60" step="1">
+                                    <small class="form-text text-muted">Maximale Wartezeit für Verbindungen (5-60 Sekunden)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="downloadsPath">Download-Verzeichnis</label>
+                                    <input type="text" id="downloadsPath" name="downloads_path" class="form-control" readonly>
+                                    <small class="form-text text-muted">Verzeichnis für heruntergeladene Dateien (schreibgeschützt)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="maxFileSize">Max. Dateigröße (MB)</label>
+                                    <input type="number" id="maxFileSize" name="max_file_size" 
+                                           class="form-control" min="1" max="1000" step="1">
+                                    <small class="form-text text-muted">Maximale Größe für Datei-Downloads (1-1000 MB)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="vatRate">MwSt.-Satz (%)</label>
+                                    <input type="number" id="vatRate" name="vat_rate" 
+                                           class="form-control" min="0" max="50" step="0.1">
+                                    <small class="form-text text-muted">Mehrwertsteuersatz für Kostenberechnungen</small>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>System-Informationen</h3>
+                            <span class="card-icon">📊</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="system-info" id="systemInfo">
+                                <div class="loading-placeholder">
+                                    <div class="spinner"></div>
+                                    <p>Lade System-Informationen...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watch Folders -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Überwachte Verzeichnisse</h3>
+                            <span class="card-icon">📂</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="watchFolderSettingsForm" class="settings-form">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="watchFoldersEnabled" name="enabled">
+                                        <span class="checkbox-custom"></span>
+                                        Verzeichnisüberwachung aktiviert
+                                    </label>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="watchFoldersRecursive" name="recursive">
+                                        <span class="checkbox-custom"></span>
+                                        Rekursive Überwachung (Unterverzeichnisse)
+                                    </label>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="watchFolders">Überwachte Verzeichnisse</label>
+                                    <div id="watchFoldersList" class="watch-folders-list">
+                                        <!-- Dynamic content -->
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Page -->
+        <div id="debug" class="page">
+            <div class="page-header">
+                <h1>Debug & Systemprotokoll</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshDebugInfo()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearLogs()">
+                        <span class="btn-icon">🗑️</span>
+                        Logs löschen
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadLogs()">
+                        <span class="btn-icon">💾</span>
+                        Logs herunterladen
+                    </button>
+                </div>
+            </div>
+
+            <div class="debug-container">
+                <!-- System Health -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>System-Status</h3>
+                        <span class="card-icon">❤️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="health-info" id="healthInfo">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade System-Status...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Logs -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>Anwendungsprotokolle</h3>
+                        <span class="card-icon">📝</span>
+                        <div class="log-controls">
+                            <select id="logLevelFilter" class="filter-select">
+                                <option value="">Alle Level</option>
+                                <option value="ERROR">Nur Fehler</option>
+                                <option value="WARNING">Warnungen +</option>
+                                <option value="INFO">Info +</option>
+                                <option value="DEBUG">Debug</option>
+                            </select>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoRefreshLogs" checked>
+                                <span class="checkbox-custom"></span>
+                                Auto-Aktualisierung
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-viewer" id="logViewer">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Protokolle...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>Performance-Metriken</h3>
+                        <span class="card-icon">📈</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="metrics-grid" id="performanceMetrics">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Metriken...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Endpoints Test -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>API-Endpoints Test</h3>
+                        <span class="card-icon">🔌</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="api-test-grid" id="apiTests">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade API-Tests...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Modals -->
@@ -386,6 +625,8 @@
     <script src="js/printers.js"></script>
     <script src="js/jobs.js"></script>
     <script src="js/files.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/debug.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

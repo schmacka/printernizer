@@ -370,3 +370,51 @@ class ConfigService:
             "recursive": settings.watch_recursive,
             "supported_extensions": ['.stl', '.3mf', '.gcode', '.obj', '.ply']
         }
+
+    def get_application_settings(self) -> Dict[str, Any]:
+        """Get all application settings."""
+        settings = get_settings()
+        return {
+            "database_path": str(settings.database_path),
+            "host": settings.api_host,
+            "port": settings.api_port,
+            "debug": getattr(settings, 'debug', False),
+            "environment": settings.environment,
+            "log_level": settings.log_level,
+            "timezone": settings.timezone,
+            "currency": settings.currency,
+            "vat_rate": settings.vat_rate,
+            "downloads_path": str(getattr(settings, 'downloads_path', 'downloads')),
+            "max_file_size": getattr(settings, 'max_file_size_mb', 100),
+            "monitoring_interval": settings.printer_polling_interval,
+            "connection_timeout": getattr(settings, 'connection_timeout', 30),
+            "cors_origins": self._get_cors_origins_list(settings.cors_origins)
+        }
+
+    def _get_cors_origins_list(self, cors_origins_str: str) -> List[str]:
+        """Convert CORS origins string to list."""
+        if not cors_origins_str:
+            return []
+        return [origin.strip() for origin in cors_origins_str.split(',') if origin.strip()]
+
+    def update_application_settings(self, settings_dict: Dict[str, Any]) -> bool:
+        """Update runtime-modifiable application settings."""
+        updated_fields = []
+        settings = get_settings()
+        
+        # List of settings that can be updated at runtime
+        updatable_settings = {
+            "log_level", "monitoring_interval", "connection_timeout", 
+            "max_file_size", "vat_rate"
+        }
+        
+        for key, value in settings_dict.items():
+            if key in updatable_settings:
+                if hasattr(settings, key):
+                    old_value = getattr(settings, key)
+                    # Note: This only updates in memory, not persisted to file
+                    setattr(settings, key, value)
+                    updated_fields.append(key)
+                    logger.info("Updated application setting", key=key, old_value=old_value, new_value=value)
+        
+        return len(updated_fields) > 0

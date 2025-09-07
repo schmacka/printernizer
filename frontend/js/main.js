@@ -10,7 +10,9 @@ class PrinternizerApp {
             dashboard: dashboard,
             printers: printerManager,
             jobs: jobManager,
-            files: fileManager
+            files: fileManager,
+            settings: settingsManager,
+            debug: debugManager
         };
     }
 
@@ -57,7 +59,7 @@ class PrinternizerApp {
         
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
-        if (['dashboard', 'printers', 'jobs', 'files'].includes(currentHash)) {
+        if (['dashboard', 'printers', 'jobs', 'files', 'settings', 'debug'].includes(currentHash)) {
             this.currentPage = currentHash;
         }
         
@@ -68,7 +70,7 @@ class PrinternizerApp {
      * Show specific page
      */
     showPage(pageName, updateHistory = true) {
-        if (!['dashboard', 'printers', 'jobs', 'files'].includes(pageName)) {
+        if (!['dashboard', 'printers', 'jobs', 'files', 'settings', 'debug'].includes(pageName)) {
             console.error('Invalid page name:', pageName);
             return;
         }
@@ -201,6 +203,12 @@ function refreshCurrentPage() {
             case 'files':
                 if (typeof refreshFiles === 'function') refreshFiles();
                 break;
+            case 'settings':
+                if (typeof loadSettings === 'function') loadSettings();
+                break;
+            case 'debug':
+                if (typeof refreshDebugInfo === 'function') refreshDebugInfo();
+                break;
         }
     }
 }
@@ -234,6 +242,14 @@ function setupKeyboardShortcuts() {
                 case '4':
                     e.preventDefault();
                     showPage('files');
+                    break;
+                case '5':
+                    e.preventDefault();
+                    showPage('settings');
+                    break;
+                case '6':
+                    e.preventDefault();
+                    showPage('debug');
                     break;
             }
         }
