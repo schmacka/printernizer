@@ -78,9 +78,23 @@ class Database:
                     download_progress INTEGER DEFAULT 0,
                     downloaded_at TIMESTAMP,
                     metadata TEXT, -- JSON string
+                    watch_folder_path TEXT, -- Path to watch folder for local files
+                    relative_path TEXT, -- Relative path within watch folder
+                    modified_time TIMESTAMP, -- File modification time
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(printer_id, filename)
                 )
+            """)
+            
+            # Add indexes for better query performance
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)
+            """)
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
+            """)
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)
             """)
             
             # Printers table - Enhanced configuration
@@ -308,19 +322,24 @@ class Database:
         """Create a new file record."""
         try:
             async with self._connection.execute("""
-                INSERT OR REPLACE INTO files (id, printer_id, filename, display_name, file_size, 
-                                            file_type, status, source, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO files (id, printer_id, filename, display_name, file_path, file_size, 
+                                            file_type, status, source, metadata, watch_folder_path, 
+                                            relative_path, modified_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 file_data['id'],
-                file_data['printer_id'],
+                file_data.get('printer_id', 'local'),  # Use 'local' for local files
                 file_data['filename'],
                 file_data.get('display_name'),
+                file_data.get('file_path'),
                 file_data.get('file_size'),
                 file_data.get('file_type'),
                 file_data.get('status', 'available'),
                 file_data.get('source', 'printer'),
-                file_data.get('metadata')  # Should be JSON string
+                file_data.get('metadata'),  # Should be JSON string
+                file_data.get('watch_folder_path'),
+                file_data.get('relative_path'),
+                file_data.get('modified_time')
             )):
                 pass
             await self._connection.commit()
@@ -329,7 +348,8 @@ class Database:
             logger.error("Failed to create file", error=str(e))
             return False
     
-    async def list_files(self, printer_id: Optional[str] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def list_files(self, printer_id: Optional[str] = None, status: Optional[str] = None, 
+                        source: Optional[str] = None) -> List[Dict[str, Any]]:
         """List files with optional filtering."""
         try:
             query = "SELECT * FROM files"
@@ -342,6 +362,9 @@ class Database:
             if status:
                 conditions.append("status = ?")
                 params.append(status)
+            if source:
+                conditions.append("source = ?")
+                params.append(source)
                 
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)
@@ -380,3 +403,77 @@ class Database:
         except Exception as e:
             logger.error("Failed to update file", file_id=file_id, error=str(e))
             return False
+    
+    async def create_local_file(self, file_data: Dict[str, Any]) -> bool:
+        """Create a local file record specifically for watch folder files."""
+        local_file_data = {
+            **file_data,
+            'printer_id': 'local',
+            'source': 'local_watch',
+            'status': 'local'
+        }
+        return await self.create_file(local_file_data)
+    
+    async def list_local_files(self, watch_folder_path: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List local files from watch folders."""
+        try:
+            query = "SELECT * FROM files WHERE source = 'local_watch'"
+            params = []
+            
+            if watch_folder_path:
+                query += " AND watch_folder_path = ?"
+                params.append(watch_folder_path)
+            
+            query += " ORDER BY modified_time DESC"
+            
+            async with self._connection.execute(query, params) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error("Failed to list local files", error=str(e))
+            return []
+    
+    async def delete_local_file(self, file_id: str) -> bool:
+        """Delete a local file record."""
+        try:
+            async with self._connection.execute(
+                "DELETE FROM files WHERE id = ? AND source = 'local_watch'", (file_id,)
+            ):
+                pass
+            await self._connection.commit()
+            return True
+        except Exception as e:
+            logger.error("Failed to delete local file", file_id=file_id, error=str(e))
+            return False
+    
+    async def get_file_statistics(self) -> Dict[str, Any]:
+        """Get file statistics by source."""
+        try:
+            stats = {}
+            
+            # Total counts
+            async with self._connection.execute("SELECT COUNT(*), source FROM files GROUP BY source") as cursor:
+                rows = await cursor.fetchall()
+                for row in rows:
+                    source = row[1] or 'unknown'
+                    stats[f"{source}_count"] = row[0]
+            
+            # Total size by source
+            async with self._connection.execute("SELECT SUM(file_size), source FROM files GROUP BY source") as cursor:
+                rows = await cursor.fetchall()
+                for row in rows:
+                    source = row[1] or 'unknown'
+                    stats[f"{source}_size"] = row[0] or 0
+            
+            # Status counts
+            async with self._connection.execute("SELECT COUNT(*), status FROM files GROUP BY status") as cursor:
+                rows = await cursor.fetchall()
+                for row in rows:
+                    status = row[1] or 'unknown'
+                    stats[f"{status}_count"] = row[0]
+            
+            return stats
+            
+        except Exception as e:
+            logger.error("Failed to get file statistics", error=str(e))
+            return {}
