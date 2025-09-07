@@ -69,7 +69,7 @@ class ApiClient {
             }
         });
         
-        return this.request(url.pathname + url.search);
+        return this.request(endpoint + url.search);
     }
 
     /**
