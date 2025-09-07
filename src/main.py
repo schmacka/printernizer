@@ -33,7 +33,6 @@ from api.routers import (
     system_router,
     websocket_router
 )
-from api.routers.homeassistant import router as homeassistant_router
 from database.database import Database
 from services.event_service import EventService
 from services.config_service import ConfigService
@@ -142,7 +141,6 @@ def create_application() -> FastAPI:
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
-    app.include_router(homeassistant_router, prefix="/api/v1", tags=["Home Assistant"])
     
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
