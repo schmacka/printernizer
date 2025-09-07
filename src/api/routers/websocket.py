@@ -5,11 +5,10 @@ import json
 import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import structlog
 
 from services.event_service import EventService
-from utils.dependencies import get_event_service
 
 
 logger = structlog.get_logger()
@@ -88,11 +87,19 @@ manager = ConnectionManager()
 
 
 @router.websocket("/")
-async def websocket_endpoint(
-    websocket: WebSocket,
-    event_service: EventService = Depends(get_event_service)
-):
+async def websocket_endpoint(websocket: WebSocket):
     """Main WebSocket endpoint for real-time updates."""
+    event_service = websocket.app.state.event_service
+    await _handle_websocket_connection(websocket, event_service)
+
+@router.websocket("")
+async def websocket_endpoint_no_slash(websocket: WebSocket):
+    """Main WebSocket endpoint for real-time updates (without trailing slash)."""
+    event_service = websocket.app.state.event_service
+    await _handle_websocket_connection(websocket, event_service)
+
+async def _handle_websocket_connection(websocket: WebSocket, event_service: EventService):
+    """Handle WebSocket connection logic."""
     await manager.connect(websocket)
     
     try:
