@@ -81,8 +81,8 @@ class Settings(BaseSettings):
     debug: bool = False
     environment: str = "production"
     
-    # CORS - Enhanced for Porcus3D (will be parsed from comma-separated string)
-    cors_origins: str = "https://porcus3d.de,https://www.porcus3d.de,http://localhost:3000"
+    # CORS - Configure allowed origins (will be parsed from comma-separated string)
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     
     # Logging
     log_level: str = "INFO"

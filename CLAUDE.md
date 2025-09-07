@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Printernizer** is a professional 3D print management system designed for managing Bambu Lab A1 and Prusa Core One printers. It provides automated job tracking, file downloads, and business reporting capabilities specifically tailored for Porcus3D's German 3D printing service.
+**Printernizer** is a professional 3D print management system designed for managing Bambu Lab A1 and Prusa Core One printers. It provides automated job tracking, file downloads, and business reporting capabilities for 3D printing operations.
 
 **Primary Use Case**: Enterprise-grade 3D printer fleet management with automated job monitoring, file organization, and business analytics while maintaining simplicity for individual users.
 
 **Language**: English (for logging, GUI, and reports)
-**Target Market**: Kornwestheim, Germany (timezone and business rules)
+**Timezone**: Configurable (defaults to system timezone)
 **Business Focus**: Distinguish between business orders and private models
 
 ## Architecture Overview
@@ -69,10 +69,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Guidelines
 
 ### Business Logic Requirements
-- **Porcus3D Integration**: Built specifically for Porcus3D's workflow
+- **Business Integration**: Flexible workflow and reporting capabilities
 - **Material Tracking**: Comprehensive material usage monitoring
-- **Location Awareness**: German timezone and business rules
-- **Export Compatibility**: Excel/CSV formats for German accounting software
+- **Localization**: Configurable timezone and locale settings
+- **Export Compatibility**: Excel/CSV formats for standard accounting software
 
 ### Technology Stack Expectations
 - **Database**: SQLite for job storage and tracking
@@ -85,7 +85,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Downloads organized by printer and date
 - Secure file naming conventions
 - Local file management with status tracking
-- Integration with existing Porcus3D file structure
+- Flexible file organization and management
 
 ## Future Enhancements
 - **Home Assistant addon container** for smart home integration
@@ -96,4 +96,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - This project is in the specification phase - no code has been implemented yet
 - All architecture decisions should align with the core requirements in project.md
 - Focus on enterprise features while maintaining simplicity
-- Consider German business practices and accounting requirements
+- Consider standard business practices and configurable accounting requirements
