@@ -61,7 +61,7 @@ async def get_business_analytics(
     end_date: Optional[date] = Query(None, description="End date for analytics period"),
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
-    """Get business-specific analytics for Porcus3D operations."""
+    """Get business analytics for print operations."""
     try:
         analytics = await analytics_service.get_business_analytics(start_date, end_date)
         return analytics
