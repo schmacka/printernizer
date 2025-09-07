@@ -418,3 +418,58 @@ class ConfigService:
                     logger.info("Updated application setting", key=key, old_value=old_value, new_value=value)
         
         return len(updated_fields) > 0
+    
+    def add_watch_folder(self, folder_path: str) -> bool:
+        """Add a watch folder to the configuration."""
+        try:
+            settings = get_settings()
+            current_folders = settings.watch_folders_list
+            
+            # Check if folder already exists
+            if folder_path in current_folders:
+                logger.warning("Watch folder already exists", folder_path=folder_path)
+                return False
+            
+            # Validate the folder
+            validation = self.validate_watch_folder(folder_path)
+            if not validation["valid"]:
+                logger.error("Cannot add invalid watch folder", 
+                           folder_path=folder_path, error=validation["error"])
+                return False
+            
+            # Add to list and update settings
+            new_folders = current_folders + [folder_path]
+            settings.watch_folders = ",".join(new_folders)
+            
+            # Note: This is in-memory only. For persistent storage, 
+            # we would need to update environment variables or config file
+            logger.info("Added watch folder", folder_path=folder_path)
+            return True
+            
+        except Exception as e:
+            logger.error("Failed to add watch folder", folder_path=folder_path, error=str(e))
+            return False
+    
+    def remove_watch_folder(self, folder_path: str) -> bool:
+        """Remove a watch folder from the configuration."""
+        try:
+            settings = get_settings()
+            current_folders = settings.watch_folders_list
+            
+            # Check if folder exists
+            if folder_path not in current_folders:
+                logger.warning("Watch folder not found for removal", folder_path=folder_path)
+                return False
+            
+            # Remove from list and update settings
+            new_folders = [f for f in current_folders if f != folder_path]
+            settings.watch_folders = ",".join(new_folders)
+            
+            # Note: This is in-memory only. For persistent storage, 
+            # we would need to update environment variables or config file
+            logger.info("Removed watch folder", folder_path=folder_path)
+            return True
+            
+        except Exception as e:
+            logger.error("Failed to remove watch folder", folder_path=folder_path, error=str(e))
+            return False

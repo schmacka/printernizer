@@ -185,3 +185,71 @@ async def validate_watch_folder(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to validate watch folder"
         )
+
+
+@router.post("/watch-folders/add")
+async def add_watch_folder(
+    folder_path: str = Query(..., description="Folder path to add"),
+    config_service: ConfigService = Depends(get_config_service),
+    file_service: FileService = Depends(get_file_service)
+):
+    """Add a new watch folder."""
+    try:
+        # First validate the folder
+        validation = config_service.validate_watch_folder(folder_path)
+        if not validation["valid"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=validation["error"]
+            )
+        
+        # Add folder to configuration
+        success = config_service.add_watch_folder(folder_path)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Watch folder already exists or could not be added"
+            )
+        
+        # Reload watch folders in file service
+        await file_service.reload_watch_folders()
+        
+        return {"status": "added", "folder_path": folder_path}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to add watch folder", folder_path=folder_path, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to add watch folder"
+        )
+
+
+@router.delete("/watch-folders/remove")
+async def remove_watch_folder(
+    folder_path: str = Query(..., description="Folder path to remove"),
+    config_service: ConfigService = Depends(get_config_service),
+    file_service: FileService = Depends(get_file_service)
+):
+    """Remove a watch folder."""
+    try:
+        # Remove folder from configuration
+        success = config_service.remove_watch_folder(folder_path)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Watch folder not found"
+            )
+        
+        # Reload watch folders in file service
+        await file_service.reload_watch_folders()
+        
+        return {"status": "removed", "folder_path": folder_path}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to remove watch folder", folder_path=folder_path, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to remove watch folder"
+        )
