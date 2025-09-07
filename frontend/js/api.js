@@ -188,6 +188,31 @@ class ApiClient {
         });
     }
 
+    // Watch Folder Management Endpoints
+    async getWatchFolderSettings() {
+        return this.get(CONFIG.ENDPOINTS.FILES + '/watch-folders/settings');
+    }
+
+    async getWatchFolderStatus() {
+        return this.get(CONFIG.ENDPOINTS.FILES + '/watch-folders/status');
+    }
+
+    async validateWatchFolder(folderPath) {
+        return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/validate?folder_path=' + encodeURIComponent(folderPath));
+    }
+
+    async addWatchFolder(folderPath) {
+        return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/add?folder_path=' + encodeURIComponent(folderPath));
+    }
+
+    async removeWatchFolder(folderPath) {
+        return this.delete(CONFIG.ENDPOINTS.FILES + '/watch-folders/remove?folder_path=' + encodeURIComponent(folderPath));
+    }
+
+    async reloadWatchFolders() {
+        return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/reload');
+    }
+
     // Statistics Endpoints
     async getStatisticsOverview(period = 'month') {
         return this.get(CONFIG.ENDPOINTS.STATISTICS_OVERVIEW, { period });

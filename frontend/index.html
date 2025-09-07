@@ -254,6 +254,29 @@
                 </div>
             </div>
 
+            <!-- Watch Folders Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Überwachte Verzeichnisse</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="refreshWatchFolders()">
+                            <span class="btn-icon">🔄</span>
+                            Aktualisieren
+                        </button>
+                        <button class="btn btn-primary" onclick="showAddWatchFolderDialog()">
+                            <span class="btn-icon">📂</span>
+                            Verzeichnis hinzufügen
+                        </button>
+                    </div>
+                </div>
+                <div class="watch-folders-container" id="watchFoldersContainer">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade überwachte Verzeichnisse...</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="files-container">
                 <div class="files-list" id="filesList">
                     <div class="loading-placeholder">
@@ -609,6 +632,48 @@
                     <div class="spinner"></div>
                     <p>Lade Vorschau...</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Watch Folder Modal -->
+    <div id="addWatchFolderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Überwachtes Verzeichnis hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('addWatchFolderModal')">&times;</button>
+            </div>
+            <form id="addWatchFolderForm" class="modal-body">
+                <div class="form-group">
+                    <label for="watchFolderPath">Verzeichnispfad</label>
+                    <input type="text" id="watchFolderPath" name="folderPath" class="form-control" required 
+                           placeholder="C:\Benutzer\Ihr Name\3D-Modelle"
+                           data-validate="folder-path">
+                    <small class="form-text text-muted">
+                        Absoluter Pfad zum Verzeichnis, das überwacht werden soll.<br>
+                        Unterstützte Dateitypen: .stl, .3mf, .gcode, .obj, .ply
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <div class="validation-result" id="folderValidationResult" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary" onclick="validateWatchFolderPath()">
+                        <span class="btn-icon">✓</span>
+                        Pfad validieren
+                    </button>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addWatchFolderModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="addWatchFolderForm" class="btn btn-primary" id="addWatchFolderSubmit">
+                    <span class="btn-icon">📂</span>
+                    Hinzufügen
+                </button>
             </div>
         </div>
     </div>
