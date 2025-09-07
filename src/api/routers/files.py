@@ -7,9 +7,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 import structlog
 
-from models.file import File, FileStatus, FileSource
+from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus
 from services.file_service import FileService
-from utils.dependencies import get_file_service
+from services.config_service import ConfigService
+from utils.dependencies import get_file_service, get_config_service
 
 
 logger = structlog.get_logger()
@@ -93,4 +94,94 @@ async def sync_printer_files(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to sync files"
+        )
+
+
+# Watch Folder Management Endpoints
+
+@router.get("/watch-folders/settings", response_model=WatchFolderSettings)
+async def get_watch_folder_settings(
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Get watch folder settings."""
+    try:
+        settings = config_service.get_watch_folder_settings()
+        return WatchFolderSettings(**settings)
+    except Exception as e:
+        logger.error("Failed to get watch folder settings", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get watch folder settings"
+        )
+
+
+@router.get("/watch-folders/status")
+async def get_watch_folder_status(
+    file_service: FileService = Depends(get_file_service),
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Get watch folder status."""
+    try:
+        status_info = await file_service.get_watch_status()
+        return status_info
+    except Exception as e:
+        logger.error("Failed to get watch folder status", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get watch folder status"
+        )
+
+
+@router.get("/local")
+async def list_local_files(
+    watch_folder_path: Optional[str] = Query(None, description="Filter by watch folder path"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """List local files from watch folders."""
+    try:
+        files = await file_service.get_local_files()
+        
+        # Filter by watch folder path if specified
+        if watch_folder_path:
+            files = [f for f in files if f.get('watch_folder_path') == watch_folder_path]
+        
+        return {"files": files}
+    except Exception as e:
+        logger.error("Failed to list local files", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list local files"
+        )
+
+
+@router.post("/watch-folders/reload")
+async def reload_watch_folders(
+    file_service: FileService = Depends(get_file_service)
+):
+    """Reload watch folders configuration."""
+    try:
+        result = await file_service.reload_watch_folders()
+        return result
+    except Exception as e:
+        logger.error("Failed to reload watch folders", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reload watch folders"
+        )
+
+
+@router.post("/watch-folders/validate")
+async def validate_watch_folder(
+    folder_path: str = Query(..., description="Folder path to validate"),
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Validate a watch folder path."""
+    try:
+        validation = config_service.validate_watch_folder(folder_path)
+        return validation
+    except Exception as e:
+        logger.error("Failed to validate watch folder", folder_path=folder_path, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to validate watch folder"
         )
