@@ -31,7 +31,8 @@ from api.routers import (
     files_router,
     analytics_router,
     system_router,
-    websocket_router
+    websocket_router,
+    settings_router
 )
 from database.database import Database
 from services.event_service import EventService
@@ -140,6 +141,7 @@ def create_application() -> FastAPI:
     app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
+    app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     
     # Static files and frontend

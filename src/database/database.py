@@ -34,6 +34,10 @@ class Database:
         
         # Create tables
         await self._create_tables()
+        
+        # Run migrations
+        await self._run_migrations()
+        
         logger.info("Database initialized successfully")
         
     async def _create_tables(self):
@@ -477,3 +481,34 @@ class Database:
         except Exception as e:
             logger.error("Failed to get file statistics", error=str(e))
             return {}
+
+    async def _run_migrations(self):
+        """Run database migrations to update schema."""
+        try:
+            async with self._connection.cursor() as cursor:
+                # Check if watch_folder_path column exists in files table
+                await cursor.execute("PRAGMA table_info(files)")
+                columns = await cursor.fetchall()
+                column_names = [col['name'] for col in columns]
+                
+                # Add watch_folder_path column if it doesn't exist
+                if 'watch_folder_path' not in column_names:
+                    logger.info("Adding watch_folder_path column to files table")
+                    await cursor.execute("ALTER TABLE files ADD COLUMN watch_folder_path TEXT")
+                
+                # Add relative_path column if it doesn't exist
+                if 'relative_path' not in column_names:
+                    logger.info("Adding relative_path column to files table")
+                    await cursor.execute("ALTER TABLE files ADD COLUMN relative_path TEXT")
+                
+                # Add modified_time column if it doesn't exist  
+                if 'modified_time' not in column_names:
+                    logger.info("Adding modified_time column to files table")
+                    await cursor.execute("ALTER TABLE files ADD COLUMN modified_time TIMESTAMP")
+                
+                await self._connection.commit()
+                logger.info("Database migrations completed successfully")
+                
+        except Exception as e:
+            logger.error("Failed to run database migrations", error=str(e))
+            raise

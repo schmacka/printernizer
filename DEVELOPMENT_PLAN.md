@@ -142,11 +142,7 @@
 ### Phase 6: Advanced Features & Polish (Weeks 11-12)
 **Goal**: Additional features and system refinement
 
-#### Milestone 6.1: Home Assistant Integration Preparation ✅ **COMPLETED**
-- [x] **Container-ready architecture**
-- [x] **Home Assistant addon structure** 
-- [x] **MQTT discovery for Home Assistant**
-- [x] **Configuration templates**
+
 
 #### Milestone 6.2: System Optimization
 - [ ] Performance profiling and optimization
