@@ -26,6 +26,9 @@ class FileManager {
         // Load file statistics
         this.loadFileStatistics();
         
+        // Load watch folders
+        this.loadWatchFolders();
+        
         // Setup filter handlers
         this.setupFilterHandlers();
         
@@ -37,6 +40,9 @@ class FileManager {
         
         // Load printer options for filter
         this.loadPrinterOptions();
+        
+        // Setup watch folder form handler
+        this.setupWatchFolderForm();
     }
 
     /**
@@ -655,6 +661,204 @@ class FileManager {
             showToast('error', 'Fehler', 'Bereinigungs-Kandidaten konnten nicht geladen werden');
         }
     }
+
+    /**
+     * Load and display watch folders
+     */
+    async loadWatchFolders() {
+        try {
+            const container = document.getElementById('watchFoldersContainer');
+            if (!container) return;
+            
+            // Show loading state
+            setLoadingState(container, true);
+            
+            // Load watch folder settings and status
+            const [settings, status] = await Promise.all([
+                api.getWatchFolderSettings(),
+                api.getWatchFolderStatus()
+            ]);
+            
+            // Render watch folders display
+            container.innerHTML = this.renderWatchFolders(settings, status);
+            
+        } catch (error) {
+            console.error('Failed to load watch folders:', error);
+            const container = document.getElementById('watchFoldersContainer');
+            if (container) {
+                container.innerHTML = this.renderWatchFoldersError(error);
+            }
+        }
+    }
+
+    /**
+     * Render watch folders display
+     */
+    renderWatchFolders(settings, status) {
+        const watchFolders = settings.watch_folders || [];
+        const isEnabled = settings.enabled;
+        const isRecursive = settings.recursive;
+        const isRunning = status.is_running;
+
+        if (watchFolders.length === 0) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📂</div>
+                    <h3>Keine überwachten Verzeichnisse</h3>
+                    <p>Fügen Sie Verzeichnisse hinzu, um automatisch neue 3D-Dateien zu erkennen.</p>
+                    <button class="btn btn-primary" onclick="showAddWatchFolderDialog()">
+                        <span class="btn-icon">📂</span>
+                        Erstes Verzeichnis hinzufügen
+                    </button>
+                </div>
+            `;
+        }
+
+        const statusBadge = isRunning 
+            ? '<span class="badge badge-success">Aktiv</span>'
+            : '<span class="badge badge-danger">Inaktiv</span>';
+
+        const settingsInfo = `
+            <div class="watch-folders-info">
+                <div class="info-item">
+                    <strong>Status:</strong> ${statusBadge}
+                </div>
+                <div class="info-item">
+                    <strong>Überwachung:</strong> ${isEnabled ? 'Aktiviert' : 'Deaktiviert'}
+                </div>
+                <div class="info-item">
+                    <strong>Rekursiv:</strong> ${isRecursive ? 'Ja' : 'Nein'}
+                </div>
+                <div class="info-item">
+                    <strong>Lokale Dateien:</strong> ${status.local_files_count || 0}
+                </div>
+            </div>
+        `;
+
+        const foldersGrid = `
+            <div class="watch-folders-grid">
+                ${watchFolders.map(folderPath => `
+                    <div class="watch-folder-item">
+                        <div class="folder-icon">📂</div>
+                        <div class="folder-info">
+                            <div class="folder-path" title="${escapeHtml(folderPath)}">${escapeHtml(folderPath)}</div>
+                        </div>
+                        <div class="folder-actions">
+                            <button class="btn btn-danger btn-sm" onclick="removeWatchFolder('${escapeHtml(folderPath)}')" 
+                                    title="Verzeichnis entfernen">
+                                <span class="btn-icon">🗑️</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        return settingsInfo + foldersGrid;
+    }
+
+    /**
+     * Render watch folders error state
+     */
+    renderWatchFoldersError(error) {
+        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der überwachten Verzeichnisse';
+        
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <h3>Ladefehler</h3>
+                <p>${escapeHtml(message)}</p>
+                <button class="btn btn-primary" onclick="fileManager.loadWatchFolders()">
+                    <span class="btn-icon">🔄</span>
+                    Erneut versuchen
+                </button>
+            </div>
+        `;
+    }
+
+    /**
+     * Setup watch folder form handler
+     */
+    setupWatchFolderForm() {
+        const form = document.getElementById('addWatchFolderForm');
+        if (!form) return;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.addWatchFolder();
+        });
+    }
+
+    /**
+     * Add a new watch folder
+     */
+    async addWatchFolder() {
+        const folderPathInput = document.getElementById('watchFolderPath');
+        const submitButton = document.getElementById('addWatchFolderSubmit');
+        
+        if (!folderPathInput || !submitButton) return;
+
+        const folderPath = folderPathInput.value.trim();
+        if (!folderPath) {
+            showToast('error', 'Fehler', 'Bitte geben Sie einen Verzeichnispfad an');
+            return;
+        }
+
+        try {
+            // Disable submit button
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-small"></span> Hinzufügen...';
+
+            // Add the watch folder
+            const response = await api.addWatchFolder(folderPath);
+
+            if (response.status === 'added') {
+                showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde hinzugefügt`);
+                
+                // Close modal and refresh
+                closeModal('addWatchFolderModal');
+                this.loadWatchFolders();
+                
+                // Reset form
+                folderPathInput.value = '';
+                const validationResult = document.getElementById('folderValidationResult');
+                if (validationResult) {
+                    validationResult.style.display = 'none';
+                }
+            }
+
+        } catch (error) {
+            console.error('Failed to add watch folder:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Hinzufügen des Verzeichnisses';
+            showToast('error', 'Fehler', message);
+        } finally {
+            // Re-enable submit button
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<span class="btn-icon">📂</span> Hinzufügen';
+        }
+    }
+
+    /**
+     * Remove a watch folder
+     */
+    async removeWatchFolder(folderPath) {
+        const confirmed = confirm(`Möchten Sie das Verzeichnis "${folderPath}" wirklich aus der Überwachung entfernen?`);
+        if (!confirmed) return;
+
+        try {
+            const response = await api.removeWatchFolder(folderPath);
+
+            if (response.status === 'removed') {
+                showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde entfernt`);
+                this.loadWatchFolders();
+            }
+
+        } catch (error) {
+            console.error('Failed to remove watch folder:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Entfernen des Verzeichnisses';
+            showToast('error', 'Fehler', message);
+        }
+    }
 }
 
 // Global file manager instance
@@ -705,6 +909,66 @@ function uploadToPrinter(fileId) {
  */
 function deleteLocalFile(fileId) {
     fileManager.deleteLocalFile(fileId);
+}
+
+/**
+ * Refresh watch folders
+ */
+function refreshWatchFolders() {
+    fileManager.loadWatchFolders();
+}
+
+/**
+ * Show add watch folder dialog
+ */
+function showAddWatchFolderDialog() {
+    showModal('addWatchFolderModal');
+}
+
+/**
+ * Remove watch folder (called from template)
+ */
+function removeWatchFolder(folderPath) {
+    fileManager.removeWatchFolder(folderPath);
+}
+
+/**
+ * Validate watch folder path
+ */
+async function validateWatchFolderPath() {
+    const folderPathInput = document.getElementById('watchFolderPath');
+    const validationResult = document.getElementById('folderValidationResult');
+    
+    if (!folderPathInput || !validationResult) return;
+
+    const folderPath = folderPathInput.value.trim();
+    if (!folderPath) {
+        validationResult.style.display = 'none';
+        return;
+    }
+
+    try {
+        // Show loading state
+        validationResult.style.display = 'block';
+        validationResult.className = 'validation-result loading';
+        validationResult.innerHTML = '<span class="spinner-small"></span> Validiere...';
+
+        // Validate path
+        const response = await api.validateWatchFolder(folderPath);
+        
+        if (response.valid) {
+            validationResult.className = 'validation-result success';
+            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || 'Verzeichnis ist gültig');
+        } else {
+            validationResult.className = 'validation-result error';
+            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || 'Verzeichnis ist ungültig');
+        }
+
+    } catch (error) {
+        console.error('Failed to validate watch folder:', error);
+        validationResult.className = 'validation-result error';
+        validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
+    }
 }
 
 // Export for use in other modules
