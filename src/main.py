@@ -2,8 +2,7 @@
 Printernizer - Professional 3D Print Management System
 Main application entry point for production deployment.
 
-Built for Porcus3D's German 3D printing service in Kornwestheim.
-Enterprise-grade 3D printer fleet management with GDPR compliance.
+Enterprise-grade 3D printer fleet management with configurable compliance features.
 """
 
 import asyncio
@@ -114,7 +113,7 @@ def create_application() -> FastAPI:
         lifespan=lifespan
     )
     
-    # CORS Configuration for German market
+    # CORS Configuration
     cors_origins = settings.get_cors_origins()
     # Add localhost for development
     if settings.environment == "development":
