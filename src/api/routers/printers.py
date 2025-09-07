@@ -229,3 +229,78 @@ async def disconnect_printer(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to disconnect from printer"
         )
+
+
+@router.post("/{printer_id}/pause")
+async def pause_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Pause the current print job."""
+    try:
+        printer_id_str = str(printer_id)
+        success = await printer_service.pause_printer(printer_id_str)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to pause print job"
+            )
+        return {"status": "paused"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to pause printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to pause print job"
+        )
+
+
+@router.post("/{printer_id}/resume")
+async def resume_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Resume the paused print job."""
+    try:
+        printer_id_str = str(printer_id)
+        success = await printer_service.resume_printer(printer_id_str)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to resume print job"
+            )
+        return {"status": "resumed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to resume printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to resume print job"
+        )
+
+
+@router.post("/{printer_id}/stop")
+async def stop_printer(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Stop/cancel the current print job."""
+    try:
+        printer_id_str = str(printer_id)
+        success = await printer_service.stop_printer(printer_id_str)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to stop print job"
+            )
+        return {"status": "stopped"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to stop printer", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to stop print job"
+        )

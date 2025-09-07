@@ -314,3 +314,75 @@ class PrusaPrinter(BasePrinter):
             logger.error("Failed to download file from Prusa",
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
+            
+    async def pause_print(self) -> bool:
+        """Pause the current print job on Prusa printer."""
+        if not self.is_connected or not self.session:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            logger.info("Pausing print on Prusa printer", printer_id=self.printer_id)
+            
+            # Send pause command to PrusaLink
+            async with self.session.post(f"{self.base_url}/job", 
+                                       json={"command": "pause", "action": "pause"}) as response:
+                if response.status == 204:
+                    logger.info("Successfully paused print", printer_id=self.printer_id)
+                    return True
+                else:
+                    logger.warning("Failed to pause print", 
+                                 printer_id=self.printer_id, status=response.status)
+                    return False
+                    
+        except Exception as e:
+            logger.error("Error pausing print on Prusa",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+            
+    async def resume_print(self) -> bool:
+        """Resume the paused print job on Prusa printer."""
+        if not self.is_connected or not self.session:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            logger.info("Resuming print on Prusa printer", printer_id=self.printer_id)
+            
+            # Send resume command to PrusaLink
+            async with self.session.post(f"{self.base_url}/job", 
+                                       json={"command": "pause", "action": "resume"}) as response:
+                if response.status == 204:
+                    logger.info("Successfully resumed print", printer_id=self.printer_id)
+                    return True
+                else:
+                    logger.warning("Failed to resume print", 
+                                 printer_id=self.printer_id, status=response.status)
+                    return False
+                    
+        except Exception as e:
+            logger.error("Error resuming print on Prusa",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+            
+    async def stop_print(self) -> bool:
+        """Stop/cancel the current print job on Prusa printer."""
+        if not self.is_connected or not self.session:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            logger.info("Stopping print on Prusa printer", printer_id=self.printer_id)
+            
+            # Send cancel command to PrusaLink
+            async with self.session.post(f"{self.base_url}/job", 
+                                       json={"command": "cancel"}) as response:
+                if response.status == 204:
+                    logger.info("Successfully stopped print", printer_id=self.printer_id)
+                    return True
+                else:
+                    logger.warning("Failed to stop print", 
+                                 printer_id=self.printer_id, status=response.status)
+                    return False
+                    
+        except Exception as e:
+            logger.error("Error stopping print on Prusa",
+                        printer_id=self.printer_id, error=str(e))
+            return False
