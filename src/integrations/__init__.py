@@ -1,16 +1,6 @@
 """
 Integration modules for Printernizer
-Provides integrations with external systems like Home Assistant
+Provides integrations with external systems
 """
 
-from .homeassistant import (
-    HomeAssistantMQTT,
-    get_homeassistant_mqtt,
-    initialize_homeassistant_integration
-)
-
-__all__ = [
-    "HomeAssistantMQTT",
-    "get_homeassistant_mqtt", 
-    "initialize_homeassistant_integration"
-]
+__all__ = []

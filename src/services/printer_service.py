@@ -13,7 +13,6 @@ from services.config_service import ConfigService
 from models.printer import PrinterType, PrinterStatus, PrinterStatusUpdate, Printer
 from printers import BambuLabPrinter, PrusaPrinter, BasePrinter
 from utils.exceptions import PrinterConnectionError, NotFoundError
-from integrations.homeassistant import get_homeassistant_mqtt
 
 logger = structlog.get_logger()
 
@@ -35,8 +34,6 @@ class PrinterService:
         await self._load_printers()
         await self._sync_database_printers()
         
-        # Initialize Home Assistant integration if available
-        await self._setup_homeassistant_integration()
         
     async def _load_printers(self):
         """Load printer configurations and create instances."""
@@ -45,7 +42,7 @@ class PrinterService:
         for printer_id, config in printer_configs.items():
             try:
                 # Create printer instance based on type
-                printer_instance = await self._create_printer_instance(printer_id, config)
+                printer_instance = self._create_printer_instance(printer_id, config)
                 
                 if printer_instance:
                     self.printer_instances[printer_id] = printer_instance
@@ -66,7 +63,7 @@ class PrinterService:
                            
         logger.info("Printer instances loaded", count=len(self.printer_instances))
         
-    async def _create_printer_instance(self, printer_id: str, config) -> Optional[BasePrinter]:
+    def _create_printer_instance(self, printer_id: str, config) -> Optional[BasePrinter]:
         """Create printer instance based on configuration."""
         if config.type == "bambu_lab":
             return BambuLabPrinter(
@@ -127,8 +124,6 @@ class PrinterService:
             "timestamp": status.timestamp.isoformat()
         })
         
-        # Update Home Assistant if available
-        await self._update_homeassistant_status(status)
         
     async def _store_status_update(self, status: PrinterStatusUpdate):
         """Store status update in database for history."""
@@ -510,61 +505,3 @@ class PrinterService:
         # Remove from configuration
         return self.config_service.remove_printer(printer_id_str)
         
-    async def _setup_homeassistant_integration(self):
-        """Set up Home Assistant MQTT discovery integration."""
-        try:
-            ha_mqtt = await get_homeassistant_mqtt()
-            if ha_mqtt:
-                logger.info("Setting up Home Assistant integration")
-                
-                # Register all active printers as Home Assistant devices
-                for printer_id, instance in self.printer_instances.items():
-                    config = self.config_service.get_printer(printer_id)
-                    if config and config.is_active:
-                        # Register device
-                        ha_mqtt.register_printer_device(
-                            printer_id=printer_id,
-                            printer_name=config.name,
-                            printer_type=config.type,
-                            ip_address=config.ip_address,
-                            serial_number=config.serial_number
-                        )
-                        
-                        # Create entities
-                        await ha_mqtt.create_printer_entities(
-                            printer_id=printer_id,
-                            printer_name=config.name,
-                            printer_type=config.type
-                        )
-                        
-                logger.info("Home Assistant integration initialized")
-            else:
-                logger.debug("Home Assistant integration not available")
-                
-        except Exception as e:
-            logger.error("Failed to setup Home Assistant integration", error=str(e))
-            
-    async def _update_homeassistant_status(self, status: PrinterStatusUpdate):
-        """Update printer status in Home Assistant."""
-        try:
-            ha_mqtt = await get_homeassistant_mqtt()
-            if ha_mqtt:
-                # Prepare status data for Home Assistant
-                status_data = {
-                    "status": status.status.value,
-                    "connected": status.status != PrinterStatus.ERROR,
-                    "progress": status.progress or 0,
-                    "job_name": status.current_job,
-                    "bed_temperature": status.temperature_bed,
-                    "nozzle_temperature": status.temperature_nozzle,
-                    "time_remaining": status.time_remaining,
-                    "material_used": getattr(status, 'material_used', None),
-                    "cost_eur": getattr(status, 'cost_eur', None),
-                    "last_job_completion": status.timestamp.isoformat() if status.status == PrinterStatus.COMPLETED else None
-                }
-                
-                await ha_mqtt.update_printer_state(status.printer_id, status_data)
-                
-        except Exception as e:
-            logger.error("Failed to update Home Assistant status", 
-                        printer_id=status.printer_id, error=str(e))

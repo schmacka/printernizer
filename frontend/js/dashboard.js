@@ -91,8 +91,10 @@ class Dashboard {
         const printerDetailEl = document.getElementById('printerDetail');
         
         if (printerCountEl && printerDetailEl) {
-            const onlineCount = printers.printers?.filter(p => p.status === 'online').length || 0;
-            const totalCount = printers.total_count || 0;
+            // Handle printers as array
+            const printersArray = Array.isArray(printers) ? printers : [];
+            const onlineCount = printersArray.filter(p => p.status === 'online').length || 0;
+            const totalCount = printersArray.length || 0;
             
             printerCountEl.textContent = `${onlineCount}/${totalCount}`;
             printerDetailEl.textContent = `${totalCount} Drucker konfiguriert`;
@@ -208,11 +210,11 @@ class Dashboard {
             // Clear existing printers
             this.printers.clear();
             
-            if (response.printers && response.printers.length > 0) {
+            if (response && Array.isArray(response) && response.length > 0) {
                 // Create printer cards
                 printerGrid.innerHTML = '';
                 
-                response.printers.forEach(printer => {
+                response.forEach(printer => {
                     const printerCard = new PrinterCard(printer);
                     const cardElement = printerCard.render();
                     printerGrid.appendChild(cardElement);
