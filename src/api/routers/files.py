@@ -42,16 +42,14 @@ async def list_files(
 ):
     """List files from printers and local storage."""
     try:
-        files = await file_service.list_files(
-            printer_id=printer_id,
-            status=status,
-            source=source
+        files = await file_service.get_files(
+            printer_id=printer_id
         )
         return [FileResponse.model_validate(file.__dict__) for file in files]
     except Exception as e:
         logger.error("Failed to list files", error=str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=500,
             detail="Failed to retrieve files"
         )
 
@@ -106,6 +104,9 @@ async def get_watch_folder_settings(
     """Get watch folder settings."""
     try:
         settings = await config_service.get_watch_folder_settings()
+        # Convert watch folder objects to just folder paths
+        watch_folder_paths = [wf['folder_path'] for wf in settings['watch_folders']]
+        settings['watch_folders'] = watch_folder_paths
         return WatchFolderSettings(**settings)
     except Exception as e:
         logger.error("Failed to get watch folder settings", error=str(e))
@@ -252,4 +253,56 @@ async def remove_watch_folder(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to remove watch folder"
+        )
+
+
+@router.patch("/watch-folders/update")
+async def update_watch_folder(
+    folder_path: str = Query(..., description="Folder path to update"),
+    is_active: bool = Query(..., description="Whether to activate or deactivate the folder"),
+    config_service: ConfigService = Depends(get_config_service),
+    file_service: FileService = Depends(get_file_service)
+):
+    """Update watch folder activation status."""
+    try:
+        # First get the watch folder by path to get its ID
+        await config_service._ensure_env_migration()
+        folder = await config_service.watch_folder_db.get_watch_folder_by_path(folder_path)
+        
+        if not folder:
+            raise HTTPException(
+                status_code=404,
+                detail="Watch folder not found"
+            )
+        
+        # Update the folder's active status
+        success = await config_service.watch_folder_db.update_watch_folder(
+            folder.id, 
+            {"is_active": is_active}
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to update watch folder"
+            )
+        
+        # Reload watch folders in file service to apply changes
+        await file_service.reload_watch_folders()
+        
+        status_text = "activated" if is_active else "deactivated"
+        return {
+            "status": "updated", 
+            "folder_path": folder_path,
+            "is_active": is_active,
+            "message": f"Watch folder {status_text} successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to update watch folder", folder_path=folder_path, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update watch folder"
         )

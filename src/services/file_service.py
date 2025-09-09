@@ -232,6 +232,24 @@ class FileService:
             logger.error("Error retrieving local files", error=str(e))
             return []
     
+    async def scan_local_files(self) -> List[Dict[str, Any]]:
+        """Scan local watch folders for new files (called by file discovery task)."""
+        if not self.file_watcher:
+            return []
+        
+        try:
+            # Get current local files from file watcher
+            current_files = self.file_watcher.get_local_files()
+            
+            # For file discovery task, we want to return files that may be new
+            # This is the same as get_local_files for now, but could be enhanced
+            # to track which files are "new" since last discovery
+            logger.debug("Scanned local files", count=len(current_files))
+            return current_files
+        except Exception as e:
+            logger.error("Error scanning local files", error=str(e))
+            return []
+    
     async def get_watch_status(self) -> Dict[str, Any]:
         """Get file watcher status."""
         if not self.file_watcher:

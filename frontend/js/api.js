@@ -228,6 +228,10 @@ class ApiClient {
         return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/reload');
     }
 
+    async updateWatchFolder(folderPath, isActive) {
+        return this.patch(CONFIG.ENDPOINTS.FILES + '/watch-folders/update?folder_path=' + encodeURIComponent(folderPath) + '&is_active=' + isActive);
+    }
+
     // Statistics Endpoints
     async getStatisticsOverview(period = 'month') {
         return this.get(CONFIG.ENDPOINTS.STATISTICS_OVERVIEW, { period });
