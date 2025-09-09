@@ -317,8 +317,11 @@ class PrinterFormHandler {
                 closeModal('addPrinterModal');
                 
                 // Refresh printer lists
-                if (typeof refreshCurrentPage === 'function') {
-                    refreshCurrentPage();
+                if (typeof printerManager !== 'undefined' && printerManager.loadPrinters) {
+                    printerManager.loadPrinters();
+                }
+                if (typeof dashboard !== 'undefined' && dashboard.loadPrinters) {
+                    dashboard.loadPrinters();
                 }
                 
                 // Reset form
