@@ -37,6 +37,13 @@ class BusinessAnalyticsResponse(BaseModel):
     top_customers: list
 
 
+class OverviewResponse(BaseModel):
+    """Overview statistics response for dashboard."""
+    jobs: dict  # Contains job statistics 
+    files: dict  # Contains file statistics
+    printers: dict  # Contains printer statistics
+
+
 @router.get("/summary", response_model=AnalyticsResponse)
 async def get_analytics_summary(
     start_date: Optional[date] = Query(None, description="Start date for analytics period"),
@@ -70,4 +77,21 @@ async def get_business_analytics(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve business analytics"
+        )
+
+
+@router.get("/overview", response_model=OverviewResponse)
+async def get_analytics_overview(
+    period: Optional[str] = Query('day', description="Period for analytics (day, week, month)"),
+    analytics_service: AnalyticsService = Depends(get_analytics_service)
+):
+    """Get dashboard overview statistics."""
+    try:
+        overview = await analytics_service.get_dashboard_overview(period)
+        return overview
+    except Exception as e:
+        logger.error("Failed to get analytics overview", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve analytics overview"
         )
