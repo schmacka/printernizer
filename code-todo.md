@@ -19,9 +19,9 @@
 - [x] Implement download status tracking
 
 ### Event Service (`src/services/event_service.py`)
-- [ ] Implement printer status monitoring
-- [ ] Implement job status monitoring
-- [ ] Implement file discovery
+- [x] Implement printer status monitoring
+- [x] Implement job status monitoring
+- [x] Implement file discovery
 
 ### Analytics Service (`src/services/analytics_service.py`)
 - [ ] Implement analytics calculations
