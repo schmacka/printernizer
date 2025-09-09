@@ -75,6 +75,7 @@ class PrinterFormHandler {
     handlePrinterTypeChange(printerType) {
         const bambuFields = document.getElementById('bambuFields');
         const prusaFields = document.getElementById('prusaFields');
+        const ipaKeyGroup = document.getElementById('ipaKeyGroup');
 
         // Hide all specific fields first
         if (bambuFields) {
@@ -85,14 +86,24 @@ class PrinterFormHandler {
             prusaFields.style.display = 'none';
             this.setFieldsRequired(prusaFields, false);
         }
+        if (ipaKeyGroup) {
+            ipaKeyGroup.style.display = 'none';
+            this.setFieldsRequired(ipaKeyGroup, false);
+        }
 
         // Show relevant fields based on selection
         if (printerType === 'bambu_lab' && bambuFields) {
-            bambuFields.style.display = 'block';
+            bambuFields.style.setProperty('display', 'block', 'important');
             this.setFieldsRequired(bambuFields, true);
-        } else if (printerType === 'prusa_core' && prusaFields) {
-            prusaFields.style.display = 'block';
-            this.setFieldsRequired(prusaFields, true);
+        } else if (printerType === 'prusa_core') {
+            if (prusaFields) {
+                prusaFields.style.setProperty('display', 'block', 'important');
+                this.setFieldsRequired(prusaFields, true);
+            }
+            if (ipaKeyGroup) {
+                ipaKeyGroup.style.setProperty('display', 'block', 'important');
+                this.setFieldsRequired(ipaKeyGroup, true);
+            }
         }
     }
 
@@ -171,7 +182,7 @@ class PrinterFormHandler {
             case 'api-key':
                 if (!isValidApiKey(value)) {
                     isValid = false;
-                    errorMessage = 'API Key muss zwischen 16 und 64 Zeichen lang sein';
+                    errorMessage = 'API Key muss zwischen 8 und 128 Zeichen lang sein';
                 }
                 break;
         }
@@ -312,7 +323,9 @@ class PrinterFormHandler {
             // Submit form data
             const response = await api.addPrinter(formData);
             
-            if (response.success) {
+            // Backend returns printer object directly on successful creation (201 status)
+            // If we get a response with an id, it was successful
+            if (response && response.id) {
                 showToast('success', 'Erfolg', CONFIG.SUCCESS_MESSAGES.PRINTER_ADDED);
                 closeModal('addPrinterModal');
                 
@@ -327,7 +340,7 @@ class PrinterFormHandler {
                 // Reset form
                 this.resetForm();
             } else {
-                throw new Error(response.error || 'Unbekannter Fehler');
+                throw new Error('Unbekannter Fehler - Keine gültige Antwort vom Server erhalten');
             }
 
         } catch (error) {
@@ -359,7 +372,7 @@ class PrinterFormHandler {
             connectionConfig.access_code = document.getElementById('accessCode').value;
             connectionConfig.serial_number = document.getElementById('serialNumber').value;
         } else if (printerType === 'prusa_core') {
-            connectionConfig.api_key = document.getElementById('apiKey').value;
+            connectionConfig.api_key = document.getElementById('ipaKey').value;
         }
 
         // Format data according to backend API expectations
@@ -432,6 +445,7 @@ class PrinterFormHandler {
         // Hide specific fields
         const bambuFields = document.getElementById('bambuFields');
         const prusaFields = document.getElementById('prusaFields');
+        const ipaKeyGroup = document.getElementById('ipaKeyGroup');
         
         if (bambuFields) {
             bambuFields.style.display = 'none';
@@ -440,6 +454,10 @@ class PrinterFormHandler {
         if (prusaFields) {
             prusaFields.style.display = 'none';
             this.setFieldsRequired(prusaFields, false);
+        }
+        if (ipaKeyGroup) {
+            ipaKeyGroup.style.display = 'none';
+            this.setFieldsRequired(ipaKeyGroup, false);
         }
     }
 }

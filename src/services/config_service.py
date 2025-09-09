@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from datetime import datetime
 import structlog
 from utils.config import get_settings
+from services.watch_folder_db_service import WatchFolderDbService
+from models.watch_folder import WatchFolder, WatchFolderSource
 
 logger = structlog.get_logger()
 
@@ -114,9 +116,11 @@ class Settings(BaseSettings):
 class ConfigService:
     """Configuration service for managing printer and system settings."""
     
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None, database = None):
         """Initialize configuration service."""
         self.settings = Settings()
+        self.watch_folder_db = WatchFolderDbService(database)
+        self._migrated_env_folders = False
         
         if config_path is None:
             config_path = Path(__file__).parent.parent.parent / "config" / "printers.json"
@@ -327,10 +331,10 @@ class ConfigService:
             logger.error("Failed to reload configuration", error=str(e))
             return False
     
-    def get_watch_folders(self) -> List[str]:
-        """Get list of configured watch folders."""
-        settings = get_settings()
-        return settings.watch_folders_list
+    async def get_watch_folders(self) -> List[str]:
+        """Get list of configured watch folders from database."""
+        await self._ensure_env_migration()
+        return await self.watch_folder_db.get_active_folder_paths()
     
     def is_watch_folders_enabled(self) -> bool:
         """Check if watch folders monitoring is enabled."""
@@ -361,11 +365,14 @@ class ConfigService:
         except Exception as e:
             return {"valid": False, "error": f"Invalid path: {str(e)}"}
     
-    def get_watch_folder_settings(self) -> Dict[str, Any]:
+    async def get_watch_folder_settings(self) -> Dict[str, Any]:
         """Get all watch folder related settings."""
+        await self._ensure_env_migration()
         settings = get_settings()
+        watch_folders = await self.watch_folder_db.get_all_watch_folders(active_only=True)
+        
         return {
-            "watch_folders": settings.watch_folders_list,
+            "watch_folders": [wf.to_dict() for wf in watch_folders],
             "enabled": settings.watch_folders_enabled,
             "recursive": settings.watch_recursive,
             "supported_extensions": ['.stl', '.3mf', '.gcode', '.obj', '.ply']
@@ -419,14 +426,14 @@ class ConfigService:
         
         return len(updated_fields) > 0
     
-    def add_watch_folder(self, folder_path: str) -> bool:
-        """Add a watch folder to the configuration."""
+    async def add_watch_folder(self, folder_path: str) -> bool:
+        """Add a watch folder to the database configuration."""
         try:
-            settings = get_settings()
-            current_folders = settings.watch_folders_list
+            await self._ensure_env_migration()
             
             # Check if folder already exists
-            if folder_path in current_folders:
+            existing = await self.watch_folder_db.get_watch_folder_by_path(folder_path)
+            if existing:
                 logger.warning("Watch folder already exists", folder_path=folder_path)
                 return False
             
@@ -437,39 +444,59 @@ class ConfigService:
                            folder_path=folder_path, error=validation["error"])
                 return False
             
-            # Add to list and update settings
-            new_folders = current_folders + [folder_path]
-            settings.watch_folders = ",".join(new_folders)
+            # Create watch folder record
+            watch_folder = WatchFolder(
+                folder_path=folder_path,
+                folder_name=Path(folder_path).name,
+                source=WatchFolderSource.MANUAL
+            )
             
-            # Note: This is in-memory only. For persistent storage, 
-            # we would need to update environment variables or config file
-            logger.info("Added watch folder", folder_path=folder_path)
+            # Save to database
+            folder_id = await self.watch_folder_db.create_watch_folder(watch_folder)
+            logger.info("Added watch folder to database", folder_path=folder_path, folder_id=folder_id)
             return True
             
         except Exception as e:
             logger.error("Failed to add watch folder", folder_path=folder_path, error=str(e))
             return False
     
-    def remove_watch_folder(self, folder_path: str) -> bool:
-        """Remove a watch folder from the configuration."""
+    async def remove_watch_folder(self, folder_path: str) -> bool:
+        """Remove a watch folder from the database configuration."""
         try:
-            settings = get_settings()
-            current_folders = settings.watch_folders_list
+            await self._ensure_env_migration()
             
-            # Check if folder exists
-            if folder_path not in current_folders:
+            # Check if folder exists in database
+            existing = await self.watch_folder_db.get_watch_folder_by_path(folder_path)
+            if not existing:
                 logger.warning("Watch folder not found for removal", folder_path=folder_path)
                 return False
             
-            # Remove from list and update settings
-            new_folders = [f for f in current_folders if f != folder_path]
-            settings.watch_folders = ",".join(new_folders)
+            # Remove from database
+            deleted = await self.watch_folder_db.delete_watch_folder_by_path(folder_path)
+            if deleted:
+                logger.info("Removed watch folder from database", folder_path=folder_path)
             
-            # Note: This is in-memory only. For persistent storage, 
-            # we would need to update environment variables or config file
-            logger.info("Removed watch folder", folder_path=folder_path)
-            return True
+            return deleted
             
         except Exception as e:
             logger.error("Failed to remove watch folder", folder_path=folder_path, error=str(e))
             return False
+    
+    async def _ensure_env_migration(self):
+        """Ensure environment variables are migrated to database on first use."""
+        if self._migrated_env_folders:
+            return
+        
+        try:
+            settings = get_settings()
+            env_folders = settings.watch_folders_list
+            
+            if env_folders:
+                migrated = await self.watch_folder_db.migrate_env_folders(env_folders)
+                logger.info("Migrated environment watch folders", 
+                          env_folders=len(env_folders), migrated=migrated)
+            
+            self._migrated_env_folders = True
+            
+        except Exception as e:
+            logger.error("Failed to migrate environment watch folders", error=str(e))
