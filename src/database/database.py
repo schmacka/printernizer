@@ -266,8 +266,10 @@ class Database:
             logger.error("Failed to get job", job_id=job_id, error=str(e))
             return None
     
-    async def list_jobs(self, printer_id: Optional[str] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
-        """List jobs with optional filtering."""
+    async def list_jobs(self, printer_id: Optional[str] = None, status: Optional[str] = None, 
+                       is_business: Optional[bool] = None, limit: Optional[int] = None, 
+                       offset: Optional[int] = None) -> List[Dict[str, Any]]:
+        """List jobs with optional filtering and pagination."""
         try:
             query = "SELECT * FROM jobs"
             params = []
@@ -279,11 +281,22 @@ class Database:
             if status:
                 conditions.append("status = ?")
                 params.append(status)
+            if is_business is not None:
+                conditions.append("is_business = ?")
+                params.append(int(is_business))
                 
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)
             
             query += " ORDER BY created_at DESC"
+            
+            # Add pagination
+            if limit is not None:
+                query += " LIMIT ?"
+                params.append(limit)
+                if offset is not None:
+                    query += " OFFSET ?"
+                    params.append(offset)
             
             async with self._connection.execute(query, params) as cursor:
                 rows = await cursor.fetchall()
@@ -291,6 +304,90 @@ class Database:
         except Exception as e:
             logger.error("Failed to list jobs", error=str(e))
             return []
+    
+    async def get_jobs_by_date_range(self, start_date: str, end_date: str, 
+                                   is_business: Optional[bool] = None) -> List[Dict[str, Any]]:
+        """Get jobs within a date range for reporting."""
+        try:
+            query = "SELECT * FROM jobs WHERE created_at BETWEEN ? AND ?"
+            params = [start_date, end_date]
+            
+            if is_business is not None:
+                query += " AND is_business = ?"
+                params.append(int(is_business))
+            
+            query += " ORDER BY created_at DESC"
+            
+            async with self._connection.execute(query, params) as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error("Failed to get jobs by date range", error=str(e))
+            return []
+    
+    async def get_job_statistics(self) -> Dict[str, Any]:
+        """Get comprehensive job statistics."""
+        try:
+            stats = {}
+            
+            # Total job counts by status
+            async with self._connection.execute("""
+                SELECT status, COUNT(*) as count 
+                FROM jobs 
+                GROUP BY status
+            """) as cursor:
+                status_rows = await cursor.fetchall()
+                for row in status_rows:
+                    stats[f"{row['status']}_jobs"] = row['count']
+            
+            # Business vs Private job counts
+            async with self._connection.execute("""
+                SELECT is_business, COUNT(*) as count 
+                FROM jobs 
+                GROUP BY is_business
+            """) as cursor:
+                business_rows = await cursor.fetchall()
+                for row in business_rows:
+                    key = "business_jobs" if row['is_business'] else "private_jobs"
+                    stats[key] = row['count']
+            
+            # Material and cost statistics
+            async with self._connection.execute("""
+                SELECT 
+                    SUM(material_used) as total_material,
+                    AVG(material_used) as avg_material,
+                    SUM(material_cost) as total_material_cost,
+                    AVG(material_cost) as avg_material_cost,
+                    SUM(power_cost) as total_power_cost,
+                    AVG(power_cost) as avg_power_cost,
+                    SUM(actual_duration) as total_print_time,
+                    AVG(actual_duration) as avg_print_time
+                FROM jobs 
+                WHERE status = 'completed'
+            """) as cursor:
+                cost_row = await cursor.fetchone()
+                if cost_row:
+                    stats.update({
+                        'total_material_used': cost_row['total_material'] or 0,
+                        'avg_material_used': cost_row['avg_material'] or 0,
+                        'total_material_cost': cost_row['total_material_cost'] or 0,
+                        'avg_material_cost': cost_row['avg_material_cost'] or 0,
+                        'total_power_cost': cost_row['total_power_cost'] or 0,
+                        'avg_power_cost': cost_row['avg_power_cost'] or 0,
+                        'total_print_time': cost_row['total_print_time'] or 0,
+                        'avg_print_time': cost_row['avg_print_time'] or 0
+                    })
+            
+            # Total jobs count
+            async with self._connection.execute("SELECT COUNT(*) as total FROM jobs") as cursor:
+                total_row = await cursor.fetchone()
+                stats['total_jobs'] = total_row['total'] if total_row else 0
+            
+            return stats
+            
+        except Exception as e:
+            logger.error("Failed to get job statistics", error=str(e))
+            return {}
     
     async def update_job(self, job_id: str, updates: Dict[str, Any]) -> bool:
         """Update job with provided fields."""
@@ -319,6 +416,20 @@ class Database:
             return True
         except Exception as e:
             logger.error("Failed to update job", job_id=job_id, error=str(e))
+            return False
+    
+    async def delete_job(self, job_id: str) -> bool:
+        """Delete a job record from the database."""
+        try:
+            async with self._connection.execute(
+                "DELETE FROM jobs WHERE id = ?", (job_id,)
+            ) as cursor:
+                pass
+            await self._connection.commit()
+            logger.info("Job deleted from database", job_id=job_id)
+            return True
+        except Exception as e:
+            logger.error("Failed to delete job", job_id=job_id, error=str(e))
             return False
     
     # File CRUD Operations

@@ -3,14 +3,14 @@
 ## Backend TODOs
 
 ### Job Service (`src/services/job_service.py`)
-- [ ] Implement job fetching from database
-- [ ] Implement job fetching with filtering
-- [ ] Implement job fetching by ID
-- [ ] Implement job deletion
-- [ ] Implement active job filtering
-- [ ] Implement job creation
-- [ ] Implement job status updates
-- [ ] Implement job statistics calculation
+- [x] Implement job fetching from database
+- [x] Implement job fetching with filtering
+- [x] Implement job fetching by ID
+- [x] Implement job deletion
+- [x] Implement active job filtering
+- [x] Implement job creation
+- [x] Implement job status updates
+- [x] Implement job statistics calculation
 
 ### File Service (`src/services/file_service.py`)
 - [x] Implement database queries for printer files
