@@ -205,7 +205,7 @@ function isValidPrinterName(name) {
  * Validate API key format
  */
 function isValidApiKey(key) {
-    return key && key.length >= 16 && key.length <= 64;
+    return key && key.length >= 8 && key.length <= 128;
 }
 
 /**

@@ -44,7 +44,7 @@ async function showPrinterFiles(printerId) {
             <div class="modal-content large">
                 <div class="modal-header">
                     <h3>📁 Drucker-Dateien</h3>
-                    <button class="modal-close" onclick="closeModal(this)">×</button>
+                    <button class="modal-close" onclick="closeDynamicModal(this)">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0; max-height: 80vh;">
                     <div id="printer-files-manager"></div>
@@ -78,7 +78,7 @@ async function showDruckerDateienManager() {
             <div class="modal-content" style="max-width: 95vw; max-height: 95vh;">
                 <div class="modal-header">
                     <h3>📁 Drucker-Dateien - Alle Drucker</h3>
-                    <button class="modal-close" onclick="closeModal(this)">×</button>
+                    <button class="modal-close" onclick="closeDynamicModal(this)">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0; max-height: 85vh;">
                     <div id="global-files-manager"></div>
@@ -103,7 +103,7 @@ async function showDruckerDateienManager() {
 /**
  * Close modal and cleanup components
  */
-function closeModal(closeButton) {
+function closeDynamicModal(closeButton) {
     const modal = closeButton.closest('.modal');
     if (!modal) return;
 
@@ -131,7 +131,7 @@ async function showPrinterStatusHistory(printerId) {
             <div class="modal-content large">
                 <div class="modal-header">
                     <h3>📊 Statusverlauf - ${escapeHtml(printer.name)}</h3>
-                    <button class="modal-close" onclick="closeModal(this)">×</button>
+                    <button class="modal-close" onclick="closeDynamicModal(this)">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0;">
                     <div id="printer-status-chart-${printerId}"></div>
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', initializeMilestone12Features);
 window.togglePrinterMonitoring = togglePrinterMonitoring;
 window.showPrinterFiles = showPrinterFiles;
 window.showDruckerDateienManager = showDruckerDateienManager;
-window.closeModal = closeModal;
+window.closeDynamicModal = closeDynamicModal;
 window.showPrinterStatusHistory = showPrinterStatusHistory;
 window.registerPrinterCard = registerPrinterCard;
 window.unregisterPrinterCard = unregisterPrinterCard;

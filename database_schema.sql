@@ -362,6 +362,45 @@ CREATE TABLE configuration (
 CREATE INDEX idx_configuration_category ON configuration(category);
 
 -- =====================================================
+-- WATCH_FOLDERS TABLE
+-- Persistent storage for file monitoring directories
+-- =====================================================
+
+CREATE TABLE watch_folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    folder_path TEXT NOT NULL UNIQUE,         -- Absolute path to watch folder
+    is_active BOOLEAN DEFAULT 1 NOT NULL,    -- Whether folder is actively monitored
+    recursive BOOLEAN DEFAULT 1 NOT NULL,    -- Whether to monitor subdirectories
+    
+    -- Folder information
+    folder_name TEXT,                         -- Display name for the folder
+    description TEXT,                         -- User description
+    
+    -- Monitoring statistics
+    file_count INTEGER DEFAULT 0,            -- Number of files discovered in folder
+    last_scan_at TIMESTAMP,                  -- Last time folder was scanned
+    
+    -- Error handling
+    is_valid BOOLEAN DEFAULT 1,              -- Whether folder path is valid/accessible
+    validation_error TEXT,                   -- Last validation error message
+    last_validation_at TIMESTAMP,            -- Last validation check
+    
+    -- Source tracking
+    source TEXT NOT NULL DEFAULT 'manual' CHECK (
+        source IN ('manual', 'env_migration', 'import')
+    ),                                        -- How folder was added
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Indexes for watch_folders table
+CREATE INDEX idx_watch_folders_is_active ON watch_folders(is_active);
+CREATE INDEX idx_watch_folders_folder_path ON watch_folders(folder_path);
+CREATE INDEX idx_watch_folders_created_at ON watch_folders(created_at);
+
+-- =====================================================
 -- VIEWS FOR COMMON QUERIES
 -- =====================================================
 
@@ -436,6 +475,12 @@ BEGIN
     UPDATE files SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
 END;
 
+CREATE TRIGGER trg_watch_folders_updated_at 
+    AFTER UPDATE ON watch_folders
+BEGIN
+    UPDATE watch_folders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
 -- Log job status changes
 CREATE TRIGGER trg_job_status_change 
     AFTER UPDATE OF status ON jobs
@@ -504,7 +549,7 @@ ORDER BY type, name;
 
 /*
 Database Schema Summary:
-- 7 main tables: printers, jobs, files, download_history, printer_status_log, system_events, configuration
+- 8 main tables: printers, jobs, files, download_history, printer_status_log, system_events, configuration, watch_folders
 - 3 views for common queries: v_active_printers, v_recent_jobs, v_file_statistics
 - Comprehensive indexing for performance
 - Automatic triggers for timestamps and event logging
@@ -512,6 +557,7 @@ Database Schema Summary:
 - Check constraints for data validation
 - Computed columns for derived values
 - Initial configuration data for system setup
+- Persistent watch folder storage with validation and monitoring statistics
 
 Total estimated storage:
 - Small deployment (2 printers, 100 jobs/month): ~10MB

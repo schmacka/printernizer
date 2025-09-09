@@ -141,7 +141,7 @@ class FileWatcherService:
             self._observer = Observer()
             
             # Add watch folders
-            watch_folders = self.config_service.get_watch_folders()
+            watch_folders = await self.config_service.get_watch_folders()
             recursive = self.config_service.is_recursive_watching_enabled()
             
             for folder_path in watch_folders:

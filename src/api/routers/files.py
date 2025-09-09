@@ -105,7 +105,7 @@ async def get_watch_folder_settings(
 ):
     """Get watch folder settings."""
     try:
-        settings = config_service.get_watch_folder_settings()
+        settings = await config_service.get_watch_folder_settings()
         return WatchFolderSettings(**settings)
     except Exception as e:
         logger.error("Failed to get watch folder settings", error=str(e))
@@ -204,7 +204,7 @@ async def add_watch_folder(
             )
         
         # Add folder to configuration
-        success = config_service.add_watch_folder(folder_path)
+        success = await config_service.add_watch_folder(folder_path)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -234,7 +234,7 @@ async def remove_watch_folder(
     """Remove a watch folder."""
     try:
         # Remove folder from configuration
-        success = config_service.remove_watch_folder(folder_path)
+        success = await config_service.remove_watch_folder(folder_path)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
