@@ -209,7 +209,7 @@ async def get_watch_folder_settings(
 ):
     """Get watch folder settings."""
     try:
-        settings = config_service.get_watch_folder_settings()
+        settings = await config_service.get_watch_folder_settings()
         return WatchFolderSettings(**settings)
     except Exception as e:
         logger.error("Failed to get watch folder settings", error=str(e))

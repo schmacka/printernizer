@@ -37,6 +37,7 @@ from database.database import Database
 from services.event_service import EventService
 from services.config_service import ConfigService
 from services.printer_service import PrinterService
+from services.migration_service import MigrationService
 from utils.logging_config import setup_logging
 from utils.exceptions import PrinternizerException
 from utils.middleware import (
@@ -72,8 +73,13 @@ async def lifespan(app: FastAPI):
     await database.initialize()
     app.state.database = database
     
+    # Run database migrations
+    migration_service = MigrationService(database)
+    await migration_service.run_migrations()
+    app.state.migration_service = migration_service
+    
     # Initialize services
-    config_service = ConfigService()
+    config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
     
@@ -227,7 +233,7 @@ if __name__ == "__main__":
     config = {
         "host": "0.0.0.0",
         "port": int(os.getenv("PORT", 8000)),
-        "workers": int(os.getenv("WORKERS", 4)),
+        "workers": 1,  # Force single worker to avoid database initialization conflicts
         "log_level": os.getenv("LOG_LEVEL", "info"),
         "access_log": True,
         "use_colors": False,

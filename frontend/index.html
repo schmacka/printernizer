@@ -533,6 +533,15 @@
                     </select>
                 </div>
                 
+                <div class="form-group" id="ipaKeyGroup" style="display: none;">
+                    <label for="ipaKey">PrusaLink API Key</label>
+                    <input type="text" id="ipaKey" name="ipaKey" class="form-control"
+                           data-validate="api-key"
+                           placeholder="PrusaLink API Key" 
+                           minlength="8" maxlength="128">
+                    <small class="form-text text-muted">API Key von PrusaLink (Drucker Web-Interface → Settings → API)</small>
+                </div>
+                
                 <div class="form-group">
                     <label for="printerName">Name</label>
                     <input type="text" id="printerName" name="printerName" class="form-control" required 
@@ -573,14 +582,7 @@
                 </div>
                 
                 <div id="prusaFields" class="printer-specific-fields" style="display: none;">
-                    <div class="form-group">
-                        <label for="apiKey">API Key</label>
-                        <input type="text" id="apiKey" name="apiKey" class="form-control"
-                               data-validate="api-key"
-                               placeholder="Prusa API Key" 
-                               minlength="16" maxlength="64">
-                        <small class="form-text text-muted">16-64 Zeichen (von PrusaLink generiert)</small>
-                    </div>
+                    <!-- Prusa-specific fields would go here if needed -->
                 </div>
                 
                 <div class="form-group">
