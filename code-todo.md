@@ -13,10 +13,10 @@
 - [ ] Implement job statistics calculation
 
 ### File Service (`src/services/file_service.py`)
-- [ ] Implement database queries for printer files
-- [ ] Implement printer file discovery
-- [ ] Implement file download functionality
-- [ ] Implement download status tracking
+- [x] Implement database queries for printer files
+- [x] Implement printer file discovery
+- [x] Implement file download functionality
+- [x] Implement download status tracking
 
 ### Event Service (`src/services/event_service.py`)
 - [ ] Implement printer status monitoring
