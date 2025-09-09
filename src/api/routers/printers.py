@@ -28,6 +28,7 @@ class PrinterCreateRequest(BaseModel):
 class PrinterUpdateRequest(BaseModel):
     """Request model for updating printer configuration."""
     name: Optional[str] = None
+    printer_type: Optional[PrinterType] = None
     connection_config: Optional[dict] = None
     location: Optional[str] = None
     description: Optional[str] = None

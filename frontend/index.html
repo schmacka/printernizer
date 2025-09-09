@@ -606,6 +606,98 @@
         </div>
     </div>
 
+    <!-- Edit Printer Modal -->
+    <div id="editPrinterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Drucker bearbeiten</h3>
+                <button class="modal-close" onclick="closeModal('editPrinterModal')">&times;</button>
+            </div>
+            <form id="editPrinterForm" class="modal-body">
+                <input type="hidden" id="editPrinterId" name="printerId">
+                
+                <div class="form-group">
+                    <label for="editPrinterType">Drucker Typ</label>
+                    <select id="editPrinterType" name="printerType" class="form-control" required>
+                        <option value="">Typ auswählen</option>
+                        <option value="bambu_lab">Bambu Lab A1</option>
+                        <option value="prusa_core">Prusa Core One</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="editIpaKeyGroup" style="display: none;">
+                    <label for="editIpaKey">PrusaLink API Key</label>
+                    <input type="text" id="editIpaKey" name="ipaKey" class="form-control"
+                           data-validate="api-key"
+                           placeholder="PrusaLink API Key" 
+                           minlength="8" maxlength="128">
+                    <small class="form-text text-muted">API Key von PrusaLink (Drucker Web-Interface → Settings → API)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPrinterName">Name</label>
+                    <input type="text" id="editPrinterName" name="printerName" class="form-control" required 
+                           data-validate="printer-name"
+                           placeholder="Mein Drucker" 
+                           minlength="3" maxlength="50">
+                    <small class="form-text text-muted">3-50 Zeichen (Buchstaben, Zahlen, Leerzeichen)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPrinterIP">IP-Adresse</label>
+                    <input type="text" id="editPrinterIP" name="printerIP" class="form-control" required 
+                           data-validate="ip"
+                           placeholder="192.168.1.100" 
+                           pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}">
+                    <small class="form-text text-muted">Format: xxx.xxx.xxx.xxx</small>
+                </div>
+                
+                <div id="editBambuFields" class="printer-specific-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="editAccessCode">Access Code</label>
+                        <input type="text" id="editAccessCode" name="accessCode" class="form-control"
+                               data-validate="access-code"
+                               placeholder="12345678" 
+                               pattern="\d{8}" 
+                               maxlength="8">
+                        <small class="form-text text-muted">Genau 8 Ziffern (vom Drucker-Display)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSerialNumber">Seriennummer</label>
+                        <input type="text" id="editSerialNumber" name="serialNumber" class="form-control"
+                               data-validate="serial-number"
+                               placeholder="AC12345678" 
+                               pattern="[A-Z0-9]{8,12}" 
+                               maxlength="12">
+                        <small class="form-text text-muted">8-12 Zeichen (vom Drucker-Gehäuse)</small>
+                    </div>
+                </div>
+                
+                <div id="editPrusaFields" class="printer-specific-fields" style="display: none;">
+                    <!-- Prusa-specific fields would go here if needed -->
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="editPrinterActive" name="printerActive" checked>
+                        <span class="checkbox-custom"></span>
+                        Drucker aktivieren
+                    </label>
+                    <small class="form-text text-muted">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editPrinterModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="editPrinterForm" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Job Details Modal -->
     <div id="jobDetailsModal" class="modal">
         <div class="modal-content large">

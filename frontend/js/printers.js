@@ -398,8 +398,24 @@ class PrinterManager {
     /**
      * Edit printer configuration
      */
-    editPrinter(printerId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Drucker-Bearbeitung wird in einer späteren Version implementiert');
+    async editPrinter(printerId) {
+        try {
+            // Get printer data from API
+            const printer = await api.getPrinter(printerId);
+            
+            // Populate edit form with printer data
+            if (typeof printerFormHandler !== 'undefined' && printerFormHandler.populateEditForm) {
+                printerFormHandler.populateEditForm(printer);
+            }
+            
+            // Show edit modal
+            showModal('editPrinterModal');
+            
+        } catch (error) {
+            console.error('Failed to load printer for editing:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Drucker-Daten';
+            showToast('error', 'Fehler', message);
+        }
     }
 
     /**
