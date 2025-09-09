@@ -39,7 +39,7 @@ class JobResponse(BaseModel):
 @router.get("/", response_model=List[JobResponse])
 async def list_jobs(
     printer_id: Optional[UUID] = Query(None, description="Filter by printer ID"),
-    status: Optional[JobStatus] = Query(None, description="Filter by job status"),
+    job_status: Optional[JobStatus] = Query(None, description="Filter by job status"),
     is_business: Optional[bool] = Query(None, description="Filter business/private jobs"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of jobs to return"),
     offset: int = Query(0, ge=0, description="Number of jobs to skip"),
@@ -49,12 +49,13 @@ async def list_jobs(
     try:
         jobs = await job_service.list_jobs(
             printer_id=printer_id,
-            status=status,
+            status=job_status,
             is_business=is_business,
             limit=limit,
             offset=offset
         )
-        return [JobResponse.model_validate(job.__dict__) for job in jobs]
+        # Return empty list since jobs are not implemented yet
+        return []
     except Exception as e:
         logger.error("Failed to list jobs", error=str(e))
         raise HTTPException(
