@@ -418,24 +418,63 @@ function resetSettings() {
     settingsManager.resetToDefaults();
 }
 
-function addWatchFolder() {
+async function addWatchFolder() {
     const input = document.getElementById('newWatchFolder');
     if (!input || !input.value.trim()) return;
 
     const folderPath = input.value.trim();
     
-    // TODO: Implement add watch folder API call
-    showToast('info', 'Feature Coming Soon', 'Verzeichnis hinzufügen wird bald implementiert');
-    
-    input.value = '';
+    try {
+        showToast('info', 'Hinzufügen', 'Verzeichnis wird zur Überwachung hinzugefügt');
+        
+        // Validate folder path first
+        await api.validateWatchFolder(folderPath);
+        
+        // Add watch folder
+        const result = await api.addWatchFolder(folderPath);
+        
+        showToast('success', 'Erfolgreich hinzugefügt', 
+                 `Verzeichnis "${folderPath}" wird jetzt überwacht`);
+        
+        input.value = '';
+        
+        // Reload watch folder settings to reflect changes
+        await settingsManager.loadWatchFolderSettings();
+        
+    } catch (error) {
+        console.error('Failed to add watch folder:', error);
+        if (error instanceof ApiError) {
+            showToast('error', 'Fehler beim Hinzufügen', error.getUserMessage());
+        } else {
+            showToast('error', 'Fehler', 'Verzeichnis konnte nicht hinzugefügt werden');
+        }
+    }
 }
 
-function removeWatchFolder(folderPath) {
+async function removeWatchFolder(folderPath) {
     const confirmed = confirm(`Verzeichnis "${folderPath}" aus der Überwachung entfernen?`);
     if (!confirmed) return;
 
-    // TODO: Implement remove watch folder API call
-    showToast('info', 'Feature Coming Soon', 'Verzeichnis entfernen wird bald implementiert');
+    try {
+        showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
+        
+        // Remove watch folder
+        const result = await api.removeWatchFolder(folderPath);
+        
+        showToast('success', 'Erfolgreich entfernt', 
+                 `Verzeichnis "${folderPath}" wird nicht mehr überwacht`);
+        
+        // Reload watch folder settings to reflect changes
+        await settingsManager.loadWatchFolderSettings();
+        
+    } catch (error) {
+        console.error('Failed to remove watch folder:', error);
+        if (error instanceof ApiError) {
+            showToast('error', 'Fehler beim Entfernen', error.getUserMessage());
+        } else {
+            showToast('error', 'Fehler', 'Verzeichnis konnte nicht entfernt werden');
+        }
+    }
 }
 
 // Export for use in main.js
