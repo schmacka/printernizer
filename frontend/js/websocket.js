@@ -44,7 +44,7 @@ class WebSocketClient {
                 };
             });
         } catch (error) {
-            console.error('WebSocket connection failed:', error);
+            window.ErrorHandler?.handleWebSocketError(error, { operation: 'connection' });
             this.handleDisconnection();
             throw error;
         }
@@ -130,7 +130,7 @@ class WebSocketClient {
      * Handle WebSocket errors
      */
     handleError(error) {
-        console.error('WebSocket error:', error);
+        window.ErrorHandler?.handleWebSocketError(error, { event: 'websocket_error' });
         this.emit('error', error);
     }
 
@@ -153,7 +153,7 @@ class WebSocketClient {
             this.emit('message', message);
             
         } catch (error) {
-            console.error('Failed to parse WebSocket message:', error, event.data);
+            window.ErrorHandler?.handleWebSocketError(error, { operation: 'message_parsing', data: event.data });
         }
     }
 
@@ -171,11 +171,11 @@ class WebSocketClient {
         setTimeout(() => {
             this.reconnectAttempts++;
             this.connect().catch(error => {
-                console.error('Reconnection failed:', error);
+                window.ErrorHandler?.handleWebSocketError(error, { operation: 'reconnection', attempt: this.reconnectAttempts });
                 if (this.reconnectAttempts < this.maxReconnectAttempts) {
                     this.scheduleReconnect();
                 } else {
-                    console.error('Max reconnection attempts reached');
+                    window.ErrorHandler?.handleWebSocketError(new Error('Max reconnection attempts reached'), { operation: 'max_reconnect_attempts', attempts: this.maxReconnectAttempts });
                     this.updateConnectionStatus('failed');
                 }
             });
@@ -217,7 +217,7 @@ class WebSocketClient {
             try {
                 this.socket.send(JSON.stringify(message));
             } catch (error) {
-                console.error('Failed to send WebSocket message:', error);
+                window.ErrorHandler?.handleWebSocketError(error, { operation: 'send_message', message });
                 this.messageQueue.push(message);
             }
         } else {
@@ -268,7 +268,7 @@ class WebSocketClient {
                 try {
                     callback(...args);
                 } catch (error) {
-                    console.error(`Error in WebSocket event listener for '${event}':`, error);
+                    window.ErrorHandler?.handleWebSocketError(error, { operation: 'event_listener', event });
                 }
             });
         }
@@ -626,7 +626,7 @@ const wsHandler = new PrinternizerWebSocketHandler(wsClient);
 // Auto-connect when page loads
 document.addEventListener('DOMContentLoaded', () => {
     wsClient.connect().catch(error => {
-        console.error('Failed to connect to WebSocket:', error);
+        window.ErrorHandler?.handleWebSocketError(error, { operation: 'initial_connection' });
     });
 });
 

@@ -579,7 +579,7 @@ const Storage = {
             localStorage.setItem(key, JSON.stringify(value));
             return true;
         } catch (error) {
-            console.error('Failed to save to localStorage:', error);
+            window.ErrorHandler?.handleLocalStorageError(error, { operation: 'save', key });
             return false;
         }
     },
@@ -589,7 +589,7 @@ const Storage = {
             const item = localStorage.getItem(key);
             return item ? JSON.parse(item) : defaultValue;
         } catch (error) {
-            console.error('Failed to read from localStorage:', error);
+            window.ErrorHandler?.handleLocalStorageError(error, { operation: 'read', key });
             return defaultValue;
         }
     },
@@ -599,7 +599,7 @@ const Storage = {
             localStorage.removeItem(key);
             return true;
         } catch (error) {
-            console.error('Failed to remove from localStorage:', error);
+            window.ErrorHandler?.handleLocalStorageError(error, { operation: 'remove', key });
             return false;
         }
     },
@@ -609,7 +609,7 @@ const Storage = {
             localStorage.clear();
             return true;
         } catch (error) {
-            console.error('Failed to clear localStorage:', error);
+            window.ErrorHandler?.handleLocalStorageError(error, { operation: 'clear' });
             return false;
         }
     }

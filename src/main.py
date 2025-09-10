@@ -31,7 +31,8 @@ from api.routers import (
     analytics_router,
     system_router,
     websocket_router,
-    settings_router
+    settings_router,
+    errors_router
 )
 from database.database import Database
 from services.event_service import EventService
@@ -40,6 +41,7 @@ from services.printer_service import PrinterService
 from services.file_service import FileService
 from services.file_watcher_service import FileWatcherService
 from services.migration_service import MigrationService
+from services.monitoring_service import monitoring_service
 from utils.logging_config import setup_logging
 from utils.exceptions import PrinternizerException
 from utils.middleware import (
@@ -180,6 +182,7 @@ def create_application() -> FastAPI:
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
+    app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     
     # Static files and frontend
