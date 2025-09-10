@@ -64,12 +64,14 @@ class PrusaPrinter(BasePrinter):
                     raise aiohttp.ClientError(f"HTTP {response.status}")
                     
         except Exception as e:
+            error_msg = str(e) or f"{type(e).__name__}: Connection failed"
             logger.error("Failed to connect to Prusa printer",
-                        printer_id=self.printer_id, error=str(e))
+                        printer_id=self.printer_id, error=error_msg, 
+                        error_type=type(e).__name__)
             if self.session:
                 await self.session.close()
                 self.session = None
-            raise PrinterConnectionError(self.printer_id, str(e))
+            raise PrinterConnectionError(self.printer_id, error_msg)
             
     async def disconnect(self) -> None:
         """Disconnect from Prusa printer."""
@@ -121,9 +123,17 @@ class PrusaPrinter(BasePrinter):
             bed_temp = temp_data.get('bed', {}).get('actual', 0)
             nozzle_temp = temp_data.get('tool0', {}).get('actual', 0)
             
-            # Extract job information
-            current_job = job_data.get('job', {}).get('file', {}).get('display', '')
-            progress = int(job_data.get('progress', {}).get('completion', 0) or 0)
+            # Extract job information - handle case where job_data might be None
+            current_job = ''
+            progress = 0
+            if job_data:
+                job_info = job_data.get('job', {})
+                if job_info and job_info.get('file'):
+                    current_job = job_info.get('file', {}).get('display', '')
+                
+                progress_info = job_data.get('progress', {})
+                if progress_info:
+                    progress = int(progress_info.get('completion', 0) or 0)
             
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
@@ -134,7 +144,7 @@ class PrusaPrinter(BasePrinter):
                 progress=progress,
                 current_job=current_job if current_job else None,
                 timestamp=datetime.now(),
-                raw_data={**status_data, 'job': job_data}
+                raw_data={**status_data, 'job': job_data or {}}
             )
             
         except Exception as e:
