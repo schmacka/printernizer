@@ -9,6 +9,7 @@ from services.job_service import JobService
 from services.file_service import FileService
 from services.analytics_service import AnalyticsService
 from services.event_service import EventService
+from services.file_watcher_service import FileWatcherService
 
 
 async def get_database(request: Request) -> Database:
@@ -39,12 +40,9 @@ async def get_job_service(
     return JobService(database, event_service)
 
 
-async def get_file_service(
-    database: Database = Depends(get_database),
-    event_service: EventService = Depends(get_event_service)
-) -> FileService:
-    """Get file service instance."""
-    return FileService(database, event_service)
+async def get_file_service(request: Request) -> FileService:
+    """Get file service instance from app state."""
+    return request.app.state.file_service
 
 
 async def get_analytics_service(

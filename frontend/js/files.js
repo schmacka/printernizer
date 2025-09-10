@@ -29,6 +29,9 @@ class FileManager {
         // Load watch folders
         this.loadWatchFolders();
         
+        // Load discovered files
+        loadDiscoveredFiles();
+        
         // Setup filter handlers
         this.setupFilterHandlers();
         
@@ -737,20 +740,40 @@ class FileManager {
 
         const foldersGrid = `
             <div class="watch-folders-grid">
-                ${watchFolders.map(folderPath => `
-                    <div class="watch-folder-item">
-                        <div class="folder-icon">📂</div>
-                        <div class="folder-info">
-                            <div class="folder-path" title="${escapeHtml(folderPath)}">${escapeHtml(folderPath)}</div>
+                ${watchFolders.map(folder => {
+                    const folderPath = typeof folder === 'string' ? folder : folder.folder_path;
+                    const isActive = typeof folder === 'object' ? folder.is_active : true;
+                    const statusBadge = isActive 
+                        ? '<span class="status-badge active">Aktiv</span>'
+                        : '<span class="status-badge inactive">Inaktiv</span>';
+                    
+                    const toggleButton = isActive
+                        ? `<button class="btn btn-warning btn-sm" onclick="deactivateWatchFolder('${escapeHtml(folderPath)}')" 
+                               title="Verzeichnis deaktivieren">
+                               <span class="btn-icon">⏸️</span>
+                           </button>`
+                        : `<button class="btn btn-success btn-sm" onclick="activateWatchFolder('${escapeHtml(folderPath)}')" 
+                               title="Verzeichnis aktivieren">
+                               <span class="btn-icon">▶️</span>
+                           </button>`;
+                    
+                    return `
+                        <div class="watch-folder-item ${isActive ? 'active' : 'inactive'}">
+                            <div class="folder-icon">📂</div>
+                            <div class="folder-info">
+                                <div class="folder-path" title="${escapeHtml(folderPath)}">${escapeHtml(folderPath)}</div>
+                                <div class="folder-status">${statusBadge}</div>
+                            </div>
+                            <div class="folder-actions">
+                                ${toggleButton}
+                                <button class="btn btn-danger btn-sm" onclick="removeWatchFolder('${escapeHtml(folderPath)}')" 
+                                        title="Verzeichnis entfernen">
+                                    <span class="btn-icon">🗑️</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="folder-actions">
-                            <button class="btn btn-danger btn-sm" onclick="removeWatchFolder('${escapeHtml(folderPath)}')" 
-                                    title="Verzeichnis entfernen">
-                                <span class="btn-icon">🗑️</span>
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         `;
 
@@ -933,6 +956,45 @@ function removeWatchFolder(folderPath) {
 }
 
 /**
+ * Activate watch folder (called from template)
+ */
+async function activateWatchFolder(folderPath) {
+    try {
+        const response = await api.updateWatchFolder(folderPath, true);
+        
+        if (response.success) {
+            showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde aktiviert`);
+            fileManager.loadWatchFolders();
+        }
+    } catch (error) {
+        console.error('Failed to activate watch folder:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Aktivieren des Verzeichnisses';
+        showToast('error', 'Fehler', message);
+    }
+}
+
+/**
+ * Deactivate watch folder (called from template)
+ */
+async function deactivateWatchFolder(folderPath) {
+    const confirmed = confirm(`Möchten Sie das Verzeichnis "${folderPath}" wirklich deaktivieren? Es wird nicht mehr überwacht.`);
+    if (!confirmed) return;
+    
+    try {
+        const response = await api.updateWatchFolder(folderPath, false);
+        
+        if (response.success) {
+            showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde deaktiviert`);
+            fileManager.loadWatchFolders();
+        }
+    } catch (error) {
+        console.error('Failed to deactivate watch folder:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Deaktivieren des Verzeichnisses';
+        showToast('error', 'Fehler', message);
+    }
+}
+
+/**
  * Validate watch folder path
  */
 async function validateWatchFolderPath() {
@@ -969,6 +1031,190 @@ async function validateWatchFolderPath() {
         validationResult.className = 'validation-result error';
         validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
     }
+}
+
+// ========================================
+// DISCOVERED FILES MANAGEMENT
+// ========================================
+
+/**
+ * Load and display discovered files from watch folders
+ */
+async function loadDiscoveredFiles() {
+    const container = document.getElementById('discoveredFilesContainer');
+    if (!container) return;
+
+    try {
+        // Show loading state
+        container.innerHTML = `
+            <div class="loading-placeholder">
+                <div class="spinner"></div>
+                <p>Lade entdeckte Dateien...</p>
+            </div>
+        `;
+
+        // Fetch discovered files
+        const response = await api.get('/files/local');
+        const files = response.files || [];
+
+        if (files.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📂</div>
+                    <h3>Keine Dateien entdeckt</h3>
+                    <p>Keine Dateien in den überwachten Verzeichnissen gefunden.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Render discovered files table
+        container.innerHTML = renderDiscoveredFilesTable(files);
+
+    } catch (error) {
+        console.error('Failed to load discovered files:', error);
+        container.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">⚠️</div>
+                <h3>Fehler beim Laden</h3>
+                <p>Entdeckte Dateien konnten nicht geladen werden.</p>
+                <button class="btn btn-secondary" onclick="loadDiscoveredFiles()">
+                    <span class="btn-icon">🔄</span>
+                    Erneut versuchen
+                </button>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Render discovered files table
+ */
+function renderDiscoveredFilesTable(files) {
+    const totalFiles = files.length;
+    const totalSize = files.reduce((sum, file) => sum + (file.size || 0), 0);
+    
+    return `
+        <div class="discovered-files-summary">
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <span class="stat-value">${totalFiles}</span>
+                    <span class="stat-label">Dateien</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">${formatFileSize(totalSize)}</span>
+                    <span class="stat-label">Gesamtgröße</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table class="files-table">
+                <thead>
+                    <tr>
+                        <th>📄 Dateiname</th>
+                        <th>📐 Größe</th>
+                        <th>📁 Verzeichnis</th>
+                        <th>📅 Geändert</th>
+                        <th>🔧 Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${files.map(file => renderDiscoveredFileRow(file)).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/**
+ * Render individual discovered file row
+ */
+function renderDiscoveredFileRow(file) {
+    const fileName = file.name || 'Unbekannt';
+    const fileSize = formatFileSize(file.size || 0);
+    const watchFolderPath = file.watch_folder_path || 'Unbekannt';
+    const modifiedTime = file.modified_time ? 
+        new Date(file.modified_time).toLocaleString('de-DE') : 'Unbekannt';
+    
+    const fileIcon = getFileIcon(fileName);
+    const truncatedPath = truncateText(watchFolderPath, 40);
+    
+    return `
+        <tr class="file-row discovered-file" data-file-path="${file.path}">
+            <td class="file-name">
+                <div class="file-info">
+                    <span class="file-icon">${fileIcon}</span>
+                    <div class="file-details">
+                        <span class="name" title="${fileName}">${truncateText(fileName, 30)}</span>
+                        <span class="path" title="${file.path}">${truncateText(file.relative_path || '', 50)}</span>
+                    </div>
+                </div>
+            </td>
+            <td class="file-size">${fileSize}</td>
+            <td class="watch-folder" title="${watchFolderPath}">
+                <span class="folder-icon">📁</span>
+                ${truncatedPath}
+            </td>
+            <td class="modified-time">${modifiedTime}</td>
+            <td class="file-actions">
+                <div class="action-buttons">
+                    <button class="btn btn-small btn-secondary" 
+                            onclick="openFileLocation('${file.path}')" 
+                            title="Im Explorer öffnen">
+                        <span class="btn-icon">📂</span>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+/**
+ * Open file location in explorer
+ */
+function openFileLocation(filePath) {
+    if (!filePath) return;
+    
+    // Note: This would typically require a desktop app or system integration
+    // For now, we'll just show the path
+    showToast('info', 'Dateipfad', filePath);
+}
+
+/**
+ * Get file icon based on extension
+ */
+function getFileIcon(filename) {
+    if (!filename) return '📄';
+    
+    const ext = filename.toLowerCase().split('.').pop();
+    
+    const iconMap = {
+        // 3D Files
+        'stl': '🏗️',
+        '3mf': '📐',
+        'obj': '🎯',
+        'ply': '⚪',
+        
+        // G-Code
+        'gcode': '⚙️',
+        'g': '⚙️',
+        
+        // Images
+        'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+        'bmp': '🖼️', 'tiff': '🖼️', 'webp': '🖼️',
+        
+        // Documents
+        'pdf': '📕', 'doc': '📄', 'docx': '📄', 'txt': '📝',
+        
+        // Archives
+        'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦',
+        
+        // Default
+        'default': '📄'
+    };
+    
+    return iconMap[ext] || iconMap['default'];
 }
 
 // Export for use in other modules

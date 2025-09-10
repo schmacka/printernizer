@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 import structlog
 
-from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus
+from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
 from services.file_service import FileService
 from services.config_service import ConfigService
 from utils.dependencies import get_file_service, get_config_service
@@ -104,9 +104,9 @@ async def get_watch_folder_settings(
     """Get watch folder settings."""
     try:
         settings = await config_service.get_watch_folder_settings()
-        # Convert watch folder objects to just folder paths
-        watch_folder_paths = [wf['folder_path'] for wf in settings['watch_folders']]
-        settings['watch_folders'] = watch_folder_paths
+        # Also get inactive folders to show all folders with activation status
+        all_folders = await config_service.watch_folder_db.get_all_watch_folders(active_only=False)
+        settings['watch_folders'] = [wf.to_dict() for wf in all_folders]
         return WatchFolderSettings(**settings)
     except Exception as e:
         logger.error("Failed to get watch folder settings", error=str(e))
