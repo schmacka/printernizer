@@ -90,8 +90,8 @@ async def lifespan(app: FastAPI):
     # Initialize file watcher service
     file_watcher_service = FileWatcherService(config_service, event_service)
     
-    # Initialize file service with file watcher
-    file_service = FileService(database, event_service, file_watcher_service)
+    # Initialize file service with file watcher and printer service
+    file_service = FileService(database, event_service, file_watcher_service, printer_service)
     
     app.state.config_service = config_service
     app.state.event_service = event_service
