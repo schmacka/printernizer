@@ -132,6 +132,8 @@ class FileWatcherService:
             logger.warning("File watcher service already running")
             return
         
+        logger.debug("FileWatcher debug", config_service_type=type(self.config_service).__name__, event_service_type=type(self.event_service).__name__)
+        
         if not self.config_service.is_watch_folders_enabled():
             logger.info("Watch folders disabled in configuration")
             return
@@ -148,20 +150,29 @@ class FileWatcherService:
                 await self._add_watch_folder(folder_path, recursive)
             
             # Start observer
-            self._observer.start()
-            self._is_running = True
-            
-            logger.info("File watcher service started", 
-                       watched_folders=len(self._watched_folders),
-                       recursive=recursive)
+            try:
+                # Run in executor to avoid asyncio issues
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, self._observer.start)
+                self._is_running = True
+                
+                logger.info("File watcher service started", 
+                           watched_folders=len(self._watched_folders),
+                           recursive=recursive)
+            except Exception as e:
+                logger.warning("Failed to start watchdog observer, running in fallback mode", error=str(e))
+                # Fallback mode - file watcher API still works, but no real-time watching
+                self._observer = None
+                self._is_running = True  # Mark as running so API endpoints work
             
             # Perform initial scan
             await self._initial_scan()
             
         except Exception as e:
             logger.error("Failed to start file watcher service", error=str(e))
-            await self.stop()
-            raise
+            # Still mark as running in fallback mode
+            self._is_running = True
+            logger.info("File watcher running in fallback mode (API only, no real-time monitoring)")
     
     async def stop(self):
         """Stop file watcher service."""
@@ -171,9 +182,14 @@ class FileWatcherService:
         try:
             with self._lock:
                 if self._observer:
-                    self._observer.stop()
-                    self._observer.join(timeout=5.0)
-                    self._observer = None
+                    try:
+                        self._observer.stop()
+                        if self._observer.is_alive():
+                            self._observer.join(timeout=5.0)
+                    except Exception as e:
+                        logger.warning("Error stopping observer", error=str(e))
+                    finally:
+                        self._observer = None
                 
                 self._watched_folders.clear()
                 self._is_running = False

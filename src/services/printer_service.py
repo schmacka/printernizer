@@ -139,6 +139,17 @@ class PrinterService:
         printers = []
         
         for printer_id, instance in self.printer_instances.items():
+            # Determine current status
+            current_status = PrinterStatus.OFFLINE
+            last_seen = None
+            
+            if instance.is_connected:
+                if instance.last_status:
+                    current_status = instance.last_status.status
+                    last_seen = instance.last_status.timestamp
+                else:
+                    current_status = PrinterStatus.ONLINE
+            
             printer = Printer(
                 id=printer_id,
                 name=instance.name,
@@ -148,8 +159,8 @@ class PrinterService:
                 access_code=getattr(instance, 'access_code', None),
                 serial_number=getattr(instance, 'serial_number', None),
                 is_active=True,
-                status=instance.last_status.status if instance.last_status else PrinterStatus.UNKNOWN,
-                last_seen=instance.last_status.timestamp if instance.last_status else None
+                status=current_status,
+                last_seen=last_seen
             )
             printers.append(printer)
             

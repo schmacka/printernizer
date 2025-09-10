@@ -1123,3 +1123,205 @@
         border: 1px solid var(--gray-800);
     }
 }
+
+/* ========================================
+   DISCOVERED FILES SECTION
+   ======================================== */
+
+.discovered-files-section {
+    margin-bottom: var(--spacing-6);
+}
+
+.discovered-files-summary {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+    box-shadow: var(--shadow-sm);
+}
+
+.summary-stats {
+    display: flex;
+    gap: var(--spacing-8);
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.discovered-file {
+    background: var(--white);
+    transition: all 0.2s ease;
+}
+
+.discovered-file:hover {
+    background: var(--gray-50);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.file-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+    min-width: 0;
+}
+
+.file-details .name {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: var(--text-sm);
+}
+
+.file-details .path {
+    font-size: var(--text-xs);
+    color: var(--gray-500);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.watch-folder {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+}
+
+.folder-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.modified-time {
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.file-actions .action-buttons {
+    display: flex;
+    gap: var(--spacing-2);
+    justify-content: flex-end;
+}
+
+.btn-small {
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: var(--text-xs);
+    min-width: auto;
+}
+
+/* Table Styling for Discovered Files */
+.files-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.files-table thead {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-600));
+    color: var(--white);
+}
+
+.files-table thead th {
+    padding: var(--spacing-4);
+    text-align: left;
+    font-weight: 600;
+    font-size: var(--text-sm);
+    border: none;
+    position: relative;
+}
+
+.files-table thead th:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.files-table tbody tr {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.files-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.files-table td {
+    padding: var(--spacing-3) var(--spacing-4);
+    vertical-align: middle;
+}
+
+.table-container {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--white);
+}
+
+/* Responsive Design for Discovered Files */
+@media (max-width: 768px) {
+    .summary-stats {
+        gap: var(--spacing-4);
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .files-table {
+        font-size: var(--text-sm);
+    }
+    
+    .files-table th,
+    .files-table td {
+        padding: var(--spacing-2) var(--spacing-3);
+    }
+    
+    .file-details .path {
+        display: none;
+    }
+    
+    .watch-folder {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
