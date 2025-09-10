@@ -54,8 +54,7 @@ async def list_jobs(
             limit=limit,
             offset=offset
         )
-        # Return empty list since jobs are not implemented yet
-        return []
+        return [JobResponse.model_validate(job.__dict__) for job in jobs]
     except Exception as e:
         logger.error("Failed to list jobs", error=str(e))
         raise HTTPException(
