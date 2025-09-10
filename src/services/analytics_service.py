@@ -46,31 +46,72 @@ class AnalyticsService:
         
     async def get_business_report(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
         """Generate business report for given period."""
-        # TODO: Implement business reporting
-        logger.info("Generating business report (placeholder)", 
-                   start=start_date.isoformat(), end=end_date.isoformat())
-        
-        return {
-            "period": {
-                "start": start_date.isoformat(),
-                "end": end_date.isoformat()
-            },
-            "jobs": {
-                "total": 0,
-                "business": 0,
-                "private": 0
-            },
-            "revenue": {
-                "total": 0.0,
-                "material_costs": 0.0,
-                "power_costs": 0.0,
-                "profit": 0.0
-            },
-            "materials": {
-                "consumed": 0.0,
-                "costs": 0.0
+        try:
+            logger.info("Generating business report", 
+                       start=start_date.isoformat(), end=end_date.isoformat())
+            
+            # Get jobs within the period
+            jobs = await self.database.get_jobs_by_date_range(
+                start_date.isoformat(), end_date.isoformat()
+            )
+            
+            # Separate business and private jobs
+            business_jobs = [j for j in jobs if j.get('is_business', False)]
+            private_jobs = [j for j in jobs if not j.get('is_business', False)]
+            
+            # Calculate revenue and costs
+            total_revenue = sum(j.get('cost_eur', 0.0) for j in business_jobs)
+            material_costs = sum(j.get('material_used_grams', 0.0) * 0.025 for j in jobs)  # Estimate €0.025/gram
+            power_costs = sum(j.get('elapsed_time_minutes', 0) * 0.002 for j in jobs)  # Estimate €0.002/minute
+            profit = total_revenue - material_costs - power_costs
+            
+            # Calculate total material consumption
+            total_material = sum(j.get('material_used_grams', 0.0) for j in jobs)
+            
+            return {
+                "period": {
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat()
+                },
+                "jobs": {
+                    "total": len(jobs),
+                    "business": len(business_jobs),
+                    "private": len(private_jobs)
+                },
+                "revenue": {
+                    "total": total_revenue,
+                    "material_costs": material_costs,
+                    "power_costs": power_costs,
+                    "profit": profit
+                },
+                "materials": {
+                    "consumed": total_material,
+                    "costs": material_costs
+                }
             }
-        }
+        except Exception as e:
+            logger.error("Error generating business report", error=str(e))
+            return {
+                "period": {
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat()
+                },
+                "jobs": {
+                    "total": 0,
+                    "business": 0,
+                    "private": 0
+                },
+                "revenue": {
+                    "total": 0.0,
+                    "material_costs": 0.0,
+                    "power_costs": 0.0,
+                    "profit": 0.0
+                },
+                "materials": {
+                    "consumed": 0.0,
+                    "costs": 0.0
+                }
+            }
         
     async def export_data(self, format_type: str, filters: Dict[str, Any] = None) -> Dict[str, Any]:
         """Export data in specified format (CSV, Excel)."""
@@ -87,17 +128,38 @@ class AnalyticsService:
     async def get_summary(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> Dict[str, Any]:
         """Get analytics summary for the specified period."""
         try:
-            # Calculate analytics for the period
-            # TODO: Implement actual period-based calculations
+            # Set default date range if not provided
+            if not end_date:
+                end_date = datetime.now()
+            if not start_date:
+                start_date = end_date - timedelta(days=30)
+            
+            # Get jobs within the period
+            jobs = await self.database.get_jobs_by_date_range(
+                start_date.isoformat(), end_date.isoformat()
+            )
+            
+            # Calculate statistics
+            total_jobs = len(jobs)
+            completed_jobs = len([j for j in jobs if j.get('status') == 'completed'])
+            failed_jobs = len([j for j in jobs if j.get('status') == 'failed'])
+            
+            total_print_time_hours = sum(j.get('elapsed_time_minutes', 0) for j in jobs) / 60.0
+            total_material_used_kg = sum(j.get('material_used_grams', 0.0) for j in jobs) / 1000.0
+            total_cost_eur = sum(j.get('cost_eur', 0.0) for j in jobs)
+            
+            average_job_duration_hours = total_print_time_hours / total_jobs if total_jobs > 0 else 0.0
+            success_rate_percent = (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0.0
+            
             return {
-                "total_jobs": 0,
-                "completed_jobs": 0,
-                "failed_jobs": 0,
-                "total_print_time_hours": 0.0,
-                "total_material_used_kg": 0.0,
-                "total_cost_eur": 0.0,
-                "average_job_duration_hours": 0.0,
-                "success_rate_percent": 0.0
+                "total_jobs": total_jobs,
+                "completed_jobs": completed_jobs,
+                "failed_jobs": failed_jobs,
+                "total_print_time_hours": round(total_print_time_hours, 2),
+                "total_material_used_kg": round(total_material_used_kg, 3),
+                "total_cost_eur": round(total_cost_eur, 2),
+                "average_job_duration_hours": round(average_job_duration_hours, 2),
+                "success_rate_percent": round(success_rate_percent, 1)
             }
         except Exception as e:
             logger.error("Error getting analytics summary", error=str(e))
@@ -106,15 +168,53 @@ class AnalyticsService:
     async def get_business_analytics(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> Dict[str, Any]:
         """Get business analytics for the specified period."""
         try:
-            # Calculate business analytics for the period
-            # TODO: Implement actual business analytics calculations
+            # Set default date range if not provided
+            if not end_date:
+                end_date = datetime.now()
+            if not start_date:
+                start_date = end_date - timedelta(days=30)
+            
+            # Get jobs within the period
+            jobs = await self.database.get_jobs_by_date_range(
+                start_date.isoformat(), end_date.isoformat()
+            )
+            
+            # Separate business and private jobs
+            business_jobs = [j for j in jobs if j.get('is_business', False)]
+            private_jobs = [j for j in jobs if not j.get('is_business', False)]
+            
+            # Calculate business revenue and costs
+            business_revenue = sum(j.get('cost_eur', 0.0) for j in business_jobs)
+            business_material_cost = sum(j.get('material_used_grams', 0.0) * 0.025 for j in business_jobs)
+            business_profit = business_revenue - business_material_cost
+            
+            # Calculate top customers
+            customer_stats = {}
+            for job in business_jobs:
+                customer = job.get('customer_name', 'Unknown')
+                if customer not in customer_stats:
+                    customer_stats[customer] = {
+                        'name': customer,
+                        'job_count': 0,
+                        'total_revenue': 0.0
+                    }
+                customer_stats[customer]['job_count'] += 1
+                customer_stats[customer]['total_revenue'] += job.get('cost_eur', 0.0)
+            
+            # Sort customers by revenue
+            top_customers = sorted(
+                customer_stats.values(),
+                key=lambda x: x['total_revenue'],
+                reverse=True
+            )[:5]  # Top 5 customers
+            
             return {
-                "business_jobs": 0,
-                "private_jobs": 0,
-                "business_revenue_eur": 0.0,
-                "business_material_cost_eur": 0.0,
-                "business_profit_eur": 0.0,
-                "top_customers": []
+                "business_jobs": len(business_jobs),
+                "private_jobs": len(private_jobs),
+                "business_revenue_eur": round(business_revenue, 2),
+                "business_material_cost_eur": round(business_material_cost, 2),
+                "business_profit_eur": round(business_profit, 2),
+                "top_customers": top_customers
             }
         except Exception as e:
             logger.error("Error getting business analytics", error=str(e))
@@ -200,7 +300,7 @@ class AnalyticsService:
         """Get printer statistics.""" 
         try:
             # Query printers from database
-            printers = await self.database.get_printers()
+            printers = await self.database.list_printers()
             
             total_printers = len(printers)
             online_printers = len([p for p in printers if p.get('status') == 'online'])
