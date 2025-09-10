@@ -34,7 +34,22 @@ class FileResponse(BaseModel):
     modified_time: Optional[str] = None
 
 
-@router.get("/", response_model=List[FileResponse])
+class PaginationResponse(BaseModel):
+    """Pagination information."""
+    page: int
+    limit: int
+    total_items: int
+    total_pages: int
+
+
+class FileListResponse(BaseModel):
+    """Response model for file list with pagination."""
+    files: List[FileResponse]
+    total_count: int
+    pagination: PaginationResponse
+
+
+@router.get("/", response_model=FileListResponse)
 async def list_files(
     printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
     status: Optional[FileStatus] = Query(None, description="Filter by file status"),
@@ -46,7 +61,17 @@ async def list_files(
         files = await file_service.get_files(
             printer_id=printer_id
         )
-        return [FileResponse.model_validate(file) for file in files]
+        file_list = [FileResponse.model_validate(file) for file in files]
+        return {
+            "files": file_list,
+            "total_count": len(file_list),
+            "pagination": {
+                "page": 1,
+                "limit": len(file_list),
+                "total_items": len(file_list),
+                "total_pages": 1
+            }
+        }
     except Exception as e:
         logger.error("Failed to list files", error=str(e))
         raise HTTPException(
