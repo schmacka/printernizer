@@ -37,6 +37,8 @@ from database.database import Database
 from services.event_service import EventService
 from services.config_service import ConfigService
 from services.printer_service import PrinterService
+from services.file_service import FileService
+from services.file_watcher_service import FileWatcherService
 from services.migration_service import MigrationService
 from utils.logging_config import setup_logging
 from utils.exceptions import PrinternizerException
@@ -83,13 +85,35 @@ async def lifespan(app: FastAPI):
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
     
+    # Initialize file watcher service
+    file_watcher_service = FileWatcherService(config_service, event_service)
+    
+    # Initialize file service with file watcher
+    file_service = FileService(database, event_service, file_watcher_service)
+    
     app.state.config_service = config_service
     app.state.event_service = event_service
     app.state.printer_service = printer_service
+    app.state.file_service = file_service
+    app.state.file_watcher_service = file_watcher_service
     
     # Initialize and start background services
     await event_service.start()
     await printer_service.initialize()
+    
+    # Start printer monitoring
+    try:
+        await printer_service.start_monitoring()
+        logger.info("Printer monitoring started successfully")
+    except Exception as e:
+        logger.warning("Failed to start printer monitoring", error=str(e))
+    
+    # Start file watcher service
+    try:
+        await file_watcher_service.start()
+        logger.info("File watcher service started successfully")
+    except Exception as e:
+        logger.warning("Failed to start file watcher service", error=str(e))
     
     logger.info("Printernizer startup complete")
     
@@ -98,6 +122,15 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down Printernizer")
     await printer_service.shutdown()
+    
+    # Stop file watcher service if it exists
+    if hasattr(app.state, 'file_watcher_service') and app.state.file_watcher_service:
+        try:
+            await app.state.file_watcher_service.stop()
+            logger.info("File watcher service stopped")
+        except Exception as e:
+            logger.warning("Error stopping file watcher service", error=str(e))
+    
     await event_service.stop()
     await database.close()
     logger.info("Printernizer shutdown complete")

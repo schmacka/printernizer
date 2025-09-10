@@ -277,6 +277,28 @@
                 </div>
             </div>
 
+            <!-- Discovered Files Section -->
+            <div class="discovered-files-section">
+                <div class="section-header">
+                    <h2>
+                        <span class="section-icon">📁</span>
+                        Entdeckte Dateien
+                    </h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="loadDiscoveredFiles()">
+                            <span class="btn-icon">🔄</span>
+                            Aktualisieren
+                        </button>
+                    </div>
+                </div>
+                <div class="discovered-files-container" id="discoveredFilesContainer">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade entdeckte Dateien...</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="files-container">
                 <div class="files-list" id="filesList">
                     <div class="loading-placeholder">

@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updated_at": "2025-09-09T14:54:24.173533",
+  "updated_at": "2025-09-09T15:19:53.607511",
   "printers": {
     "f0bffc38-4bc8-4d54-b3a8-64dc1d637b58": {
       "name": "A1BL",
@@ -11,11 +11,11 @@
       "serial_number": "03919C431601",
       "is_active": true
     },
-    "8e2450c8-08e8-45f2-bc54-a7a7b36d8385": {
+    "59dd18ca-b8c3-4a69-b00d-1931257ecbce": {
       "name": "CoreOne",
       "type": "prusa_core",
       "ip_address": "192.168.176.178",
-      "api_key": "KM3EADZC222b7956",
+      "api_key": "UA7qcos4MBBDZZv",
       "access_code": null,
       "serial_number": null,
       "is_active": true

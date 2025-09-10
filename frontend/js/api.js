@@ -101,6 +101,16 @@ class ApiClient {
         });
     }
 
+    /**
+     * PATCH request
+     */
+    async patch(endpoint, data = null) {
+        return this.request(endpoint, {
+            method: 'PATCH',
+            body: data ? JSON.stringify(data) : null
+        });
+    }
+
     // System Endpoints
     async getHealth() {
         return this.get(CONFIG.ENDPOINTS.HEALTH);

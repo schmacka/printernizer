@@ -96,9 +96,16 @@ class WatchFolderStatus(BaseModel):
     error: Optional[str] = None
 
 
+class WatchFolderItem(BaseModel):
+    """Individual watch folder item model."""
+    folder_path: str
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
 class WatchFolderSettings(BaseModel):
     """Watch folder settings response model."""
-    watch_folders: List[str]
+    watch_folders: List[WatchFolderItem]
     enabled: bool
     recursive: bool
     supported_extensions: List[str]
