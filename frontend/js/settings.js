@@ -60,7 +60,7 @@ class SettingsManager {
             console.log('Settings loaded:', this.currentSettings);
             
         } catch (error) {
-            console.error('Failed to load settings:', error);
+            window.ErrorHandler?.handleSettingsError(error, { operation: 'load' });
             showToast('error', 'Fehler beim Laden', 'Einstellungen konnten nicht geladen werden');
         }
     }
@@ -129,7 +129,7 @@ class SettingsManager {
             await this.loadSettings();
 
         } catch (error) {
-            console.error('Failed to save settings:', error);
+            window.ErrorHandler?.handleSettingsError(error, { operation: 'save' });
             showToast('error', 'Fehler beim Speichern', 'Einstellungen konnten nicht gespeichert werden');
         }
     }
@@ -229,7 +229,7 @@ class SettingsManager {
             this.displaySystemInfo(health);
 
         } catch (error) {
-            console.error('Failed to load system info:', error);
+            window.ErrorHandler?.handleSettingsError(error, { operation: 'load_system_info' });
             document.getElementById('systemInfo').innerHTML = `
                 <div class="error-message">
                     <span class="error-icon">⚠️</span>
@@ -304,7 +304,7 @@ class SettingsManager {
             this.displayWatchFolderSettings(watchFolderSettings);
 
         } catch (error) {
-            console.error('Failed to load watch folder settings:', error);
+            window.ErrorHandler?.handleSettingsError(error, { operation: 'load_watch_folders' });
             document.getElementById('watchFoldersList').innerHTML = `
                 <div class="error-message">
                     Verzeichniseinstellungen konnten nicht geladen werden
@@ -392,7 +392,7 @@ class SettingsManager {
             await this.loadSettings();
 
         } catch (error) {
-            console.error('Failed to reset settings:', error);
+            window.ErrorHandler?.handleSettingsError(error, { operation: 'reset' });
             showToast('error', 'Fehler', 'Einstellungen konnten nicht zurückgesetzt werden');
         }
     }
@@ -442,7 +442,7 @@ async function addWatchFolder() {
         await settingsManager.loadWatchFolderSettings();
         
     } catch (error) {
-        console.error('Failed to add watch folder:', error);
+        window.ErrorHandler?.handleSettingsError(error, { operation: 'add_watch_folder', path: folderPath });
         if (error instanceof ApiError) {
             showToast('error', 'Fehler beim Hinzufügen', error.getUserMessage());
         } else {
@@ -468,7 +468,7 @@ async function removeWatchFolder(folderPath) {
         await settingsManager.loadWatchFolderSettings();
         
     } catch (error) {
-        console.error('Failed to remove watch folder:', error);
+        window.ErrorHandler?.handleSettingsError(error, { operation: 'remove_watch_folder', path: folderPath });
         if (error instanceof ApiError) {
             showToast('error', 'Fehler beim Entfernen', error.getUserMessage());
         } else {
