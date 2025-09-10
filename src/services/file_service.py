@@ -288,7 +288,12 @@ class FileService:
             # Count by status
             available_count = len([f for f in files if f.get('status') in ['available', 'local']])
             downloaded_count = len([f for f in files if f.get('status') == 'downloaded'])
+            failed_count = len([f for f in files if f.get('status') == 'failed'])
             local_count = len(local_files)
+            
+            # Calculate download success rate
+            total_download_attempts = downloaded_count + failed_count
+            download_success_rate = downloaded_count / total_download_attempts if total_download_attempts > 0 else 1.0
             
             return {
                 "total_files": total_files,
@@ -296,9 +301,10 @@ class FileService:
                 "printer_files": len(printer_files),
                 "available_count": available_count,
                 "downloaded_count": downloaded_count,
+                "failed_count": failed_count,
                 "local_count": local_count,
                 "total_size": total_size,
-                "download_success_rate": 1.0  # Placeholder
+                "download_success_rate": download_success_rate
             }
             
         except Exception as e:
@@ -309,6 +315,7 @@ class FileService:
                 "printer_files": 0,
                 "available_count": 0,
                 "downloaded_count": 0,
+                "failed_count": 0,
                 "local_count": 0,
                 "total_size": 0,
                 "download_success_rate": 0.0
