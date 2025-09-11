@@ -3,10 +3,25 @@
  * Central configuration for the frontend application
  */
 
+// Dynamic API URL detection for network access
+const getApiBaseUrl = () => {
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    // Use same host as frontend, but port 8000 for API
+    return `${protocol}//${host}:8000/api/v1`;
+};
+
+const getWebSocketUrl = () => {
+    const host = window.location.hostname;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Use same host as frontend, but port 8000 for WebSocket
+    return `${protocol}//${host}:8000/ws`;
+};
+
 const CONFIG = {
-    // API Configuration
-    API_BASE_URL: 'http://localhost:8000/api/v1',
-    WEBSOCKET_URL: 'ws://localhost:8000/ws',
+    // API Configuration - Dynamic URLs for network access
+    API_BASE_URL: getApiBaseUrl(),
+    WEBSOCKET_URL: getWebSocketUrl(),
     
     // Application Settings
     APP_NAME: 'Printernizer',
