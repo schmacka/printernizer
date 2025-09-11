@@ -65,6 +65,7 @@ def _printer_to_response(printer: Printer) -> PrinterResponse:
         is_enabled=printer.is_active,
         last_seen=printer.last_seen.isoformat() if printer.last_seen else None,
         current_job_id=None,  # Not implemented yet
+        queue_count=getattr(printer, 'queue_count', None),  # Will be updated via WebSocket
         created_at=printer.created_at.isoformat(),
         updated_at=printer.created_at.isoformat()  # Use created_at as fallback
     )
