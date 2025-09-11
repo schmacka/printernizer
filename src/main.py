@@ -156,9 +156,13 @@ def create_application() -> FastAPI:
     
     # CORS Configuration
     cors_origins = settings.get_cors_origins()
-    # Add localhost for development
+    # Add additional origins for development
     if settings.environment == "development":
-        cors_origins.extend(["http://localhost:3000", "http://127.0.0.1:3000"])
+        cors_origins.extend([
+            "http://localhost:3000", 
+            "http://127.0.0.1:3000",
+            "http://192.168.176.159:3000"
+        ])
     
     app.add_middleware(
         CORSMiddleware,

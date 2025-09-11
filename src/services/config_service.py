@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     environment: str = "production"
     
     # CORS - Configure allowed origins (will be parsed from comma-separated string)
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://192.168.176.159:3000"
     
     # Logging
     log_level: str = "INFO"
