@@ -41,6 +41,20 @@
 - [ ] Implement 3D file preview
 - [ ] Implement local file opening
 
+## Phase 2 Features Documentation
+
+**IMPORTANT**: Comprehensive documentation of Phase 2 features has been created:
+- [Phase 2 Feature Requirements](docs/issues/phase-2-feature-requirements.md) - Detailed implementation specifications
+- [Phase 2 Features Summary](docs/issues/phase-2-features-summary.md) - Quick reference guide
+
+### Phase 2 Features Currently Showing Placeholder Messages:
+- **Printer Editing** (`dashboard.js:640`) - "Drucker-Bearbeitung wird in Phase 2 implementiert"
+- **Job Editing** (`jobs.js:724`) - "Auftrag-Bearbeitung wird in einer späteren Version implementiert"
+- **Job Export** (`jobs.js:731`) - "Auftrag-Export wird in Phase 2 implementiert"
+- **Local File Opening** (`files.js:601`) - "Lokale Datei-Anzeige wird in Phase 2 implementiert"
+- **File Upload to Printer** (`files.js:608`) - "Upload zu Drucker wird in Phase 2 implementiert"
+- **3D File Preview** (`files.js:587`) - "3D-Vorschau wird in Phase 2 implementiert"
+
 ## Priority Areas
 1. Database Integration
    - Job management
