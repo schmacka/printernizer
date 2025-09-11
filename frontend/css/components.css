@@ -582,6 +582,11 @@
     color: var(--gray-600);
 }
 
+.quick-stat.queue-active {
+    color: var(--blue-600);
+    font-weight: 500;
+}
+
 .last-communication {
     font-size: var(--font-size-xs);
     display: flex;

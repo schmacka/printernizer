@@ -47,6 +47,7 @@ class PrinterResponse(BaseModel):
     is_enabled: bool
     last_seen: Optional[str]
     current_job_id: Optional[UUID]
+    queue_count: Optional[int] = None
     created_at: str
     updated_at: str
 

@@ -91,6 +91,66 @@ class PrusaPrinter(BasePrinter):
             logger.error("Error disconnecting from Prusa printer",
                         printer_id=self.printer_id, error=str(e))
             
+    async def get_queue_count(self) -> int:
+        """Get queue count from Prusa Connect."""
+        if not self.is_connected or not self.session:
+            return 0
+            
+        try:
+            # Try to get queue information from PrusaLink
+            # Note: Different PrusaLink versions might have different endpoints
+            # We'll try multiple approaches to get queue information
+            
+            # First, try the job endpoint which might contain queue info
+            async with self.session.get(f"{self.base_url}/job") as response:
+                if response.status == 200:
+                    job_data = await response.json()
+                    
+                    # Check if queue information is available in job data
+                    if 'queue' in job_data:
+                        queue_data = job_data['queue']
+                        if isinstance(queue_data, list):
+                            return len(queue_data)
+                        elif isinstance(queue_data, dict) and 'count' in queue_data:
+                            return queue_data['count']
+                    
+                    # Check for queue in root level
+                    if 'queued_jobs' in job_data:
+                        queued_jobs = job_data['queued_jobs']
+                        if isinstance(queued_jobs, list):
+                            return len(queued_jobs)
+                        elif isinstance(queued_jobs, int):
+                            return queued_jobs
+                    
+            # Try the v1/job endpoint for newer PrusaLink versions
+            async with self.session.get(f"{self.base_url}/v1/job") as response:
+                if response.status == 200:
+                    job_data = await response.json()
+                    if 'queue' in job_data:
+                        queue_data = job_data['queue']
+                        if isinstance(queue_data, list):
+                            return len(queue_data)
+                        elif isinstance(queue_data, dict) and 'count' in queue_data:
+                            return queue_data['count']
+                            
+            # Try dedicated queue endpoint if available
+            async with self.session.get(f"{self.base_url}/job/queue") as response:
+                if response.status == 200:
+                    queue_data = await response.json()
+                    if isinstance(queue_data, list):
+                        return len(queue_data)
+                    elif isinstance(queue_data, dict):
+                        if 'count' in queue_data:
+                            return queue_data['count']
+                        elif 'jobs' in queue_data and isinstance(queue_data['jobs'], list):
+                            return len(queue_data['jobs'])
+                            
+        except Exception as e:
+            logger.debug("Failed to get queue count from Prusa", 
+                        printer_id=self.printer_id, error=str(e))
+            
+        return 0
+
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Prusa."""
         if not self.is_connected or not self.session:
@@ -113,6 +173,9 @@ class PrusaPrinter(BasePrinter):
             except Exception as e:
                 logger.warning("Failed to get job data from Prusa",
                               printer_id=self.printer_id, error=str(e))
+            
+            # Get queue count
+            queue_count = await self.get_queue_count()
             
             # Map Prusa status to our PrinterStatus
             prusa_state = status_data.get('state', {}).get('text', 'Unknown')
@@ -143,6 +206,7 @@ class PrusaPrinter(BasePrinter):
                 temperature_nozzle=float(nozzle_temp),
                 progress=progress,
                 current_job=current_job if current_job else None,
+                queue_count=queue_count,
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )

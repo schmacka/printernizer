@@ -135,7 +135,7 @@ class PrinterCard {
     }
 
     /**
-     * Render quick stats (uptime, jobs today, etc.)
+     * Render quick stats (uptime, jobs today, queue count etc.)
      */
     renderQuickStats() {
         const stats = [];
@@ -146,6 +146,14 @@ class PrinterCard {
         
         if (this.printer.jobs_today !== undefined) {
             stats.push(`<span class="quick-stat" title="Aufträge heute">📊 ${this.printer.jobs_today}</span>`);
+        }
+        
+        // Show queue count for Prusa printers
+        if ((this.printer.type === 'prusa_core' || this.printer.type === 'prusa') && 
+            this.printer.queue_count !== undefined && this.printer.queue_count !== null) {
+            const queueIcon = this.printer.queue_count > 0 ? '📋' : '📋';
+            const queueClass = this.printer.queue_count > 0 ? 'quick-stat queue-active' : 'quick-stat';
+            stats.push(`<span class="${queueClass}" title="Warteschlange">${queueIcon} ${this.printer.queue_count}</span>`);
         }
         
         return stats.join('');

@@ -65,5 +65,6 @@ class PrinterStatusUpdate(BaseModel):
     temperature_nozzle: Optional[float] = None
     progress: Optional[int] = None
     current_job: Optional[str] = None
+    queue_count: Optional[int] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     raw_data: Optional[Dict[str, Any]] = None
