@@ -1325,3 +1325,228 @@
         text-overflow: ellipsis;
     }
 }
+
+/* Thumbnail and Metadata Styles */
+
+/* File Item Thumbnails */
+.file-thumbnail-container {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.file-thumbnail-container:hover {
+    border-color: var(--primary-500);
+    box-shadow: var(--shadow-md);
+}
+
+.file-thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.file-thumbnail-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--gray-50);
+}
+
+.file-icon-large {
+    font-size: 2rem;
+    color: var(--gray-600);
+}
+
+/* File Metadata */
+.file-metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-1);
+}
+
+.file-metadata-item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: var(--spacing-1) var(--spacing-2);
+    background: var(--gray-100);
+    border-radius: var(--radius-full);
+    font-size: var(--text-xs);
+    color: var(--gray-700);
+}
+
+.metadata-icon {
+    font-size: 0.75rem;
+}
+
+.metadata-value {
+    font-weight: 500;
+}
+
+/* Update file item layout for thumbnails */
+.file-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    transition: all 0.2s ease;
+    margin-bottom: var(--spacing-3);
+}
+
+.file-item:hover {
+    border-color: var(--primary-200);
+    box-shadow: var(--shadow-sm);
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+}
+
+.file-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--spacing-1);
+    font-size: var(--text-base);
+}
+
+.file-details {
+    display: flex;
+    gap: var(--spacing-3);
+    color: var(--gray-600);
+    font-size: var(--text-sm);
+    margin-bottom: var(--spacing-2);
+}
+
+/* Preview Modal Enhancements */
+.file-preview-thumbnail {
+    text-align: center;
+    margin-bottom: var(--spacing-4);
+}
+
+.preview-thumbnail-image {
+    max-width: 400px;
+    max-height: 300px;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.preview-thumbnail-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-8);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    color: var(--gray-600);
+}
+
+.preview-icon-large {
+    font-size: 4rem;
+}
+
+.file-preview-metadata {
+    margin-top: var(--spacing-4);
+    padding-top: var(--spacing-4);
+    border-top: 1px solid var(--gray-200);
+}
+
+.file-preview-metadata h4 {
+    margin-bottom: var(--spacing-3);
+    color: var(--gray-800);
+}
+
+.file-preview-metadata p {
+    margin-bottom: var(--spacing-2);
+    color: var(--gray-700);
+}
+
+/* Thumbnail Modal */
+.thumbnail-preview {
+    text-align: center;
+}
+
+.thumbnail-image-container {
+    margin-bottom: var(--spacing-4);
+}
+
+.thumbnail-image-large {
+    max-width: 100%;
+    max-height: 600px;
+    width: auto;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.thumbnail-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-8);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    color: var(--gray-600);
+}
+
+.error-icon {
+    font-size: 3rem;
+}
+
+.thumbnail-info h4 {
+    margin-bottom: var(--spacing-1);
+    color: var(--gray-900);
+}
+
+.thumbnail-description {
+    color: var(--gray-600);
+    font-size: var(--text-sm);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .file-thumbnail-container {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .file-icon-large {
+        font-size: 1.5rem;
+    }
+    
+    .file-metadata {
+        gap: var(--spacing-1);
+    }
+    
+    .file-metadata-item {
+        font-size: 0.65rem;
+        padding: 2px var(--spacing-1);
+    }
+    
+    .preview-thumbnail-image,
+    .thumbnail-image-large {
+        max-width: 100%;
+        max-height: 250px;
+    }
+}
+}

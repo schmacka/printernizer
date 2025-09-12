@@ -12,6 +12,8 @@ from database.database import Database
 from services.event_service import EventService
 from services.file_watcher_service import FileWatcherService
 from utils.exceptions import NotFoundError
+from utils.gcode_parser import parse_gcode_file
+from models.file import ThumbnailData, FileMetadata
 
 logger = structlog.get_logger()
 
@@ -137,13 +139,34 @@ class FileService:
             )
             
             if success:
-                # Update database with download info
-                await self.database.update_file(file_id, {
+                # Extract thumbnails and metadata from downloaded file
+                thumbnail_data = None
+                parsed_metadata = None
+                
+                try:
+                    parse_result = await self._extract_file_metadata(destination_path)
+                    thumbnail_data = parse_result.get('thumbnails')
+                    parsed_metadata = parse_result.get('metadata')
+                except Exception as e:
+                    logger.warning("Failed to extract file metadata", 
+                                 filename=filename, error=str(e))
+                
+                # Update database with download info and metadata
+                update_data = {
                     'status': 'downloaded',
                     'file_path': destination_path,
                     'downloaded_at': datetime.now().isoformat(),
                     'download_progress': 100
-                })
+                }
+                
+                # Add thumbnail and metadata if extracted
+                if thumbnail_data:
+                    update_data['thumbnails'] = [thumb.dict() if hasattr(thumb, 'dict') else thumb 
+                                                for thumb in thumbnail_data]
+                if parsed_metadata:
+                    update_data['parsed_metadata'] = parsed_metadata.dict() if hasattr(parsed_metadata, 'dict') else parsed_metadata
+                
+                await self.database.update_file(file_id, update_data)
                 
                 self.download_progress[file_id] = 100
                 self.download_status[file_id] = "completed"
@@ -153,16 +176,21 @@ class FileService:
                     "printer_id": printer_id,
                     "filename": filename,
                     "file_id": file_id,
-                    "local_path": destination_path
+                    "local_path": destination_path,
+                    "has_thumbnails": bool(thumbnail_data),
+                    "has_metadata": bool(parsed_metadata)
                 })
                 
-                logger.info("File download completed", printer_id=printer_id, filename=filename)
+                logger.info("File download completed", printer_id=printer_id, filename=filename,
+                           has_thumbnails=bool(thumbnail_data), has_metadata=bool(parsed_metadata))
                 
                 return {
                     "status": "success",
                     "message": "File downloaded successfully",
                     "local_path": destination_path,
-                    "file_id": file_id
+                    "file_id": file_id,
+                    "thumbnails": thumbnail_data,
+                    "metadata": parsed_metadata
                 }
             else:
                 self.download_status[file_id] = "failed"
@@ -456,3 +484,89 @@ class FileService:
             
         except Exception as e:
             logger.error("Failed to cleanup download status", error=str(e))
+    
+    async def _extract_file_metadata(self, file_path: str) -> Dict[str, Any]:
+        """
+        Extract thumbnails and metadata from a file.
+        
+        Args:
+            file_path: Path to the file to analyze
+            
+        Returns:
+            Dictionary with thumbnails and metadata
+        """
+        try:
+            # Only process files that might contain thumbnails/metadata
+            file_ext = Path(file_path).suffix.lower()
+            if file_ext not in ['.gcode', '.bgcode', '.3mf']:
+                return {'thumbnails': [], 'metadata': {}}
+            
+            # Run G-code parsing in a thread to avoid blocking
+            loop = asyncio.get_event_loop()
+            parse_result = await loop.run_in_executor(None, parse_gcode_file, file_path)
+            
+            # Convert raw results to Pydantic models
+            thumbnails = []
+            if parse_result.get('thumbnails'):
+                for thumb_data in parse_result['thumbnails']:
+                    try:
+                        thumbnail = ThumbnailData(**thumb_data)
+                        thumbnails.append(thumbnail)
+                    except Exception as e:
+                        logger.warning("Failed to create thumbnail model", error=str(e))
+            
+            metadata = None
+            if parse_result.get('metadata'):
+                try:
+                    metadata = FileMetadata(**parse_result['metadata'])
+                except Exception as e:
+                    logger.warning("Failed to create metadata model", error=str(e))
+            
+            return {
+                'thumbnails': thumbnails,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error("Failed to extract file metadata", file_path=file_path, error=str(e))
+            return {'thumbnails': [], 'metadata': {}}
+    
+    async def get_file_thumbnail(self, file_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get thumbnail data for a specific file.
+        
+        Args:
+            file_id: File identifier
+            
+        Returns:
+            Thumbnail data or None if not available
+        """
+        try:
+            file_data = await self.get_file_by_id(file_id)
+            if not file_data:
+                return None
+            
+            # Check if thumbnails are already stored
+            if file_data.get('thumbnails'):
+                # Return the first/best thumbnail
+                thumbnails = file_data['thumbnails']
+                if isinstance(thumbnails, list) and thumbnails:
+                    return thumbnails[0]
+                return thumbnails
+            
+            # If no thumbnails stored but file exists locally, try to extract them
+            if file_data.get('file_path') and Path(file_data['file_path']).exists():
+                parse_result = await self._extract_file_metadata(file_data['file_path'])
+                if parse_result.get('thumbnails'):
+                    # Store the thumbnails for future use
+                    thumbnail_data = [thumb.dict() if hasattr(thumb, 'dict') else thumb 
+                                    for thumb in parse_result['thumbnails']]
+                    await self.database.update_file(file_id, {'thumbnails': thumbnail_data})
+                    
+                    return thumbnail_data[0] if thumbnail_data else None
+            
+            return None
+            
+        except Exception as e:
+            logger.error("Failed to get file thumbnail", file_id=file_id, error=str(e))
+            return None

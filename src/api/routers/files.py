@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 import structlog
 
-from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
+from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem, ThumbnailData
 from services.file_service import FileService
 from services.config_service import ConfigService
 from utils.dependencies import get_file_service, get_config_service
@@ -32,6 +32,13 @@ class FileResponse(BaseModel):
     watch_folder_path: Optional[str] = None
     relative_path: Optional[str] = None
     modified_time: Optional[str] = None
+    # New fields for thumbnails and metadata
+    has_thumbnail: Optional[bool] = None
+    estimated_print_time: Optional[int] = None
+    estimated_material_usage: Optional[float] = None
+    layer_height: Optional[float] = None
+    infill: Optional[int] = None
+    material_type: Optional[str] = None
 
 
 class PaginationResponse(BaseModel):
@@ -61,7 +68,44 @@ async def list_files(
         files = await file_service.get_files(
             printer_id=printer_id
         )
-        file_list = [FileResponse.model_validate(file) for file in files]
+        
+        # Enhanced file response with metadata
+        file_list = []
+        for file_data in files:
+            file_response = FileResponse(
+                id=file_data['id'],
+                printer_id=file_data.get('printer_id'),
+                filename=file_data['filename'],
+                source=file_data.get('source', FileSource.PRINTER),
+                status=file_data.get('status', FileStatus.AVAILABLE),
+                file_size=file_data.get('file_size'),
+                file_path=file_data.get('file_path'),
+                file_type=file_data.get('file_type'),
+                downloaded_at=file_data.get('downloaded_at'),
+                created_at=file_data.get('created_at'),
+                watch_folder_path=file_data.get('watch_folder_path'),
+                relative_path=file_data.get('relative_path'),
+                modified_time=file_data.get('modified_time'),
+                # Add metadata fields
+                has_thumbnail=bool(file_data.get('thumbnails')),
+                estimated_print_time=None,
+                estimated_material_usage=None,
+                layer_height=None,
+                infill=None,
+                material_type=None
+            )
+            
+            # Extract metadata if available
+            if file_data.get('parsed_metadata'):
+                metadata = file_data['parsed_metadata']
+                file_response.estimated_print_time = metadata.get('estimated_print_time')
+                file_response.estimated_material_usage = metadata.get('estimated_material_usage')
+                file_response.layer_height = metadata.get('layer_height')
+                file_response.infill = metadata.get('infill')
+                file_response.material_type = metadata.get('material_type')
+            
+            file_list.append(file_response)
+        
         return {
             "files": file_list,
             "total_count": len(file_list),
@@ -118,6 +162,36 @@ async def sync_printer_files(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to sync files"
+        )
+
+
+@router.get("/{file_id}/thumbnail")
+async def get_file_thumbnail(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Get thumbnail data for a file."""
+    try:
+        thumbnail_data = await file_service.get_file_thumbnail(file_id)
+        if not thumbnail_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Thumbnail not found"
+            )
+        
+        # Return thumbnail with proper format
+        return {
+            "file_id": file_id,
+            "thumbnail": thumbnail_data,
+            "content_type": f"image/{thumbnail_data.get('format', 'png')}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get file thumbnail", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve thumbnail"
         )
 
 

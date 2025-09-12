@@ -704,7 +704,9 @@ class FileListItem {
         this.element.setAttribute('data-file-id', this.file.id);
         
         this.element.innerHTML = `
-            <div class="file-icon">${this.getFileIcon()}</div>
+            <div class="file-thumbnail">
+                ${this.renderThumbnail()}
+            </div>
             
             <div class="file-info">
                 <div class="file-name">${escapeHtml(this.file.filename)}</div>
@@ -715,6 +717,7 @@ class FileListItem {
                         ${this.file.created_on_printer ? formatDateTime(this.file.created_on_printer) : formatDateTime(this.file.last_accessed)}
                     </span>
                 </div>
+                ${this.renderMetadata()}
             </div>
             
             <div class="file-status">
@@ -747,6 +750,111 @@ class FileListItem {
         };
         
         return icons[extension] || '📄';
+    }
+
+    /**
+     * Render thumbnail or fallback icon
+     */
+    renderThumbnail() {
+        // Check if file has thumbnail
+        if (this.file.has_thumbnail) {
+            return `
+                <div class="file-thumbnail-container" onclick="showFileThumbnail('${this.file.id}')">
+                    <img class="file-thumbnail-image" 
+                         src="/api/files/${this.file.id}/thumbnail" 
+                         alt="Thumbnail für ${escapeHtml(this.file.filename)}"
+                         onerror="this.onerror=null; this.style.display='none'; this.nextSibling.style.display='block';"
+                         loading="lazy">
+                    <div class="file-thumbnail-fallback" style="display: none;">
+                        <div class="file-icon-large">${this.getFileIcon()}</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Show fallback icon
+            return `
+                <div class="file-thumbnail-container">
+                    <div class="file-thumbnail-fallback">
+                        <div class="file-icon-large">${this.getFileIcon()}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Render file metadata if available
+     */
+    renderMetadata() {
+        const metadata = [];
+        
+        // Print time
+        if (this.file.estimated_print_time) {
+            const hours = Math.floor(this.file.estimated_print_time / 3600);
+            const minutes = Math.floor((this.file.estimated_print_time % 3600) / 60);
+            let timeStr = '';
+            if (hours > 0) {
+                timeStr = `${hours}h ${minutes}m`;
+            } else {
+                timeStr = `${minutes}m`;
+            }
+            metadata.push(`
+                <span class="file-metadata-item" title="Geschätzte Druckzeit">
+                    <span class="metadata-icon">⏱️</span>
+                    <span class="metadata-value">${timeStr}</span>
+                </span>
+            `);
+        }
+
+        // Material usage
+        if (this.file.estimated_material_usage) {
+            metadata.push(`
+                <span class="file-metadata-item" title="Geschätzter Materialverbrauch">
+                    <span class="metadata-icon">🧵</span>
+                    <span class="metadata-value">${this.file.estimated_material_usage.toFixed(1)}g</span>
+                </span>
+            `);
+        }
+
+        // Layer height
+        if (this.file.layer_height) {
+            metadata.push(`
+                <span class="file-metadata-item" title="Schichthöhe">
+                    <span class="metadata-icon">📏</span>
+                    <span class="metadata-value">${this.file.layer_height}mm</span>
+                </span>
+            `);
+        }
+
+        // Infill
+        if (this.file.infill) {
+            metadata.push(`
+                <span class="file-metadata-item" title="Füllung">
+                    <span class="metadata-icon">🔲</span>
+                    <span class="metadata-value">${this.file.infill}%</span>
+                </span>
+            `);
+        }
+
+        // Material type
+        if (this.file.material_type) {
+            metadata.push(`
+                <span class="file-metadata-item" title="Materialtyp">
+                    <span class="metadata-icon">🧪</span>
+                    <span class="metadata-value">${this.file.material_type}</span>
+                </span>
+            `);
+        }
+
+        if (metadata.length > 0) {
+            return `
+                <div class="file-metadata">
+                    ${metadata.join('')}
+                </div>
+            `;
+        }
+
+        return '';
     }
 
     /**

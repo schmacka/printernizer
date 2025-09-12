@@ -25,6 +25,27 @@ class FileSource(str, Enum):
     LOCAL_WATCH = "local_watch" # File discovered in watch folder
 
 
+class ThumbnailData(BaseModel):
+    """Thumbnail data model."""
+    name: str = Field(..., description="Thumbnail identifier/name")
+    width: Optional[int] = Field(None, description="Thumbnail width in pixels")
+    height: Optional[int] = Field(None, description="Thumbnail height in pixels")
+    size: Optional[int] = Field(None, description="Data size in bytes")
+    format: str = Field(..., description="Image format (png, jpg, etc)")
+    data: str = Field(..., description="Base64-encoded image data")
+
+
+class FileMetadata(BaseModel):
+    """File metadata model for G-code parsing results."""
+    estimated_print_time: Optional[int] = Field(None, description="Estimated print time in seconds")
+    estimated_material_usage: Optional[float] = Field(None, description="Estimated material usage in grams")
+    layer_height: Optional[float] = Field(None, description="Layer height in mm")
+    infill: Optional[int] = Field(None, description="Infill percentage")
+    nozzle_temperature: Optional[int] = Field(None, description="Nozzle temperature in °C")
+    bed_temperature: Optional[int] = Field(None, description="Bed temperature in °C")
+    material_type: Optional[str] = Field(None, description="Material type (PLA, PETG, etc)")
+
+
 class File(BaseModel):
     """File model."""
     id: str = Field(..., description="Unique file identifier")
@@ -40,6 +61,10 @@ class File(BaseModel):
     downloaded_at: Optional[datetime] = Field(None, description="Download completion time")
     created_at: datetime = Field(default_factory=datetime.now)
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional file metadata")
+    
+    # New thumbnail and metadata fields
+    thumbnails: Optional[List[ThumbnailData]] = Field(None, description="Extracted thumbnails from G-code")
+    parsed_metadata: Optional[FileMetadata] = Field(None, description="Parsed G-code metadata")
     
     # Watch folder specific fields
     watch_folder_path: Optional[str] = Field(None, description="Watch folder path for local files")

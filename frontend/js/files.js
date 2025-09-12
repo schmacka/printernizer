@@ -568,31 +568,93 @@ class FileManager {
     }
 
     /**
-     * Preview file (placeholder implementation)
+     * Preview file (now with thumbnail support)
      */
     previewFile(fileId) {
         const fileItem = this.files.get(fileId);
         if (!fileItem) return;
         
-        // Show preview modal (placeholder)
+        // Show preview modal
         const modal = document.getElementById('filePreviewModal');
         const content = document.getElementById('filePreviewContent');
         
         if (modal && content) {
             showModal('filePreviewModal');
-            content.innerHTML = `
+            
+            // Enhanced preview with thumbnail and metadata
+            const thumbnailSection = fileItem.file.has_thumbnail ? `
+                <div class="file-preview-thumbnail">
+                    <img src="/api/files/${fileId}/thumbnail" 
+                         alt="Thumbnail für ${escapeHtml(fileItem.file.filename)}"
+                         class="preview-thumbnail-image"
+                         onerror="this.style.display='none'; this.nextSibling.style.display='block';">
+                    <div class="preview-thumbnail-fallback" style="display: none;">
+                        <div class="preview-icon-large">${fileItem.getFileIcon()}</div>
+                        <p>Thumbnail nicht verfügbar</p>
+                    </div>
+                </div>
+            ` : `
                 <div class="file-preview-placeholder">
                     <div class="preview-icon">${fileItem.getFileIcon()}</div>
+                </div>
+            `;
+            
+            const metadataSection = this._renderPreviewMetadata(fileItem.file);
+            
+            content.innerHTML = `
+                ${thumbnailSection}
+                <div class="file-preview-info">
                     <h3>${escapeHtml(fileItem.file.filename)}</h3>
-                    <p>3D-Vorschau wird in Phase 2 implementiert</p>
-                    <div class="file-info">
+                    <div class="file-basic-info">
                         <p><strong>Größe:</strong> ${formatBytes(fileItem.file.file_size)}</p>
                         <p><strong>Typ:</strong> ${fileItem.file.file_type}</p>
                         ${fileItem.file.printer_name ? `<p><strong>Drucker:</strong> ${fileItem.file.printer_name}</p>` : ''}
                     </div>
+                    ${metadataSection}
                 </div>
             `;
         }
+    }
+
+    /**
+     * Render metadata section for preview modal
+     */
+    _renderPreviewMetadata(file) {
+        const metadataItems = [];
+        
+        if (file.estimated_print_time) {
+            const hours = Math.floor(file.estimated_print_time / 3600);
+            const minutes = Math.floor((file.estimated_print_time % 3600) / 60);
+            const timeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+            metadataItems.push(`<p><strong>⏱️ Geschätzte Druckzeit:</strong> ${timeStr}</p>`);
+        }
+        
+        if (file.estimated_material_usage) {
+            metadataItems.push(`<p><strong>🧵 Materialverbrauch:</strong> ${file.estimated_material_usage.toFixed(1)}g</p>`);
+        }
+        
+        if (file.layer_height) {
+            metadataItems.push(`<p><strong>📏 Schichthöhe:</strong> ${file.layer_height}mm</p>`);
+        }
+        
+        if (file.infill) {
+            metadataItems.push(`<p><strong>🔲 Füllung:</strong> ${file.infill}%</p>`);
+        }
+        
+        if (file.material_type) {
+            metadataItems.push(`<p><strong>🧪 Material:</strong> ${file.material_type}</p>`);
+        }
+        
+        if (metadataItems.length > 0) {
+            return `
+                <div class="file-preview-metadata">
+                    <h4>Druckeinstellungen</h4>
+                    ${metadataItems.join('')}
+                </div>
+            `;
+        }
+        
+        return '';
     }
 
     /**
@@ -886,6 +948,58 @@ class FileManager {
 
 // Global file manager instance
 const fileManager = new FileManager();
+
+/**
+ * Show file thumbnail in modal
+ */
+function showFileThumbnail(fileId) {
+    const fileItem = fileManager.files.get(fileId);
+    if (!fileItem || !fileItem.file.has_thumbnail) return;
+    
+    // Create thumbnail modal if it doesn't exist
+    let thumbnailModal = document.getElementById('thumbnailModal');
+    if (!thumbnailModal) {
+        thumbnailModal = document.createElement('div');
+        thumbnailModal.id = 'thumbnailModal';
+        thumbnailModal.className = 'modal';
+        thumbnailModal.innerHTML = `
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3>Thumbnail Vorschau</h3>
+                    <button class="modal-close" onclick="closeModal('thumbnailModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="thumbnailModalContent">
+                    <!-- Content will be inserted here -->
+                </div>
+            </div>
+        `;
+        document.body.appendChild(thumbnailModal);
+    }
+    
+    const content = document.getElementById('thumbnailModalContent');
+    if (!content) return;
+    
+    content.innerHTML = `
+        <div class="thumbnail-preview">
+            <div class="thumbnail-image-container">
+                <img src="/api/files/${fileId}/thumbnail" 
+                     alt="Thumbnail für ${escapeHtml(fileItem.file.filename)}"
+                     class="thumbnail-image-large"
+                     onerror="this.style.display='none'; this.nextSibling.style.display='block';">
+                <div class="thumbnail-error" style="display: none;">
+                    <div class="error-icon">🖼️</div>
+                    <p>Thumbnail konnte nicht geladen werden</p>
+                </div>
+            </div>
+            <div class="thumbnail-info">
+                <h4>${escapeHtml(fileItem.file.filename)}</h4>
+                <p class="thumbnail-description">G-Code Vorschaubild</p>
+            </div>
+        </div>
+    `;
+    
+    showModal('thumbnailModal');
+}
 
 /**
  * Global functions for file management
