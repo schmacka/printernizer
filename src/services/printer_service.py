@@ -198,6 +198,10 @@ class PrinterService:
             "last_status": instance.last_status.dict() if instance.last_status else None,
             "monitoring_active": instance._monitoring_task is not None
         }
+
+    async def get_printer_driver(self, printer_id: str) -> Optional[BasePrinter]:
+        """Get printer driver instance for direct access."""
+        return self.printer_instances.get(printer_id)
         
     async def get_printer_status(self, printer_id: str) -> Dict[str, Any]:
         """Get current status of a printer."""
