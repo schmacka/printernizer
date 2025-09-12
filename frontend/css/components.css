@@ -297,12 +297,12 @@
 }
 
 .metadata-item {
-    background: var(--blue-50);
-    color: var(--blue-700);
+    background: var(--primary-light);
+    color: var(--primary-color);
     padding: 0.125rem var(--spacing-2);
     border-radius: var(--radius-sm);
     font-size: 0.75rem;
-    border: 1px solid var(--blue-200);
+    border: 1px solid var(--primary-color);
 }
 
 .file-size {
