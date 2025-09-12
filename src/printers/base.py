@@ -105,6 +105,21 @@ class PrinterInterface(ABC):
         """Stop/cancel the current print job."""
         pass
 
+    @abstractmethod
+    async def has_camera(self) -> bool:
+        """Check if printer has camera support."""
+        pass
+        
+    @abstractmethod
+    async def get_camera_stream_url(self) -> Optional[str]:
+        """Get camera stream URL if available."""
+        pass
+        
+    @abstractmethod
+    async def take_snapshot(self) -> Optional[bytes]:
+        """Take a camera snapshot and return image data."""
+        pass
+
 
 class BasePrinter(PrinterInterface):
     """Base class for all printer implementations."""

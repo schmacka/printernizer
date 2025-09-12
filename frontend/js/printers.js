@@ -145,6 +145,8 @@ class PrinterManager {
                         ${this.renderTemperatureInfo(printer.temperatures)}
                     </div>
                     
+                    ${cameraManager ? cameraManager.renderCameraSection(printer) : ''}
+                    
                     <div class="info-section">
                         <h4>Statistiken</h4>
                         ${this.renderPrinterStatistics(printer.statistics)}

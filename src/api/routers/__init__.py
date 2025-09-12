@@ -9,6 +9,7 @@ from .system import router as system_router
 from .websocket import router as websocket_router
 from .settings import router as settings_router
 from .errors import router as errors_router
+from .camera import router as camera_router
 
 __all__ = [
     "health_router",
@@ -19,5 +20,6 @@ __all__ = [
     "system_router",
     "websocket_router",
     "settings_router",
-    "errors_router"
+    "errors_router",
+    "camera_router"
 ]
