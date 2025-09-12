@@ -704,7 +704,9 @@ class FileListItem {
         this.element.setAttribute('data-file-id', this.file.id);
         
         this.element.innerHTML = `
-            <div class="file-icon">${this.getFileIcon()}</div>
+            <div class="file-visual">
+                ${this.renderThumbnailOrIcon()}
+            </div>
             
             <div class="file-info">
                 <div class="file-name">${escapeHtml(this.file.filename)}</div>
@@ -715,6 +717,7 @@ class FileListItem {
                         ${this.file.created_on_printer ? formatDateTime(this.file.created_on_printer) : formatDateTime(this.file.last_accessed)}
                     </span>
                 </div>
+                ${this.renderMetadata()}
             </div>
             
             <div class="file-status">
@@ -729,6 +732,97 @@ class FileListItem {
         `;
         
         return this.element;
+    }
+
+    /**
+     * Render thumbnail or file icon
+     */
+    renderThumbnailOrIcon() {
+        if (this.file.has_thumbnail && this.file.id) {
+            return `
+                <div class="file-thumbnail">
+                    <img src="/api/files/${this.file.id}/thumbnail" 
+                         alt="Thumbnail" 
+                         class="thumbnail-image"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+                         loading="lazy">
+                    <div class="file-icon fallback-icon" style="display: none">${this.getFileIcon()}</div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="file-icon">${this.getFileIcon()}</div>
+            `;
+        }
+    }
+
+    /**
+     * Render parsed metadata information
+     */
+    renderMetadata() {
+        if (!this.file.metadata) {
+            return '';
+        }
+
+        const metadata = this.file.metadata;
+        const metadataItems = [];
+
+        // Show estimated print time
+        if (metadata.estimated_time || metadata.estimated_print_time) {
+            const timeSeconds = metadata.estimated_time || metadata.estimated_print_time;
+            const timeText = typeof timeSeconds === 'number' ? this.formatDuration(timeSeconds) : timeSeconds;
+            metadataItems.push(`⏱️ ${timeText}`);
+        }
+
+        // Show layer information
+        if (metadata.total_layer_count || metadata.layer_count) {
+            metadataItems.push(`📐 ${metadata.total_layer_count || metadata.layer_count} Schichten`);
+        }
+
+        // Show filament usage
+        if (metadata.total_filament_used) {
+            metadataItems.push(`🧵 ${metadata.total_filament_used.toFixed(1)}g`);
+        }
+
+        // Show layer height
+        if (metadata.layer_height) {
+            metadataItems.push(`📏 ${metadata.layer_height}mm`);
+        }
+
+        // Show infill
+        if (metadata.infill_density) {
+            metadataItems.push(`🏗️ ${metadata.infill_density}%`);
+        }
+
+        if (metadataItems.length === 0) {
+            return '';
+        }
+
+        return `
+            <div class="file-metadata">
+                ${metadataItems.map(item => `<span class="metadata-item">${item}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Format duration in seconds to human readable format
+     */
+    formatDuration(seconds) {
+        if (typeof seconds !== 'number' || seconds <= 0) {
+            return '';
+        }
+
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        } else if (minutes > 0) {
+            return `${minutes}m`;
+        } else {
+            return `${seconds}s`;
+        }
     }
 
     /**
