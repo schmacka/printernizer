@@ -41,6 +41,13 @@ class File(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional file metadata")
     
+    # Thumbnail fields
+    has_thumbnail: bool = Field(False, description="Whether file has thumbnail(s)")
+    thumbnail_data: Optional[str] = Field(None, description="Base64 encoded thumbnail data")
+    thumbnail_width: Optional[int] = Field(None, description="Thumbnail width in pixels")
+    thumbnail_height: Optional[int] = Field(None, description="Thumbnail height in pixels")
+    thumbnail_format: Optional[str] = Field(None, description="Thumbnail format (png, jpg)")
+    
     # Watch folder specific fields
     watch_folder_path: Optional[str] = Field(None, description="Watch folder path for local files")
     relative_path: Optional[str] = Field(None, description="Relative path within watch folder")
