@@ -11,6 +11,7 @@ from datetime import datetime
 from database.database import Database
 from services.event_service import EventService
 from services.file_watcher_service import FileWatcherService
+from services.bambu_parser import BambuParser
 from utils.exceptions import NotFoundError
 
 logger = structlog.get_logger()
@@ -27,6 +28,7 @@ class FileService:
         self.event_service = event_service
         self.file_watcher = file_watcher
         self.printer_service = printer_service
+        self.bambu_parser = BambuParser()
         self.download_progress = {}
         self.download_status = {}
         
@@ -147,6 +149,13 @@ class FileService:
                 
                 self.download_progress[file_id] = 100
                 self.download_status[file_id] = "completed"
+                
+                # Process thumbnails for the downloaded file
+                logger.info("Processing thumbnails for downloaded file", 
+                           file_id=file_id, destination=destination_path)
+                
+                # Process thumbnails asynchronously to not block download completion
+                asyncio.create_task(self.process_file_thumbnails(destination_path, file_id))
                 
                 # Emit download complete event
                 await self.event_service.emit_event("file_download_complete", {
@@ -454,5 +463,94 @@ class FileService:
             
             logger.info("Cleaned up download status", removed_entries=len(to_remove))
             
+    async def process_file_thumbnails(self, file_path: str, file_id: str) -> bool:
+        """
+        Process a file to extract thumbnails and metadata using Bambu parser.
+        
+        Args:
+            file_path: Local path to the file
+            file_id: File ID in database
+            
+        Returns:
+            True if processing was successful, False otherwise
+        """
+        try:
+            if not os.path.exists(file_path):
+                logger.warning("File not found for thumbnail processing", file_path=file_path)
+                return False
+            
+            # Parse file with Bambu parser
+            parse_result = await self.bambu_parser.parse_file(file_path)
+            
+            if not parse_result['success']:
+                logger.info("File parsing failed or not applicable", 
+                           file_path=file_path, error=parse_result.get('error'))
+                return False
+            
+            thumbnails = parse_result['thumbnails']
+            metadata = parse_result['metadata']
+            
+            # Get best thumbnail for storage
+            thumbnail_data = None
+            thumbnail_width = None
+            thumbnail_height = None
+            thumbnail_format = None
+            
+            if thumbnails:
+                # Prefer thumbnail closest to 200x200 for UI display
+                best_thumbnail = self.bambu_parser.get_thumbnail_by_size(
+                    thumbnails, (200, 200)
+                )
+                
+                if best_thumbnail:
+                    thumbnail_data = best_thumbnail['data']
+                    thumbnail_width = best_thumbnail['width']
+                    thumbnail_height = best_thumbnail['height']
+                    thumbnail_format = best_thumbnail.get('format', 'png')
+            
+            # Update file record with thumbnail and metadata
+            update_data = {
+                'has_thumbnail': len(thumbnails) > 0,
+                'thumbnail_data': thumbnail_data,
+                'thumbnail_width': thumbnail_width,
+                'thumbnail_height': thumbnail_height,
+                'thumbnail_format': thumbnail_format,
+            }
+            
+            # Merge parsed metadata with existing metadata
+            existing_file = await self.get_file_by_id(file_id)
+            if existing_file:
+                existing_metadata = existing_file.get('metadata', {}) or {}
+                merged_metadata = {**existing_metadata, **metadata}
+                update_data['metadata'] = merged_metadata
+            else:
+                update_data['metadata'] = metadata
+            
+            success = await self.database.update_file(file_id, update_data)
+            
+            if success:
+                logger.info("Successfully processed file thumbnails",
+                           file_path=file_path,
+                           file_id=file_id,
+                           thumbnail_count=len(thumbnails),
+                           has_thumbnail=len(thumbnails) > 0,
+                           metadata_keys=list(metadata.keys()))
+                
+                # Emit file updated event
+                await self.event_service.emit_event("file_thumbnails_processed", {
+                    "file_id": file_id,
+                    "file_path": file_path,
+                    "thumbnail_count": len(thumbnails),
+                    "has_thumbnail": len(thumbnails) > 0,
+                    "metadata": metadata
+                })
+                
+                return True
+            else:
+                logger.error("Failed to update file with thumbnail data", file_id=file_id)
+                return False
+                
         except Exception as e:
-            logger.error("Failed to cleanup download status", error=str(e))
+            logger.error("Failed to process file thumbnails", 
+                        file_path=file_path, file_id=file_id, error=str(e))
+            return False
