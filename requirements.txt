@@ -4,8 +4,8 @@
 # Core Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
 
 # WebSocket Support for Real-time Updates
 websockets==12.0
@@ -14,11 +14,11 @@ websockets==12.0
 aiosqlite==0.19.0
 
 # HTTP Client for Prusa API
-aiohttp==3.9.1
+aiohttp>=3.10.0
 requests==2.31.0
 
 # MQTT Client for Bambu Lab Integration
-paho-mqtt==1.6.1
+paho-mqtt>=2.0.0
 # bambulabs-api==1.0.0  # Use paho-mqtt as fallback until bambulabs-api is stable
 
 # File Download and Management
@@ -68,4 +68,4 @@ filetype==1.2.0
 
 # Security Headers and Middleware
 python-multipart==0.0.6
-cryptography==41.0.8
+# cryptography>=42.0.0  # Temporarily disabled for Python 3.13 compatibility
