@@ -4,8 +4,10 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import Response
 from pydantic import BaseModel
 import structlog
+import base64
 
 from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
 from services.file_service import FileService
@@ -32,6 +34,12 @@ class FileResponse(BaseModel):
     watch_folder_path: Optional[str] = None
     relative_path: Optional[str] = None
     modified_time: Optional[str] = None
+    
+    # Thumbnail fields
+    has_thumbnail: bool = False
+    thumbnail_width: Optional[int] = None
+    thumbnail_height: Optional[int] = None
+    thumbnail_format: Optional[str] = None
 
 
 class PaginationResponse(BaseModel):
@@ -109,6 +117,113 @@ async def sync_printer_files(
     printer_id: Optional[str] = Query(None, description="Sync specific printer, or all if not specified"),
     file_service: FileService = Depends(get_file_service)
 ):
+    """Synchronize file list with printers."""
+    try:
+        await file_service.sync_printer_files(printer_id)
+        return {"status": "synced"}
+    except Exception as e:
+        logger.error("Failed to sync files", printer_id=str(printer_id) if printer_id else "all", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to sync files"
+        )
+
+
+@router.get("/{file_id}/thumbnail")
+async def get_file_thumbnail(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Get thumbnail image for a file."""
+    try:
+        file_data = await file_service.get_file_by_id(file_id)
+        
+        if not file_data:
+            raise HTTPException(
+                status_code=404,
+                detail="File not found"
+            )
+        
+        if not file_data.get('has_thumbnail') or not file_data.get('thumbnail_data'):
+            raise HTTPException(
+                status_code=404,
+                detail="No thumbnail available for this file"
+            )
+        
+        # Decode base64 thumbnail data
+        try:
+            thumbnail_data = base64.b64decode(file_data['thumbnail_data'])
+        except Exception as e:
+            logger.error("Failed to decode thumbnail data", file_id=file_id, error=str(e))
+            raise HTTPException(
+                status_code=500,
+                detail="Invalid thumbnail data"
+            )
+        
+        # Determine content type
+        thumbnail_format = file_data.get('thumbnail_format', 'png')
+        content_type = f"image/{thumbnail_format}"
+        
+        # Return image response
+        return Response(
+            content=thumbnail_data,
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "Content-Disposition": f"inline; filename=thumbnail_{file_id}.{thumbnail_format}"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get thumbnail", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve thumbnail"
+        )
+
+
+@router.post("/{file_id}/process-thumbnails")
+async def process_file_thumbnails(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Manually trigger thumbnail processing for a file."""
+    try:
+        file_data = await file_service.get_file_by_id(file_id)
+        
+        if not file_data:
+            raise HTTPException(
+                status_code=404,
+                detail="File not found"
+            )
+        
+        file_path = file_data.get('file_path')
+        if not file_path:
+            raise HTTPException(
+                status_code=400,
+                detail="File not available locally for processing"
+            )
+        
+        success = await file_service.process_file_thumbnails(file_path, file_id)
+        
+        if success:
+            return {"status": "success", "message": "Thumbnails processed successfully"}
+        else:
+            return {"status": "failed", "message": "Failed to process thumbnails"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to process thumbnails", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to process thumbnails"
+        )
+
+
+
     """Synchronize file list with printers."""
     try:
         await file_service.sync_printer_files(printer_id)
