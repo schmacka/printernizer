@@ -462,6 +462,8 @@ class FileService:
                     del self.download_progress[file_id]
             
             logger.info("Cleaned up download status", removed_entries=len(to_remove))
+        except Exception as e:
+            logger.error("Failed to cleanup download status", error=str(e))
             
     async def process_file_thumbnails(self, file_path: str, file_id: str) -> bool:
         """
