@@ -396,3 +396,21 @@ class PrusaPrinter(BasePrinter):
             logger.error("Error stopping print on Prusa",
                         printer_id=self.printer_id, error=str(e))
             return False
+
+    async def has_camera(self) -> bool:
+        """Check if Prusa printer has camera support."""
+        # Prusa Core One typically doesn't have integrated camera support
+        # This could be extended in the future if camera support is added
+        return False
+
+    async def get_camera_stream_url(self) -> Optional[str]:
+        """Get camera stream URL for Prusa printer."""
+        # Prusa Core One doesn't have integrated camera support
+        logger.debug("Camera not supported on Prusa printer", printer_id=self.printer_id)
+        return None
+
+    async def take_snapshot(self) -> Optional[bytes]:
+        """Take a camera snapshot from Prusa printer."""
+        # Prusa Core One doesn't have integrated camera support
+        logger.debug("Camera not supported on Prusa printer", printer_id=self.printer_id)
+        return None

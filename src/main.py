@@ -32,7 +32,8 @@ from api.routers import (
     system_router,
     websocket_router,
     settings_router,
-    errors_router
+    errors_router,
+    camera_router
 )
 from database.database import Database
 from services.event_service import EventService
@@ -181,6 +182,7 @@ def create_application() -> FastAPI:
     # API Routes
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
     app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
+    app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
     app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"]) 
     app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
