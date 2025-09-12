@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printernizer - Bambu Thumbnail Demo</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #dbeafe;
+            --secondary-color: #64748b;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-600: #4b5563;
+            --gray-900: #111827;
+            --white: #ffffff;
+            --spacing-1: 0.25rem;
+            --spacing-2: 0.5rem;
+            --spacing-3: 0.75rem;
+            --spacing-4: 1rem;
+            --radius-sm: 0.125rem;
+            --radius-md: 0.375rem;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            margin: 0;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: var(--radius-md);
+            padding: 2rem;
+        }
+        
+        h1 {
+            color: var(--gray-900);
+            margin-bottom: 1rem;
+        }
+        
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-4);
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: var(--spacing-4);
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .file-visual {
+            margin-right: var(--spacing-4);
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-thumbnail {
+            width: 100%;
+            height: 100%;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .thumbnail-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+        }
+
+        .file-icon {
+            font-size: 1.5rem;
+            width: 2rem;
+            text-align: center;
+        }
+
+        .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: var(--spacing-1);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-details {
+            display: flex;
+            gap: var(--spacing-4);
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            margin-bottom: var(--spacing-2);
+        }
+
+        .file-metadata {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-2);
+        }
+
+        .metadata-item {
+            background: var(--primary-light);
+            color: var(--primary-color);
+            padding: 0.125rem var(--spacing-2);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            border: 1px solid var(--primary-color);
+        }
+
+        .file-status {
+            margin-right: var(--spacing-4);
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .status-available {
+            background: var(--primary-light);
+            color: var(--primary-color);
+        }
+        
+        .status-downloaded {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: var(--spacing-2);
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖨️ Printernizer - Bambu Thumbnail Feature Demo</h1>
+        <p>This demonstrates how Bambu G-code thumbnails and metadata will appear in the file list.</p>
+        
+        <div class="file-list">
+            <!-- File with thumbnail and rich metadata -->
+            <div class="file-item">
+                <div class="file-visual">
+                    <div class="file-thumbnail">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" 
+                             alt="Thumbnail" 
+                             class="thumbnail-image">
+                    </div>
+                </div>
+                
+                <div class="file-info">
+                    <div class="file-name">miniature_vase_bambu.3mf</div>
+                    <div class="file-details">
+                        <span>2.4 MB</span>
+                        <span>Bambu A1</span>
+                        <span>vor 2 Stunden</span>
+                    </div>
+                    <div class="file-metadata">
+                        <span class="metadata-item">⏱️ 2h 30m</span>
+                        <span class="metadata-item">📐 250 Schichten</span>
+                        <span class="metadata-item">🧵 25.5g</span>
+                        <span class="metadata-item">📏 0.2mm</span>
+                        <span class="metadata-item">🏗️ 15%</span>
+                    </div>
+                </div>
+                
+                <div class="file-status">
+                    <span class="status-badge status-available">📁 Verfügbar</span>
+                </div>
+                
+                <div class="file-actions">
+                    <button class="btn btn-primary">⬇️ Download</button>
+                    <button class="btn btn-secondary">👁️ Vorschau</button>
+                </div>
+            </div>
+            
+            <!-- Downloaded file with thumbnail -->
+            <div class="file-item">
+                <div class="file-visual">
+                    <div class="file-thumbnail">
+                        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" 
+                             alt="Thumbnail" 
+                             class="thumbnail-image">
+                    </div>
+                </div>
+                
+                <div class="file-info">
+                    <div class="file-name">phone_stand_pla.gcode</div>
+                    <div class="file-details">
+                        <span>5.8 MB</span>
+                        <span>Bambu A1</span>
+                        <span>gestern</span>
+                    </div>
+                    <div class="file-metadata">
+                        <span class="metadata-item">⏱️ 1h 45m</span>
+                        <span class="metadata-item">📐 180 Schichten</span>
+                        <span class="metadata-item">🧵 18.2g</span>
+                        <span class="metadata-item">📏 0.2mm</span>
+                        <span class="metadata-item">🏗️ 20%</span>
+                    </div>
+                </div>
+                
+                <div class="file-status">
+                    <span class="status-badge status-downloaded">✓ Heruntergeladen</span>
+                </div>
+                
+                <div class="file-actions">
+                    <button class="btn btn-secondary">📁 Öffnen</button>
+                    <button class="btn btn-secondary">👁️ Vorschau</button>
+                </div>
+            </div>
+            
+            <!-- File without thumbnail (fallback) -->
+            <div class="file-item">
+                <div class="file-visual">
+                    <div class="file-icon">📦</div>
+                </div>
+                
+                <div class="file-info">
+                    <div class="file-name">legacy_model.stl</div>
+                    <div class="file-details">
+                        <span>1.2 MB</span>
+                        <span>Prusa MK3</span>
+                        <span>vor 1 Woche</span>
+                    </div>
+                </div>
+                
+                <div class="file-status">
+                    <span class="status-badge status-available">📁 Verfügbar</span>
+                </div>
+                
+                <div class="file-actions">
+                    <button class="btn btn-primary">⬇️ Download</button>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
+            <h3 style="margin: 0 0 0.5rem 0;">✨ New Features</h3>
+            <ul style="margin: 0; padding-left: 1.5rem;">
+                <li><strong>Thumbnails:</strong> Embedded thumbnails from Bambu G-code files are extracted and displayed</li>
+                <li><strong>Rich Metadata:</strong> Print time, layer count, filament usage, layer height, and infill percentage</li>
+                <li><strong>Smart Fallback:</strong> Files without thumbnails show appropriate file type icons</li>
+                <li><strong>Responsive Design:</strong> Works on desktop and mobile devices</li>
+                <li><strong>Automatic Processing:</strong> Thumbnails are extracted when files are downloaded</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
