@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import structlog
 
-from models.printer import Printer, PrinterType, PrinterStatus
-from services.printer_service import PrinterService
-from utils.dependencies import get_printer_service
+from src.models.printer import Printer, PrinterType, PrinterStatus
+from src.services.printer_service import PrinterService
+from src.utils.dependencies import get_printer_service
 
 
 logger = structlog.get_logger()

@@ -15,8 +15,8 @@ import structlog
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
-from services.event_service import EventService
-from services.config_service import ConfigService
+from src.services.event_service import EventService
+from src.services.config_service import ConfigService
 
 logger = structlog.get_logger()
 

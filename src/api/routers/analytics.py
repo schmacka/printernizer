@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 import structlog
 
-from services.analytics_service import AnalyticsService
-from utils.dependencies import get_analytics_service
+from src.services.analytics_service import AnalyticsService
+from src.utils.dependencies import get_analytics_service
 
 
 logger = structlog.get_logger()

@@ -1,16 +1,7 @@
 {
   "version": "1.0",
-  "updated_at": "2025-09-09T15:19:53.607511",
+  "updated_at": "2025-09-15T11:58:39.760034",
   "printers": {
-    "f0bffc38-4bc8-4d54-b3a8-64dc1d637b58": {
-      "name": "A1BL",
-      "type": "bambu_lab",
-      "ip_address": "192.168.176.101",
-      "api_key": null,
-      "access_code": "27286863",
-      "serial_number": "03919C431601",
-      "is_active": true
-    },
     "59dd18ca-b8c3-4a69-b00d-1931257ecbce": {
       "name": "CoreOne",
       "type": "prusa_core",
@@ -18,6 +9,15 @@
       "api_key": "UA7qcos4MBBDZZv",
       "access_code": null,
       "serial_number": null,
+      "is_active": true
+    },
+    "8abf07b0-e5c2-40e2-bee2-f258de9cb8d4": {
+      "name": "A1BL",
+      "type": "bambu_lab",
+      "ip_address": "192.168.176.101",
+      "api_key": null,
+      "access_code": "27286863",
+      "serial_number": "03919C431601127",
       "is_active": true
     }
   }

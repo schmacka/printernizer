@@ -10,8 +10,8 @@ from pathlib import Path
 import aiohttp
 import structlog
 
-from models.printer import PrinterStatus, PrinterStatusUpdate
-from utils.exceptions import PrinterConnectionError
+from src.models.printer import PrinterStatus, PrinterStatusUpdate
+from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 
 logger = structlog.get_logger()
@@ -129,7 +129,13 @@ class PrusaPrinter(BasePrinter):
             if job_data:
                 job_info = job_data.get('job', {})
                 if job_info and job_info.get('file'):
-                    current_job = job_info.get('file', {}).get('display', '')
+                    file_info = job_info.get('file', {})
+                    # Try 'display_name' first (long filename), then fall back to 'name' (short filename)
+                    current_job = file_info.get('display_name', file_info.get('name', ''))
+                
+                progress_info = job_data.get('progress', {})
+                if progress_info:
+                    progress = int(progress_info.get('completion', 0) or 0)
                 
                 progress_info = job_data.get('progress', {})
                 if progress_info:
@@ -191,7 +197,7 @@ class PrusaPrinter(BasePrinter):
             file_info = job_info_data.get('file', {})
             progress_info = job_data.get('progress', {})
             
-            job_name = file_info.get('display', file_info.get('name', 'Unknown Job'))
+            job_name = file_info.get('display_name', file_info.get('name', 'Unknown Job'))
             progress = int(progress_info.get('completion', 0) or 0)
             
             # Get state and map to JobStatus
@@ -255,7 +261,7 @@ class PrusaPrinter(BasePrinter):
             for file_data in local_files:
                 if file_data.get('type') == 'model':  # Only 3D model files
                     file_obj = PrinterFile(
-                        filename=file_data.get('display', file_data.get('name', 'Unknown')),
+                        filename=file_data.get('display_name', file_data.get('name', 'Unknown')),
                         size=file_data.get('size'),
                         modified=datetime.fromtimestamp(file_data.get('date', 0)) 
                                  if file_data.get('date') else None,
@@ -269,7 +275,7 @@ class PrusaPrinter(BasePrinter):
                 for file_data in sd_files:
                     if file_data.get('type') == 'model':
                         file_obj = PrinterFile(
-                            filename=f"[SD] {file_data.get('display', file_data.get('name', 'Unknown'))}",
+                            filename=f"[SD] {file_data.get('display_name', file_data.get('name', 'Unknown'))}",
                             size=file_data.get('size'),
                             modified=datetime.fromtimestamp(file_data.get('date', 0)) 
                                      if file_data.get('date') else None,

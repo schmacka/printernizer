@@ -5,7 +5,7 @@ This will be expanded in Phase 4 with complete business analytics.
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import structlog
-from database.database import Database
+from src.database.database import Database
 
 logger = structlog.get_logger()
 

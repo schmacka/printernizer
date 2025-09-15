@@ -222,8 +222,8 @@ const CONFIG = {
         FILES_CLEANUP_CANDIDATES: '/files/cleanup/candidates',
         
         // Statistics
-        STATISTICS_OVERVIEW: '/statistics/overview',
-        STATISTICS_PRINTER: (id) => `/statistics/printers/${id}`,
+        STATISTICS_OVERVIEW: '/analytics/overview',
+        STATISTICS_PRINTER: (id) => `/analytics/printers/${id}`,
 
         // ========================================
         // MILESTONE 1.2: ENHANCED ENDPOINTS

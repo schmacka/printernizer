@@ -8,11 +8,11 @@ import asyncio
 import os
 from pathlib import Path
 from datetime import datetime
-from database.database import Database
-from services.event_service import EventService
-from services.file_watcher_service import FileWatcherService
-from services.bambu_parser import BambuParser
-from utils.exceptions import NotFoundError
+from src.database.database import Database
+from src.services.event_service import EventService
+from src.services.file_watcher_service import FileWatcherService
+from src.services.bambu_parser import BambuParser
+from src.utils.exceptions import NotFoundError
 
 logger = structlog.get_logger()
 
@@ -395,10 +395,19 @@ class FileService:
     async def get_file_by_id(self, file_id: str) -> Optional[Dict[str, Any]]:
         """Get file information by ID."""
         try:
+            # Check printer files in database first
             files = await self.database.list_files()
             for file_data in files:
                 if file_data['id'] == file_id:
                     return dict(file_data)
+            
+            # Check local files from file watcher if available
+            if self.file_watcher:
+                local_files = self.file_watcher.get_local_files()
+                for file_data in local_files:
+                    if file_data.get('id') == file_id:
+                        return dict(file_data)
+            
             return None
         except Exception as e:
             logger.error("Failed to get file by ID", file_id=file_id, error=str(e))
