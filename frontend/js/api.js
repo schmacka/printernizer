@@ -198,8 +198,12 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.FILE_DOWNLOAD_STATUS(fileId));
     }
 
+    async getFileMetadata(fileId) {
+        return this.get(`/files/${fileId}/metadata`);
+    }
+
     async deleteFile(fileId) {
-        return this.delete(CONFIG.ENDPOINTS.FILE_DETAIL(fileId));
+        return this.delete(`/files/${fileId}`);
     }
 
     async getCleanupCandidates(filters = {}) {
@@ -215,31 +219,31 @@ class ApiClient {
 
     // Watch Folder Management Endpoints
     async getWatchFolderSettings() {
-        return this.get(CONFIG.ENDPOINTS.FILES + '/watch-folders/settings');
+        return this.get('/files/watch-folders/settings');
     }
 
     async getWatchFolderStatus() {
-        return this.get(CONFIG.ENDPOINTS.FILES + '/watch-folders/status');
+        return this.get('/files/watch-folders/status');
     }
 
     async validateWatchFolder(folderPath) {
-        return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/validate?folder_path=' + encodeURIComponent(folderPath));
+        return this.post('/files/watch-folders/validate?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async addWatchFolder(folderPath) {
-        return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/add?folder_path=' + encodeURIComponent(folderPath));
+        return this.post('/files/watch-folders/add?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async removeWatchFolder(folderPath) {
-        return this.delete(CONFIG.ENDPOINTS.FILES + '/watch-folders/remove?folder_path=' + encodeURIComponent(folderPath));
+        return this.delete('/files/watch-folders/remove?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async reloadWatchFolders() {
-        return this.post(CONFIG.ENDPOINTS.FILES + '/watch-folders/reload');
+        return this.post('/files/watch-folders/reload');
     }
 
     async updateWatchFolder(folderPath, isActive) {
-        return this.patch(CONFIG.ENDPOINTS.FILES + '/watch-folders/update?folder_path=' + encodeURIComponent(folderPath) + '&is_active=' + isActive);
+        return this.patch('/files/watch-folders/update?folder_path=' + encodeURIComponent(folderPath) + '&is_active=' + isActive);
     }
 
     // Statistics Endpoints
