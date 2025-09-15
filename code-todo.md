@@ -368,4 +368,10 @@ File: `src/printers/base.py` (method `health_check`)
  - Fixed `pytest.ini` invalid list syntax to allow isolated test execution.
  - Future (Phase 2): Extend conformance tests to validate semantic behaviors (error raising consistency, status value domains) and add camera capability contract enforcement.
 
+- Monitoring loop resilience implemented in `src/printers/base.py`:
+   - Added exponential backoff with jitter for monitoring loop on failures.
+   - Tracked metrics: consecutive/total failures, last poll duration, last error and timestamps.
+   - Exposed metrics via `BasePrinter.get_monitoring_metrics()` and surfaced through `PrinterService.get_printer()` and `health_check()` responses.
+   - Follow-up: add aggregate Prometheus-style export and thresholds to MonitoringService.
+
 
