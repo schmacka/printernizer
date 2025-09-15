@@ -196,7 +196,8 @@ class PrinterService:
             "ip_address": instance.ip_address,
             "is_connected": instance.is_connected,
             "last_status": instance.last_status.dict() if instance.last_status else None,
-            "monitoring_active": instance._monitoring_task is not None
+            "monitoring_active": instance._monitoring_task is not None,
+            "monitoring_metrics": getattr(instance, "get_monitoring_metrics", lambda: {})()
         }
 
     async def get_printer_driver(self, printer_id: str) -> Optional[BasePrinter]:
@@ -379,7 +380,8 @@ class PrinterService:
                 "connected": is_connected,
                 "healthy": is_healthy,
                 "last_seen": instance.last_status.timestamp.isoformat() 
-                             if instance.last_status else None
+                             if instance.last_status else None,
+                "monitoring": getattr(instance, "get_monitoring_metrics", lambda: {})()
             }
             
         return health_status

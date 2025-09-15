@@ -5,6 +5,8 @@ Provides abstract base classes for all printer integrations.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List, Callable, AsyncGenerator
 from datetime import datetime
+import time
+import random
 from enum import Enum
 import asyncio
 import structlog
@@ -135,6 +137,16 @@ class BasePrinter(PrinterInterface):
         self.status_callbacks: List[Callable[[PrinterStatusUpdate], None]] = []
         self._monitoring_task: Optional[asyncio.Task] = None
         self._stop_monitoring = asyncio.Event()
+        self._monitor_interval = 30
+        self._monitor_backoff_factor = 2.0
+        self._monitor_max_interval = 300
+        self._monitor_current_interval = self._monitor_interval
+        self._monitor_consecutive_failures = 0
+        self._monitor_total_failures = 0
+        self._monitor_last_duration_ms: Optional[float] = None
+        self._monitor_last_error: Optional[str] = None
+        self._monitor_last_error_at: Optional[datetime] = None
+        self._monitor_last_success_at: Optional[datetime] = None
         
     async def start_monitoring(self, interval: int = 30) -> None:
         """Start periodic status monitoring."""
@@ -144,7 +156,14 @@ class BasePrinter(PrinterInterface):
             
         logger.info("Starting printer monitoring", printer_id=self.printer_id, interval=interval)
         self._stop_monitoring.clear()
-        self._monitoring_task = asyncio.create_task(self._monitor_loop(interval))
+        self._monitor_interval = max(1, int(interval))
+        self._monitor_current_interval = self._monitor_interval
+        self._monitor_consecutive_failures = 0
+        self._monitor_total_failures = 0
+        self._monitor_last_error = None
+        self._monitor_last_error_at = None
+        self._monitor_last_success_at = None
+        self._monitoring_task = asyncio.create_task(self._monitor_loop(self._monitor_interval))
         
     async def stop_monitoring(self) -> None:
         """Stop status monitoring."""
@@ -165,13 +184,20 @@ class BasePrinter(PrinterInterface):
         self._monitoring_task = None
         
     async def _monitor_loop(self, interval: int) -> None:
-        """Internal monitoring loop."""
+        """Internal monitoring loop with exponential backoff on failures."""
         while not self._stop_monitoring.is_set():
+            start = time.perf_counter()
             try:
                 status = await self.get_status()
+                duration_ms = (time.perf_counter() - start) * 1000
+                self._monitor_last_duration_ms = duration_ms
                 self.last_status = status
+                self._monitor_consecutive_failures = 0
+                self._monitor_last_success_at = datetime.now()
+                if self._monitor_current_interval != self._monitor_interval:
+                    logger.info("monitoring.backoff.reset", printer_id=self.printer_id)
+                self._monitor_current_interval = self._monitor_interval
                 
-                # Notify callbacks
                 for callback in self.status_callbacks:
                     try:
                         if asyncio.iscoroutinefunction(callback):
@@ -179,19 +205,24 @@ class BasePrinter(PrinterInterface):
                         else:
                             callback(status)
                     except Exception as e:
-                        logger.error("Error in status callback", 
-                                   printer_id=self.printer_id, error=str(e))
-                        
+                        logger.error("Error in status callback", printer_id=self.printer_id, error=str(e))
             except Exception as e:
-                logger.error("Error in monitoring loop", 
-                           printer_id=self.printer_id, error=str(e))
-                
-            # Wait for interval or stop signal
+                self._monitor_total_failures += 1
+                self._monitor_consecutive_failures += 1
+                self._monitor_last_error = str(e)
+                self._monitor_last_error_at = datetime.now()
+                logger.error("monitoring.loop.error", printer_id=self.printer_id, error=str(e), failures=self._monitor_consecutive_failures)
+                next_interval = min(self._monitor_current_interval * self._monitor_backoff_factor, self._monitor_max_interval)
+                # Add small jitter to avoid lockstep retries across printers
+                jitter = 1.0 + random.uniform(-0.1, 0.1)
+                self._monitor_current_interval = max(1, int(next_interval * jitter))
+                logger.warning("monitoring.backoff", printer_id=self.printer_id, next_interval=self._monitor_current_interval)
+            
             try:
-                await asyncio.wait_for(self._stop_monitoring.wait(), timeout=interval)
-                break  # Stop signal received
+                await asyncio.wait_for(self._stop_monitoring.wait(), timeout=self._monitor_current_interval)
+                break
             except asyncio.TimeoutError:
-                continue  # Continue monitoring
+                continue
                 
     def add_status_callback(self, callback: Callable[[PrinterStatusUpdate], None]) -> None:
         """Add a status update callback."""
@@ -219,6 +250,19 @@ class BasePrinter(PrinterInterface):
             "is_connected": self.is_connected,
             "last_status": self.last_status.dict() if self.last_status else None,
             "monitoring_active": self._monitoring_task is not None
+        }
+
+    def get_monitoring_metrics(self) -> Dict[str, Any]:
+        """Get basic monitoring metrics for this printer."""
+        return {
+            "base_interval": self._monitor_interval,
+            "current_interval": self._monitor_current_interval,
+            "consecutive_failures": self._monitor_consecutive_failures,
+            "total_failures": self._monitor_total_failures,
+            "last_duration_ms": self._monitor_last_duration_ms,
+            "last_error": self._monitor_last_error,
+            "last_error_at": self._monitor_last_error_at.isoformat() if self._monitor_last_error_at else None,
+            "last_success_at": self._monitor_last_success_at.isoformat() if self._monitor_last_success_at else None,
         }
         
     async def __aenter__(self):
