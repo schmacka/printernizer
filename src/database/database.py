@@ -9,6 +9,8 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 import structlog
 from contextlib import asynccontextmanager
+import time
+import sqlite3
 
 logger = structlog.get_logger()
 
@@ -126,6 +128,75 @@ class Database:
             
         await self._connection.commit()
         logger.info("Database tables created successfully")
+
+    # ------------------------------------------------------------------
+    # Instrumentation & helper methods (Phase 1: internal use only)
+    # ------------------------------------------------------------------
+    async def _execute_write(self, sql: str, params: Optional[tuple] = None,
+                             *, retries: int = 1, retry_delay: float = 0.05) -> bool:
+        """Execute a write statement with timing + limited retry.
+
+        Args:
+            sql: SQL statement (INSERT/UPDATE/DELETE)
+            params: Parameters tuple
+            retries: Additional retry attempts on sqlite OperationalError
+            retry_delay: Initial delay for exponential backoff
+        Returns:
+            True if success else False
+        """
+        if not self._connection:
+            raise RuntimeError("Database not initialized")
+        attempt = 0
+        delay = retry_delay
+        while True:
+            start = time.perf_counter()
+            try:
+                async with self._connection.execute(sql, params or ()):  # type: ignore[arg-type]
+                    pass
+                await self._connection.commit()
+                duration_ms = (time.perf_counter() - start) * 1000
+                logger.debug("db.write", sql=sql.split('\n')[0][:100], duration_ms=round(duration_ms, 2), attempt=attempt)
+                return True
+            except sqlite3.OperationalError as e:
+                if attempt < retries:
+                    logger.warning("db.write.retry", error=str(e), attempt=attempt)
+                    await asyncio.sleep(delay)
+                    attempt += 1
+                    delay *= 2
+                    continue
+                logger.error("db.write.failed", error=str(e), sql=sql.split('\n')[0][:140])
+                return False
+            except Exception as e:  # pragma: no cover
+                logger.error("db.write.exception", error=str(e))
+                return False
+
+    async def _fetch_one(self, sql: str, params: Optional[List[Any]] = None):
+        if not self._connection:
+            raise RuntimeError("Database not initialized")
+        start = time.perf_counter()
+        try:
+            async with self._connection.execute(sql, params or []) as cursor:
+                row = await cursor.fetchone()
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.debug("db.select.one", sql=sql.split('\n')[0][:100], hit=bool(row), duration_ms=round(duration_ms, 2))
+            return row
+        except Exception as e:
+            logger.error("db.select.one.failed", error=str(e), sql=sql.split('\n')[0][:140])
+            return None
+
+    async def _fetch_all(self, sql: str, params: Optional[List[Any]] = None):
+        if not self._connection:
+            raise RuntimeError("Database not initialized")
+        start = time.perf_counter()
+        try:
+            async with self._connection.execute(sql, params or []) as cursor:
+                rows = await cursor.fetchall()
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.debug("db.select", sql=sql.split('\n')[0][:100], rows=len(rows), duration_ms=round(duration_ms, 2))
+            return rows
+        except Exception as e:
+            logger.error("db.select.failed", error=str(e), sql=sql.split('\n')[0][:140])
+            return []
         
     async def close(self):
         """Close database connection."""
@@ -164,35 +235,30 @@ class Database:
     async def create_printer(self, printer_data: Dict[str, Any]) -> bool:
         """Create a new printer record."""
         try:
-            async with self._connection.execute("""
-                INSERT INTO printers (id, name, type, ip_address, api_key, access_code, serial_number, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                printer_data['id'],
-                printer_data['name'], 
-                printer_data['type'],
-                printer_data.get('ip_address'),
-                printer_data.get('api_key'),
-                printer_data.get('access_code'),
-                printer_data.get('serial_number'),
-                printer_data.get('is_active', True)
-            )):
-                pass
-            await self._connection.commit()
-            return True
-        except Exception as e:
+            return await self._execute_write(
+                """INSERT INTO printers (id, name, type, ip_address, api_key, access_code, serial_number, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    printer_data['id'],
+                    printer_data['name'],
+                    printer_data['type'],
+                    printer_data.get('ip_address'),
+                    printer_data.get('api_key'),
+                    printer_data.get('access_code'),
+                    printer_data.get('serial_number'),
+                    printer_data.get('is_active', True)
+                )
+            )
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to create printer", error=str(e))
             return False
     
     async def get_printer(self, printer_id: str) -> Optional[Dict[str, Any]]:
         """Get printer by ID."""
         try:
-            async with self._connection.execute(
-                "SELECT * FROM printers WHERE id = ?", (printer_id,)
-            ) as cursor:
-                row = await cursor.fetchone()
-                return dict(row) if row else None
-        except Exception as e:
+            row = await self._fetch_one("SELECT * FROM printers WHERE id = ?", [printer_id])
+            return dict(row) if row else None
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to get printer", printer_id=printer_id, error=str(e))
             return None
     
@@ -200,14 +266,12 @@ class Database:
         """List all printers."""
         try:
             query = "SELECT * FROM printers"
-            params = ()
+            params: List[Any] = []
             if active_only:
                 query += " WHERE is_active = 1"
-            
-            async with self._connection.execute(query, params) as cursor:
-                rows = await cursor.fetchall()
-                return [dict(row) for row in rows]
-        except Exception as e:
+            rows = await self._fetch_all(query, params)
+            return [dict(r) for r in rows]
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to list printers", error=str(e))
             return []
     
@@ -216,15 +280,11 @@ class Database:
         try:
             if last_seen is None:
                 last_seen = datetime.now()
-            
-            async with self._connection.execute(
+            return await self._execute_write(
                 "UPDATE printers SET status = ?, last_seen = ? WHERE id = ?",
                 (status, last_seen.isoformat(), printer_id)
-            ):
-                pass
-            await self._connection.commit()
-            return True
-        except Exception as e:
+            )
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to update printer status", printer_id=printer_id, error=str(e))
             return False
     
@@ -232,25 +292,23 @@ class Database:
     async def create_job(self, job_data: Dict[str, Any]) -> bool:
         """Create a new job record."""
         try:
-            async with self._connection.execute("""
-                INSERT INTO jobs (id, printer_id, printer_type, job_name, filename, status, 
+            return await self._execute_write(
+                """INSERT INTO jobs (id, printer_id, printer_type, job_name, filename, status,
                                 estimated_duration, is_business, customer_info)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                job_data['id'],
-                job_data['printer_id'],
-                job_data['printer_type'], 
-                job_data['job_name'],
-                job_data.get('filename'),
-                job_data.get('status', 'pending'),
-                job_data.get('estimated_duration'),
-                job_data.get('is_business', False),
-                job_data.get('customer_info')  # Should be JSON string
-            )):
-                pass
-            await self._connection.commit()
-            return True
-        except Exception as e:
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    job_data['id'],
+                    job_data['printer_id'],
+                    job_data['printer_type'],
+                    job_data['job_name'],
+                    job_data.get('filename'),
+                    job_data.get('status', 'pending'),
+                    job_data.get('estimated_duration'),
+                    job_data.get('is_business', False),
+                    job_data.get('customer_info')
+                )
+            )
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to create job", error=str(e))
             return False
     
@@ -410,10 +468,7 @@ class Database:
             
             query = f"UPDATE jobs SET {', '.join(set_clauses)} WHERE id = ?"
             
-            async with self._connection.execute(query, params):
-                pass
-            await self._connection.commit()
-            return True
+            return await self._execute_write(query, tuple(params))
         except Exception as e:
             logger.error("Failed to update job", job_id=job_id, error=str(e))
             return False
@@ -421,14 +476,11 @@ class Database:
     async def delete_job(self, job_id: str) -> bool:
         """Delete a job record from the database."""
         try:
-            async with self._connection.execute(
-                "DELETE FROM jobs WHERE id = ?", (job_id,)
-            ) as cursor:
-                pass
-            await self._connection.commit()
-            logger.info("Job deleted from database", job_id=job_id)
-            return True
-        except Exception as e:
+            ok = await self._execute_write("DELETE FROM jobs WHERE id = ?", (job_id,))
+            if ok:
+                logger.info("Job deleted from database", job_id=job_id)
+            return ok
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to delete job", job_id=job_id, error=str(e))
             return False
     
@@ -436,30 +488,28 @@ class Database:
     async def create_file(self, file_data: Dict[str, Any]) -> bool:
         """Create a new file record."""
         try:
-            async with self._connection.execute("""
-                INSERT OR REPLACE INTO files (id, printer_id, filename, display_name, file_path, file_size, 
-                                            file_type, status, source, metadata, watch_folder_path, 
+            return await self._execute_write(
+                """INSERT OR REPLACE INTO files (id, printer_id, filename, display_name, file_path, file_size,
+                                            file_type, status, source, metadata, watch_folder_path,
                                             relative_path, modified_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                file_data['id'],
-                file_data.get('printer_id', 'local'),  # Use 'local' for local files
-                file_data['filename'],
-                file_data.get('display_name'),
-                file_data.get('file_path'),
-                file_data.get('file_size'),
-                file_data.get('file_type'),
-                file_data.get('status', 'available'),
-                file_data.get('source', 'printer'),
-                file_data.get('metadata'),  # Should be JSON string
-                file_data.get('watch_folder_path'),
-                file_data.get('relative_path'),
-                file_data.get('modified_time')
-            )):
-                pass
-            await self._connection.commit()
-            return True
-        except Exception as e:
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    file_data['id'],
+                    file_data.get('printer_id', 'local'),
+                    file_data['filename'],
+                    file_data.get('display_name'),
+                    file_data.get('file_path'),
+                    file_data.get('file_size'),
+                    file_data.get('file_type'),
+                    file_data.get('status', 'available'),
+                    file_data.get('source', 'printer'),
+                    file_data.get('metadata'),
+                    file_data.get('watch_folder_path'),
+                    file_data.get('relative_path'),
+                    file_data.get('modified_time')
+                )
+            )
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to create file", error=str(e))
             return False
     
@@ -511,10 +561,7 @@ class Database:
             params.append(file_id)
             query = f"UPDATE files SET {', '.join(set_clauses)} WHERE id = ?"
             
-            async with self._connection.execute(query, params):
-                pass
-            await self._connection.commit()
-            return True
+            return await self._execute_write(query, tuple(params))
         except Exception as e:
             logger.error("Failed to update file", file_id=file_id, error=str(e))
             return False
@@ -551,13 +598,8 @@ class Database:
     async def delete_local_file(self, file_id: str) -> bool:
         """Delete a local file record."""
         try:
-            async with self._connection.execute(
-                "DELETE FROM files WHERE id = ? AND source = 'local_watch'", (file_id,)
-            ):
-                pass
-            await self._connection.commit()
-            return True
-        except Exception as e:
+            return await self._execute_write("DELETE FROM files WHERE id = ? AND source = 'local_watch'", (file_id,))
+        except Exception as e:  # pragma: no cover
             logger.error("Failed to delete local file", file_id=file_id, error=str(e))
             return False
     
