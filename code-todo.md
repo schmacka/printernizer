@@ -364,5 +364,8 @@ File: `src/printers/base.py` (method `health_check`)
 - Database instrumentation Phase 1 implemented: added `_execute_write`, `_fetch_one`, `_fetch_all` with timing, limited retries, and structured debug logging.
 - Refactored create/update/delete operations for printers, jobs, files, and selective read methods to use helpers.
 - Next Phase (planned, not yet implemented): expose aggregated DB metrics (avg duration, error counts) via monitoring service and add retry configuration.
+ - Added printer interface conformance test (`tests/test_printer_interface_conformance.py`) validating async implementation of required abstract methods for Prusa and conditional Bambu.
+ - Fixed `pytest.ini` invalid list syntax to allow isolated test execution.
+ - Future (Phase 2): Extend conformance tests to validate semantic behaviors (error raising consistency, status value domains) and add camera capability contract enforcement.
 
 
