@@ -13,6 +13,12 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+# Add parent directory to Python path for src imports when running from src/
+current_dir = Path(__file__).parent
+parent_dir = current_dir.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
+
 import structlog
 import uvicorn
 from fastapi import FastAPI, Request, status
