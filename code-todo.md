@@ -228,3 +228,141 @@ Last updated: September 10, 2025
 
 - **Additional Placeholder Implementations Found** - Completed API and Services improvements
 - **Error Handling & Logging** - Comprehensive frontend and backend error management system
+
+---
+
+## Temporary / Placeholder Code Audit (September 15, 2025)
+
+This section catalogs current temporary constructs (abstract stubs, silent pass blocks, and areas lacking full implementation) discovered by automated scan. Each item includes a recommended action and priority.
+
+### Legend
+- Priority: (H) High – needed for correctness or robustness, (M) Medium – improves reliability/observability, (L) Low – polish/tech debt.
+- Type: ABSTR = Abstract interface placeholder, SILENT = Silent exception handling, STUB = Unimplemented logic placeholder, DESIGN = Architectural enhancement.
+
+### 1. Abstract Interface Stubs (Intentional but require concrete impls)
+File: `src/printers/base.py`
+- Lines ~54-118: Multiple `@abstractmethod` definitions (`connect`, `disconnect`, `get_status`, `get_job_info`, `list_files`, `download_file`, `pause_print`, `resume_print`, `stop_print`, `has_camera`, `get_camera_stream_url`, `take_snapshot`).
+   - Action: Ensure each supported printer type (e.g., Bambu, Prusa, Virtual/Test) has full implementation with consistent exception semantics (raise `PrinterConnectionError` vs generic). Add docstrings clarifying expected retry behavior and failure modes.
+   - Priority: H
+   - Follow-up: Create a conformance test suite validating all concrete printer classes implement these methods and produce `PrinterStatusUpdate` objects with required fields.
+
+### 2. Parser Initialization Stub
+File: `src/services/bambu_parser.py`
+- Line ~43: `__init__` contains only `pass`.
+   - Action: Add optional configuration (e.g., max thumbnail size, enable/disable metadata categories) and precompiled patterns checksum for quick self-test. Replace `pass` with clear initialization or remove method entirely if no state needed.
+   - Priority: L
+   - Follow-up: Add unit test to confirm parser self-test reports pattern availability.
+
+### 3. Silent Exception Handling (Needs explicit handling or logging enrichment)
+File: `src/services/migration_service.py`
+- Lines ~71, ~138: `async with conn.execute(...): pass` patterns – acceptable for aiosqlite context usage but can disguise intent.
+   - Action: Replace `pass` with comment clarifying side-effect execution (e.g., `# Statement executed; no direct result set expected`).
+   - Priority: L
+   - Follow-up: Add migration dry-run mode logging executed filenames.
+
+File: `src/database/database.py`
+- Multiple occurrences of `async with self._connection.execute(...): pass` across CRUD methods.
+   - Action: Same as above; optionally wrap in dedicated helper to reduce repetition and centralize error handling / retry (design improvement).
+   - Priority: M
+   - Follow-up: Introduce `execute_write(sql, params)` helper with structured logging and optional retry.
+
+File: `src/services/monitoring_service.py`
+- Line ~339: Bare `pass` inside nested try/except while processing log cleanup; context likely ignoring individual file errors.
+   - Action: Add granular logging or counter for skipped files; avoid losing failure diagnostics.
+   - Priority: M
+   - Follow-up: Expose cleanup metrics (files_attempted, files_deleted, deletions_failed) via `get_monitoring_status`.
+
+### 4. Monitoring & Error Metrics Enhancement Gaps
+File: `src/services/monitoring_service.py`
+- Current `get_monitoring_status` builds health status but lacks latency metrics, last error category breakdown, and anomaly detection state.
+   - Action: Extend to include: average DB query time (sampled), recent error rate (errors/hour), and open alert counts by severity.
+   - Priority: M
+   - Follow-up: Add structured schema to differentiate transient vs systemic issues.
+
+### 5. File Service Statistics Robustness
+File: `src/services/file_service.py`
+- Stats calculation (lines ~250-320) assumes synchronous correctness; no handling for extremely large file lists or streaming.
+   - Action: Refactor to incremental aggregation (generator) and add guardrails for memory (e.g., threshold logging if > N files).
+   - Priority: L
+   - Follow-up: Add unit test simulating large dataset.
+
+### 6. Database Layer Enhancements (Design / Tech Debt)
+File: `src/database/database.py`
+- Missing: Retry strategy, statement abstraction, connection resilience, query timing instrumentation.
+   - Action: Implement lightweight instrumentation decorator capturing duration + error type. Add optional exponential backoff for `OperationalError` on writes.
+   - Priority: H (observability & reliability)
+   - Follow-up: Provide `/api/v1/health/db` extended diagnostics endpoint.
+
+### 7. Migration System Hardening
+File: `src/services/migration_service.py`
+- Lacks rollback, checksum validation, and idempotency verification beyond `migration_name` key.
+   - Action: Add migration file SHA256 stored alongside name, and a `schema_version` view for external tools.
+   - Priority: M
+   - Follow-up: Add `force_verify` command that recalculates checksums and reports drift.
+
+### 8. Abstract Printer Monitoring Loop Resilience
+File: `src/printers/base.py`
+- Monitoring loop swallows broad exceptions and continues; no backoff or error classification.
+   - Action: Add exponential backoff after consecutive failures; track failure count; emit structured event after threshold.
+   - Priority: M
+   - Follow-up: Expose monitoring metrics via printer service API.
+
+### 9. Camera Capability Abstraction
+File: `src/printers/base.py`
+- Methods `has_camera`, `get_camera_stream_url`, `take_snapshot` abstract but no documented fallback semantics if unsupported.
+   - Action: Define canonical exception (`CameraNotSupportedError`) or return contract (always `None` vs raise). Update docstrings accordingly.
+   - Priority: M
+   - Follow-up: Add capability negotiation test.
+
+### 10. Parser Metadata Normalization
+File: `src/services/bambu_parser.py`
+- Metadata extraction directly maps raw keys; no normalization layer or unit standardization (e.g., converting speeds, durations uniformly).
+   - Action: Add normalization function producing canonical schema (e.g., seconds, mm/s, grams as float) and version tag.
+   - Priority: M
+   - Follow-up: Add schema version bump mechanism when fields change.
+
+### 11. Graceful Degradation for Unsupported File Types
+File: `src/services/bambu_parser.py`
+- Unsupported file returns generic error string.
+   - Action: Replace with structured error object including `error_code` (e.g., `UNSUPPORTED_FILE_TYPE`).
+   - Priority: L
+   - Follow-up: Frontend mapping for user-friendly messages.
+
+### 12. Health Check Consistency
+File: `src/printers/base.py` (method `health_check`)
+- Returns False on any exception but does not differentiate transient connectivity vs fatal config errors.
+   - Action: Introduce categorized result: `{ healthy: bool, reason: str, transient: bool }`.
+   - Priority: M
+   - Follow-up: Adjust upstream monitoring dashboards.
+
+### Consolidated Action Table
+| Area | Priority | Category | Primary Action |
+|------|----------|----------|----------------|
+| Abstract printer methods | H | ABSTR | Implement per printer + conformance tests |
+| Database instrumentation | H | DESIGN | Add timing + retry helpers |
+| Migration checksums | M | DESIGN | Store & verify file hashes |
+| Monitoring loop backoff | M | DESIGN | Add exponential backoff + metrics |
+| Camera capability contract | M | ABSTR | Define error/return semantics |
+| Parser normalization | M | DESIGN | Normalize metadata schema |
+| Silent passes (DB/migrations) | L | SILENT | Replace with clarifying comments |
+| Bambu parser __init__ | L | STUB | Remove or add config init |
+| File stats scalability | L | DESIGN | Stream/incremental aggregation |
+| Unsupported file error struct | L | DESIGN | Add structured error codes |
+| Health check detail | M | DESIGN | Return structured health object |
+| Log cleanup silent pass | M | SILENT | Add metrics for skipped deletions |
+
+### Next Step Recommendations
+1. Implement database instrumentation + helper (unblocks richer monitoring) (H)
+2. Add printer interface conformance tests and implement missing methods for all concrete printers (H)
+3. Add monitoring loop resilience (M)
+4. Introduce migration checksum & verification utility (M)
+5. Define and document camera capability semantics (M)
+
+---
+
+### Progress Log (September 15, 2025)
+- Database instrumentation Phase 1 implemented: added `_execute_write`, `_fetch_one`, `_fetch_all` with timing, limited retries, and structured debug logging.
+- Refactored create/update/delete operations for printers, jobs, files, and selective read methods to use helpers.
+- Next Phase (planned, not yet implemented): expose aggregated DB metrics (avg duration, error counts) via monitoring service and add retry configuration.
+
+
