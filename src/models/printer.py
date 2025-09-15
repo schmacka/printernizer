@@ -33,7 +33,7 @@ class Printer(BaseModel):
     ip_address: Optional[str] = Field(None, description="Printer IP address")
     api_key: Optional[str] = Field(None, description="API key for authentication")
     access_code: Optional[str] = Field(None, description="Access code for Bambu Lab")
-    serial_number: Optional[str] = Field(None, description="Printer serial number")
+    serial_number: Optional[str] = Field(None, description="Printer serial number", min_length=8, max_length=20)
     is_active: bool = Field(True, description="Whether printer monitoring is active")
     status: PrinterStatus = Field(PrinterStatus.UNKNOWN, description="Current printer status")
     last_seen: Optional[datetime] = Field(None, description="Last successful communication")

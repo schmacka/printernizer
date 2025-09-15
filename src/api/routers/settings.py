@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import structlog
 
-from services.config_service import ConfigService, PrinterConfig
-from utils.dependencies import get_config_service
+from src.services.config_service import ConfigService, PrinterConfig
+from src.utils.dependencies import get_config_service
 
 
 logger = structlog.get_logger()

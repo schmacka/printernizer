@@ -2,14 +2,14 @@
 
 from fastapi import Depends, Request
 
-from database.database import Database
-from services.config_service import ConfigService
-from services.printer_service import PrinterService
-from services.job_service import JobService
-from services.file_service import FileService
-from services.analytics_service import AnalyticsService
-from services.event_service import EventService
-from services.file_watcher_service import FileWatcherService
+from src.database.database import Database
+from src.services.config_service import ConfigService
+from src.services.printer_service import PrinterService
+from src.services.job_service import JobService
+from src.services.file_service import FileService
+from src.services.analytics_service import AnalyticsService
+from src.services.event_service import EventService
+from src.services.file_watcher_service import FileWatcherService
 
 
 async def get_database(request: Request) -> Database:

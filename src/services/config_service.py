@@ -10,9 +10,9 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 import structlog
-from utils.config import get_settings
-from services.watch_folder_db_service import WatchFolderDbService
-from models.watch_folder import WatchFolder, WatchFolderSource
+from src.utils.config import get_settings
+from src.services.watch_folder_db_service import WatchFolderDbService
+from src.models.watch_folder import WatchFolder, WatchFolderSource
 
 logger = structlog.get_logger()
 

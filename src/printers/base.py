@@ -9,8 +9,8 @@ from enum import Enum
 import asyncio
 import structlog
 
-from models.printer import PrinterStatus, PrinterStatusUpdate
-from utils.exceptions import PrinterConnectionError
+from src.models.printer import PrinterStatus, PrinterStatusUpdate
+from src.utils.exceptions import PrinterConnectionError
 
 logger = structlog.get_logger()
 

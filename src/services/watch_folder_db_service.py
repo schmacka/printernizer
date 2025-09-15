@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 import structlog
-from database.database import Database
-from models.watch_folder import WatchFolder, WatchFolderSource
+from src.database.database import Database
+from src.models.watch_folder import WatchFolder, WatchFolderSource
 
 logger = structlog.get_logger()
 

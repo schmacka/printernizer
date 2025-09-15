@@ -9,10 +9,10 @@ from pydantic import BaseModel
 import structlog
 import base64
 
-from models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
-from services.file_service import FileService
-from services.config_service import ConfigService
-from utils.dependencies import get_file_service, get_config_service
+from src.models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
+from src.services.file_service import FileService
+from src.services.config_service import ConfigService
+from src.utils.dependencies import get_file_service, get_config_service
 
 
 logger = structlog.get_logger()
@@ -85,6 +85,30 @@ async def list_files(
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve files"
+        )
+
+
+@router.get("/{file_id}", response_model=FileResponse)
+async def get_file_by_id(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Get file information by ID."""
+    try:
+        file_data = await file_service.get_file_by_id(file_id)
+        if not file_data:
+            raise HTTPException(
+                status_code=404,
+                detail="File not found"
+            )
+        return FileResponse.model_validate(file_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get file by ID", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve file"
         )
 
 
@@ -181,6 +205,47 @@ async def get_file_thumbnail(
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve thumbnail"
+        )
+
+
+@router.get("/{file_id}/metadata")
+async def get_file_metadata(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Get metadata for a file."""
+    try:
+        file_data = await file_service.get_file_by_id(file_id)
+        
+        if not file_data:
+            raise HTTPException(
+                status_code=404,
+                detail="File not found"
+            )
+        
+        # Return metadata along with basic file info
+        metadata = file_data.get('metadata') or {}
+        
+        # Add basic file information to metadata response
+        response_data = {
+            "file_id": file_id,
+            "filename": file_data.get('filename'),
+            "file_size": file_data.get('file_size'),
+            "file_type": file_data.get('file_type'),
+            "created_at": file_data.get('created_at'),
+            "has_thumbnail": file_data.get('has_thumbnail', False),
+            "metadata": metadata
+        }
+        
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get file metadata", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve file metadata"
         )
 
 

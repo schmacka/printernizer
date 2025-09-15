@@ -7,9 +7,9 @@ import json
 import uuid
 from datetime import datetime
 import structlog
-from database.database import Database
-from services.event_service import EventService
-from models.job import Job, JobStatus, JobCreate, JobUpdate
+from src.database.database import Database
+from src.services.event_service import EventService
+from src.models.job import Job, JobStatus, JobCreate, JobUpdate
 
 logger = structlog.get_logger()
 

@@ -9,8 +9,8 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 import json
 
-from utils.error_handling import error_handler, ErrorSeverity
-from utils.config import get_settings
+from src.utils.error_handling import error_handler, ErrorSeverity
+from src.utils.config import get_settings
 
 logger = structlog.get_logger()
 

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 import structlog
 
-from database.database import Database
+from src.database.database import Database
 
 logger = structlog.get_logger()
 

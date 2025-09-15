@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 import structlog
 
-from models.job import Job, JobStatus
-from services.job_service import JobService
-from utils.dependencies import get_job_service
+from src.models.job import Job, JobStatus
+from src.services.job_service import JobService
+from src.utils.dependencies import get_job_service
 
 
 logger = structlog.get_logger()

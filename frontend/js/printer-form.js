@@ -218,7 +218,7 @@ class PrinterFormHandler {
             case 'serial-number':
                 if (!isValidSerialNumber(value)) {
                     isValid = false;
-                    errorMessage = 'Seriennummer muss 8-12 Zeichen (Buchstaben und Zahlen) enthalten';
+                    errorMessage = 'Seriennummer muss 8-20 Zeichen (Buchstaben und Zahlen) enthalten';
                 }
                 break;
 
