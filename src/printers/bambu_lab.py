@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import structlog
 
-from models.printer import PrinterStatus, PrinterStatusUpdate
-from utils.exceptions import PrinterConnectionError
+from src.models.printer import PrinterStatus, PrinterStatusUpdate
+from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 
 # Import will be handled gracefully if bambulabs-api is not installed
@@ -102,7 +102,12 @@ class BambuLabPrinter(BasePrinter):
             nozzle_temp = self.client.get_nozzle_temperature()
             
             # Extract job information
-            current_job = self.client.subtask_name if hasattr(self.client, 'subtask_name') else None
+            current_job = None
+            if hasattr(self.client, 'subtask_name'):
+                try:
+                    current_job = self.client.subtask_name()
+                except:
+                    current_job = None
             progress = self.client.get_percentage()
             
             return PrinterStatusUpdate(
@@ -127,18 +132,55 @@ class BambuLabPrinter(BasePrinter):
                 timestamp=datetime.now()
             )
             
-    def _map_bambu_status(self, bambu_status: str) -> PrinterStatus:
+    def _map_bambu_status(self, bambu_status) -> PrinterStatus:
         """Map Bambu Lab status to PrinterStatus."""
+        # Handle both string and enum types
+        if hasattr(bambu_status, 'name'):
+            status_str = bambu_status.name
+        else:
+            status_str = str(bambu_status)
+            
         status_mapping = {
             'IDLE': PrinterStatus.ONLINE,
-            'PREPARE': PrinterStatus.ONLINE,
-            'RUNNING': PrinterStatus.PRINTING,
-            'PAUSE': PrinterStatus.PAUSED,
-            'FINISH': PrinterStatus.ONLINE,
-            'FAILED': PrinterStatus.ERROR,
+            'PRINTING': PrinterStatus.PRINTING,
+            'PAUSED_USER': PrinterStatus.PAUSED,
+            'PAUSED_FILAMENT_RUNOUT': PrinterStatus.PAUSED,
+            'PAUSED_FRONT_COVER_FALLING': PrinterStatus.PAUSED,
+            'PAUSED_NOZZLE_TEMPERATURE_MALFUNCTION': PrinterStatus.ERROR,
+            'PAUSED_HEAT_BED_TEMPERATURE_MALFUNCTION': PrinterStatus.ERROR,
+            'PAUSED_SKIPPED_STEP': PrinterStatus.ERROR,
+            'PAUSED_AMS_LOST': PrinterStatus.ERROR,
+            'PAUSED_LOW_FAN_SPEED_HEAT_BREAK': PrinterStatus.ERROR,
+            'PAUSED_CHAMBER_TEMPERATURE_CONTROL_ERROR': PrinterStatus.ERROR,
+            'PAUSED_USER_GCODE': PrinterStatus.PAUSED,
+            'PAUSED_NOZZLE_FILAMENT_COVERED_DETECTED': PrinterStatus.ERROR,
+            'PAUSED_CUTTER_ERROR': PrinterStatus.ERROR,
+            'PAUSED_FIRST_LAYER_ERROR': PrinterStatus.ERROR,
+            'PAUSED_NOZZLE_CLOG': PrinterStatus.ERROR,
+            'AUTO_BED_LEVELING': PrinterStatus.ONLINE,
+            'HEATBED_PREHEATING': PrinterStatus.ONLINE,
+            'SWEEPING_XY_MECH_MODE': PrinterStatus.ONLINE,
+            'CHANGING_FILAMENT': PrinterStatus.ONLINE,
+            'M400_PAUSE': PrinterStatus.PAUSED,
+            'HEATING_HOTEND': PrinterStatus.ONLINE,
+            'CALIBRATING_EXTRUSION': PrinterStatus.ONLINE,
+            'SCANNING_BED_SURFACE': PrinterStatus.ONLINE,
+            'INSPECTING_FIRST_LAYER': PrinterStatus.ONLINE,
+            'IDENTIFYING_BUILD_PLATE_TYPE': PrinterStatus.ONLINE,
+            'CALIBRATING_MICRO_LIDAR': PrinterStatus.ONLINE,
+            'HOMING_TOOLHEAD': PrinterStatus.ONLINE,
+            'CLEANING_NOZZLE_TIP': PrinterStatus.ONLINE,
+            'CHECKING_EXTRUDER_TEMPERATURE': PrinterStatus.ONLINE,
+            'CALIBRATING_LIDAR': PrinterStatus.ONLINE,
+            'CALIBRATING_EXTRUSION_FLOW': PrinterStatus.ONLINE,
+            'FILAMENT_UNLOADING': PrinterStatus.ONLINE,
+            'FILAMENT_LOADING': PrinterStatus.ONLINE,
+            'CALIBRATING_MOTOR_NOISE': PrinterStatus.ONLINE,
+            'COOLING_CHAMBER': PrinterStatus.ONLINE,
+            'MOTOR_NOISE_SHOWOFF': PrinterStatus.ONLINE,
             'UNKNOWN': PrinterStatus.UNKNOWN
         }
-        return status_mapping.get(bambu_status.upper(), PrinterStatus.UNKNOWN)
+        return status_mapping.get(status_str.upper(), PrinterStatus.UNKNOWN)
         
     async def get_job_info(self) -> Optional[JobInfo]:
         """Get current job information from Bambu Lab."""
@@ -146,7 +188,12 @@ class BambuLabPrinter(BasePrinter):
             return None
             
         try:
-            job_name = self.client.subtask_name if hasattr(self.client, 'subtask_name') else None
+            job_name = None
+            if hasattr(self.client, 'subtask_name'):
+                try:
+                    job_name = self.client.subtask_name()
+                except:
+                    job_name = None
             
             if not job_name:
                 return None  # No active job
@@ -175,17 +222,54 @@ class BambuLabPrinter(BasePrinter):
                         printer_id=self.printer_id, error=str(e))
             return None
             
-    def _map_job_status(self, bambu_status: str) -> JobStatus:
+    def _map_job_status(self, bambu_status) -> JobStatus:
         """Map Bambu Lab status to JobStatus."""
+        # Handle both string and enum types
+        if hasattr(bambu_status, 'name'):
+            status_str = bambu_status.name
+        else:
+            status_str = str(bambu_status)
+            
         status_mapping = {
             'IDLE': JobStatus.IDLE,
-            'PREPARE': JobStatus.PREPARING,
-            'RUNNING': JobStatus.PRINTING,
-            'PAUSE': JobStatus.PAUSED,
-            'FINISH': JobStatus.COMPLETED,
-            'FAILED': JobStatus.FAILED
+            'PRINTING': JobStatus.PRINTING,
+            'PAUSED_USER': JobStatus.PAUSED,
+            'PAUSED_FILAMENT_RUNOUT': JobStatus.PAUSED,
+            'PAUSED_FRONT_COVER_FALLING': JobStatus.PAUSED,
+            'PAUSED_NOZZLE_TEMPERATURE_MALFUNCTION': JobStatus.FAILED,
+            'PAUSED_HEAT_BED_TEMPERATURE_MALFUNCTION': JobStatus.FAILED,
+            'PAUSED_SKIPPED_STEP': JobStatus.FAILED,
+            'PAUSED_AMS_LOST': JobStatus.FAILED,
+            'PAUSED_LOW_FAN_SPEED_HEAT_BREAK': JobStatus.FAILED,
+            'PAUSED_CHAMBER_TEMPERATURE_CONTROL_ERROR': JobStatus.FAILED,
+            'PAUSED_USER_GCODE': JobStatus.PAUSED,
+            'PAUSED_NOZZLE_FILAMENT_COVERED_DETECTED': JobStatus.FAILED,
+            'PAUSED_CUTTER_ERROR': JobStatus.FAILED,
+            'PAUSED_FIRST_LAYER_ERROR': JobStatus.FAILED,
+            'PAUSED_NOZZLE_CLOG': JobStatus.FAILED,
+            'AUTO_BED_LEVELING': JobStatus.PREPARING,
+            'HEATBED_PREHEATING': JobStatus.PREPARING,
+            'SWEEPING_XY_MECH_MODE': JobStatus.PREPARING,
+            'CHANGING_FILAMENT': JobStatus.PREPARING,
+            'M400_PAUSE': JobStatus.PAUSED,
+            'HEATING_HOTEND': JobStatus.PREPARING,
+            'CALIBRATING_EXTRUSION': JobStatus.PREPARING,
+            'SCANNING_BED_SURFACE': JobStatus.PREPARING,
+            'INSPECTING_FIRST_LAYER': JobStatus.PREPARING,
+            'IDENTIFYING_BUILD_PLATE_TYPE': JobStatus.PREPARING,
+            'CALIBRATING_MICRO_LIDAR': JobStatus.PREPARING,
+            'HOMING_TOOLHEAD': JobStatus.PREPARING,
+            'CLEANING_NOZZLE_TIP': JobStatus.PREPARING,
+            'CHECKING_EXTRUDER_TEMPERATURE': JobStatus.PREPARING,
+            'CALIBRATING_LIDAR': JobStatus.PREPARING,
+            'CALIBRATING_EXTRUSION_FLOW': JobStatus.PREPARING,
+            'FILAMENT_UNLOADING': JobStatus.PREPARING,
+            'FILAMENT_LOADING': JobStatus.PREPARING,
+            'CALIBRATING_MOTOR_NOISE': JobStatus.PREPARING,
+            'COOLING_CHAMBER': JobStatus.PREPARING,
+            'MOTOR_NOISE_SHOWOFF': JobStatus.PREPARING
         }
-        return status_mapping.get(bambu_status.upper(), JobStatus.IDLE)
+        return status_mapping.get(status_str.upper(), JobStatus.IDLE)
         
     async def list_files(self) -> List[PrinterFile]:
         """List files available on Bambu Lab printer."""

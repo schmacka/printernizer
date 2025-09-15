@@ -191,7 +191,7 @@ function isValidAccessCode(code) {
  * Validate Bambu Lab serial number
  */
 function isValidSerialNumber(serial) {
-    return /^[A-Z0-9]{8,12}$/.test(serial);
+    return /^[A-Z0-9]{8,20}$/.test(serial);
 }
 
 /**
@@ -272,7 +272,7 @@ function validateForm(form) {
         if (field.value && !isValidSerialNumber(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'Seriennummer muss 8-12 Zeichen (Buchstaben und Zahlen) enthalten'
+                message: 'Seriennummer muss 8-20 Zeichen (Buchstaben und Zahlen) enthalten'
             });
             field.classList.add('error');
         }

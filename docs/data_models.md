@@ -354,7 +354,7 @@ class CreatePrinterRequest(BaseModel):
     port: Optional[int] = Field(None, ge=1, le=65535)
     api_key: Optional[str] = Field(None, min_length=8, max_length=100)
     access_code: Optional[str] = Field(None, min_length=8, max_length=20)
-    serial_number: Optional[str] = Field(None, min_length=5, max_length=30)
+    serial_number: Optional[str] = Field(None, min_length=8, max_length=20)
     is_active: bool = Field(True)
     
     @validator('api_key', 'access_code')

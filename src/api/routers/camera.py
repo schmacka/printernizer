@@ -12,9 +12,9 @@ import structlog
 import aiofiles
 import aiofiles.os
 
-from models.snapshot import Snapshot, SnapshotCreate, SnapshotResponse, CameraStatus, CameraTrigger
-from services.printer_service import PrinterService
-from utils.dependencies import get_printer_service
+from src.models.snapshot import Snapshot, SnapshotCreate, SnapshotResponse, CameraStatus, CameraTrigger
+from src.services.printer_service import PrinterService
+from src.utils.dependencies import get_printer_service
 
 logger = structlog.get_logger()
 router = APIRouter()

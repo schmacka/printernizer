@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 import structlog
 
-from services.config_service import ConfigService
-from database.database import Database
-from utils.dependencies import get_config_service, get_database
+from src.services.config_service import ConfigService
+from src.database.database import Database
+from src.utils.dependencies import get_config_service, get_database
 
 
 logger = structlog.get_logger()

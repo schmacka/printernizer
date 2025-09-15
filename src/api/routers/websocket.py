@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import structlog
 
-from services.event_service import EventService
+from src.services.event_service import EventService
 
 
 logger = structlog.get_logger()
