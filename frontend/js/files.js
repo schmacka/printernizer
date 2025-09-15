@@ -17,21 +17,21 @@ class FileManager {
     /**
      * Initialize file management page
      */
-    init() {
+    async init() {
         console.log('Initializing file management');
-        
+
         // Load files
         this.loadFiles();
-        
+
         // Load file statistics
         this.loadFileStatistics();
-        
+
         // Load watch folders
         this.loadWatchFolders();
-        
+
         // Load discovered files
-        loadDiscoveredFiles();
-        
+        this.loadDiscoveredFiles();
+
         // Setup filter handlers
         this.setupFilterHandlers();
         
@@ -568,31 +568,311 @@ class FileManager {
     }
 
     /**
-     * Preview file (placeholder implementation)
+     * Preview file with STL/3MF support
      */
-    previewFile(fileId) {
+    async previewFile(fileId) {
         const fileItem = this.files.get(fileId);
         if (!fileItem) return;
         
-        // Show preview modal (placeholder)
         const modal = document.getElementById('filePreviewModal');
         const content = document.getElementById('filePreviewContent');
         
-        if (modal && content) {
-            showModal('filePreviewModal');
-            content.innerHTML = `
-                <div class="file-preview-placeholder">
-                    <div class="preview-icon">${fileItem.getFileIcon()}</div>
-                    <h3>${escapeHtml(fileItem.file.filename)}</h3>
-                    <p>3D-Vorschau wird in Phase 2 implementiert</p>
-                    <div class="file-info">
-                        <p><strong>Größe:</strong> ${formatBytes(fileItem.file.file_size)}</p>
-                        <p><strong>Typ:</strong> ${fileItem.file.file_type}</p>
-                        ${fileItem.file.printer_name ? `<p><strong>Drucker:</strong> ${fileItem.file.printer_name}</p>` : ''}
+        if (!modal || !content) return;
+        
+        // Show modal immediately with loading state
+        showModal('filePreviewModal');
+        content.innerHTML = `
+            <div class="loading-placeholder">
+                <div class="spinner"></div>
+                <p>Lade Vorschau...</p>
+            </div>
+        `;
+        
+        try {
+            // Load metadata and thumbnail
+            const [metadata, thumbnailUrl] = await Promise.all([
+                this.loadFileMetadata(fileId),
+                this.loadFileThumbnail(fileId)
+            ]);
+            
+            // Render preview based on file type
+            const fileType = fileItem.file.file_type?.toLowerCase();
+            const is3DFile = fileType && ['stl', '3mf', 'gcode', 'obj', 'ply'].includes(fileType);
+            
+            if (is3DFile) {
+                content.innerHTML = this.render3DFilePreview(fileItem, metadata, thumbnailUrl);
+            } else {
+                content.innerHTML = this.renderGenericFilePreview(fileItem, metadata);
+            }
+            
+        } catch (error) {
+            console.error('Failed to load file preview:', error);
+            content.innerHTML = this.renderPreviewError(fileItem, error);
+        }
+    }
+    
+    /**
+     * Load file metadata from API
+     */
+    async loadFileMetadata(fileId) {
+        try {
+            const response = await api.getFileMetadata(fileId);
+            return response;
+        } catch (error) {
+            console.warn('Failed to load metadata for file:', fileId, error);
+            return null;
+        }
+    }
+    
+    /**
+     * Load file thumbnail from API
+     */
+    async loadFileThumbnail(fileId) {
+        try {
+            // Check if file has thumbnail
+            const fileItem = this.files.get(fileId);
+            if (!fileItem?.file.has_thumbnail) {
+                return null;
+            }
+            
+            // Return thumbnail URL
+            return `${CONFIG.API_BASE_URL}/files/${fileId}/thumbnail`;
+        } catch (error) {
+            console.warn('Failed to load thumbnail for file:', fileId, error);
+            return null;
+        }
+    }
+    
+    /**
+     * Render 3D file preview with thumbnail and metadata
+     */
+    render3DFilePreview(fileItem, metadata, thumbnailUrl) {
+        const file = fileItem.file;
+        const fileMetadata = metadata?.metadata || {};
+        
+        const thumbnailSection = thumbnailUrl ? `
+            <div class="preview-thumbnail">
+                <img src="${thumbnailUrl}" alt="3D Preview" class="thumbnail-image" />
+                <div class="thumbnail-overlay">
+                    <span class="thumbnail-format">3D Vorschau</span>
+                </div>
+            </div>
+        ` : `
+            <div class="preview-placeholder">
+                <div class="preview-icon">${fileItem.getFileIcon()}</div>
+                <p>Keine Vorschau verfügbar</p>
+            </div>
+        `;
+        
+        const basicInfo = this.renderBasicFileInfo(file);
+        const metadataSection = this.render3DMetadata(fileMetadata);
+        
+        return `
+            <div class="file-preview-3d">
+                <div class="preview-header">
+                    <h3>${escapeHtml(file.filename)}</h3>
+                    <div class="file-type-badge badge-3d">${file.file_type?.toUpperCase()}</div>
+                </div>
+                
+                <div class="preview-content">
+                    <div class="preview-main">
+                        ${thumbnailSection}
                     </div>
+                    
+                    <div class="preview-sidebar">
+                        ${basicInfo}
+                        ${metadataSection}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Render generic file preview (non-3D files)
+     */
+    renderGenericFilePreview(fileItem, metadata) {
+        const file = fileItem.file;
+        const basicInfo = this.renderBasicFileInfo(file);
+        
+        return `
+            <div class="file-preview-generic">
+                <div class="preview-header">
+                    <div class="preview-icon">${fileItem.getFileIcon()}</div>
+                    <div>
+                        <h3>${escapeHtml(file.filename)}</h3>
+                        <div class="file-type-badge">${file.file_type?.toUpperCase() || 'UNBEKANNT'}</div>
+                    </div>
+                </div>
+                
+                <div class="preview-content">
+                    ${basicInfo}
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Render basic file information
+     */
+    renderBasicFileInfo(file) {
+        return `
+            <div class="file-info-section">
+                <h4>Datei-Informationen</h4>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Größe:</span>
+                        <span class="info-value">${formatBytes(file.file_size)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Typ:</span>
+                        <span class="info-value">${file.file_type || 'Unbekannt'}</span>
+                    </div>
+                    ${file.printer_name ? `
+                        <div class="info-item">
+                            <span class="info-label">Drucker:</span>
+                            <span class="info-value">${escapeHtml(file.printer_name)}</span>
+                        </div>
+                    ` : ''}
+                    ${file.created_at ? `
+                        <div class="info-item">
+                            <span class="info-label">Erstellt:</span>
+                            <span class="info-value">${formatDateTime(file.created_at)}</span>
+                        </div>
+                    ` : ''}
+                    ${file.modified_time ? `
+                        <div class="info-item">
+                            <span class="info-label">Geändert:</span>
+                            <span class="info-value">${formatDateTime(file.modified_time)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    /**
+     * Render 3D metadata information
+     */
+    render3DMetadata(metadata) {
+        if (!metadata || Object.keys(metadata).length === 0) {
+            return `
+                <div class="metadata-section">
+                    <h4>3D-Modell Informationen</h4>
+                    <p class="no-metadata">Keine Metadaten verfügbar</p>
+                    <small>Metadaten werden beim ersten Laden extrahiert</small>
                 </div>
             `;
         }
+        
+        const metadataItems = [];
+        
+        // Print settings
+        if (metadata.layer_height) {
+            metadataItems.push({
+                label: 'Schichthöhe',
+                value: `${metadata.layer_height} mm`
+            });
+        }
+        
+        if (metadata.infill_density) {
+            metadataItems.push({
+                label: 'Füllung',
+                value: `${metadata.infill_density}%`
+            });
+        }
+        
+        if (metadata.print_speed) {
+            metadataItems.push({
+                label: 'Druckgeschwindigkeit',
+                value: `${metadata.print_speed} mm/s`
+            });
+        }
+        
+        if (metadata.nozzle_temperature) {
+            metadataItems.push({
+                label: 'Düsentemperatur',
+                value: `${metadata.nozzle_temperature}°C`
+            });
+        }
+        
+        if (metadata.bed_temperature) {
+            metadataItems.push({
+                label: 'Betttemperatur',
+                value: `${metadata.bed_temperature}°C`
+            });
+        }
+        
+        // Time and material estimates
+        if (metadata.estimated_print_time) {
+            metadataItems.push({
+                label: 'Geschätzte Druckzeit',
+                value: formatDuration(metadata.estimated_print_time)
+            });
+        }
+        
+        if (metadata.filament_used) {
+            metadataItems.push({
+                label: 'Filament verbraucht',
+                value: `${metadata.filament_used} g`
+            });
+        }
+        
+        // Model dimensions
+        if (metadata.model_width && metadata.model_depth && metadata.model_height) {
+            metadataItems.push({
+                label: 'Modellgröße',
+                value: `${metadata.model_width} × ${metadata.model_depth} × ${metadata.model_height} mm`
+            });
+        }
+        
+        // Slicer info
+        if (metadata.slicer_name && metadata.slicer_version) {
+            metadataItems.push({
+                label: 'Slicer',
+                value: `${metadata.slicer_name} ${metadata.slicer_version}`
+            });
+        }
+        
+        return `
+            <div class="metadata-section">
+                <h4>3D-Modell Informationen</h4>
+                ${metadataItems.length > 0 ? `
+                    <div class="info-grid">
+                        ${metadataItems.map(item => `
+                            <div class="info-item">
+                                <span class="info-label">${item.label}:</span>
+                                <span class="info-value">${item.value}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <p class="no-metadata">Keine Metadaten verfügbar</p>
+                `}
+            </div>
+        `;
+    }
+    
+    /**
+     * Render error state for preview
+     */
+    renderPreviewError(fileItem, error) {
+        return `
+            <div class="preview-error">
+                <div class="error-icon">⚠️</div>
+                <h3>Fehler beim Laden der Vorschau</h3>
+                <p>Die Vorschau für "${escapeHtml(fileItem.file.filename)}" konnte nicht geladen werden.</p>
+                <details>
+                    <summary>Fehlerdetails</summary>
+                    <pre>${escapeHtml(error.toString())}</pre>
+                </details>
+                <div class="preview-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('filePreviewModal')">
+                        Schließen
+                    </button>
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -810,6 +1090,175 @@ class FileManager {
             e.preventDefault();
             await this.addWatchFolder();
         });
+    }
+
+    /**
+     * Load and display discovered files from watch folders
+     */
+    async loadDiscoveredFiles() {
+        const container = document.getElementById('discoveredFilesContainer');
+        if (!container) return;
+
+        try {
+            // Show loading state
+            container.innerHTML = `
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade entdeckte Dateien...</p>
+                </div>
+            `;
+
+            // Fetch discovered files
+            const response = await api.getFiles({ source: 'local_watch' });
+            const files = response.files || [];
+
+            if (files.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📂</div>
+                        <h3>Keine Dateien entdeckt</h3>
+                        <p>Keine Dateien in den überwachten Verzeichnissen gefunden.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render discovered files table
+            container.innerHTML = this.renderDiscoveredFilesTable(files);
+
+        } catch (error) {
+            console.error('Failed to load discovered files:', error);
+            container.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">⚠️</div>
+                    <h3>Fehler beim Laden</h3>
+                    <p>Entdeckte Dateien konnten nicht geladen werden.</p>
+                    <button class="btn btn-secondary" onclick="fileManager.loadDiscoveredFiles()">
+                        <span class="btn-icon">🔄</span>
+                        Erneut versuchen
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Render discovered files table
+     */
+    renderDiscoveredFilesTable(files) {
+        const totalFiles = files.length;
+        const totalSize = files.reduce((sum, file) => sum + (file.size || 0), 0);
+
+        return `
+            <div class="discovered-files-summary">
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">${totalFiles}</span>
+                        <span class="stat-label">Dateien</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${formatBytes(totalSize)}</span>
+                        <span class="stat-label">Gesamtgröße</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="files-table">
+                    <thead>
+                        <tr>
+                            <th>📄 Dateiname</th>
+                            <th>📐 Größe</th>
+                            <th>📁 Verzeichnis</th>
+                            <th>📅 Geändert</th>
+                            <th>🔧 Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${files.map(file => this.renderDiscoveredFileRow(file)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render individual discovered file row
+     */
+    renderDiscoveredFileRow(file) {
+        const fileName = file.name || 'Unbekannt';
+        const fileSize = formatBytes(file.size || 0);
+        const watchFolderPath = file.watch_folder_path || 'Unbekannt';
+        const modifiedTime = file.modified_time ?
+            new Date(file.modified_time).toLocaleString('de-DE') : 'Unbekannt';
+
+        const fileIcon = this.getFileIcon(fileName);
+        const truncatedPath = truncateText(watchFolderPath, 40);
+
+        return `
+            <tr class="file-row discovered-file" data-file-path="${file.path}">
+                <td class="file-name">
+                    <div class="file-info">
+                        <span class="file-icon">${fileIcon}</span>
+                        <div class="file-details">
+                            <span class="name" title="${fileName}">${truncateText(fileName, 30)}</span>
+                            <span class="path" title="${file.path}">${truncateText(file.relative_path || '', 50)}</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="file-size">${fileSize}</td>
+                <td class="watch-folder" title="${watchFolderPath}">
+                    <span class="folder-icon">📁</span>
+                    ${truncatedPath}
+                </td>
+                <td class="modified-time">${modifiedTime}</td>
+                <td class="file-actions">
+                    <div class="action-buttons">
+                        <button class="btn btn-small btn-secondary"
+                                onclick="openFileLocation('${file.path}')"
+                                title="Im Explorer öffnen">
+                            <span class="btn-icon">📂</span>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    /**
+     * Get file icon based on extension
+     */
+    getFileIcon(filename) {
+        if (!filename) return '📄';
+
+        const ext = filename.toLowerCase().split('.').pop();
+
+        const iconMap = {
+            // 3D Files
+            'stl': '🏗️',
+            '3mf': '📐',
+            'obj': '🎯',
+            'ply': '⚪',
+
+            // G-Code
+            'gcode': '⚙️',
+            'g': '⚙️',
+
+            // Images
+            'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+            'bmp': '🖼️', 'tiff': '🖼️', 'webp': '🖼️',
+
+            // Documents
+            'pdf': '📕', 'doc': '📄', 'docx': '📄', 'txt': '📝',
+
+            // Archives
+            'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦',
+
+            // Default
+            'default': '📄'
+        };
+
+        return iconMap[ext] || iconMap['default'];
     }
 
     /**
@@ -1033,188 +1482,15 @@ async function validateWatchFolderPath() {
     }
 }
 
-// ========================================
-// DISCOVERED FILES MANAGEMENT
-// ========================================
-
-/**
- * Load and display discovered files from watch folders
- */
-async function loadDiscoveredFiles() {
-    const container = document.getElementById('discoveredFilesContainer');
-    if (!container) return;
-
-    try {
-        // Show loading state
-        container.innerHTML = `
-            <div class="loading-placeholder">
-                <div class="spinner"></div>
-                <p>Lade entdeckte Dateien...</p>
-            </div>
-        `;
-
-        // Fetch discovered files
-        const response = await api.get('/files/local');
-        const files = response.files || [];
-
-        if (files.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📂</div>
-                    <h3>Keine Dateien entdeckt</h3>
-                    <p>Keine Dateien in den überwachten Verzeichnissen gefunden.</p>
-                </div>
-            `;
-            return;
-        }
-
-        // Render discovered files table
-        container.innerHTML = renderDiscoveredFilesTable(files);
-
-    } catch (error) {
-        console.error('Failed to load discovered files:', error);
-        container.innerHTML = `
-            <div class="error-state">
-                <div class="error-icon">⚠️</div>
-                <h3>Fehler beim Laden</h3>
-                <p>Entdeckte Dateien konnten nicht geladen werden.</p>
-                <button class="btn btn-secondary" onclick="loadDiscoveredFiles()">
-                    <span class="btn-icon">🔄</span>
-                    Erneut versuchen
-                </button>
-            </div>
-        `;
-    }
-}
-
-/**
- * Render discovered files table
- */
-function renderDiscoveredFilesTable(files) {
-    const totalFiles = files.length;
-    const totalSize = files.reduce((sum, file) => sum + (file.size || 0), 0);
-    
-    return `
-        <div class="discovered-files-summary">
-            <div class="summary-stats">
-                <div class="stat-item">
-                    <span class="stat-value">${totalFiles}</span>
-                    <span class="stat-label">Dateien</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value">${formatFileSize(totalSize)}</span>
-                    <span class="stat-label">Gesamtgröße</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="table-container">
-            <table class="files-table">
-                <thead>
-                    <tr>
-                        <th>📄 Dateiname</th>
-                        <th>📐 Größe</th>
-                        <th>📁 Verzeichnis</th>
-                        <th>📅 Geändert</th>
-                        <th>🔧 Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${files.map(file => renderDiscoveredFileRow(file)).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
-}
-
-/**
- * Render individual discovered file row
- */
-function renderDiscoveredFileRow(file) {
-    const fileName = file.name || 'Unbekannt';
-    const fileSize = formatFileSize(file.size || 0);
-    const watchFolderPath = file.watch_folder_path || 'Unbekannt';
-    const modifiedTime = file.modified_time ? 
-        new Date(file.modified_time).toLocaleString('de-DE') : 'Unbekannt';
-    
-    const fileIcon = getFileIcon(fileName);
-    const truncatedPath = truncateText(watchFolderPath, 40);
-    
-    return `
-        <tr class="file-row discovered-file" data-file-path="${file.path}">
-            <td class="file-name">
-                <div class="file-info">
-                    <span class="file-icon">${fileIcon}</span>
-                    <div class="file-details">
-                        <span class="name" title="${fileName}">${truncateText(fileName, 30)}</span>
-                        <span class="path" title="${file.path}">${truncateText(file.relative_path || '', 50)}</span>
-                    </div>
-                </div>
-            </td>
-            <td class="file-size">${fileSize}</td>
-            <td class="watch-folder" title="${watchFolderPath}">
-                <span class="folder-icon">📁</span>
-                ${truncatedPath}
-            </td>
-            <td class="modified-time">${modifiedTime}</td>
-            <td class="file-actions">
-                <div class="action-buttons">
-                    <button class="btn btn-small btn-secondary" 
-                            onclick="openFileLocation('${file.path}')" 
-                            title="Im Explorer öffnen">
-                        <span class="btn-icon">📂</span>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `;
-}
-
 /**
  * Open file location in explorer
  */
 function openFileLocation(filePath) {
     if (!filePath) return;
-    
+
     // Note: This would typically require a desktop app or system integration
     // For now, we'll just show the path
     showToast('info', 'Dateipfad', filePath);
-}
-
-/**
- * Get file icon based on extension
- */
-function getFileIcon(filename) {
-    if (!filename) return '📄';
-    
-    const ext = filename.toLowerCase().split('.').pop();
-    
-    const iconMap = {
-        // 3D Files
-        'stl': '🏗️',
-        '3mf': '📐',
-        'obj': '🎯',
-        'ply': '⚪',
-        
-        // G-Code
-        'gcode': '⚙️',
-        'g': '⚙️',
-        
-        // Images
-        'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
-        'bmp': '🖼️', 'tiff': '🖼️', 'webp': '🖼️',
-        
-        // Documents
-        'pdf': '📕', 'doc': '📄', 'docx': '📄', 'txt': '📝',
-        
-        // Archives
-        'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦',
-        
-        // Default
-        'default': '📄'
-    };
-    
-    return iconMap[ext] || iconMap['default'];
 }
 
 // Export for use in other modules
