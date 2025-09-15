@@ -13,10 +13,33 @@ class ApiClient {
     }
 
     /**
+     * Normalize an endpoint to start with a single "/" and collapse duplicate slashes
+     */
+    _normalizeEndpoint(endpoint) {
+        const raw = String(endpoint || '');
+        const [path, query] = raw.split('?');
+        const normalizedPath = '/' + path.replace(/(^\/+|\/+$)/g, '').replace(/\/{2,}/g, '/');
+        return query ? `${normalizedPath}?${query}` : normalizedPath;
+    }
+
+    /**
+     * Join path segments safely (collapses duplicate slashes)
+     */
+    _joinPath(...parts) {
+        const joined = parts
+            .filter(Boolean)
+            .map(p => String(p).replace(/(^\/+|\/+$)/g, ''))
+            .join('/');
+        return '/' + joined.replace(/\/{2,}/g, '/');
+    }
+
+    /**
      * Make HTTP request with error handling
      */
     async request(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
+        const normalizedEndpoint = this._normalizeEndpoint(endpoint);
+        const base = this.baseURL.replace(/\/+$/, '');
+        const url = `${base}${normalizedEndpoint}`;
         const config = {
             headers: { ...this.defaultHeaders, ...options.headers },
             ...options
@@ -62,14 +85,17 @@ class ApiClient {
      * GET request
      */
     async get(endpoint, params = {}) {
-        const url = new URL(`${this.baseURL}${endpoint}`);
+        const normalizedEndpoint = this._normalizeEndpoint(endpoint);
+        const search = new URLSearchParams();
         Object.keys(params).forEach(key => {
             if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
-                url.searchParams.append(key, params[key]);
+                search.append(key, params[key]);
             }
         });
-        
-        return this.request(endpoint + url.search);
+        const finalEndpoint = search.toString()
+            ? `${normalizedEndpoint}?${search.toString()}`
+            : normalizedEndpoint;
+        return this.request(finalEndpoint);
     }
 
     /**
@@ -145,15 +171,15 @@ class ApiClient {
      * Printer Control Functions
      */
     async pausePrinter(printerId) {
-        return this.post(`${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}/pause`);
+        return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'pause'));
     }
     
     async resumePrinter(printerId) {
-        return this.post(`${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}/resume`);
+        return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'resume'));
     }
     
     async stopPrinter(printerId) {
-        return this.post(`${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}/stop`);
+        return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'stop'));
     }
 
     // Job Endpoints
@@ -315,7 +341,9 @@ class ApiClient {
      * Download file with progress tracking
      */
     async downloadWithProgress(endpoint, onProgress) {
-        const url = `${this.baseURL}${endpoint}`;
+        const normalizedEndpoint = this._normalizeEndpoint(endpoint);
+        const base = this.baseURL.replace(/\/+$/, '');
+        const url = `${base}${normalizedEndpoint}`;
         const response = await fetch(url, {
             method: 'POST',
             headers: this.defaultHeaders
