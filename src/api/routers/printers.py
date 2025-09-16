@@ -42,6 +42,7 @@ class PrinterResponse(BaseModel):
     printer_type: PrinterType
     status: PrinterStatus
     ip_address: Optional[str]
+    connection_config: Optional[dict]
     location: Optional[str]
     description: Optional[str]
     is_enabled: bool
@@ -59,6 +60,12 @@ def _printer_to_response(printer: Printer) -> PrinterResponse:
         printer_type=printer.type,
         status=printer.status,
         ip_address=printer.ip_address,
+        connection_config={
+            "ip_address": printer.ip_address,
+            "api_key": getattr(printer, "api_key", None),
+            "access_code": getattr(printer, "access_code", None),
+            "serial_number": getattr(printer, "serial_number", None),
+        },
         location=getattr(printer, 'location', None),
         description=getattr(printer, 'description', None),
         is_enabled=printer.is_active,
