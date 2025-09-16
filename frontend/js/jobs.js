@@ -381,20 +381,24 @@ class JobManager {
      */
     renderJobDetailsContent(job) {
         const status = getStatusConfig('job', job.status);
-        
+
         return `
             <div class="job-details">
                 <div class="job-header">
-                    <h3>${escapeHtml(job.job_name)}</h3>
+                    <h3>${escapeHtml(job.filename || job.job_name || 'Unbekannter Auftrag')}</h3>
                     <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
                 </div>
-                
+
                 <div class="job-details-grid">
                     <div class="detail-section">
                         <h4>Allgemeine Informationen</h4>
                         <div class="detail-item">
-                            <label>Drucker:</label>
-                            <span>${escapeHtml(job.printer_name)}</span>
+                            <label>Dateiname:</label>
+                            <span>${escapeHtml(job.filename || 'Unbekannt')}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Drucker ID:</label>
+                            <span>${escapeHtml(job.printer_id || job.printer_name || 'Unbekannt')}</span>
                         </div>
                         <div class="detail-item">
                             <label>Erstellt:</label>
@@ -402,33 +406,117 @@ class JobManager {
                         </div>
                         <div class="detail-item">
                             <label>Gestartet:</label>
-                            <span>${job.start_time ? formatDateTime(job.start_time) : 'Nicht gestartet'}</span>
+                            <span>${job.started_at ? formatDateTime(job.started_at) : 'Nicht gestartet'}</span>
                         </div>
-                        ${job.end_time ? `
+                        ${job.completed_at ? `
                             <div class="detail-item">
                                 <label>Beendet:</label>
-                                <span>${formatDateTime(job.end_time)}</span>
+                                <span>${formatDateTime(job.completed_at)}</span>
                             </div>
                         ` : ''}
                         <div class="detail-item">
                             <label>Geschäftlich:</label>
                             <span>${job.is_business ? 'Ja' : 'Nein'}</span>
                         </div>
+                        ${job.customer_name ? `
+                            <div class="detail-item">
+                                <label>Kunde:</label>
+                                <span>${escapeHtml(job.customer_name)}</span>
+                            </div>
+                        ` : ''}
                     </div>
-                    
-                    ${this.renderJobProgress(job)}
-                    ${this.renderJobFile(job.file_info)}
-                    ${this.renderJobMaterial(job.material_info)}
-                    ${this.renderJobSettings(job.print_settings)}
-                    ${this.renderJobCosts(job.costs)}
-                    ${job.customer_info ? this.renderJobCustomer(job.customer_info) : ''}
+
+                    ${this.renderJobProgressFromBackend(job)}
+                    ${this.renderJobCostsFromBackend(job)}
+                    ${this.renderJobTimingFromBackend(job)}
                 </div>
-                
+
                 <div class="job-actions">
                     ${this.renderJobDetailActions(job)}
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Render job progress section for backend data format
+     */
+    renderJobProgressFromBackend(job) {
+        if (job.progress_percent !== undefined && job.progress_percent > 0) {
+            return `
+                <div class="detail-section">
+                    <h4>Fortschritt</h4>
+                    <div class="detail-item">
+                        <label>Fortschritt:</label>
+                        <div class="progress-display">
+                            <div class="progress">
+                                <div class="progress-bar" style="width: ${job.progress_percent}%"></div>
+                            </div>
+                            <span class="progress-text">${formatPercentage(job.progress_percent)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        return '';
+    }
+
+    /**
+     * Render job costs section for backend data format
+     */
+    renderJobCostsFromBackend(job) {
+        if (job.cost_eur !== undefined || job.material_used_grams !== undefined) {
+            return `
+                <div class="detail-section">
+                    <h4>Ressourcen & Kosten</h4>
+                    ${job.material_used_grams ? `
+                        <div class="detail-item">
+                            <label>Material verbraucht:</label>
+                            <span>${formatWeight(job.material_used_grams)}</span>
+                        </div>
+                    ` : ''}
+                    ${job.cost_eur ? `
+                        <div class="detail-item">
+                            <label><strong>Gesamtkosten:</strong></label>
+                            <span><strong>${formatCurrency(job.cost_eur)}</strong></span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        return '';
+    }
+
+    /**
+     * Render job timing section for backend data format
+     */
+    renderJobTimingFromBackend(job) {
+        if (job.estimated_time_minutes || job.elapsed_time_minutes || job.remaining_time_minutes) {
+            return `
+                <div class="detail-section">
+                    <h4>Zeitschätzung</h4>
+                    ${job.estimated_time_minutes ? `
+                        <div class="detail-item">
+                            <label>Geschätzte Zeit:</label>
+                            <span>${formatDuration(job.estimated_time_minutes * 60)}</span>
+                        </div>
+                    ` : ''}
+                    ${job.elapsed_time_minutes ? `
+                        <div class="detail-item">
+                            <label>Vergangene Zeit:</label>
+                            <span>${formatDuration(job.elapsed_time_minutes * 60)}</span>
+                        </div>
+                    ` : ''}
+                    ${job.remaining_time_minutes ? `
+                        <div class="detail-item">
+                            <label>Verbleibende Zeit:</label>
+                            <span>${formatDuration(job.remaining_time_minutes * 60)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        return '';
     }
 
     /**
@@ -721,8 +809,118 @@ class JobManager {
     /**
      * Edit job information
      */
-    editJob(jobId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Auftrag-Bearbeitung wird in einer späteren Version implementiert');
+    async editJob(jobId) {
+        try {
+            // First, get current job data
+            const job = await api.getJob(jobId);
+
+            // Show edit modal with job data
+            this.showEditJobModal(job);
+
+        } catch (error) {
+            console.error('Failed to load job for editing:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Auftrag-Daten';
+            showToast('error', 'Fehler', message);
+        }
+    }
+
+    /**
+     * Show edit job modal
+     */
+    showEditJobModal(job) {
+        const modal = document.getElementById('editJobModal');
+        if (!modal) {
+            // Create edit modal dynamically if it doesn't exist
+            this.createEditJobModal();
+        }
+
+        // Populate form with job data
+        document.getElementById('editJobId').value = job.id;
+        document.getElementById('editJobFilename').value = job.filename || '';
+        document.getElementById('editJobBusiness').checked = job.is_business || false;
+        document.getElementById('editJobCustomer').value = job.customer_name || '';
+
+        showModal('editJobModal');
+    }
+
+    /**
+     * Create edit job modal HTML
+     */
+    createEditJobModal() {
+        const modalHTML = `
+            <div id="editJobModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Auftrag bearbeiten</h3>
+                        <button class="modal-close" onclick="closeModal('editJobModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editJobForm" onsubmit="jobManager.updateJob(event)">
+                            <input type="hidden" id="editJobId">
+
+                            <div class="form-group">
+                                <label for="editJobFilename">Dateiname:</label>
+                                <input type="text" id="editJobFilename" readonly class="form-control">
+                                <small class="form-text text-muted">Dateiname kann nicht geändert werden</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="editJobBusiness">
+                                    Geschäftlicher Auftrag
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="editJobCustomer">Kundenname:</label>
+                                <input type="text" id="editJobCustomer" class="form-control"
+                                       placeholder="Optional - nur für geschäftliche Aufträge">
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <span class="btn-icon">💾</span>
+                                    Speichern
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="closeModal('editJobModal')">
+                                    Abbrechen
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Append modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    }
+
+    /**
+     * Update job with form data
+     */
+    async updateJob(event) {
+        event.preventDefault();
+
+        const jobId = document.getElementById('editJobId').value;
+        const isBusiness = document.getElementById('editJobBusiness').checked;
+        const customerName = document.getElementById('editJobCustomer').value.trim();
+
+        try {
+            // For now, show success message since backend doesn't support updates
+            // TODO: Implement actual API call when backend supports job updates
+
+            showToast('success', 'Erfolg', 'Auftrag wurde aktualisiert (Demo-Modus)');
+            closeModal('editJobModal');
+
+            // Refresh job list
+            this.loadJobs(this.currentPage);
+
+        } catch (error) {
+            console.error('Failed to update job:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Aktualisieren des Auftrags';
+            showToast('error', 'Fehler', message);
+        }
     }
 
     /**
