@@ -8,21 +8,6 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 import structlog
 
-# Prometheus collectors (reused via default registry)
-try:
-    from prometheus_client import Counter, Histogram
-    try:
-        REQUEST_COUNT = Counter('printernizer_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
-        REQUEST_DURATION = Histogram('printernizer_request_duration_seconds', 'Request duration')
-    except ValueError:
-        # Already registered, fetch from registry
-        from prometheus_client import REGISTRY
-        REQUEST_COUNT = REGISTRY._names_to_collectors['printernizer_requests_total']
-        REQUEST_DURATION = REGISTRY._names_to_collectors['printernizer_request_duration_seconds']
-except Exception:  # pragma: no cover - metrics optional in some environments
-    REQUEST_COUNT = None
-    REQUEST_DURATION = None
-
 logger = structlog.get_logger()
 
 
@@ -51,16 +36,6 @@ class RequestTimingMiddleware(BaseHTTPMiddleware):
             process_time=process_time,
             user_agent=request.headers.get("user-agent", "")
         )
-        # Prometheus metrics
-        try:
-            if REQUEST_COUNT is not None and REQUEST_DURATION is not None:
-                route = request.scope.get("route")
-                endpoint = getattr(route, "path", None) or request.url.path
-                REQUEST_COUNT.labels(method=request.method, endpoint=endpoint, status=str(response.status_code)).inc()
-                REQUEST_DURATION.observe(process_time)
-        except Exception:
-            # Avoid breaking requests if metrics encounter an issue
-            pass
         
         return response
 
