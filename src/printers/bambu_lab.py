@@ -12,58 +12,101 @@ from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 
-# Import will be handled gracefully if bambulabs-api is not installed
+# Import dependencies
 try:
-    from bambulabs_api import Printer, PrinterMQTTClient
-    BAMBU_AVAILABLE = True
+    import paho.mqtt.client as mqtt
+    import ssl
+    MQTT_AVAILABLE = True
 except ImportError:
-    BAMBU_AVAILABLE = False
-    Printer = None
-    PrinterMQTTClient = None
+    MQTT_AVAILABLE = False
+    mqtt = None
 
 logger = structlog.get_logger()
 
 
 class BambuLabPrinter(BasePrinter):
-    """Bambu Lab printer implementation using MQTT."""
-    
-    def __init__(self, printer_id: str, name: str, ip_address: str, 
+    """Bambu Lab printer implementation using direct MQTT."""
+
+    def __init__(self, printer_id: str, name: str, ip_address: str,
                  access_code: str, serial_number: str, **kwargs):
         """Initialize Bambu Lab printer."""
         super().__init__(printer_id, name, ip_address, **kwargs)
-        
-        if not BAMBU_AVAILABLE:
-            raise ImportError("bambulabs-api library is not installed. "
-                            "Install with: pip install bambulabs-api")
-            
+
+        if not MQTT_AVAILABLE:
+            raise ImportError("paho-mqtt library is not installed. "
+                            "Install with: pip install paho-mqtt")
+
         self.access_code = access_code
         self.serial_number = serial_number
-        self.client: Optional[Printer] = None
+        self.client: Optional[mqtt.Client] = None
+        self.latest_data: Dict[str, Any] = {}
+        self.mqtt_port = 8883
         
+    def _on_connect(self, client, userdata, flags, rc):
+        """MQTT connection callback."""
+        if rc == 0:
+            logger.info("MQTT connected successfully", printer_id=self.printer_id)
+            # Subscribe to printer status topic
+            topic = f"device/{self.serial_number}/report"
+            client.subscribe(topic)
+            logger.debug("Subscribed to topic", topic=topic)
+        else:
+            logger.error("MQTT connection failed", printer_id=self.printer_id, rc=rc)
+
+    def _on_message(self, client, userdata, msg):
+        """MQTT message callback."""
+        try:
+            payload = json.loads(msg.payload.decode())
+            self.latest_data = payload
+            logger.debug("Received MQTT data", printer_id=self.printer_id, topic=msg.topic)
+        except Exception as e:
+            logger.warning("Failed to parse MQTT message", printer_id=self.printer_id, error=str(e))
+
+    def _on_disconnect(self, client, userdata, rc):
+        """MQTT disconnect callback."""
+        logger.info("MQTT disconnected", printer_id=self.printer_id, rc=rc)
+
     async def connect(self) -> bool:
         """Establish MQTT connection to Bambu Lab printer."""
         if self.is_connected:
             logger.info("Already connected to Bambu Lab printer", printer_id=self.printer_id)
             return True
-            
+
         try:
-            logger.info("Connecting to Bambu Lab printer", 
+            logger.info("Connecting to Bambu Lab printer via direct MQTT",
                        printer_id=self.printer_id, ip=self.ip_address)
-            
-            # Initialize Bambu Lab client
-            self.client = Printer(
-                ip_address=self.ip_address,
-                access_code=self.access_code,
-                serial=self.serial_number
-            )
-            
-            # Connection is established automatically when client is created
-            
+
+            # Create MQTT client
+            self.client = mqtt.Client()
+            self.client.username_pw_set("bblp", self.access_code)
+
+            # Setup SSL context
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            self.client.tls_set_context(context)
+
+            # Set callbacks
+            self.client.on_connect = self._on_connect
+            self.client.on_message = self._on_message
+            self.client.on_disconnect = self._on_disconnect
+
+            # Connect to MQTT broker
+            result = self.client.connect(self.ip_address, self.mqtt_port, 60)
+            if result != 0:
+                raise ConnectionError(f"MQTT connect failed with code {result}")
+
+            # Start MQTT loop in background
+            self.client.loop_start()
+
+            # Wait for connection to be established
+            await asyncio.sleep(3)
+
             self.is_connected = True
-            logger.info("Successfully connected to Bambu Lab printer",
+            logger.info("Successfully connected to Bambu Lab printer via direct MQTT",
                        printer_id=self.printer_id)
             return True
-            
+
         except Exception as e:
             logger.error("Failed to connect to Bambu Lab printer",
                         printer_id=self.printer_id, error=str(e))
@@ -73,16 +116,18 @@ class BambuLabPrinter(BasePrinter):
         """Disconnect from Bambu Lab printer."""
         if not self.is_connected:
             return
-            
+
         try:
             if self.client:
-                # Note: bambulabs_api Printer doesn't have async disconnect method
+                self.client.loop_stop()
+                self.client.disconnect()
                 self.client = None
-                
+
             self.is_connected = False
-            
+            self.latest_data = {}
+
             logger.info("Disconnected from Bambu Lab printer", printer_id=self.printer_id)
-            
+
         except Exception as e:
             logger.error("Error disconnecting from Bambu Lab printer",
                         printer_id=self.printer_id, error=str(e))
@@ -91,37 +136,46 @@ class BambuLabPrinter(BasePrinter):
         """Get current printer status from Bambu Lab."""
         if not self.is_connected or not self.client:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
-            # Get current status from Bambu Lab API
-            bambu_status = self.client.get_current_state()
-            printer_status = self._map_bambu_status(bambu_status)
-            
+            # Extract data from latest MQTT message
+            print_data = self.latest_data.get("print", {})
+
             # Extract temperature data
-            bed_temp = self.client.get_bed_temperature()
-            nozzle_temp = self.client.get_nozzle_temperature()
-            
-            # Extract job information
-            current_job = None
-            if hasattr(self.client, 'subtask_name'):
-                try:
-                    current_job = self.client.subtask_name()
-                except:
-                    current_job = None
-            progress = self.client.get_percentage()
-            
+            bed_temp = print_data.get("bed_temper", 0.0)
+            nozzle_temp = print_data.get("nozzle_temper", 0.0)
+            progress = print_data.get("mc_percent", 0)
+            layer_num = print_data.get("layer_num", 0)
+
+            # Determine printer status based on available data
+            if progress > 0 and nozzle_temp > 100:
+                printer_status = PrinterStatus.PRINTING
+                message = f"Printing - Layer {layer_num}, {progress}%"
+            elif nozzle_temp > 50:
+                printer_status = PrinterStatus.ONLINE
+                message = "Heating/Preparing"
+            elif bed_temp > 30:
+                printer_status = PrinterStatus.ONLINE
+                message = "Bed heating"
+            else:
+                printer_status = PrinterStatus.ONLINE
+                message = "Ready"
+
+            # Extract job information (if available)
+            current_job = print_data.get("subtask_name")
+
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
                 status=printer_status,
-                message=f"Bambu Lab status: {bambu_status}",
-                temperature_bed=float(bed_temp) if bed_temp else 0.0,
-                temperature_nozzle=float(nozzle_temp) if nozzle_temp else 0.0,
-                progress=int(progress) if progress else 0,
-                current_job=current_job if current_job else None,
+                message=message,
+                temperature_bed=float(bed_temp),
+                temperature_nozzle=float(nozzle_temp),
+                progress=int(progress),
+                current_job=current_job,
                 timestamp=datetime.now(),
-                raw_data={"state": bambu_status, "bed_temp": bed_temp, "nozzle_temp": nozzle_temp}
+                raw_data=self.latest_data
             )
-            
+
         except Exception as e:
             logger.error("Failed to get Bambu Lab status",
                         printer_id=self.printer_id, error=str(e))
@@ -186,37 +240,38 @@ class BambuLabPrinter(BasePrinter):
         """Get current job information from Bambu Lab."""
         if not self.is_connected or not self.client:
             return None
-            
+
         try:
-            job_name = None
-            if hasattr(self.client, 'subtask_name'):
-                try:
-                    job_name = self.client.subtask_name()
-                except:
-                    job_name = None
-            
-            if not job_name:
+            print_data = self.latest_data.get("print", {})
+            progress = print_data.get("mc_percent", 0)
+
+            # Only return job info if actively printing
+            if progress <= 0:
                 return None  # No active job
-                
-            progress = self.client.get_percentage()
-            
-            # Map Bambu status to JobStatus
-            bambu_status = self.client.get_current_state()
-            job_status = self._map_job_status(bambu_status)
-            
-            # Time information (not directly available in this API version)
-            remaining_time = 0
-            
+
+            # Extract job information
+            job_name = print_data.get("subtask_name", f"Bambu Job {datetime.now().strftime('%H:%M')}")
+            layer_num = print_data.get("layer_num", 0)
+
+            # Determine job status
+            nozzle_temp = print_data.get("nozzle_temper", 0)
+            if progress > 0 and nozzle_temp > 100:
+                job_status = JobStatus.PRINTING
+            elif nozzle_temp > 50:
+                job_status = JobStatus.PREPARING
+            else:
+                job_status = JobStatus.IDLE
+
             job_info = JobInfo(
                 job_id=f"{self.printer_id}_{job_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 name=job_name,
                 status=job_status,
                 progress=progress,
-                estimated_time=remaining_time * 60 if remaining_time > 0 else None  # Convert to seconds
+                estimated_time=None  # Not available in MQTT data
             )
-            
+
             return job_info
-            
+
         except Exception as e:
             logger.error("Failed to get Bambu Lab job info",
                         printer_id=self.printer_id, error=str(e))
