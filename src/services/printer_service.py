@@ -183,22 +183,33 @@ class PrinterService:
             
         return printers
         
-    async def get_printer(self, printer_id: str) -> Optional[Dict[str, Any]]:
-        """Get specific printer by ID."""
+    async def get_printer(self, printer_id: str) -> Optional[Printer]:
+        """Get specific printer by ID as domain model."""
         instance = self.printer_instances.get(printer_id)
         if not instance:
             return None
-            
-        return {
-            "id": printer_id,
-            "name": instance.name,
-            "type": type(instance).__name__.lower().replace('printer', ''),
-            "ip_address": instance.ip_address,
-            "is_connected": instance.is_connected,
-            "last_status": instance.last_status.dict() if instance.last_status else None,
-            "monitoring_active": instance._monitoring_task is not None,
-            "monitoring_metrics": getattr(instance, "get_monitoring_metrics", lambda: {})()
-        }
+
+        current_status = PrinterStatus.OFFLINE
+        last_seen = None
+        if instance.is_connected:
+            if instance.last_status:
+                current_status = instance.last_status.status
+                last_seen = instance.last_status.timestamp
+            else:
+                current_status = PrinterStatus.ONLINE
+
+        return Printer(
+            id=printer_id,
+            name=instance.name,
+            type=PrinterType.BAMBU_LAB if 'bambu' in type(instance).__name__.lower() else PrinterType.PRUSA_CORE,
+            ip_address=instance.ip_address,
+            api_key=getattr(instance, 'api_key', None),
+            access_code=getattr(instance, 'access_code', None),
+            serial_number=getattr(instance, 'serial_number', None),
+            is_active=True,
+            status=current_status,
+            last_seen=last_seen
+        )
 
     async def get_printer_driver(self, printer_id: str) -> Optional[BasePrinter]:
         """Get printer driver instance for direct access."""
