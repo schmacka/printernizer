@@ -262,6 +262,7 @@ const CONFIG = {
         SERVER_ERROR: 'Serverfehler. Bitte versuchen Sie es später erneut.',
         PRINTER_OFFLINE: 'Drucker ist offline oder nicht erreichbar.',
         FILE_NOT_FOUND: 'Datei wurde nicht gefunden.',
+    PRINTER_NOT_FOUND: 'Drucker wurde nicht gefunden.',
         DOWNLOAD_FAILED: 'Download fehlgeschlagen.',
         INVALID_INPUT: 'Ungültige Eingabe. Bitte überprüfen Sie Ihre Daten.',
         PERMISSION_DENIED: 'Zugriff verweigert.',

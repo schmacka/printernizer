@@ -435,6 +435,9 @@ class ApiError extends Error {
         }
         
         if (this.isNotFound()) {
+            if (this.details?.endpoint && String(this.details.endpoint).includes('/printers/')) {
+                return CONFIG.ERROR_MESSAGES.PRINTER_NOT_FOUND || 'Drucker wurde nicht gefunden.';
+            }
             return CONFIG.ERROR_MESSAGES.FILE_NOT_FOUND;
         }
         
