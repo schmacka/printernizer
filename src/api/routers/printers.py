@@ -123,7 +123,7 @@ async def get_printer(
 ):
     """Get printer details by ID."""
     try:
-        printer = await printer_service.get_printer(printer_id)
+        printer = await printer_service.get_printer(str(printer_id))
         if not printer:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
