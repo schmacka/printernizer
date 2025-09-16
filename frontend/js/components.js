@@ -552,29 +552,29 @@ class JobListItem {
         this.element.innerHTML = `
             <div class="data-item-content">
                 <div class="data-item-main">
-                    <div class="data-item-title">${escapeHtml(this.job.job_name)}</div>
+                    <div class="data-item-title">${escapeHtml(this.job.filename || this.job.job_name || 'Unbenannter Job')}</div>
                     <div class="data-item-subtitle">
-                        ${escapeHtml(this.job.printer_name)} • 
-                        ${this.job.start_time ? formatDateTime(this.job.start_time) : 'Nicht gestartet'}
+                        ${escapeHtml(this.job.printer_id || this.job.printer_name || 'Unbekannter Drucker')} •
+                        ${this.job.started_at ? formatDateTime(this.job.started_at) : (this.job.start_time ? formatDateTime(this.job.start_time) : 'Nicht gestartet')}
                         ${this.job.is_business ? ' • Geschäftlich' : ''}
                     </div>
                 </div>
-                
+
                 <div class="data-item-meta">
                     <div class="data-item-meta-label">Status</div>
                     <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
                 </div>
-                
+
                 ${this.renderProgress()}
-                
+
                 <div class="data-item-meta">
                     <div class="data-item-meta-label">Kosten</div>
                     <div class="data-item-meta-value">
-                        ${this.job.costs ? formatCurrency(this.job.costs.total_cost) : '-'}
+                        ${this.job.cost_eur ? formatCurrency(this.job.cost_eur) : (this.job.costs ? formatCurrency(this.job.costs.total_cost) : '-')}
                     </div>
                 </div>
             </div>
-            
+
             <div class="data-item-actions">
                 ${this.renderJobActions()}
             </div>
@@ -587,15 +587,18 @@ class JobListItem {
      * Render job progress section
      */
     renderProgress() {
-        if (this.job.status === 'printing' && this.job.progress !== undefined) {
+        // Handle backend format with progress_percent
+        const progressValue = this.job.progress_percent !== undefined ? this.job.progress_percent : this.job.progress;
+
+        if (this.job.status === 'printing' && progressValue !== undefined) {
             return `
                 <div class="data-item-meta">
                     <div class="data-item-meta-label">Fortschritt</div>
                     <div class="job-progress-container">
                         <div class="progress">
-                            <div class="progress-bar" style="width: ${this.job.progress}%"></div>
+                            <div class="progress-bar" style="width: ${progressValue}%"></div>
                         </div>
-                        <div class="progress-text">${formatPercentage(this.job.progress)}</div>
+                        <div class="progress-text">${formatPercentage(progressValue)}</div>
                         ${this.job.estimated_completion ? `
                             <div class="estimated-time text-muted">
                                 Fertig: ${formatTime(this.job.estimated_completion)}
@@ -605,7 +608,19 @@ class JobListItem {
                 </div>
             `;
         }
-        
+
+        // Handle backend format with elapsed_time_minutes
+        if (this.job.elapsed_time_minutes) {
+            return `
+                <div class="data-item-meta">
+                    <div class="data-item-meta-label">Dauer</div>
+                    <div class="data-item-meta-value">
+                        ${formatDuration(this.job.elapsed_time_minutes * 60)}
+                    </div>
+                </div>
+            `;
+        }
+
         if (this.job.actual_duration) {
             return `
                 <div class="data-item-meta">
@@ -616,7 +631,19 @@ class JobListItem {
                 </div>
             `;
         }
-        
+
+        // Handle backend format with estimated_time_minutes
+        if (this.job.estimated_time_minutes) {
+            return `
+                <div class="data-item-meta">
+                    <div class="data-item-meta-label">Geschätzt</div>
+                    <div class="data-item-meta-value">
+                        ${formatDuration(this.job.estimated_time_minutes * 60)}
+                    </div>
+                </div>
+            `;
+        }
+
         if (this.job.estimated_duration) {
             return `
                 <div class="data-item-meta">
@@ -627,7 +654,7 @@ class JobListItem {
                 </div>
             `;
         }
-        
+
         return `
             <div class="data-item-meta">
                 <div class="data-item-meta-label">Erstellt</div>
