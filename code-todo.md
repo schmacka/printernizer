@@ -375,3 +375,9 @@ File: `src/printers/base.py` (method `health_check`)
    - Follow-up: add aggregate Prometheus-style export and thresholds to MonitoringService.
 
 
+## Ideas / Later
+
+- Minimal example router checked-in: add `src/api/routers/example.py` with `/ping` and register in `create_application()` (prefix `/api/v1/example`, tag `Example`) to provide a copy-paste pattern.
+- Windows PowerShell “dev run” cheatsheet: add a short section in `README.md` showing environment setup and start commands (e.g., `setx ENVIRONMENT development ; python src/main.py`).
+
+
