@@ -284,16 +284,27 @@ class AnalyticsService:
         try:
             # Get file statistics from database
             file_stats = await self.database.get_file_statistics()
-            
+
+            # Map database statistics to dashboard format
+            # Database returns: available_count, downloaded_count, printer_count, local_watch_count, etc.
+            available_count = file_stats.get("available_count", 0)
+            downloaded_count = file_stats.get("downloaded_count", 0)
+            local_count = file_stats.get("local_watch_count", 0)
+
+            # Total files available for download (printer files with status 'available')
+            total_available_files = available_count
+
             return {
-                "total_files": file_stats.get("total_files", 0),
-                "downloaded_files": file_stats.get("downloaded_files", 0)
+                "total_files": total_available_files,
+                "downloaded_files": downloaded_count,
+                "local_files": local_count
             }
         except Exception as e:
             logger.error("Error getting file statistics", error=str(e))
             return {
                 "total_files": 0,
-                "downloaded_files": 0
+                "downloaded_files": 0,
+                "local_files": 0
             }
     
     async def _get_printer_statistics(self) -> Dict[str, Any]:

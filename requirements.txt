@@ -19,7 +19,7 @@ requests==2.31.0
 
 # MQTT Client for Bambu Lab Integration
 paho-mqtt>=2.0.0
-# bambulabs-api==1.0.0  # Use paho-mqtt as fallback until bambulabs-api is stable
+bambulabs-api>=1.0.0  # Primary library for Bambu Lab file operations
 
 # File Download and Management
 aiofiles==23.2.1
