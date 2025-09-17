@@ -223,6 +223,13 @@ class PrinterService:
             
         try:
             status = await instance.get_status()
+            # Update last_seen when we successfully get status
+            from datetime import datetime
+            await self.db.update_printer_status(
+                printer_id,
+                status.status.value.lower(),  # Convert enum to string
+                datetime.now()
+            )
             return {
                 "printer_id": status.printer_id,
                 "status": status.status.value,
@@ -246,9 +253,18 @@ class PrinterService:
         instance = self.printer_instances.get(printer_id)
         if not instance:
             raise NotFoundError("Printer", printer_id)
-            
+
         try:
-            return await instance.connect()
+            result = await instance.connect()
+            if result:
+                # Update last_seen timestamp in database when connection succeeds
+                from datetime import datetime
+                await self.db.update_printer_status(
+                    printer_id,
+                    "online",  # Set status to online when connected
+                    datetime.now()
+                )
+            return result
         except Exception as e:
             logger.error("Failed to connect printer", printer_id=printer_id, error=str(e))
             raise PrinterConnectionError(printer_id, str(e))
@@ -273,10 +289,18 @@ class PrinterService:
             instance = self.printer_instances.get(printer_id)
             if not instance:
                 raise NotFoundError("Printer", printer_id)
-                
+
             try:
                 if not instance.is_connected:
-                    await instance.connect()
+                    connected = await instance.connect()
+                    if connected:
+                        # Update last_seen timestamp when connection succeeds
+                        from datetime import datetime
+                        await self.db.update_printer_status(
+                            printer_id,
+                            "online",
+                            datetime.now()
+                        )
                 await instance.start_monitoring()
                 logger.info("Started monitoring for printer", printer_id=printer_id)
                 return True
@@ -290,7 +314,15 @@ class PrinterService:
             for printer_id, instance in self.printer_instances.items():
                 try:
                     if not instance.is_connected:
-                        await instance.connect()
+                        connected = await instance.connect()
+                        if connected:
+                            # Update last_seen timestamp when connection succeeds
+                            from datetime import datetime
+                            await self.db.update_printer_status(
+                                printer_id,
+                                "online",
+                                datetime.now()
+                            )
                     await instance.start_monitoring()
                     success_count += 1
                 except Exception as e:

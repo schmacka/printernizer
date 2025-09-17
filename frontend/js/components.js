@@ -120,16 +120,16 @@ class PrinterCard {
      * Render last communication info
      */
     renderLastCommunication() {
-        if (!this.printer.last_communication) {
+        if (!this.printer.last_seen) {
             return '<span class="text-muted">Nie verbunden</span>';
         }
-        
-        const timeSinceLastComm = Date.now() - new Date(this.printer.last_communication).getTime();
+
+        const timeSinceLastComm = Date.now() - new Date(this.printer.last_seen).getTime();
         const isRecent = timeSinceLastComm < 60000; // Less than 1 minute
         
         return `
             <span class="last-communication ${isRecent ? 'text-success' : 'text-warning'}" title="Letzte Kommunikation">
-                ${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_communication)}
+                ${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_seen)}
             </span>
         `;
     }
