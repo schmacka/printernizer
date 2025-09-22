@@ -8,6 +8,7 @@ from datetime import datetime
 
 from src.utils.dependencies import get_database, get_idea_service
 from src.services.idea_service import IdeaService
+from src.services.url_parser_service import UrlParserService
 from src.models.idea import IdeaStatus, IdeaSourceType
 
 router = APIRouter(prefix="/api/ideas", tags=["ideas"])

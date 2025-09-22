@@ -9,6 +9,7 @@ import structlog
 
 from src.database.database import Database
 from src.models.idea import Idea, TrendingItem
+from src.services.url_parser_service import UrlParserService
 
 logger = structlog.get_logger()
 
@@ -18,6 +19,7 @@ class IdeaService:
 
     def __init__(self, db: Database):
         self.db = db
+        self.url_parser = UrlParserService()
 
     async def create_idea(self, idea_data: Dict[str, Any]) -> Optional[str]:
         """Create a new idea."""
@@ -231,28 +233,7 @@ class IdeaService:
     async def _extract_url_metadata(self, url: str) -> Optional[Dict[str, Any]]:
         """Extract metadata from external platform URLs."""
         try:
-            # Detect platform
-            if 'makerworld.com' in url:
-                platform = 'makerworld'
-            elif 'printables.com' in url:
-                platform = 'printables'
-            else:
-                # Unknown platform, return basic metadata
-                return {
-                    'platform': 'manual',
-                    'title': 'External Model',
-                    'url': url
-                }
-
-            # TODO: Implement actual URL parsing for each platform
-            # For now, return basic metadata
-            return {
-                'platform': platform,
-                'title': f'Model from {platform.title()}',
-                'url': url,
-                'extracted_at': datetime.now().isoformat()
-            }
-
+            return await self.url_parser.parse_url(url)
         except Exception as e:
             logger.error("Failed to extract URL metadata", url=url, error=str(e))
             return None
