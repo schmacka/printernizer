@@ -69,3 +69,6 @@ filetype==1.2.0
 # Security Headers and Middleware
 python-multipart==0.0.6
 # cryptography>=42.0.0  # Temporarily disabled for Python 3.13 compatibility
+
+# URL Parsing and Web Content Extraction (for Ideas feature)
+beautifulsoup4==4.12.2
