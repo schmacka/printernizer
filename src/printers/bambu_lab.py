@@ -120,11 +120,12 @@ class BambuLabPrinter(BasePrinter):
         self.bambu_client.on_printer_status = self._on_bambu_status_update
         self.bambu_client.on_file_list = self._on_bambu_file_list_update
 
-        # Connect to printer
-        await self.bambu_client.connect()
+        # Connect to printer (synchronous method)
+        self.bambu_client.connect()
 
-        # Request initial status and file list
-        await self.bambu_client.request_status()
+        # Request initial status (check if this method exists)
+        if hasattr(self.bambu_client, 'request_status'):
+            self.bambu_client.request_status()
 
         self.is_connected = True
         logger.info("Successfully connected to Bambu Lab printer via bambulabs_api",
@@ -185,7 +186,7 @@ class BambuLabPrinter(BasePrinter):
 
         try:
             if self.use_bambu_api and self.bambu_client:
-                await self.bambu_client.disconnect()
+                self.bambu_client.disconnect()
                 self.bambu_client = None
                 self.latest_status = None
             elif self.client:
@@ -227,10 +228,12 @@ class BambuLabPrinter(BasePrinter):
         if not self.bambu_client:
             raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
 
-        # Request fresh status if needed
-        if not self.latest_status:
-            await self.bambu_client.request_status()
-            await asyncio.sleep(0.5)  # Wait for response
+        # Get current status from bambulabs_api
+        try:
+            current_state = self.bambu_client.get_current_state()
+            self.latest_status = current_state
+        except Exception as e:
+            logger.warning("Failed to get current state", printer_id=self.printer_id, error=str(e))
 
         status = self.latest_status
         if not status:
@@ -482,21 +485,11 @@ class BambuLabPrinter(BasePrinter):
         logger.info("Requesting file list from Bambu Lab printer via API",
                    printer_id=self.printer_id)
 
-        # Request file list from printer
-        file_data = await self.bambu_client.request_file_list()
-
+        # The current bambulabs_api doesn't provide a direct file list method
+        # We'll return an empty list and log a warning
+        logger.warning("File listing not supported with current bambulabs_api version", 
+                      printer_id=self.printer_id)
         files = []
-        if file_data and 'files' in file_data:
-            for file_info in file_data['files']:
-                # Convert bambulabs_api file info to PrinterFile
-                printer_file = PrinterFile(
-                    name=file_info.get('name', 'Unknown'),
-                    path=file_info.get('path', '/'),
-                    size=file_info.get('size', 0),
-                    modified=datetime.fromisoformat(file_info['time']) if file_info.get('time') else datetime.now(),
-                    file_type=self._get_file_type_from_name(file_info.get('name', ''))
-                )
-                files.append(printer_file)
 
         logger.info("Retrieved file list from Bambu Lab printer",
                    printer_id=self.printer_id, file_count=len(files))
@@ -547,27 +540,10 @@ class BambuLabPrinter(BasePrinter):
         logger.info("Downloading file from Bambu Lab printer via API",
                    printer_id=self.printer_id, filename=filename, local_path=local_path)
 
-        try:
-            # Request file download from printer
-            file_data = await self.bambu_client.download_file(filename)
-
-            if file_data:
-                # Write file data to local path
-                with open(local_path, 'wb') as f:
-                    f.write(file_data)
-
-                logger.info("Successfully downloaded file from Bambu Lab printer",
-                           printer_id=self.printer_id, filename=filename)
-                return True
-            else:
-                logger.warning("No file data received from Bambu Lab printer",
-                              printer_id=self.printer_id, filename=filename)
-                return False
-
-        except Exception as e:
-            logger.error("Bambu API file download failed",
-                        printer_id=self.printer_id, filename=filename, error=str(e))
-            return False
+        # The current bambulabs_api doesn't provide a direct download method
+        logger.warning("File download not supported with current bambulabs_api version", 
+                      printer_id=self.printer_id, filename=filename)
+        return False
 
     async def _download_file_mqtt(self, filename: str, local_path: str) -> bool:
         """Download file using direct MQTT (fallback)."""
