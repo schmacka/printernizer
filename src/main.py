@@ -43,6 +43,7 @@ from api.routers import (
 )
 from api.routers.ideas import router as ideas_router
 from api.routers.idea_url import router as idea_url_router
+from api.routers.trending import router as trending_router
 from database.database import Database
 from services.event_service import EventService
 from services.config_service import ConfigService
@@ -51,6 +52,9 @@ from services.file_service import FileService
 from services.file_watcher_service import FileWatcherService
 from services.migration_service import MigrationService
 from services.monitoring_service import monitoring_service
+from services.trending_service import TrendingService
+from services.thumbnail_service import ThumbnailService
+from services.url_parser_service import UrlParserService
 from utils.logging_config import setup_logging
 from utils.exceptions import PrinternizerException
 from utils.middleware import (
@@ -101,16 +105,27 @@ async def lifespan(app: FastAPI):
     
     # Initialize file service with file watcher and printer service
     file_service = FileService(database, event_service, file_watcher_service, printer_service)
-    
+
+    # Initialize Ideas-related services
+    thumbnail_service = ThumbnailService(event_service)
+    url_parser_service = UrlParserService()
+    trending_service = TrendingService(database, event_service)
+
     app.state.config_service = config_service
     app.state.event_service = event_service
     app.state.printer_service = printer_service
     app.state.file_service = file_service
     app.state.file_watcher_service = file_watcher_service
+    app.state.thumbnail_service = thumbnail_service
+    app.state.url_parser_service = url_parser_service
+    app.state.trending_service = trending_service
     
     # Initialize and start background services
     await event_service.start()
     await printer_service.initialize()
+
+    # Initialize Ideas-related services
+    await trending_service.initialize()
     
     # Start printer monitoring
     try:
@@ -141,7 +156,29 @@ async def lifespan(app: FastAPI):
             logger.info("File watcher service stopped")
         except Exception as e:
             logger.warning("Error stopping file watcher service", error=str(e))
-    
+
+    # Clean up Ideas-related services
+    if hasattr(app.state, 'trending_service') and app.state.trending_service:
+        try:
+            await app.state.trending_service.cleanup()
+            logger.info("Trending service cleaned up")
+        except Exception as e:
+            logger.warning("Error cleaning up trending service", error=str(e))
+
+    if hasattr(app.state, 'thumbnail_service') and app.state.thumbnail_service:
+        try:
+            await app.state.thumbnail_service.cleanup()
+            logger.info("Thumbnail service cleaned up")
+        except Exception as e:
+            logger.warning("Error cleaning up thumbnail service", error=str(e))
+
+    if hasattr(app.state, 'url_parser_service') and app.state.url_parser_service:
+        try:
+            await app.state.url_parser_service.close()
+            logger.info("URL parser service cleaned up")
+        except Exception as e:
+            logger.warning("Error cleaning up URL parser service", error=str(e))
+
     await event_service.stop()
     await database.close()
     logger.info("Printernizer shutdown complete")
@@ -196,6 +233,7 @@ def create_application() -> FastAPI:
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
+    app.include_router(trending_router, prefix="/api/v1", tags=["Trending"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
