@@ -10,6 +10,7 @@ from src.services.file_service import FileService
 from src.services.analytics_service import AnalyticsService
 from src.services.event_service import EventService
 from src.services.file_watcher_service import FileWatcherService
+from src.services.idea_service import IdeaService
 
 
 async def get_database(request: Request) -> Database:
@@ -50,3 +51,10 @@ async def get_analytics_service(
 ) -> AnalyticsService:
     """Get analytics service instance."""
     return AnalyticsService(database)
+
+
+async def get_idea_service(
+    database: Database = Depends(get_database)
+) -> IdeaService:
+    """Get idea service instance."""
+    return IdeaService(database)

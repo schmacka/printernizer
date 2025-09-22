@@ -41,6 +41,7 @@ from src.api.routers import (
     errors_router,
     camera_router
 )
+from src.api.routers.ideas import router as ideas_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -192,6 +193,7 @@ def create_application() -> FastAPI:
     app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"]) 
     app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
+    app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])

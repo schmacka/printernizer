@@ -102,7 +102,68 @@ class Database:
             await cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)
             """)
-            
+
+            # Ideas table for print idea management
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideas (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    source_type TEXT CHECK(source_type IN ('manual', 'makerworld', 'printables')),
+                    source_url TEXT,
+                    thumbnail_path TEXT,
+                    category TEXT,
+                    priority INTEGER CHECK(priority BETWEEN 1 AND 5),
+                    status TEXT CHECK(status IN ('idea', 'planned', 'printing', 'completed', 'archived')) DEFAULT 'idea',
+                    is_business BOOLEAN DEFAULT FALSE,
+                    estimated_print_time INTEGER, -- in minutes
+                    material_notes TEXT,
+                    customer_info TEXT,
+                    planned_date DATE,
+                    completed_date DATE,
+                    metadata TEXT, -- JSON string for platform-specific data
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Trending cache table for external platform models
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS trending_cache (
+                    id TEXT PRIMARY KEY,
+                    platform TEXT NOT NULL,
+                    model_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    thumbnail_url TEXT,
+                    thumbnail_local_path TEXT,
+                    downloads INTEGER,
+                    likes INTEGER,
+                    creator TEXT,
+                    category TEXT,
+                    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP,
+                    UNIQUE(platform, model_id)
+                )
+            """)
+
+            # Tags table for many-to-many relationship with ideas
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS idea_tags (
+                    idea_id TEXT,
+                    tag TEXT,
+                    FOREIGN KEY (idea_id) REFERENCES ideas (id) ON DELETE CASCADE,
+                    PRIMARY KEY (idea_id, tag)
+                )
+            """)
+
+            # Create indexes for ideas tables
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_ideas_status ON ideas(status)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_ideas_priority ON ideas(priority)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_ideas_is_business ON ideas(is_business)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_trending_platform ON trending_cache(platform)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_trending_expires ON trending_cache(expires_at)")
+
             # Printers table - Enhanced configuration
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS printers (
@@ -633,6 +694,282 @@ class Database:
             
         except Exception as e:
             logger.error("Failed to get file statistics", error=str(e))
+            return {}
+
+    # Ideas CRUD Operations
+    async def create_idea(self, idea_data: Dict[str, Any]) -> bool:
+        """Create a new idea record."""
+        try:
+            return await self._execute_write(
+                """INSERT INTO ideas (id, title, description, source_type, source_url, thumbnail_path,
+                                    category, priority, status, is_business, estimated_print_time,
+                                    material_notes, customer_info, planned_date, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    idea_data['id'],
+                    idea_data['title'],
+                    idea_data.get('description'),
+                    idea_data.get('source_type', 'manual'),
+                    idea_data.get('source_url'),
+                    idea_data.get('thumbnail_path'),
+                    idea_data.get('category'),
+                    idea_data.get('priority', 3),
+                    idea_data.get('status', 'idea'),
+                    idea_data.get('is_business', False),
+                    idea_data.get('estimated_print_time'),
+                    idea_data.get('material_notes'),
+                    idea_data.get('customer_info'),
+                    idea_data.get('planned_date'),
+                    idea_data.get('metadata')
+                )
+            )
+        except Exception as e:
+            logger.error("Failed to create idea", error=str(e))
+            return False
+
+    async def get_idea(self, idea_id: str) -> Optional[Dict[str, Any]]:
+        """Get idea by ID."""
+        try:
+            row = await self._fetch_one("SELECT * FROM ideas WHERE id = ?", [idea_id])
+            return dict(row) if row else None
+        except Exception as e:
+            logger.error("Failed to get idea", idea_id=idea_id, error=str(e))
+            return None
+
+    async def list_ideas(self, status: Optional[str] = None, is_business: Optional[bool] = None,
+                        category: Optional[str] = None, source_type: Optional[str] = None,
+                        limit: Optional[int] = None, offset: Optional[int] = None) -> List[Dict[str, Any]]:
+        """List ideas with optional filtering and pagination."""
+        try:
+            query = "SELECT * FROM ideas"
+            params = []
+            conditions = []
+
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+            if is_business is not None:
+                conditions.append("is_business = ?")
+                params.append(int(is_business))
+            if category:
+                conditions.append("category = ?")
+                params.append(category)
+            if source_type:
+                conditions.append("source_type = ?")
+                params.append(source_type)
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            query += " ORDER BY priority DESC, created_at DESC"
+
+            if limit is not None:
+                query += " LIMIT ?"
+                params.append(limit)
+                if offset is not None:
+                    query += " OFFSET ?"
+                    params.append(offset)
+
+            rows = await self._fetch_all(query, params)
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.error("Failed to list ideas", error=str(e))
+            return []
+
+    async def update_idea(self, idea_id: str, updates: Dict[str, Any]) -> bool:
+        """Update idea with provided fields."""
+        try:
+            set_clauses = []
+            params = []
+
+            for field, value in updates.items():
+                if field not in ['id', 'created_at']:
+                    set_clauses.append(f"{field} = ?")
+                    params.append(value)
+
+            if not set_clauses:
+                return True
+
+            set_clauses.append("updated_at = ?")
+            params.append(datetime.now().isoformat())
+            params.append(idea_id)
+
+            query = f"UPDATE ideas SET {', '.join(set_clauses)} WHERE id = ?"
+            return await self._execute_write(query, tuple(params))
+        except Exception as e:
+            logger.error("Failed to update idea", idea_id=idea_id, error=str(e))
+            return False
+
+    async def delete_idea(self, idea_id: str) -> bool:
+        """Delete an idea record."""
+        try:
+            # First delete associated tags
+            await self._execute_write("DELETE FROM idea_tags WHERE idea_id = ?", (idea_id,))
+            # Then delete the idea
+            return await self._execute_write("DELETE FROM ideas WHERE id = ?", (idea_id,))
+        except Exception as e:
+            logger.error("Failed to delete idea", idea_id=idea_id, error=str(e))
+            return False
+
+    async def update_idea_status(self, idea_id: str, status: str) -> bool:
+        """Update idea status."""
+        updates = {'status': status}
+        if status == 'completed':
+            updates['completed_date'] = datetime.now().isoformat()
+        return await self.update_idea(idea_id, updates)
+
+    # Idea Tags Operations
+    async def add_idea_tags(self, idea_id: str, tags: List[str]) -> bool:
+        """Add tags to an idea."""
+        try:
+            for tag in tags:
+                await self._execute_write(
+                    "INSERT OR IGNORE INTO idea_tags (idea_id, tag) VALUES (?, ?)",
+                    (idea_id, tag)
+                )
+            return True
+        except Exception as e:
+            logger.error("Failed to add idea tags", idea_id=idea_id, error=str(e))
+            return False
+
+    async def remove_idea_tags(self, idea_id: str, tags: List[str]) -> bool:
+        """Remove tags from an idea."""
+        try:
+            for tag in tags:
+                await self._execute_write(
+                    "DELETE FROM idea_tags WHERE idea_id = ? AND tag = ?",
+                    (idea_id, tag)
+                )
+            return True
+        except Exception as e:
+            logger.error("Failed to remove idea tags", idea_id=idea_id, error=str(e))
+            return False
+
+    async def get_idea_tags(self, idea_id: str) -> List[str]:
+        """Get all tags for an idea."""
+        try:
+            rows = await self._fetch_all(
+                "SELECT tag FROM idea_tags WHERE idea_id = ?",
+                [idea_id]
+            )
+            return [row['tag'] for row in rows]
+        except Exception as e:
+            logger.error("Failed to get idea tags", idea_id=idea_id, error=str(e))
+            return []
+
+    async def get_all_tags(self) -> List[Dict[str, Any]]:
+        """Get all unique tags with counts."""
+        try:
+            rows = await self._fetch_all(
+                "SELECT tag, COUNT(*) as count FROM idea_tags GROUP BY tag ORDER BY count DESC",
+                []
+            )
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.error("Failed to get all tags", error=str(e))
+            return []
+
+    # Trending Cache Operations
+    async def upsert_trending(self, trending_data: Dict[str, Any]) -> bool:
+        """Insert or update trending cache entry."""
+        try:
+            return await self._execute_write(
+                """INSERT OR REPLACE INTO trending_cache
+                (id, platform, model_id, title, url, thumbnail_url, thumbnail_local_path,
+                 downloads, likes, creator, category, expires_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    trending_data['id'],
+                    trending_data['platform'],
+                    trending_data['model_id'],
+                    trending_data['title'],
+                    trending_data['url'],
+                    trending_data.get('thumbnail_url'),
+                    trending_data.get('thumbnail_local_path'),
+                    trending_data.get('downloads'),
+                    trending_data.get('likes'),
+                    trending_data.get('creator'),
+                    trending_data.get('category'),
+                    trending_data['expires_at']
+                )
+            )
+        except Exception as e:
+            logger.error("Failed to upsert trending", error=str(e))
+            return False
+
+    async def get_trending(self, platform: Optional[str] = None, category: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get trending items from cache."""
+        try:
+            query = "SELECT * FROM trending_cache WHERE expires_at > datetime('now')"
+            params = []
+
+            if platform:
+                query += " AND platform = ?"
+                params.append(platform)
+            if category:
+                query += " AND category = ?"
+                params.append(category)
+
+            query += " ORDER BY likes DESC, downloads DESC"
+
+            rows = await self._fetch_all(query, params)
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.error("Failed to get trending", error=str(e))
+            return []
+
+    async def clean_expired_trending(self) -> bool:
+        """Remove expired trending cache entries."""
+        try:
+            return await self._execute_write(
+                "DELETE FROM trending_cache WHERE expires_at < datetime('now')",
+                ()
+            )
+        except Exception as e:
+            logger.error("Failed to clean expired trending", error=str(e))
+            return False
+
+    async def get_idea_statistics(self) -> Dict[str, Any]:
+        """Get idea statistics."""
+        try:
+            stats = {}
+
+            # Status counts
+            rows = await self._fetch_all(
+                "SELECT status, COUNT(*) as count FROM ideas GROUP BY status",
+                []
+            )
+            for row in rows:
+                stats[f"{row['status']}_count"] = row['count']
+
+            # Business vs Personal counts
+            rows = await self._fetch_all(
+                "SELECT is_business, COUNT(*) as count FROM ideas GROUP BY is_business",
+                []
+            )
+            for row in rows:
+                key = "business_ideas" if row['is_business'] else "personal_ideas"
+                stats[key] = row['count']
+
+            # Source type counts
+            rows = await self._fetch_all(
+                "SELECT source_type, COUNT(*) as count FROM ideas GROUP BY source_type",
+                []
+            )
+            for row in rows:
+                stats[f"{row['source_type']}_count"] = row['count']
+
+            # Total ideas
+            row = await self._fetch_one("SELECT COUNT(*) as total FROM ideas", [])
+            stats['total_ideas'] = row['total'] if row else 0
+
+            # Average priority
+            row = await self._fetch_one("SELECT AVG(priority) as avg_priority FROM ideas WHERE priority IS NOT NULL", [])
+            stats['avg_priority'] = round(row['avg_priority'], 2) if row and row['avg_priority'] else 0
+
+            return stats
+        except Exception as e:
+            logger.error("Failed to get idea statistics", error=str(e))
             return {}
 
     async def _run_migrations(self):
