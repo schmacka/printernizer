@@ -314,3 +314,23 @@ async def stop_printer(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to stop print job"
         )
+
+
+@router.get("/{printer_id}/files")
+async def get_printer_files(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Get files from a specific printer."""
+    try:
+        printer_id_str = str(printer_id)
+        files = await printer_service.get_printer_files(printer_id_str)
+        return {"files": files}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get printer files", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve printer files"
+        )
