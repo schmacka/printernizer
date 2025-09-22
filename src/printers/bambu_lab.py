@@ -58,8 +58,10 @@ class BambuLabPrinter(BasePrinter):
         if self.use_bambu_api:
             self.bambu_client: Optional[BambuClient] = None
             self.latest_status: Optional[Dict[str, Any]] = None
+            self.cached_files: List[PrinterFile] = []
+            self.last_file_update: Optional[datetime] = None
         else:
-            self.client: Optional[mqtt.Client] = None
+            self.client = None  # MQTT client will be initialized in connect
             self.latest_data: Dict[str, Any] = {}
             self.mqtt_port = 8883
         
@@ -123,9 +125,13 @@ class BambuLabPrinter(BasePrinter):
         # Connect to printer (synchronous method)
         self.bambu_client.connect()
 
-        # Request initial status (check if this method exists)
+        # Request initial status and file information
         if hasattr(self.bambu_client, 'request_status'):
             self.bambu_client.request_status()
+            
+        # Try to request file listing if supported
+        if hasattr(self.bambu_client, 'request_file_list'):
+            self.bambu_client.request_file_list()
 
         self.is_connected = True
         logger.info("Successfully connected to Bambu Lab printer via bambulabs_api",
@@ -176,8 +182,32 @@ class BambuLabPrinter(BasePrinter):
 
     async def _on_bambu_file_list_update(self, file_list_data: Dict[str, Any]):
         """Handle file list updates from bambulabs_api."""
-        logger.debug("Received file list update from bambulabs_api",
-                    printer_id=self.printer_id, file_count=len(file_list_data.get('files', [])))
+        try:
+            files = []
+            if isinstance(file_list_data, dict) and 'files' in file_list_data:
+                file_list = file_list_data['files']
+                if isinstance(file_list, list):
+                    for file_info in file_list:
+                        if isinstance(file_info, dict):
+                            filename = file_info.get('name', '')
+                            if filename:
+                                files.append(PrinterFile(
+                                    filename=filename,
+                                    size=file_info.get('size', 0),
+                                    path=file_info.get('path', filename),
+                                    modified=None,  # Usually not provided
+                                    file_type=self._get_file_type_from_name(filename)
+                                ))
+            
+            self.cached_files = files
+            self.last_file_update = datetime.now()
+            
+            logger.info("Updated cached file list from bambulabs_api",
+                       printer_id=self.printer_id, file_count=len(files))
+                       
+        except Exception as e:
+            logger.warning("Failed to process file list update",
+                          printer_id=self.printer_id, error=str(e))
 
     async def disconnect(self) -> None:
         """Disconnect from Bambu Lab printer."""
@@ -478,29 +508,359 @@ class BambuLabPrinter(BasePrinter):
             raise PrinterConnectionError(self.printer_id, f"File listing failed: {str(e)}")
 
     async def _list_files_bambu_api(self) -> List[PrinterFile]:
-        """List files using bambulabs_api library."""
+        """List files using bambulabs_api library with enhanced discovery."""
         if not self.bambu_client:
             raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
 
         logger.info("Requesting file list from Bambu Lab printer via API",
                    printer_id=self.printer_id)
 
-        # The current bambulabs_api doesn't provide a direct file list method
-        # We'll return an empty list and log a warning
-        logger.warning("File listing not supported with current bambulabs_api version", 
-                      printer_id=self.printer_id)
         files = []
 
-        logger.info("Retrieved file list from Bambu Lab printer",
-                   printer_id=self.printer_id, file_count=len(files))
+        try:
+            # Method 0: Use cached files if recently updated
+            if (hasattr(self, 'cached_files') and self.cached_files and 
+                hasattr(self, 'last_file_update') and self.last_file_update and
+                (datetime.now() - self.last_file_update).seconds < 30):
+                logger.info("Using cached file list from recent update",
+                           printer_id=self.printer_id, file_count=len(self.cached_files))
+                return self.cached_files
+            
+            # Method 1: Try direct get_files API if available
+            if hasattr(self.bambu_client, 'get_files'):
+                try:
+                    api_files = self.bambu_client.get_files()
+                    if api_files:
+                        for f in api_files:
+                            files.append(PrinterFile(
+                                filename=f.get('name', ''),
+                                size=f.get('size', 0),
+                                path=f.get('path', ''),
+                                modified=None,
+                                file_type=self._get_file_type_from_name(f.get('name', ''))
+                            ))
+                        logger.info("Retrieved files via get_files API",
+                                   printer_id=self.printer_id, file_count=len(files))
+                        return files
+                except Exception as e:
+                    logger.debug("get_files API failed, trying FTP methods", 
+                                printer_id=self.printer_id, error=str(e))
+
+            # Method 2: Try FTP client methods if available
+            if hasattr(self.bambu_client, 'ftp_client'):
+                try:
+                    ftp_files = await self._discover_files_via_ftp()
+                    files.extend(ftp_files)
+                except Exception as e:
+                    logger.debug("FTP file discovery failed", 
+                                printer_id=self.printer_id, error=str(e))
+
+            # Method 3: Try to access the printer's file system via MQTT dump
+            if len(files) == 0:
+                try:
+                    mqtt_files = await self._discover_files_via_mqtt_dump()
+                    files.extend(mqtt_files)
+                except Exception as e:
+                    logger.debug("MQTT dump file discovery failed", 
+                                printer_id=self.printer_id, error=str(e))
+
+            # Method 4: Check for uploaded files via internal tracking
+            if hasattr(self.bambu_client, 'uploaded_files') and self.bambu_client.uploaded_files:
+                try:
+                    for uploaded_file in self.bambu_client.uploaded_files:
+                        if uploaded_file not in [f.filename for f in files]:
+                            files.append(PrinterFile(
+                                filename=uploaded_file,
+                                size=0,  # Size unknown
+                                path=uploaded_file,
+                                modified=None,
+                                file_type=self._get_file_type_from_name(uploaded_file)
+                            ))
+                except Exception as e:
+                    logger.debug("Uploaded files tracking failed", 
+                                printer_id=self.printer_id, error=str(e))
+
+        except Exception as e:
+            logger.warning("All file discovery methods failed", 
+                          printer_id=self.printer_id, error=str(e))
+
+        # If no files found, provide a helpful message
+        if len(files) == 0:
+            logger.info("No files discovered - this may be normal if no files are uploaded or SD card is empty", 
+                       printer_id=self.printer_id)
+        else:
+            logger.info("Retrieved file list from Bambu Lab printer",
+                       printer_id=self.printer_id, file_count=len(files))
+        
+        return files
+
+    async def _discover_files_via_ftp(self) -> List[PrinterFile]:
+        """Discover files using FTP client methods."""
+        files = []
+        
+        if not hasattr(self.bambu_client, 'ftp_client'):
+            return files
+            
+        ftp = self.bambu_client.ftp_client
+        
+        try:
+            # Check various FTP directories for files
+            # Note: The bambulabs_api FTP client mainly provides access to logs, images, etc.
+            # Actual 3D print files (3mf, gcode) are typically on SD card or internal storage
+            
+            # Try to get image files (could indicate recent prints)
+            if hasattr(ftp, 'list_images_dir'):
+                try:
+                    result, image_files = ftp.list_images_dir()
+                    for img_file in image_files or []:
+                        if img_file.lower().endswith(('.jpg', '.png', '.jpeg')):
+                            # Extract potential model name from preview images
+                            model_name = img_file.replace('_preview.jpg', '').replace('_plate_1.jpg', '')
+                            if model_name and model_name != img_file:
+                                # This suggests there might be a corresponding 3mf file
+                                potential_file = f"{model_name}.3mf"
+                                files.append(PrinterFile(
+                                    filename=potential_file,
+                                    size=0,  # Size unknown from preview
+                                    path=f"inferred/{potential_file}",
+                                    modified=None,
+                                    file_type='3mf'
+                                ))
+                except Exception as e:
+                    logger.debug("Failed to list image directory", error=str(e))
+            
+            # Try cache directory (might contain temporary files)
+            if hasattr(ftp, 'list_cache_dir'):
+                try:
+                    result, cache_files = ftp.list_cache_dir()
+                    for cache_file in cache_files or []:
+                        # Parse FTP listing line to extract just the filename
+                        # Format: "-rw-rw-rw-   1 root  root    445349 Apr 22 01:10 filename.ext"
+                        if isinstance(cache_file, str):
+                            # Split on whitespace and take the last part as filename
+                            parts = cache_file.strip().split()
+                            if len(parts) >= 9:  # Standard FTP ls -l format
+                                filename = ' '.join(parts[8:])  # filename might contain spaces
+                            else:
+                                filename = parts[-1] if parts else cache_file
+                        else:
+                            filename = str(cache_file)
+                        
+                        if any(filename.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']):
+                            files.append(PrinterFile(
+                                filename=filename,
+                                size=0,  # Size unknown
+                                path=f"cache/{filename}",
+                                modified=None,
+                                file_type=self._get_file_type_from_name(filename)
+                            ))
+                except Exception as e:
+                    logger.debug("Failed to list cache directory", error=str(e))
+                    
+        except Exception as e:
+            logger.debug("FTP file discovery error", error=str(e))
+            
+        return files
+
+    async def _discover_files_via_mqtt_dump(self) -> List[PrinterFile]:
+        """Discover files using MQTT dump data."""
+        files = []
+        
+        try:
+            if hasattr(self.bambu_client, 'mqtt_dump'):
+                mqtt_data = self.bambu_client.mqtt_dump()
+                
+                # Look for file-related information in the MQTT data
+                if isinstance(mqtt_data, dict):
+                    # Check for current print job file
+                    if 'print' in mqtt_data:
+                        print_data = mqtt_data['print']
+                        if isinstance(print_data, dict):
+                            # Current file being printed
+                            if 'file' in print_data:
+                                current_file = print_data['file']
+                                if isinstance(current_file, str) and current_file:
+                                    files.append(PrinterFile(
+                                        filename=current_file,
+                                        size=0,
+                                        path=f"current/{current_file}",
+                                        modified=None,
+                                        file_type=self._get_file_type_from_name(current_file)
+                                    ))
+                            
+                            # Task name might indicate file name
+                            if 'task_name' in print_data:
+                                task_name = print_data['task_name']
+                                if isinstance(task_name, str) and task_name and task_name != current_file:
+                                    # Try to infer file extension
+                                    if not any(task_name.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']):
+                                        task_name += '.3mf'  # Most common format
+                                    files.append(PrinterFile(
+                                        filename=task_name,
+                                        size=0,
+                                        path=f"task/{task_name}",
+                                        modified=None,
+                                        file_type=self._get_file_type_from_name(task_name)
+                                    ))
+                    
+                    # Check for SD card or storage information
+                    if 'system' in mqtt_data:
+                        system_data = mqtt_data['system']
+                        if isinstance(system_data, dict):
+                            # Look for storage or file system info
+                            for key in ['sdcard', 'storage', 'files']:
+                                if key in system_data:
+                                    storage_info = system_data[key]
+                                    if isinstance(storage_info, dict) and 'files' in storage_info:
+                                        file_list = storage_info['files']
+                                        if isinstance(file_list, list):
+                                            for file_info in file_list:
+                                                if isinstance(file_info, dict) and 'name' in file_info:
+                                                    filename = file_info['name']
+                                                    files.append(PrinterFile(
+                                                        filename=filename,
+                                                        size=file_info.get('size', 0),
+                                                        path=f"{key}/{filename}",
+                                                        modified=None,
+                                                        file_type=self._get_file_type_from_name(filename)
+                                                    ))
+                                                    
+        except Exception as e:
+            logger.debug("MQTT dump file discovery error", error=str(e))
+            
         return files
 
     async def _list_files_mqtt(self) -> List[PrinterFile]:
         """List files using direct MQTT (fallback)."""
-        # File listing not implemented for direct MQTT approach
-        logger.warning("File listing not implemented for direct MQTT approach",
-                      printer_id=self.printer_id)
-        return []
+        # If we're using bambu_api, we should use the bambu_client's MQTT data
+        if self.use_bambu_api:
+            return await self._list_files_mqtt_from_bambu_api()
+        
+        # Direct MQTT mode
+        if not self.client:
+            raise PrinterConnectionError(self.printer_id, "MQTT client not initialized")
+        
+        logger.info("Requesting file list from Bambu Lab printer via MQTT",
+                   printer_id=self.printer_id)
+        
+        files = []
+        
+        try:
+            # Extract file information from latest MQTT data
+            if self.latest_data and isinstance(self.latest_data, dict):
+                # Check for current print job information
+                print_data = self.latest_data.get('print', {})
+                if isinstance(print_data, dict):
+                    # Current file being printed
+                    current_file = print_data.get('file', '')
+                    if current_file and isinstance(current_file, str):
+                        files.append(PrinterFile(
+                            filename=current_file,
+                            size=0,  # Size not available via MQTT
+                            path=f"current/{current_file}",
+                            modified=None,
+                            file_type=self._get_file_type_from_name(current_file)
+                        ))
+                    
+                    # Task name might be different from filename
+                    task_name = print_data.get('task_name', '')
+                    if (task_name and isinstance(task_name, str) 
+                        and task_name != current_file and task_name not in [f.filename for f in files]):
+                        # Infer file extension if missing
+                        if not any(task_name.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']):
+                            task_name += '.3mf'
+                        files.append(PrinterFile(
+                            filename=task_name,
+                            size=0,
+                            path=f"task/{task_name}",
+                            modified=None,
+                            file_type=self._get_file_type_from_name(task_name)
+                        ))
+                
+                # Look for any file system information
+                # Note: Bambu Lab MQTT doesn't typically provide file listing
+                # but may contain references to recently uploaded files
+                for key in ['system', 'info', 'status']:
+                    if key in self.latest_data:
+                        data_section = self.latest_data[key]
+                        if isinstance(data_section, dict):
+                            # Look for file references in various fields
+                            for subkey, value in data_section.items():
+                                if (isinstance(value, str) and 
+                                    any(value.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']) and
+                                    value not in [f.filename for f in files]):
+                                    files.append(PrinterFile(
+                                        filename=value,
+                                        size=0,
+                                        path=f"{key}/{value}",
+                                        modified=None,
+                                        file_type=self._get_file_type_from_name(value)
+                                    ))
+            
+            # If no files found, provide informative logging
+            if len(files) == 0:
+                logger.info("No files found in MQTT data - this is normal as Bambu Lab doesn't provide file listing via MQTT",
+                           printer_id=self.printer_id)
+                logger.debug("MQTT data keys available", keys=list(self.latest_data.keys()) if self.latest_data else [])
+            else:
+                logger.info("Extracted file references from MQTT data",
+                           printer_id=self.printer_id, file_count=len(files))
+                           
+        except Exception as e:
+            logger.warning("Failed to extract files from MQTT data", 
+                          printer_id=self.printer_id, error=str(e))
+        
+        return files
+
+    async def _list_files_mqtt_from_bambu_api(self) -> List[PrinterFile]:
+        """Extract file references from bambulabs_api MQTT data."""
+        files = []
+        
+        try:
+            # Get MQTT dump from bambulabs_api client
+            if hasattr(self.bambu_client, 'mqtt_dump'):
+                mqtt_data = self.bambu_client.mqtt_dump()
+                
+                if isinstance(mqtt_data, dict):
+                    # Look for print information
+                    if 'print' in mqtt_data:
+                        print_data = mqtt_data['print']
+                        if isinstance(print_data, dict):
+                            # Current file being printed
+                            if 'gcode_file' in print_data:
+                                current_file = print_data['gcode_file']
+                                if isinstance(current_file, str) and current_file:
+                                    files.append(PrinterFile(
+                                        filename=current_file,
+                                        size=0,
+                                        path=f"current/{current_file}",
+                                        modified=None,
+                                        file_type=self._get_file_type_from_name(current_file)
+                                    ))
+                            
+                            # Task name
+                            if 'subtask_name' in print_data:
+                                task_name = print_data['subtask_name']
+                                if (isinstance(task_name, str) and task_name and
+                                    task_name not in [f.filename for f in files]):
+                                    if not any(task_name.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']):
+                                        task_name += '.3mf'
+                                    files.append(PrinterFile(
+                                        filename=task_name,
+                                        size=0,
+                                        path=f"task/{task_name}",
+                                        modified=None,
+                                        file_type=self._get_file_type_from_name(task_name)
+                                    ))
+                    
+                    logger.info("Extracted files from bambulabs_api MQTT data",
+                               printer_id=self.printer_id, file_count=len(files))
+                    
+        except Exception as e:
+            logger.debug("Failed to extract files from bambulabs_api MQTT data", 
+                        printer_id=self.printer_id, error=str(e))
+        
+        return files
 
     def _get_file_type_from_name(self, filename: str) -> str:
         """Extract file type from filename extension."""
