@@ -31,14 +31,31 @@ class JobStatus(str, Enum):
 class PrinterFile:
     """Represents a file on a printer."""
     def __init__(self, filename: str, size: Optional[int] = None, 
-                 modified: Optional[datetime] = None, path: Optional[str] = None):
+                 modified: Optional[datetime] = None, path: Optional[str] = None,
+                 file_type: Optional[str] = None):
         self.filename = filename
         self.size = size
         self.modified = modified or datetime.now()
         self.path = path or filename
+        self.file_type = file_type or self._guess_file_type(filename)
+        
+    def _guess_file_type(self, filename: str) -> str:
+        """Guess file type from filename extension."""
+        if not filename:
+            return 'unknown'
+        ext = filename.lower().split('.')[-1] if '.' in filename else ''
+        type_map = {
+            '3mf': '3mf',
+            'stl': 'stl', 
+            'obj': 'obj',
+            'gcode': 'gcode',
+            'bgcode': 'bgcode',
+            'ply': 'ply'
+        }
+        return type_map.get(ext, 'unknown')
         
     def __repr__(self):
-        return f"PrinterFile(filename='{self.filename}', size={self.size})"
+        return f"PrinterFile(filename='{self.filename}', size={self.size}, type='{self.file_type}')"
 
 
 class JobInfo:
