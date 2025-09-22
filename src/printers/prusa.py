@@ -249,48 +249,80 @@ class PrusaPrinter(BasePrinter):
         try:
             # Get file list from PrusaLink
             async with self.session.get(f"{self.base_url}/files") as response:
-                if response.status != 200:
-                    raise aiohttp.ClientError(f"HTTP {response.status}")
+                if response.status == 403:
+                    logger.warning("Access denied to Prusa files API - check API key permissions",
+                                  printer_id=self.printer_id, status_code=response.status)
+                    return []  # Return empty list instead of raising exception
+                elif response.status != 200:
+                    logger.warning("Failed to get files from Prusa API", 
+                                  printer_id=self.printer_id, status_code=response.status)
+                    return []  # Return empty list for other HTTP errors too
                     
                 files_data = await response.json()
                 
             printer_files = []
             
-            # Process local files
-            local_files = files_data.get('files', [])
-            for file_data in local_files:
-                if file_data.get('type') == 'model':  # Only 3D model files
-                    file_obj = PrinterFile(
-                        filename=file_data.get('display_name', file_data.get('name', 'Unknown')),
-                        size=file_data.get('size'),
-                        modified=datetime.fromtimestamp(file_data.get('date', 0)) 
-                                 if file_data.get('date') else None,
-                        path=file_data.get('path', file_data.get('name', ''))
-                    )
-                    printer_files.append(file_obj)
+            # Process files from PrusaLink response
+            # PrusaLink structure: files may contain folders with children arrays
+            def extract_files_from_structure(items, prefix=""):
+                """Recursively extract files from PrusaLink folder structure."""
+                extracted = []
+                
+                for item in items:
+                    item_type = item.get('type', '')
                     
-            # Process SD card files if available
+                    if item_type == 'folder' and 'children' in item:
+                        # This is a folder (like USB), process its children
+                        folder_name = item.get('display', item.get('name', ''))
+                        folder_prefix = f"[{folder_name}] " if prefix == "" else f"{prefix}{folder_name}/"
+                        
+                        # Recursively process children
+                        children_files = extract_files_from_structure(
+                            item['children'], 
+                            folder_prefix
+                        )
+                        extracted.extend(children_files)
+                        
+                    elif item_type != 'folder':
+                        # This is likely a file (PrusaLink doesn't always set type for files)
+                        # Check if it has common printable file extensions or references
+                        name = item.get('name', '')
+                        display_name = item.get('display', name)
+                        
+                        # Check if this looks like a printable file
+                        if (name.lower().endswith(('.gcode', '.bgcode', '.stl')) or 
+                            display_name.lower().endswith(('.gcode', '.bgcode', '.stl')) or
+                            'refs' in item):  # Files with refs are usually printable
+                            
+                            file_obj = PrinterFile(
+                                filename=f"{prefix}{display_name}",
+                                size=item.get('size'),
+                                modified=datetime.fromtimestamp(item.get('date', 0)) 
+                                         if item.get('date') else None,
+                                path=item.get('path', name)
+                            )
+                            extracted.append(file_obj)
+                        
+                return extracted
+            
+            # Extract files from the main files array
+            local_files = files_data.get('files', [])
+            printer_files.extend(extract_files_from_structure(local_files))
+                    
+            # Process SD card files if available (alternative structure)
             if 'sdcard' in files_data and files_data['sdcard'].get('ready'):
                 sd_files = files_data.get('sdcard', {}).get('files', [])
-                for file_data in sd_files:
-                    if file_data.get('type') == 'model':
-                        file_obj = PrinterFile(
-                            filename=f"[SD] {file_data.get('display_name', file_data.get('name', 'Unknown'))}",
-                            size=file_data.get('size'),
-                            modified=datetime.fromtimestamp(file_data.get('date', 0)) 
-                                     if file_data.get('date') else None,
-                            path=f"sdcard/{file_data.get('path', file_data.get('name', ''))}"
-                        )
-                        printer_files.append(file_obj)
+                sd_extracted = extract_files_from_structure(sd_files, "[SD] ")
+                printer_files.extend(sd_extracted)
                         
             logger.info("Retrieved file list from Prusa",
                        printer_id=self.printer_id, file_count=len(printer_files))
             return printer_files
             
         except Exception as e:
-            logger.error("Failed to list files from Prusa",
-                        printer_id=self.printer_id, error=str(e))
-            raise PrinterConnectionError(self.printer_id, f"File listing failed: {str(e)}")
+            logger.warning("Failed to list files from Prusa - returning empty list",
+                          printer_id=self.printer_id, error=str(e))
+            return []  # Return empty list instead of raising exception
             
     async def download_file(self, filename: str, local_path: str) -> bool:
         """Download a file from Prusa printer."""
