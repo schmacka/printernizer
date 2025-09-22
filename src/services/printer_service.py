@@ -5,6 +5,7 @@ Handles Bambu Lab and Prusa printer integrations with real-time monitoring.
 import asyncio
 from typing import List, Dict, Any, Optional
 from uuid import uuid4, UUID
+from datetime import datetime
 import structlog
 
 from src.database.database import Database
@@ -149,6 +150,8 @@ class PrinterService:
                     last_seen = instance.last_status.timestamp
                 else:
                     current_status = PrinterStatus.ONLINE
+                    # If connected but no status yet, use current time as last_seen
+                    last_seen = datetime.now()
             
             printer = Printer(
                 id=printer_id,
@@ -225,7 +228,7 @@ class PrinterService:
             status = await instance.get_status()
             # Update last_seen when we successfully get status
             from datetime import datetime
-            await self.db.update_printer_status(
+            await self.database.update_printer_status(
                 printer_id,
                 status.status.value.lower(),  # Convert enum to string
                 datetime.now()
@@ -259,7 +262,7 @@ class PrinterService:
             if result:
                 # Update last_seen timestamp in database when connection succeeds
                 from datetime import datetime
-                await self.db.update_printer_status(
+                await self.database.update_printer_status(
                     printer_id,
                     "online",  # Set status to online when connected
                     datetime.now()
@@ -296,7 +299,7 @@ class PrinterService:
                     if connected:
                         # Update last_seen timestamp when connection succeeds
                         from datetime import datetime
-                        await self.db.update_printer_status(
+                        await self.database.update_printer_status(
                             printer_id,
                             "online",
                             datetime.now()
@@ -318,7 +321,7 @@ class PrinterService:
                         if connected:
                             # Update last_seen timestamp when connection succeeds
                             from datetime import datetime
-                            await self.db.update_printer_status(
+                            await self.database.update_printer_status(
                                 printer_id,
                                 "online",
                                 datetime.now()

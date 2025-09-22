@@ -46,7 +46,7 @@ class IdeaUpdate(BaseModel):
 
 
 class IdeaStatusUpdate(BaseModel):
-    status: str = Field(..., regex="^(idea|planned|printing|completed|archived)$")
+    status: str = Field(..., pattern="^(idea|planned|printing|completed|archived)$")
 
 
 class IdeaImport(BaseModel):
@@ -97,10 +97,10 @@ async def create_idea(
 
 @router.get("/", response_model=Dict[str, Any])
 async def list_ideas(
-    status: Optional[str] = Query(None, regex="^(idea|planned|printing|completed|archived)$"),
+    status: Optional[str] = Query(None, pattern="^(idea|planned|printing|completed|archived)$"),
     is_business: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
-    source_type: Optional[str] = Query(None, regex="^(manual|makerworld|printables)$"),
+    source_type: Optional[str] = Query(None, pattern="^(manual|makerworld|printables)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     idea_service: IdeaService = Depends(get_idea_service)
@@ -314,7 +314,7 @@ async def get_idea_statistics(
 @router.get("/search", response_model=List[Dict[str, Any]])
 async def search_ideas(
     q: str = Query(..., min_length=1, description="Search query"),
-    status: Optional[str] = Query(None, regex="^(idea|planned|printing|completed|archived)$"),
+    status: Optional[str] = Query(None, pattern="^(idea|planned|printing|completed|archived)$"),
     is_business: Optional[bool] = Query(None),
     category: Optional[str] = Query(None),
     idea_service: IdeaService = Depends(get_idea_service)
