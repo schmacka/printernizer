@@ -270,6 +270,13 @@ class Database:
         if not self._connection:
             raise RuntimeError("Database not initialized")
         return self._connection
+    
+    @asynccontextmanager
+    async def connection(self):
+        """Get database connection as async context manager."""
+        if not self._connection:
+            raise RuntimeError("Database not initialized")
+        yield self._connection
         
     async def health_check(self) -> bool:
         """Check database health."""

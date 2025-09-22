@@ -55,7 +55,7 @@ class MaterialService:
 
     async def _create_tables(self):
         """Create material-related database tables."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             # Materials table
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS materials (

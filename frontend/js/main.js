@@ -11,6 +11,7 @@ class PrinternizerApp {
             printers: typeof printerManager !== 'undefined' ? printerManager : null,
             jobs: typeof jobManager !== 'undefined' ? jobManager : null,
             files: typeof fileManager !== 'undefined' ? fileManager : null,
+            ideas: typeof initializeIdeas !== 'undefined' ? { init: initializeIdeas } : null,
             settings: typeof settingsManager !== 'undefined' ? settingsManager : null,
             debug: typeof debugManager !== 'undefined' ? debugManager : null
         };
@@ -59,7 +60,7 @@ class PrinternizerApp {
         
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
-        if (['dashboard', 'printers', 'jobs', 'files', 'settings', 'debug'].includes(currentHash)) {
+        if (['dashboard', 'printers', 'jobs', 'files', 'ideas', 'settings', 'debug'].includes(currentHash)) {
             this.currentPage = currentHash;
         }
         
@@ -70,7 +71,7 @@ class PrinternizerApp {
      * Show specific page
      */
     showPage(pageName, updateHistory = true) {
-        if (!['dashboard', 'printers', 'jobs', 'files', 'settings', 'debug'].includes(pageName)) {
+        if (!['dashboard', 'printers', 'jobs', 'files', 'ideas', 'settings', 'debug'].includes(pageName)) {
             console.error('Invalid page name:', pageName);
             return;
         }
