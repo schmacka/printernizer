@@ -33,12 +33,17 @@
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
                     Aufträge
                 </a>
-                <a href="#files" class="nav-link" data-page="files" 
+                <a href="#files" class="nav-link" data-page="files"
                    role="button" aria-describedby="nav-files-desc">
                     <span class="nav-icon" aria-hidden="true">📁</span>
                     Dateien
                 </a>
-                <a href="#settings" class="nav-link" data-page="settings" 
+                <a href="#ideas" class="nav-link" data-page="ideas"
+                   role="button" aria-describedby="nav-ideas-desc">
+                    <span class="nav-icon" aria-hidden="true">💡</span>
+                    Ideen
+                </a>
+                <a href="#settings" class="nav-link" data-page="settings"
                    role="button" aria-describedby="nav-settings-desc">
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
                     Einstellungen
@@ -55,6 +60,7 @@
                 <div id="nav-printers-desc">Verwaltung und Konfiguration der 3D-Drucker</div>
                 <div id="nav-jobs-desc">Übersicht und Verwaltung der Druckaufträge</div>
                 <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
+                <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
                 <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
                 <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
             </div>
@@ -304,6 +310,166 @@
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
                         <p>Lade Dateien...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ideas Page -->
+        <div id="ideas" class="page">
+            <div class="page-header">
+                <h1>Ideen</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="ideaStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="idea">💡 Idee</option>
+                            <option value="planned">📅 Geplant</option>
+                            <option value="printing">🖨️ Wird gedruckt</option>
+                            <option value="completed">✅ Abgeschlossen</option>
+                            <option value="archived">📦 Archiviert</option>
+                        </select>
+                        <select id="ideaTypeFilter" class="filter-select">
+                            <option value="">Alle Typen</option>
+                            <option value="business">🏢 Geschäftlich</option>
+                            <option value="personal">👤 Privat</option>
+                        </select>
+                        <select id="ideaSourceFilter" class="filter-select">
+                            <option value="">Alle Quellen</option>
+                            <option value="manual">✍️ Manuell</option>
+                            <option value="makerworld">🌍 Makerworld</option>
+                            <option value="printables">🔧 Printables</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="refreshIdeas()">
+                            <span class="btn-icon">🔄</span>
+                            Aktualisieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="showImportDialog()">
+                            <span class="btn-icon">🔗</span>
+                            Aus URL importieren
+                        </button>
+                        <button class="btn btn-primary" onclick="showAddIdeaDialog()">
+                            <span class="btn-icon">➕</span>
+                            Neue Idee
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ideas Navigation Tabs -->
+            <div class="ideas-nav-tabs">
+                <button class="tab-button active" data-tab="my-ideas" onclick="showIdeasTab('my-ideas')">
+                    <span class="tab-icon">💡</span>
+                    Meine Ideen
+                </button>
+                <button class="tab-button" data-tab="bookmarks" onclick="showIdeasTab('bookmarks')">
+                    <span class="tab-icon">🔖</span>
+                    Lesezeichen
+                </button>
+                <button class="tab-button" data-tab="trending" onclick="showIdeasTab('trending')">
+                    <span class="tab-icon">📈</span>
+                    Trending
+                </button>
+            </div>
+
+            <!-- Ideas Statistics -->
+            <div class="ideas-stats" id="ideasStats">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Ideen-Statistiken...</p>
+                </div>
+            </div>
+
+            <!-- My Ideas Tab -->
+            <div id="my-ideas-tab" class="ideas-tab-content active">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon">💡</span>
+                            Meine Ideen
+                        </h2>
+                        <div class="ideas-view-controls">
+                            <button class="btn btn-small" onclick="setIdeasView('grid')" id="gridViewBtn">
+                                <span class="btn-icon">⊞</span>
+                                Raster
+                            </button>
+                            <button class="btn btn-small" onclick="setIdeasView('list')" id="listViewBtn">
+                                <span class="btn-icon">☰</span>
+                                Liste
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ideas-container" id="myIdeasContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Lade Ideen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bookmarks Tab -->
+            <div id="bookmarks-tab" class="ideas-tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon">🔖</span>
+                            Lesezeichen
+                        </h2>
+                        <div class="platform-filter">
+                            <button class="platform-btn active" data-platform="all" onclick="filterBookmarksByPlatform('all')">
+                                Alle
+                            </button>
+                            <button class="platform-btn" data-platform="makerworld" onclick="filterBookmarksByPlatform('makerworld')">
+                                Makerworld
+                            </button>
+                            <button class="platform-btn" data-platform="printables" onclick="filterBookmarksByPlatform('printables')">
+                                Printables
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bookmarks-container" id="bookmarksContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Lade Lesezeichen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trending Tab -->
+            <div id="trending-tab" class="ideas-tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon">📈</span>
+                            Trending Modelle
+                        </h2>
+                        <div class="header-actions">
+                            <div class="trending-platform-filter">
+                                <button class="platform-btn active" data-platform="all" onclick="filterTrendingByPlatform('all')">
+                                    Alle
+                                </button>
+                                <button class="platform-btn" data-platform="makerworld" onclick="filterTrendingByPlatform('makerworld')">
+                                    Makerworld
+                                </button>
+                                <button class="platform-btn" data-platform="printables" onclick="filterTrendingByPlatform('printables')">
+                                    Printables
+                                </button>
+                            </div>
+                            <button class="btn btn-secondary" onclick="refreshTrending()">
+                                <span class="btn-icon">🔄</span>
+                                Aktualisieren
+                            </button>
+                        </div>
+                    </div>
+                    <div class="trending-container" id="trendingContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Lade Trending-Modelle...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -794,6 +960,312 @@
         </div>
     </div>
 
+    <!-- Add Idea Modal -->
+    <div id="addIdeaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Neue Idee hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('addIdeaModal')">&times;</button>
+            </div>
+            <form id="addIdeaForm" class="modal-body">
+                <div class="form-group">
+                    <label for="ideaTitle">Titel</label>
+                    <input type="text" id="ideaTitle" name="title" class="form-control" required
+                           placeholder="Meine neue Druckidee"
+                           minlength="1" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="ideaDescription">Beschreibung</label>
+                    <textarea id="ideaDescription" name="description" class="form-control"
+                              placeholder="Detaillierte Beschreibung der Idee..."
+                              maxlength="2000" rows="4"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ideaCategory">Kategorie</label>
+                        <input type="text" id="ideaCategory" name="category" class="form-control"
+                               placeholder="z.B. Geschenk, Prototyp, Dekoration"
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ideaPriority">Priorität</label>
+                        <select id="ideaPriority" name="priority" class="form-control">
+                            <option value="1">1 - Niedrig</option>
+                            <option value="2">2 - Gering</option>
+                            <option value="3" selected>3 - Mittel</option>
+                            <option value="4">4 - Hoch</option>
+                            <option value="5">5 - Sehr hoch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ideaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
+                        <input type="number" id="ideaEstimatedTime" name="estimated_print_time"
+                               class="form-control" min="0" placeholder="120">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ideaPlannedDate">Geplantes Datum</label>
+                        <input type="date" id="ideaPlannedDate" name="planned_date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ideaMaterialNotes">Material-Notizen</label>
+                    <textarea id="ideaMaterialNotes" name="material_notes" class="form-control"
+                              placeholder="PLA Rot, 0.2mm Schichthöhe..."
+                              maxlength="500" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="ideaTags">Tags (durch Komma getrennt)</label>
+                    <input type="text" id="ideaTags" name="tags" class="form-control"
+                           placeholder="geschenk, weihnachten, personalisiert">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="ideaIsBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Geschäftlicher Auftrag
+                    </label>
+                </div>
+
+                <div class="form-group" id="customerInfoGroup" style="display: none;">
+                    <label for="ideaCustomerInfo">Kunden-Informationen</label>
+                    <textarea id="ideaCustomerInfo" name="customer_info" class="form-control"
+                              placeholder="Kundenname, Kontakt, spezielle Anforderungen..."
+                              maxlength="500" rows="2"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addIdeaModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="addIdeaForm" class="btn btn-primary">
+                    <span class="btn-icon">💡</span>
+                    Idee speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Idea Modal -->
+    <div id="editIdeaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Idee bearbeiten</h3>
+                <button class="modal-close" onclick="closeModal('editIdeaModal')">&times;</button>
+            </div>
+            <form id="editIdeaForm" class="modal-body">
+                <input type="hidden" id="editIdeaId" name="ideaId">
+
+                <div class="form-group">
+                    <label for="editIdeaTitle">Titel</label>
+                    <input type="text" id="editIdeaTitle" name="title" class="form-control" required
+                           minlength="1" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="editIdeaDescription">Beschreibung</label>
+                    <textarea id="editIdeaDescription" name="description" class="form-control"
+                              maxlength="2000" rows="4"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editIdeaCategory">Kategorie</label>
+                        <input type="text" id="editIdeaCategory" name="category" class="form-control"
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editIdeaPriority">Priorität</label>
+                        <select id="editIdeaPriority" name="priority" class="form-control">
+                            <option value="1">1 - Niedrig</option>
+                            <option value="2">2 - Gering</option>
+                            <option value="3">3 - Mittel</option>
+                            <option value="4">4 - Hoch</option>
+                            <option value="5">5 - Sehr hoch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editIdeaStatus">Status</label>
+                        <select id="editIdeaStatus" name="status" class="form-control">
+                            <option value="idea">💡 Idee</option>
+                            <option value="planned">📅 Geplant</option>
+                            <option value="printing">🖨️ Wird gedruckt</option>
+                            <option value="completed">✅ Abgeschlossen</option>
+                            <option value="archived">📦 Archiviert</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editIdeaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
+                        <input type="number" id="editIdeaEstimatedTime" name="estimated_print_time"
+                               class="form-control" min="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editIdeaPlannedDate">Geplantes Datum</label>
+                        <input type="date" id="editIdeaPlannedDate" name="planned_date" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editIdeaCompletedDate">Abgeschlossen am</label>
+                        <input type="date" id="editIdeaCompletedDate" name="completed_date" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="editIdeaMaterialNotes">Material-Notizen</label>
+                    <textarea id="editIdeaMaterialNotes" name="material_notes" class="form-control"
+                              maxlength="500" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editIdeaTags">Tags (durch Komma getrennt)</label>
+                    <input type="text" id="editIdeaTags" name="tags" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="editIdeaIsBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Geschäftlicher Auftrag
+                    </label>
+                </div>
+
+                <div class="form-group" id="editCustomerInfoGroup" style="display: none;">
+                    <label for="editIdeaCustomerInfo">Kunden-Informationen</label>
+                    <textarea id="editIdeaCustomerInfo" name="customer_info" class="form-control"
+                              maxlength="500" rows="2"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editIdeaModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="editIdeaForm" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Änderungen speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import from URL Modal -->
+    <div id="importIdeaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modell aus URL importieren</h3>
+                <button class="modal-close" onclick="closeModal('importIdeaModal')">&times;</button>
+            </div>
+            <form id="importIdeaForm" class="modal-body">
+                <div class="form-group">
+                    <label for="importUrl">URL</label>
+                    <input type="url" id="importUrl" name="url" class="form-control" required
+                           placeholder="https://makerworld.com/models/123456 oder https://www.printables.com/model/123456">
+                    <small class="form-text text-muted">
+                        Unterstützte Plattformen: Makerworld, Printables, Thingiverse, MyMiniFactory, Cults3D
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary" onclick="previewImportUrl()">
+                        <span class="btn-icon">👁️</span>
+                        URL-Vorschau laden
+                    </button>
+                </div>
+
+                <div id="urlPreview" class="url-preview" style="display: none;">
+                    <div class="preview-content">
+                        <div class="preview-thumbnail">
+                            <img id="previewImage" src="" alt="Modell-Vorschau">
+                        </div>
+                        <div class="preview-info">
+                            <h4 id="previewTitle">Modell-Titel</h4>
+                            <p id="previewDescription">Beschreibung...</p>
+                            <div class="preview-meta">
+                                <span id="previewCreator">Ersteller: </span>
+                                <span id="previewPlatform">Plattform: </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="importCategory">Kategorie</label>
+                        <input type="text" id="importCategory" name="category" class="form-control"
+                               placeholder="z.B. Dekoration, Werkzeug"
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="importPriority">Priorität</label>
+                        <select id="importPriority" name="priority" class="form-control">
+                            <option value="1">1 - Niedrig</option>
+                            <option value="2">2 - Gering</option>
+                            <option value="3" selected>3 - Mittel</option>
+                            <option value="4">4 - Hoch</option>
+                            <option value="5">5 - Sehr hoch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="importTags">Tags (durch Komma getrennt)</label>
+                    <input type="text" id="importTags" name="tags" class="form-control"
+                           placeholder="makerworld, dekoration, miniatur">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="importIsBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Geschäftlicher Auftrag
+                    </label>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('importIdeaModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="importIdeaForm" class="btn btn-primary">
+                    <span class="btn-icon">🔗</span>
+                    Importieren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Idea Details Modal -->
+    <div id="ideaDetailsModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Idee Details</h3>
+                <button class="modal-close" onclick="closeModal('ideaDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="ideaDetailsContent">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/error-handler.js"></script>
     <script src="js/config.js"></script>
@@ -808,6 +1280,7 @@
     <script src="js/printers.js"></script>
     <script src="js/jobs.js"></script>
     <script src="js/files.js"></script>
+    <script src="js/ideas.js"></script>
     <script src="js/settings.js?v=1.1"></script>
     <script src="js/debug.js?v=1.1"></script>
     <script src="js/main.js?v=1.1"></script>

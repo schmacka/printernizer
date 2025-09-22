@@ -47,7 +47,7 @@ class TrendingService:
 
     async def _create_tables(self):
         """Create trending-related database tables."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             await conn.execute('''
                 CREATE TABLE IF NOT EXISTS trending_cache (
                     id TEXT PRIMARY KEY,
@@ -109,7 +109,7 @@ class TrendingService:
 
     async def _needs_refresh(self) -> bool:
         """Check if trending cache needs refresh."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             cursor = await conn.execute('''
                 SELECT COUNT(*) as count, MIN(expires_at) as earliest_expiry
                 FROM trending_cache
@@ -259,7 +259,7 @@ class TrendingService:
         """Save trending items to cache."""
         expires_at = datetime.now() + timedelta(hours=6)
 
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             for item in items:
                 try:
                     cache_id = str(uuid4())
@@ -334,7 +334,7 @@ class TrendingService:
         query += ' ORDER BY downloads DESC, likes DESC LIMIT ?'
         params.append(limit)
 
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             cursor = await conn.execute(query, params)
             rows = await cursor.fetchall()
 
@@ -372,7 +372,7 @@ class TrendingService:
 
     async def cleanup_expired(self):
         """Remove expired cache entries."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             # Delete expired entries
             await conn.execute('''
                 DELETE FROM trending_cache
@@ -396,7 +396,7 @@ class TrendingService:
 
     async def save_as_idea(self, trending_id: str, user_notes: Optional[str] = None) -> str:
         """Save a trending item as an idea."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             # Get trending item
             cursor = await conn.execute('''
                 SELECT * FROM trending_cache WHERE id = ?
@@ -443,7 +443,7 @@ class TrendingService:
 
     async def get_statistics(self) -> Dict[str, Any]:
         """Get trending cache statistics."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             # Total cached items
             cursor = await conn.execute('SELECT COUNT(*) as count FROM trending_cache')
             total = (await cursor.fetchone())['count']
