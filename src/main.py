@@ -29,7 +29,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
-from src.api.routers import (
+from api.routers import (
     health_router,
     printers_router,
     jobs_router,
@@ -41,19 +41,19 @@ from src.api.routers import (
     errors_router,
     camera_router
 )
-from src.api.routers.ideas import router as ideas_router
-from src.api.routers.idea_url import router as idea_url_router
-from src.database.database import Database
-from src.services.event_service import EventService
-from src.services.config_service import ConfigService
-from src.services.printer_service import PrinterService
-from src.services.file_service import FileService
-from src.services.file_watcher_service import FileWatcherService
-from src.services.migration_service import MigrationService
-from src.services.monitoring_service import monitoring_service
-from src.utils.logging_config import setup_logging
-from src.utils.exceptions import PrinternizerException
-from src.utils.middleware import (
+from api.routers.ideas import router as ideas_router
+from api.routers.idea_url import router as idea_url_router
+from database.database import Database
+from services.event_service import EventService
+from services.config_service import ConfigService
+from services.printer_service import PrinterService
+from services.file_service import FileService
+from services.file_watcher_service import FileWatcherService
+from services.migration_service import MigrationService
+from services.monitoring_service import monitoring_service
+from utils.logging_config import setup_logging
+from utils.exceptions import PrinternizerException
+from utils.middleware import (
     RequestTimingMiddleware,
     GermanComplianceMiddleware,
     SecurityHeadersMiddleware
@@ -151,7 +151,7 @@ def create_application() -> FastAPI:
     """Create FastAPI application with production configuration."""
     
     # Initialize settings to get configuration
-    from src.services.config_service import Settings
+    from services.config_service import Settings
     settings = Settings()
     
     app = FastAPI(
