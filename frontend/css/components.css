@@ -2365,3 +2365,13 @@
         flex-wrap: wrap;
     }
 }
+
+/* Form validation styles */
+.required {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+label .required {
+    margin-left: 2px;
+}
