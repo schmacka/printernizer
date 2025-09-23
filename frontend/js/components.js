@@ -153,13 +153,21 @@ class PrinterCard {
 
     /**
      * Render real-time progress section
+     * Note: This is only shown when there's no job progress in renderCurrentJob()
      */
     renderRealtimeProgress() {
+        // Don't show real-time progress if there's already job progress being displayed
         if (!this.printer.current_job || this.printer.status !== 'printing') {
             return '';
         }
         
         const job = this.printer.current_job;
+        
+        // Skip real-time progress if job progress will be shown in renderCurrentJob
+        if (job.progress !== undefined) {
+            return '';
+        }
+        
         return `
             <div class="realtime-progress">
                 <div class="progress-header">
