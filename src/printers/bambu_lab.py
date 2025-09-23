@@ -343,20 +343,91 @@ class BambuLabPrinter(BasePrinter):
         # Map bambulabs_api status names to our printer status
         printer_status = self._map_bambu_status(status_name)
         
-        # Try to get temperature and progress data
-        # Note: bambulabs_api may not always have this data immediately
-        bed_temp = getattr(status, 'bed_temper', 0.0) or 0.0
-        nozzle_temp = getattr(status, 'nozzle_temper', 0.0) or 0.0
-        progress = getattr(status, 'print_percent', 0) or 0
-        layer_num = getattr(status, 'layer_num', 0) or 0
+        # Get temperature and progress data using bambulabs_api methods and MQTT data
+        bed_temp = 0.0
+        nozzle_temp = 0.0
+        progress = 0
+        layer_num = 0
+        current_job = None
         
-        # Create status message based on printer state
-        if status_name == 'PRINTING':
+        try:
+            # First, try to get data from MQTT dump which is most reliable
+            if hasattr(self.bambu_client, 'mqtt_dump'):
+                mqtt_data = self.bambu_client.mqtt_dump()
+                if isinstance(mqtt_data, dict) and 'print' in mqtt_data:
+                    print_data = mqtt_data['print']
+                    if isinstance(print_data, dict):
+                        # Extract temperature data from MQTT (correct field names)
+                        bed_temp = float(print_data.get('bed_temper', 0.0) or 0.0)
+                        nozzle_temp = float(print_data.get('nozzle_temper', 0.0) or 0.0)
+                        
+                        # Get layer information from MQTT
+                        layer_num = int(print_data.get('layer_num', 0) or 0)
+                        
+                        # Look for progress data in MQTT (various possible field names)
+                        progress_fields = ['mc_percent', 'print_percent', 'percent', 'progress']
+                        for field in progress_fields:
+                            if field in print_data and print_data[field] is not None:
+                                progress = int(print_data[field])
+                                break
+                        
+                        logger.debug("Got data from MQTT dump", 
+                                   printer_id=self.printer_id,
+                                   bed_temp=bed_temp, nozzle_temp=nozzle_temp, 
+                                   progress=progress, layer_num=layer_num,
+                                   mqtt_keys=list(print_data.keys()))
+
+            # If MQTT didn't provide data, use direct method calls
+            if bed_temp == 0.0 and hasattr(self.bambu_client, 'get_bed_temperature'):
+                bed_temp = float(self.bambu_client.get_bed_temperature() or 0.0)
+            
+            if nozzle_temp == 0.0 and hasattr(self.bambu_client, 'get_nozzle_temperature'):
+                nozzle_temp = float(self.bambu_client.get_nozzle_temperature() or 0.0)
+            
+            if progress == 0 and hasattr(self.bambu_client, 'get_percentage'):
+                progress = int(self.bambu_client.get_percentage() or 0)
+            
+            # Get layer information
+            if hasattr(self.bambu_client, 'current_layer_num'):
+                layer_num = int(self.bambu_client.current_layer_num() or 0)
+            
+            # Get current job name
+            if hasattr(self.bambu_client, 'subtask_name'):
+                subtask = self.bambu_client.subtask_name()
+                if subtask and isinstance(subtask, str) and subtask.strip():
+                    current_job = subtask.strip()
+            
+            if not current_job and hasattr(self.bambu_client, 'gcode_file'):
+                gcode = self.bambu_client.gcode_file()
+                if gcode and isinstance(gcode, str) and gcode.strip():
+                    current_job = gcode.strip()
+                    # Clean up cache/ prefix if present
+                    if current_job.startswith('cache/'):
+                        current_job = current_job[6:]
+            
+        except Exception as e:
+            logger.debug("Failed to get bambulabs_api data", 
+                        printer_id=self.printer_id, error=str(e))
+            
+            # Final fallback to status object attributes
+            bed_temp = getattr(status, 'bed_temper', 0.0) or 0.0
+            nozzle_temp = getattr(status, 'nozzle_temper', 0.0) or 0.0
+            progress = getattr(status, 'print_percent', 0) or 0
+            layer_num = getattr(status, 'layer_num', 0) or 0
+        
+        # Improved status detection based on temperature and progress data
+        if progress > 0 or (nozzle_temp > 200 and bed_temp > 50):
+            printer_status = PrinterStatus.PRINTING
+            if progress > 0:
+                message = f"Printing - Layer {layer_num}, {progress}%"
+            else:
+                message = f"Printing - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
+        elif status_name == 'PRINTING':
+            printer_status = PrinterStatus.PRINTING
             if progress > 0:
                 message = f"Printing - Layer {layer_num}, {progress}%"
             else:
                 message = "Printing - Status detected"
-            printer_status = PrinterStatus.PRINTING
         elif status_name in ['IDLE', 'UNKNOWN']:
             if nozzle_temp > 50:
                 message = f"Heating - Nozzle {nozzle_temp}°C"
@@ -372,27 +443,6 @@ class BambuLabPrinter(BasePrinter):
             printer_status = self._map_bambu_status(status_name)
             message = f"Status: {status_name}"
 
-        current_job = getattr(status, 'gcode_file', None)
-        
-        # If bambu API doesn't have job info, try the specific filename methods
-        if not current_job and self.bambu_client:
-            try:
-                # Try multiple methods to get filename
-                filename_methods = ['get_file_name', 'gcode_file', 'subtask_name']
-                for method_name in filename_methods:
-                    if hasattr(self.bambu_client, method_name):
-                        method = getattr(self.bambu_client, method_name)
-                        result = method()
-                        if result and isinstance(result, str) and result.strip() and result != "UNKNOWN":
-                            current_job = result.strip()
-                            # Clean up cache/ prefix if present
-                            if current_job.startswith('cache/'):
-                                current_job = current_job[6:]
-                            logger.debug(f"Got filename from {method_name}: {current_job}")
-                            break
-            except Exception as e:
-                logger.debug(f"Failed to get filename via methods: {e}")
-        
         # If we're printing but don't have a job name, create a generic one
         if printer_status == PrinterStatus.PRINTING and not current_job:
             current_job = f"Print Job (via MQTT)"
