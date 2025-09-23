@@ -3,6 +3,9 @@
  * Handles idea creation, editing, filtering, and external platform integration
  */
 
+// API Configuration - Use current origin for backend requests
+const API_BASE_URL = window.location.protocol + '//' + window.location.hostname + ':8000';
+
 // Ideas global state
 let ideasState = {
     currentTab: 'my-ideas',
@@ -19,67 +22,125 @@ let ideasState = {
     statistics: {}
 };
 
+// Helper function to show error in container
+function showErrorInContainer(containerId, message) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `
+            <div class="error-message">
+                <span class="error-icon">⚠️</span>
+                <span class="error-text">${message}</span>
+            </div>
+        `;
+    }
+}
+
+// Helper function to show loading
+function showLoading(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = `
+            <div class="loading-placeholder">
+                <div class="spinner"></div>
+                <p>Lade...</p>
+            </div>
+        `;
+    }
+}
+
 // Initialize Ideas page
 function initializeIdeas() {
     console.log('Initializing Ideas page...');
 
-    // Initialize event listeners
-    setupIdeasEventListeners();
+    try {
+        // Initialize event listeners
+        setupIdeasEventListeners();
 
-    // Load initial data
-    loadIdeasStatistics();
-    loadMyIdeas();
+        // Load initial data
+        loadIdeasStatistics().catch(error => {
+            console.warn('Failed to load ideas statistics:', error);
+        });
 
-    // Set up periodic refresh for trending content
-    setInterval(refreshTrendingIfActive, 5 * 60 * 1000); // Every 5 minutes
+        loadMyIdeas().catch(error => {
+            console.warn('Failed to load ideas:', error);
+        });
+
+        // Set up periodic refresh for trending content
+        setInterval(refreshTrendingIfActive, 5 * 60 * 1000); // Every 5 minutes
+
+        console.log('Ideas page initialized successfully');
+    } catch (error) {
+        console.error('Error initializing Ideas page:', error);
+    }
 }
 
 // Set up event listeners
 function setupIdeasEventListeners() {
-    // Tab navigation
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const tabName = e.target.dataset.tab;
-            if (tabName) {
-                showIdeasTab(tabName);
+    try {
+        // Tab navigation
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                if (tabName) {
+                    showIdeasTab(tabName);
+                }
+            });
+        });
+
+        // Filter change listeners
+        const filters = ['ideaStatusFilter', 'ideaTypeFilter', 'ideaSourceFilter'];
+        filters.forEach(filterId => {
+            const filterElement = document.getElementById(filterId);
+            if (filterElement) {
+                filterElement.addEventListener('change', applyIdeasFilters);
+            } else {
+                console.warn(`Filter element not found: ${filterId}`);
             }
         });
-    });
 
-    // Filter change listeners
-    const filters = ['ideaStatusFilter', 'ideaTypeFilter', 'ideaSourceFilter'];
-    filters.forEach(filterId => {
-        const filterElement = document.getElementById(filterId);
-        if (filterElement) {
-            filterElement.addEventListener('change', applyIdeasFilters);
-        }
-    });
+        // Form submissions
+        setupFormSubmissions();
 
-    // Form submissions
-    setupFormSubmissions();
+        // Business checkbox listeners for customer info toggle
+        setupBusinessCheckboxListeners();
 
-    // Business checkbox listeners for customer info toggle
-    setupBusinessCheckboxListeners();
+        console.log('Ideas event listeners setup completed');
+    } catch (error) {
+        console.error('Error setting up Ideas event listeners:', error);
+    }
 }
 
 // Setup form submissions
 function setupFormSubmissions() {
-    // Add Idea Form
-    const addIdeaForm = document.getElementById('addIdeaForm');
-    if (addIdeaForm) {
-        addIdeaForm.addEventListener('submit', handleAddIdea);
-    }
+    try {
+        // Add Idea Form
+        const addIdeaForm = document.getElementById('addIdeaForm');
+        if (addIdeaForm) {
+            addIdeaForm.addEventListener('submit', handleAddIdea);
+            console.log('Add idea form listener attached');
+        } else {
+            console.warn('Add idea form not found');
+        }
 
-    // Edit Idea Form
-    const editIdeaForm = document.getElementById('editIdeaForm');
-    if (editIdeaForm) {
-        editIdeaForm.addEventListener('submit', handleEditIdea);
-    }
+        // Edit Idea Form
+        const editIdeaForm = document.getElementById('editIdeaForm');
+        if (editIdeaForm) {
+            editIdeaForm.addEventListener('submit', handleEditIdea);
+            console.log('Edit idea form listener attached');
+        } else {
+            console.warn('Edit idea form not found');
+        }
 
-    // Import Idea Form
-    const importIdeaForm = document.getElementById('importIdeaForm');
-    if (importIdeaForm) {
-        importIdeaForm.addEventListener('submit', handleImportIdea);
+        // Import Idea Form
+        const importIdeaForm = document.getElementById('importIdeaForm');
+        if (importIdeaForm) {
+            importIdeaForm.addEventListener('submit', handleImportIdea);
+            console.log('Import idea form listener attached');
+        } else {
+            console.warn('Import idea form not found');
+        }
+    } catch (error) {
+        console.error('Error setting up form submissions:', error);
     }
 }
 
@@ -137,19 +198,26 @@ function showIdeasTab(tabName) {
 // Data Loading Functions
 async function loadIdeasStatistics() {
     try {
-        const response = await fetch('/api/ideas/stats/overview');
+        console.log('Loading ideas statistics...');
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/stats/overview`);
         if (response.ok) {
             const stats = await response.json();
+            console.log('Statistics loaded:', stats);
             ideasState.statistics = stats;
             displayIdeasStatistics(stats);
+        } else {
+            console.error('Failed to load statistics:', response.status, response.statusText);
+            showErrorInContainer('ideasStats', 'Fehler beim Laden der Statistiken');
         }
     } catch (error) {
         console.error('Error loading ideas statistics:', error);
+        showErrorInContainer('ideasStats', 'Fehler beim Laden der Statistiken');
     }
 }
 
 async function loadMyIdeas() {
     try {
+        console.log('Loading my ideas...');
         showLoading('myIdeasContainer');
 
         const queryParams = new URLSearchParams();
@@ -159,17 +227,22 @@ async function loadMyIdeas() {
         }
         if (ideasState.filters.source) queryParams.set('source_type', ideasState.filters.source);
 
-        const response = await fetch(`/api/ideas/?${queryParams}`);
+        const url = `${API_BASE_URL}/api/v1/ideas/?${queryParams}`;
+        console.log('Fetching ideas from:', url);
+
+        const response = await fetch(url);
         if (response.ok) {
             const data = await response.json();
+            console.log('Ideas loaded:', data);
             ideasState.ideas = data.ideas || [];
             displayMyIdeas(ideasState.ideas);
         } else {
-            throw new Error('Failed to load ideas');
+            console.error('Failed to load ideas:', response.status, response.statusText);
+            showErrorInContainer('myIdeasContainer', 'Fehler beim Laden der Ideen');
         }
     } catch (error) {
         console.error('Error loading ideas:', error);
-        showError('myIdeasContainer', 'Fehler beim Laden der Ideen');
+        showErrorInContainer('myIdeasContainer', 'Fehler beim Laden der Ideen');
     }
 }
 
@@ -178,7 +251,7 @@ async function loadBookmarks() {
         showLoading('bookmarksContainer');
 
         // Load ideas with external source types
-        const response = await fetch('/api/ideas/?source_type=makerworld,printables');
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/?source_type=makerworld,printables`);
         if (response.ok) {
             const data = await response.json();
             ideasState.bookmarks = data.ideas || [];
@@ -197,7 +270,7 @@ async function loadTrending() {
         showLoading('trendingContainer');
 
         const platform = ideasState.filters.platform === 'all' ? 'all' : ideasState.filters.platform;
-        const response = await fetch(`/api/ideas/trending/${platform}`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/trending/${platform}`);
         if (response.ok) {
             const trending = await response.json();
             ideasState.trending = trending;
@@ -219,7 +292,7 @@ function displayIdeasStatistics(stats) {
     const html = `
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">${stats.total_ideas || 0}</div>
+                <div class="stat-number">${stats.total_ideas || stats.idea_count || 0}</div>
                 <div class="stat-label">Gesamt Ideen</div>
             </div>
             <div class="stat-card">
@@ -241,32 +314,49 @@ function displayIdeasStatistics(stats) {
 }
 
 function displayMyIdeas(ideas) {
-    const container = document.getElementById('myIdeasContainer');
-    if (!container) return;
+    try {
+        console.log('Displaying ideas:', ideas);
+        const container = document.getElementById('myIdeasContainer');
+        if (!container) {
+            console.error('myIdeasContainer not found');
+            return;
+        }
 
-    if (ideas.length === 0) {
+        if (!ideas || ideas.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">💡</div>
+                    <h3>Keine Ideen gefunden</h3>
+                    <p>Erstellen Sie Ihre erste Idee oder passen Sie die Filter an.</p>
+                    <button class="btn btn-primary" onclick="showAddIdeaDialog()">
+                        <span class="btn-icon">➕</span>
+                        Neue Idee
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        const viewClass = ideasState.currentView === 'grid' ? 'ideas-grid' : 'ideas-list';
+        const itemsHtml = ideas.map(idea => {
+            try {
+                return createIdeaCard(idea);
+            } catch (cardError) {
+                console.error('Error creating idea card:', cardError, idea);
+                return `<div class="error-card">Error loading idea: ${idea.title || 'Unknown'}</div>`;
+            }
+        }).join('');
+
         container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">💡</div>
-                <h3>Keine Ideen gefunden</h3>
-                <p>Erstellen Sie Ihre erste Idee oder passen Sie die Filter an.</p>
-                <button class="btn btn-primary" onclick="showAddIdeaDialog()">
-                    <span class="btn-icon">➕</span>
-                    Neue Idee
-                </button>
+            <div class="${viewClass}">
+                ${itemsHtml}
             </div>
         `;
-        return;
+        console.log('Ideas displayed successfully');
+    } catch (error) {
+        console.error('Error displaying ideas:', error);
+        showErrorInContainer('myIdeasContainer', 'Fehler beim Anzeigen der Ideen');
     }
-
-    const viewClass = ideasState.currentView === 'grid' ? 'ideas-grid' : 'ideas-list';
-    const itemsHtml = ideas.map(idea => createIdeaCard(idea)).join('');
-
-    container.innerHTML = `
-        <div class="${viewClass}">
-            ${itemsHtml}
-        </div>
-    `;
 }
 
 function displayBookmarks(bookmarks) {
@@ -512,8 +602,23 @@ function createTrendingCard(item) {
 
 // Action Functions
 function showAddIdeaDialog() {
-    clearIdeaForm('addIdeaForm');
-    showModal('addIdeaModal');
+    try {
+        console.log('Opening add idea dialog...');
+        clearIdeaForm('addIdeaForm');
+        if (typeof showModal === 'function') {
+            showModal('addIdeaModal');
+        } else {
+            console.error('showModal function not available');
+            // Fallback: show modal manually
+            const modal = document.getElementById('addIdeaModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.add('show');
+            }
+        }
+    } catch (error) {
+        console.error('Error opening add idea dialog:', error);
+    }
 }
 
 function showImportDialog() {
@@ -523,7 +628,7 @@ function showImportDialog() {
 
 async function editIdea(ideaId) {
     try {
-        const response = await fetch(`/api/ideas/${ideaId}`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaId}`);
         if (response.ok) {
             const idea = await response.json();
             populateEditForm(idea);
@@ -542,7 +647,7 @@ async function viewIdeaDetails(ideaId) {
         showModal('ideaDetailsModal');
         showLoading('ideaDetailsContent');
 
-        const response = await fetch(`/api/ideas/${ideaId}`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaId}`);
         if (response.ok) {
             const idea = await response.json();
             displayIdeaDetails(idea);
@@ -557,7 +662,7 @@ async function viewIdeaDetails(ideaId) {
 
 async function planIdea(ideaId) {
     try {
-        const response = await fetch(`/api/ideas/${ideaId}/status`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'planned' })
@@ -577,7 +682,7 @@ async function planIdea(ideaId) {
 
 async function startPrint(ideaId) {
     try {
-        const response = await fetch(`/api/ideas/${ideaId}/status`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaId}/status`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'printing' })
@@ -597,7 +702,7 @@ async function startPrint(ideaId) {
 
 async function saveTrendingAsIdea(trendingId) {
     try {
-        const response = await fetch(`/api/ideas/trending/${trendingId}/save`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/trending/${trendingId}/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -628,9 +733,11 @@ async function handleAddIdea(event) {
         const formData = new FormData(event.target);
         const ideaData = Object.fromEntries(formData.entries());
 
-        // Process tags
-        if (ideaData.tags) {
+        // Process tags - handle empty string
+        if (ideaData.tags && ideaData.tags.trim()) {
             ideaData.tags = ideaData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+        } else {
+            ideaData.tags = [];
         }
 
         // Convert checkbox
@@ -639,29 +746,51 @@ async function handleAddIdea(event) {
         // Convert priority to number
         ideaData.priority = parseInt(ideaData.priority) || 3;
 
-        // Convert estimated time to number
-        if (ideaData.estimated_print_time) {
+        // Convert estimated time to number - handle empty string
+        if (ideaData.estimated_print_time && ideaData.estimated_print_time.trim()) {
             ideaData.estimated_print_time = parseInt(ideaData.estimated_print_time);
+        } else {
+            // Remove the field if empty to let the API use its default (null)
+            delete ideaData.estimated_print_time;
         }
 
-        const response = await fetch('/api/ideas/', {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ideaData)
         });
 
         if (response.ok) {
-            showNotification('Idee erfolgreich erstellt', 'success');
-            closeModal('addIdeaModal');
-            loadMyIdeas();
-            loadIdeasStatistics();
+            console.log('Idea created successfully');
+            try {
+                if (typeof showNotification === 'function') {
+                    showNotification('Idee erfolgreich erstellt', 'success');
+                } else {
+                    console.log('Idee erfolgreich erstellt');
+                }
+                if (typeof closeModal === 'function') {
+                    closeModal('addIdeaModal');
+                }
+                loadMyIdeas();
+                loadIdeasStatistics();
+            } catch (notifError) {
+                console.error('Error with notification/modal:', notifError);
+            }
         } else {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to create idea');
         }
     } catch (error) {
         console.error('Error creating idea:', error);
-        showNotification('Fehler beim Erstellen der Idee: ' + error.message, 'error');
+        try {
+            if (typeof showNotification === 'function') {
+                showNotification('Fehler beim Erstellen der Idee: ' + error.message, 'error');
+            } else {
+                alert('Fehler beim Erstellen der Idee: ' + error.message);
+            }
+        } catch (notifError) {
+            console.error('Error showing notification:', notifError);
+        }
     }
 }
 
@@ -674,9 +803,11 @@ async function handleEditIdea(event) {
         const ideaId = ideaData.ideaId;
         delete ideaData.ideaId;
 
-        // Process tags
-        if (ideaData.tags) {
+        // Process tags - handle empty string
+        if (ideaData.tags && ideaData.tags.trim()) {
             ideaData.tags = ideaData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+        } else {
+            ideaData.tags = [];
         }
 
         // Convert checkbox
@@ -685,12 +816,15 @@ async function handleEditIdea(event) {
         // Convert priority to number
         ideaData.priority = parseInt(ideaData.priority) || 3;
 
-        // Convert estimated time to number
-        if (ideaData.estimated_print_time) {
+        // Convert estimated time to number - handle empty string
+        if (ideaData.estimated_print_time && ideaData.estimated_print_time.trim()) {
             ideaData.estimated_print_time = parseInt(ideaData.estimated_print_time);
+        } else {
+            // Remove the field if empty to let the API use its default (null)
+            delete ideaData.estimated_print_time;
         }
 
-        const response = await fetch(`/api/ideas/${ideaId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/${ideaId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ideaData)
@@ -729,7 +863,7 @@ async function handleImportIdea(event) {
         // Convert priority to number
         importData.priority = parseInt(importData.priority) || 3;
 
-        const response = await fetch('/api/ideas/import', {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/import`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(importData)
@@ -1009,7 +1143,7 @@ async function refreshTrending() {
         showLoading('trendingContainer');
 
         // Force refresh trending cache
-        await fetch('/api/ideas/trending/refresh', { method: 'POST' });
+        await fetch(`${API_BASE_URL}/api/v1/ideas/trending/refresh`, { method: 'POST' });
 
         // Load fresh trending data
         await loadTrending();

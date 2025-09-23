@@ -205,9 +205,12 @@ def create_application() -> FastAPI:
     # Add additional origins for development
     if settings.environment == "development":
         cors_origins.extend([
-            "http://localhost:3000", 
+            "http://localhost:3000",
             "http://127.0.0.1:3000",
-            "http://192.168.176.159:3000"
+            "http://192.168.176.159:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+            "http://192.168.176.159:8000"
         ])
     
     app.add_middleware(
