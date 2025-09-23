@@ -621,8 +621,22 @@ function showAddIdeaDialog() {
     }
 }
 
-function showImportDialog() {
+function showImportDialog(context = 'ideas') {
     clearIdeaForm('importIdeaForm');
+    
+    // Store the import context for later use
+    document.getElementById('importIdeaModal').setAttribute('data-context', context);
+    
+    // Update modal title based on context
+    const modalTitle = document.querySelector('#importIdeaModal .modal-header h3');
+    if (modalTitle) {
+        if (context === 'bookmarks') {
+            modalTitle.textContent = 'Lesezeichen aus URL importieren';
+        } else {
+            modalTitle.textContent = 'Modell aus URL importieren';
+        }
+    }
+    
     showModal('importIdeaModal');
 }
 
@@ -852,6 +866,10 @@ async function handleImportIdea(event) {
         const formData = new FormData(event.target);
         const importData = Object.fromEntries(formData.entries());
 
+        // Get the import context from the modal
+        const modal = document.getElementById('importIdeaModal');
+        const context = modal.getAttribute('data-context') || 'ideas';
+
         // Process tags
         if (importData.tags) {
             importData.tags = importData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
@@ -870,10 +888,16 @@ async function handleImportIdea(event) {
         });
 
         if (response.ok) {
-            showNotification('Modell erfolgreich importiert', 'success');
-            closeModal('importIdeaModal');
-            loadMyIdeas();
-            loadIdeasStatistics();
+            if (context === 'bookmarks') {
+                showNotification('Lesezeichen erfolgreich importiert', 'success');
+                closeModal('importIdeaModal');
+                loadBookmarks(); // Reload bookmarks instead of ideas
+            } else {
+                showNotification('Modell erfolgreich importiert', 'success');
+                closeModal('importIdeaModal');
+                loadMyIdeas();
+                loadIdeasStatistics();
+            }
         } else {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to import idea');

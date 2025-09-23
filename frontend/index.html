@@ -418,17 +418,23 @@
                             <span class="section-icon">🔖</span>
                             Lesezeichen
                         </h2>
-                        <div class="platform-filter">
-                            <button class="platform-btn active" data-platform="all" onclick="filterBookmarksByPlatform('all')">
-                                Alle
-                            </button>
-                            <button class="platform-btn" data-platform="makerworld" onclick="filterBookmarksByPlatform('makerworld')">
-                                Makerworld
-                            </button>
-                            <button class="platform-btn" data-platform="printables" onclick="filterBookmarksByPlatform('printables')">
-                                Printables
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="showImportDialog('bookmarks')">
+                                <span class="btn-icon">🔗</span>
+                                Aus URL importieren
                             </button>
                         </div>
+                    </div>
+                    <div class="platform-filter">
+                        <button class="platform-btn active" data-platform="all" onclick="filterBookmarksByPlatform('all')">
+                            Alle
+                        </button>
+                        <button class="platform-btn" data-platform="makerworld" onclick="filterBookmarksByPlatform('makerworld')">
+                            Makerworld
+                        </button>
+                        <button class="platform-btn" data-platform="printables" onclick="filterBookmarksByPlatform('printables')">
+                            Printables
+                        </button>
                     </div>
                     <div class="bookmarks-container" id="bookmarksContainer">
                         <div class="loading-placeholder">
