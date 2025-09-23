@@ -569,7 +569,7 @@ class PrinternizerWebSocketHandler {
                 const targetElement = tempElement.querySelector('.temp-target');
                 
                 if (valueElement) {
-                    valueElement.textContent = `${temp.current}°C`;
+                    valueElement.textContent = `${parseFloat(temp.current).toFixed(1)}°C`;
                     
                     // Add heating indicator
                     if (Math.abs(temp.current - temp.target) > 2) {
@@ -580,7 +580,7 @@ class PrinternizerWebSocketHandler {
                 }
                 
                 if (targetElement && temp.target) {
-                    targetElement.textContent = `Ziel: ${temp.target}°C`;
+                    targetElement.textContent = `Ziel: ${parseFloat(temp.target).toFixed(1)}°C`;
                 }
             }
         });

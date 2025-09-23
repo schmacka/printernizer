@@ -91,7 +91,7 @@ class PrinterManager {
         card.setAttribute('data-printer-id', printer.id);
         
         const status = getStatusConfig('printer', printer.status);
-        const printerType = CONFIG.PRINTER_TYPES[printer.type] || { label: printer.type, color: '#6b7280' };
+        const printerType = CONFIG.PRINTER_TYPES[printer.printer_type] || { label: printer.printer_type, color: '#6b7280' };
         
         card.innerHTML = `
             <div class="card-header">
@@ -222,7 +222,7 @@ class PrinterManager {
                 <div class="info-item">
                     <label>Düse:</label>
                     <span class="temperature ${Math.abs(nozzle.current - (nozzle.target || 0)) > 2 ? 'temp-heating' : ''}">
-                        ${nozzle.current}°C${nozzle.target ? ` / ${nozzle.target}°C` : ''}
+                        ${parseFloat(nozzle.current).toFixed(1)}°C${nozzle.target ? ` / ${parseFloat(nozzle.target).toFixed(1)}°C` : ''}
                     </span>
                 </div>
             `);
@@ -234,7 +234,7 @@ class PrinterManager {
                 <div class="info-item">
                     <label>Bett:</label>
                     <span class="temperature ${Math.abs(bed.current - (bed.target || 0)) > 2 ? 'temp-heating' : ''}">
-                        ${bed.current}°C${bed.target ? ` / ${bed.target}°C` : ''}
+                        ${parseFloat(bed.current).toFixed(1)}°C${bed.target ? ` / ${parseFloat(bed.target).toFixed(1)}°C` : ''}
                     </span>
                 </div>
             `);
@@ -245,7 +245,7 @@ class PrinterManager {
             tempItems.push(`
                 <div class="info-item">
                     <label>Kammer:</label>
-                    <span class="temperature">${chamber.current}°C</span>
+                    <span class="temperature">${parseFloat(chamber.current).toFixed(1)}°C</span>
                 </div>
             `);
         }

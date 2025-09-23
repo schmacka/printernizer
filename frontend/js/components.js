@@ -20,7 +20,7 @@ class PrinterCard {
      */
     render() {
         const status = getStatusConfig('printer', this.printer.status);
-        const printerType = CONFIG.PRINTER_TYPES[this.printer.type] || { label: this.printer.type };
+        const printerType = CONFIG.PRINTER_TYPES[this.printer.printer_type] || { label: this.printer.printer_type };
         
         this.element = document.createElement('div');
         this.element.className = `printer-card card status-${this.printer.status} ${this.isMonitoring ? 'monitoring-active' : ''}`;
@@ -275,12 +275,12 @@ class PrinterCard {
         let tempValue, tempTarget = '';
         
         if (typeof temperature === 'object') {
-            tempValue = `${temperature.current}°C`;
+            tempValue = `${parseFloat(temperature.current).toFixed(1)}°C`;
             if (temperature.target) {
-                tempTarget = `<div class="temp-target">Ziel: ${temperature.target}°C</div>`;
+                tempTarget = `<div class="temp-target">Ziel: ${parseFloat(temperature.target).toFixed(1)}°C</div>`;
             }
         } else {
-            tempValue = `${temperature}°C`;
+            tempValue = `${parseFloat(temperature).toFixed(1)}°C`;
         }
 
         const isHeating = typeof temperature === 'object' && 
