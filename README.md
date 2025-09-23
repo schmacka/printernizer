@@ -1,27 +1,88 @@
-# Printernizer - Professional 3D Printer Management System
+# Printernizer 🖨️
 
-**Enterprise-grade 3D printer fleet management for Bambu Lab A1 and Prusa Core One printers**  
-*Designed specifically for Porcus3D's German 3D printing service in Kornwestheim*
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+
+**Professional 3D Printer Management System for Bambu Lab A1 and Prusa Core One**
+
+Enterprise-grade fleet management with real-time monitoring, automated file handling, and business analytics. Perfect for 3D printing services, educational institutions, and production environments.
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+- [Prerequisites](#-prerequisites)
+- [Configuration](#-configuration)
+- [Architecture](#-architecture)
+- [User Interface](#-user-interface)
+- [Development](#-development)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Commercial Licensing](#commercial-license)
+- [Support](#-support)
 
 ## 🎯 Overview
 
 Printernizer is a **complete production-ready** 3D printer management system that provides:
 
-- **Real-time printer monitoring** - Live status, temperature, and job progress via MQTT & HTTP APIs
-- **Drucker-Dateien file management** - Unified file handling with one-click downloads (📁✓💾)
-- **Professional German business interface** - Full GDPR compliance with 19% VAT calculations
-- **WebSocket real-time updates** - Live dashboard with instant status updates
-- **Enterprise deployment** - Docker, Kubernetes, monitoring, and CI/CD ready
+- 🔄 **Real-time printer monitoring** - Live status, temperature, and job progress via MQTT & HTTP APIs
+- 📁 **Unified file management** - Seamless file handling with one-click downloads and status tracking
+- 🏢 **Business-ready interface** - Professional dashboard with compliance features and analytics
+- ⚡ **WebSocket real-time updates** - Live dashboard with instant status updates
+- 🚀 **Enterprise deployment** - Docker, Kubernetes, monitoring, and CI/CD ready
+- 🔧 **Easy setup** - Multiple deployment options with comprehensive documentation
 
-## ✅ Current Status: **PRODUCTION READY**
+## ✨ Features
 
-**Phases 1-4 COMPLETED** - Ready for immediate production deployment at Porcus3D:
+### 🖨️ Printer Support
+- **Bambu Lab A1** - Full MQTT integration with real-time status updates
+- **Prusa Core One** - HTTP API integration via PrusaLink
+- **Multi-printer management** - Simultaneous monitoring of multiple printers
+- **Connection health monitoring** - Automatic retry and error handling
+
+### 📊 Real-time Monitoring
+- **Live status updates** - Current printer state, temperatures, progress
+- **Job tracking** - Layer-by-layer progress with time estimates
+- **WebSocket connectivity** - Instant updates without page refresh
+- **Mobile responsive** - Full functionality on phones and tablets
+
+### 📁 File Management
+- **Unified file browser** - See files from all printers in one place
+- **One-click downloads** - Direct download from printer storage
+- **Status tracking** - Visual indicators for file availability and download status
+- **Smart filtering** - Filter by printer, status, and file type
+
+### 🏢 Business Features
+- **Professional dashboard** - Clean, business-ready interface
+- **Analytics and reporting** - Usage statistics and performance metrics
+- **Multi-user support** - Role-based access control
+- **GDPR compliance** - Data privacy and retention controls
+
+### 🚀 Deployment Options
+- **Python development** - Direct installation for development and testing
+- **CI/CD integration** - Automated testing and deployment workflows
+- **Docker support** - Containerization (planned for future release)
+- **Kubernetes deployment** - Production orchestration (planned for future release)
+
+## ✅ Current Status: **CORE FEATURES COMPLETE**
+
+**Core functionality implemented and tested:**
 - ✅ Complete backend with FastAPI + async SQLite
-- ✅ Professional German web interface with mobile-responsive design  
+- ✅ Professional web interface with mobile-responsive design
 - ✅ Full printer integration (Bambu Lab A1 + Prusa Core One)
 - ✅ Real-time monitoring with WebSocket updates
-- ✅ Business analytics with German compliance (VAT, GDPR, EUR)
-- ✅ Production deployment with Docker + Kubernetes
+- ✅ File management and download system
+- ✅ Business analytics and reporting features
+
+**Coming Soon:**
+- 🔄 Docker containerization (planned)
+- 🔄 Advanced deployment options (planned)
+- 🔄 Enhanced monitoring and alerting (planned)
 
 ## 🚀 Quick Start
 
@@ -55,34 +116,27 @@ python -m http.server 3000
 # API Docs: http://localhost:8000/docs
 ```
 
-### Option 2: Docker Compose (Requires Docker Desktop)
+### Option 2: Direct Backend Only
 
-**Note**: Requires Docker Desktop to be running first.
+If you only need the API backend:
 
 ```bash
-# 1. Ensure Docker Desktop is running
-# 2. Create environment file
-cp .env.example .env
-# Edit .env with your printer configurations
+# Install dependencies
+pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles
 
-# 3. Start the application
-docker-compose up -d
+# Start just the backend
+cd src
+python main.py
 
-# 4. Access the web interface
-# Frontend: http://localhost:3000
+# Access API directly
 # API: http://localhost:8000/api/v1
+# API Documentation: http://localhost:8000/docs
 # WebSocket: ws://localhost:8000/ws
 ```
 
-### Option 3: Production Kubernetes
+### Option 3: Production Deployment
 
-```bash
-# Deploy to production Kubernetes cluster
-kubectl apply -f production.yml
-
-# Check deployment status
-kubectl get pods -l app=printernizer
-```
+Docker and Kubernetes deployment options are planned for future releases. For now, use systemd or similar process managers for production deployments of the Python application.
 
 ## 📋 Prerequisites
 
@@ -418,23 +472,147 @@ kubectl apply -f production.yml
 3. Verify printer network connectivity
 4. Test API endpoints manually
 
-## 🎯 Business Value for Porcus3D
+## 🛠️ Development
 
-### Operational Benefits
-- **80% reduction** in manual printer monitoring time
-- **Real-time visibility** into all printer operations
-- **Automated file management** with download tracking
-- **German business compliance** out-of-the-box
+### Project Structure
+```
+printernizer/
+├── src/                    # Application source code
+│   ├── api/               # FastAPI routers and endpoints
+│   ├── services/          # Business logic services
+│   ├── models/            # Data models and schemas
+│   ├── database/          # Database management
+│   └── utils/             # Utility functions
+├── frontend/              # Web interface files
+├── tests/                 # Test suites
+├── docs/                  # Documentation
+├── scripts/               # Utility scripts
+└── config/                # Configuration files
+```
 
-### Technical Benefits
-- **99%+ uptime** with automated recovery
-- **Sub-second response times** for critical operations
-- **Scalable architecture** supporting fleet expansion
-- **Professional grade** monitoring and alerting
+### Running Tests
+```bash
+# Run all tests
+python -m pytest
+
+# Run with coverage
+python -m pytest --cov=src tests/
+
+# Run specific test category
+python -m pytest tests/backend/
+```
+
+### Code Quality
+```bash
+# Format code
+black src/ tests/
+
+# Lint code
+pylint src/
+
+# Type checking
+mypy src/
+```
+
+## 🚀 Deployment
+
+### Current Deployment Options
+
+**Python Application (Recommended)**
+```bash
+# Production deployment with systemd or similar
+sudo systemctl enable printernizer
+sudo systemctl start printernizer
+```
+
+**Development Server**
+```bash
+# Simple development deployment
+nohup python src/main.py &
+```
+
+### Planned Deployment Options
+
+**Docker Deployment (Coming Soon)**
+- Single container deployment
+- Multi-service orchestration with databases
+- Production-ready containerization
+
+**Kubernetes Deployment (Coming Soon)**
+- Scalable production deployment
+- High availability configuration
+- Advanced monitoring and alerting
+
+### Production Considerations
+- Configure SSL/TLS for HTTPS
+- Set up proper logging and monitoring
+- Configure backup strategies for SQLite database
+- Use reverse proxy (nginx/Apache) for production
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Quick Start for Contributors
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+### Reporting Issues
+- Use GitHub Issues for bug reports and feature requests
+- Provide detailed information about your environment
+- Include steps to reproduce for bugs
+
+## 📄 License
+
+Printernizer is dual-licensed to balance open source collaboration with sustainable development:
+
+### Open Source License
+- **AGPL-3.0** for open source projects, personal use, and contributions
+- Free to use, modify, and distribute under AGPL terms
+- Perfect for developers, researchers, and open source projects
+
+### Commercial License
+- Required for commercial SaaS, enterprise deployments, and proprietary modifications
+- Removes AGPL obligations and provides commercial use rights
+- Includes technical support and priority updates
+- Contact: sebastian@porcus3d.de
+
+See the [LICENSE](LICENSE) file for complete terms and commercial licensing details.
+
+## 🆘 Support
+
+- 📖 **Documentation**: Check the [docs/](docs/) directory
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/schmacka/printernizer/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/schmacka/printernizer/discussions)
+- 📧 **Security Issues**: See [SECURITY.md](SECURITY.md)
+
+### ☕ Support Development
+
+If Printernizer helps you manage your 3D printers and you'd like to support its continued development:
+
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/porcus3d)
+
+**[Support us on Buy Me a Coffee](https://buymeacoffee.com/porcus3d)**
+
+Your support helps us:
+- 🚀 Develop new features and improvements
+- 🐛 Fix bugs and maintain code quality
+- 📚 Create better documentation and tutorials
+- 🌍 Expand printer compatibility and integrations
+
+Every contribution, no matter how small, is greatly appreciated and helps make Printernizer better for everyone!
+
+## 🙏 Acknowledgments
+
+- Built with [FastAPI](https://fastapi.tiangolo.com/) and [SQLite](https://sqlite.org/)
+- Bambu Lab integration via [bambulabs-api](https://github.com/matthewbaggett/bambulabs-api)
+- Prusa integration via PrusaLink HTTP API
+- Frontend uses modern web standards and WebSocket connectivity
 
 ---
 
-**Printernizer v1.2.0** - Production Ready Enterprise 3D Printer Management  
-*Entwickelt für professionelle 3D-Druck-Dienstleistungen in Deutschland*
-
-**🏢 Porcus3D** | **📍 Kornwestheim, Germany** | **🌱 Sustainable 3D Printing**
+**Printernizer** - Professional 3D Printer Management System
+*Making 3D printing fleet management simple and efficient*
