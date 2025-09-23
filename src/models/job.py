@@ -5,13 +5,14 @@ Pydantic models for print job data validation and serialization.
 from enum import Enum
 from typing import Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class JobStatus(str, Enum):
     """Job status states."""
     PENDING = "pending"
     RUNNING = "running"
+    PRINTING = "printing"  # Added for Bambu Lab printers
     PAUSED = "paused"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -39,6 +40,13 @@ class Job(BaseModel):
     customer_info: Optional[Dict[str, Any]] = Field(None, description="Customer information")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+    
+    @field_validator('progress', mode='before')
+    def convert_progress_to_int(cls, v):
+        """Convert float progress values to integers."""
+        if v is not None and isinstance(v, float):
+            return int(v)
+        return v
     
     class Config:
         """Pydantic configuration."""

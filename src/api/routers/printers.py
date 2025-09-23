@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 from uuid import UUID
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -14,6 +15,17 @@ from src.utils.dependencies import get_printer_service
 
 logger = structlog.get_logger()
 router = APIRouter()
+
+
+class CurrentJobInfo(BaseModel):
+    """Current job information embedded in printer response."""
+    name: str
+    status: str = "printing"
+    progress: Optional[int] = None
+    started_at: Optional[datetime] = None
+    estimated_remaining: Optional[int] = None
+    layer_current: Optional[int] = None
+    layer_total: Optional[int] = None
 
 
 class PrinterCreateRequest(BaseModel):
@@ -47,13 +59,48 @@ class PrinterResponse(BaseModel):
     description: Optional[str]
     is_enabled: bool
     last_seen: Optional[str]
-    current_job_id: Optional[UUID]
+    current_job: Optional[CurrentJobInfo] = None
+    temperatures: Optional[dict] = None
     created_at: str
     updated_at: str
 
 
-def _printer_to_response(printer: Printer) -> PrinterResponse:
+def _printer_to_response(printer: Printer, printer_service: PrinterService = None) -> PrinterResponse:
     """Convert a Printer model to PrinterResponse."""
+    
+    # Extract job information and temperatures from printer service if available
+    current_job = None
+    temperatures = None
+    
+    if printer_service:
+        # Try to get the printer instance to access last_status
+        try:
+            instance = printer_service.printer_instances.get(printer.id)
+            if instance and instance.last_status:
+                status = instance.last_status
+                
+                # Get current job info
+                job_name = status.current_job
+                if job_name and isinstance(job_name, str) and job_name.strip():
+                    current_job = CurrentJobInfo(
+                        name=job_name.strip(),
+                        status="printing" if printer.status == PrinterStatus.PRINTING else "idle",
+                        progress=status.progress,
+                        started_at=status.timestamp
+                    )
+                
+                # Get temperature info
+                if status.temperature_bed is not None or status.temperature_nozzle is not None:
+                    temperatures = {}
+                    if status.temperature_bed is not None:
+                        temperatures['bed'] = status.temperature_bed
+                    if status.temperature_nozzle is not None:
+                        temperatures['nozzle'] = status.temperature_nozzle
+                        
+        except Exception as e:
+            logger.warning("Failed to get status details for printer", 
+                         printer_id=printer.id, error=str(e))
+    
     return PrinterResponse(
         id=printer.id,
         name=printer.name,
@@ -70,7 +117,8 @@ def _printer_to_response(printer: Printer) -> PrinterResponse:
         description=getattr(printer, 'description', None),
         is_enabled=printer.is_active,
         last_seen=printer.last_seen.isoformat() if printer.last_seen else None,
-        current_job_id=None,  # Not implemented yet
+        current_job=current_job,
+        temperatures=temperatures,
         created_at=printer.created_at.isoformat(),
         updated_at=printer.created_at.isoformat()  # Use created_at as fallback
     )
@@ -83,7 +131,7 @@ async def list_printers(
     """List all configured printers."""
     try:
         printers = await printer_service.list_printers()
-        return [_printer_to_response(printer) for printer in printers]
+        return [_printer_to_response(printer, printer_service) for printer in printers]
     except Exception as e:
         logger.error("Failed to list printers", error=str(e))
         raise HTTPException(
@@ -107,7 +155,7 @@ async def create_printer(
             description=printer_data.description
         )
         logger.info("Created printer", printer_type=type(printer).__name__, printer_dict=printer.__dict__)
-        response = _printer_to_response(printer)
+        response = _printer_to_response(printer, printer_service)
         logger.info("Converted to response", response_dict=response.model_dump())
         return response
     except ValueError as e:
@@ -136,7 +184,7 @@ async def get_printer(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Printer not found"
             )
-        return _printer_to_response(printer)
+        return _printer_to_response(printer, printer_service)
     except HTTPException:
         raise
     except Exception as e:
@@ -161,7 +209,7 @@ async def update_printer(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Printer not found"
             )
-        return _printer_to_response(printer)
+        return _printer_to_response(printer, printer_service)
     except HTTPException:
         raise
     except ValueError as e:

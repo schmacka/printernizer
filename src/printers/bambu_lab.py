@@ -254,16 +254,77 @@ class BambuLabPrinter(BasePrinter):
             )
 
     async def _get_status_bambu_api(self) -> PrinterStatusUpdate:
-        """Get status using bambulabs_api."""
+        """Get status using bambulabs_api with improved timeout handling."""
         if not self.bambu_client:
             raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
 
-        # Get current status from bambulabs_api
+        # Get current status from bambulabs_api with timeout handling
         try:
             current_state = self.bambu_client.get_current_state()
-            self.latest_status = current_state
+            if current_state:
+                self.latest_status = current_state
         except Exception as e:
-            logger.warning("Failed to get current state", printer_id=self.printer_id, error=str(e))
+            logger.debug("Timeout getting current state, trying alternative methods", 
+                        printer_id=self.printer_id, error=str(e))
+            
+            # If current_state fails, try to get specific data directly
+            try:
+                # Try to get basic status info even if current_state fails
+                alternative_status = type('Status', (), {})()
+                
+                # Try to get status from individual methods
+                if hasattr(self.bambu_client, 'get_state'):
+                    try:
+                        state = self.bambu_client.get_state()
+                        alternative_status.name = state if state else 'UNKNOWN'
+                    except:
+                        alternative_status.name = 'UNKNOWN'
+                        
+                # Try to get temperature data
+                try:
+                    alternative_status.bed_temper = self.bambu_client.get_bed_temperature() or 0.0
+                    alternative_status.nozzle_temper = self.bambu_client.get_nozzle_temperature() or 0.0
+                except:
+                    alternative_status.bed_temper = 0.0
+                    alternative_status.nozzle_temper = 0.0
+                
+                # Try to get progress
+                try:
+                    alternative_status.print_percent = self.bambu_client.get_percentage() or 0
+                except:
+                    alternative_status.print_percent = 0
+                    
+                # Try to get filename
+                try:
+                    filename_methods = ['get_file_name', 'gcode_file', 'subtask_name']
+                    for method_name in filename_methods:
+                        if hasattr(self.bambu_client, method_name):
+                            method = getattr(self.bambu_client, method_name)
+                            result = method()
+                            if result and isinstance(result, str) and result.strip() and result != "UNKNOWN":
+                                alternative_status.gcode_file = result.strip()
+                                break
+                    if not hasattr(alternative_status, 'gcode_file'):
+                        alternative_status.gcode_file = None
+                except:
+                    alternative_status.gcode_file = None
+                
+                # If we have temperature data, we can infer printing status
+                if (hasattr(alternative_status, 'nozzle_temper') and 
+                    alternative_status.nozzle_temper > 200 and
+                    hasattr(alternative_status, 'bed_temper') and 
+                    alternative_status.bed_temper > 50):
+                    alternative_status.name = 'PRINTING'
+                    logger.info("Inferred PRINTING status from temperature data",
+                              printer_id=self.printer_id,
+                              nozzle_temp=alternative_status.nozzle_temper,
+                              bed_temp=alternative_status.bed_temper)
+                
+                self.latest_status = alternative_status
+                
+            except Exception as inner_e:
+                logger.debug("Alternative status methods also failed", 
+                           printer_id=self.printer_id, error=str(inner_e))
 
         status = self.latest_status
         if not status:
@@ -274,27 +335,82 @@ class BambuLabPrinter(BasePrinter):
                 timestamp=datetime.now()
             )
 
-        # Convert bambulabs_api status to our format
+        # Extract data from bambulabs_api status
+        # The status.name contains the actual printer state
+        status_name = getattr(status, 'name', 'UNKNOWN')
+        status_value = getattr(status, 'value', 0)
+        
+        # Map bambulabs_api status names to our printer status
+        printer_status = self._map_bambu_status(status_name)
+        
+        # Try to get temperature and progress data
+        # Note: bambulabs_api may not always have this data immediately
         bed_temp = getattr(status, 'bed_temper', 0.0) or 0.0
         nozzle_temp = getattr(status, 'nozzle_temper', 0.0) or 0.0
         progress = getattr(status, 'print_percent', 0) or 0
         layer_num = getattr(status, 'layer_num', 0) or 0
-
-        # Determine printer status based on available data
-        if progress > 0 and nozzle_temp > 100:
+        
+        # Create status message based on printer state
+        if status_name == 'PRINTING':
+            if progress > 0:
+                message = f"Printing - Layer {layer_num}, {progress}%"
+            else:
+                message = "Printing - Status detected"
             printer_status = PrinterStatus.PRINTING
-            message = f"Printing - Layer {layer_num}, {progress}%"
-        elif nozzle_temp > 50:
-            printer_status = PrinterStatus.ONLINE
-            message = "Heating/Preparing"
-        elif bed_temp > 30:
-            printer_status = PrinterStatus.ONLINE
-            message = "Bed heating"
+        elif status_name in ['IDLE', 'UNKNOWN']:
+            if nozzle_temp > 50:
+                message = f"Heating - Nozzle {nozzle_temp}°C"
+                printer_status = PrinterStatus.ONLINE
+            elif bed_temp > 30:
+                message = f"Heating - Bed {bed_temp}°C"
+                printer_status = PrinterStatus.ONLINE
+            else:
+                message = "Ready"
+                printer_status = PrinterStatus.ONLINE
         else:
-            printer_status = PrinterStatus.ONLINE
-            message = "Ready"
+            # Map the status using the mapping function
+            printer_status = self._map_bambu_status(status_name)
+            message = f"Status: {status_name}"
 
         current_job = getattr(status, 'gcode_file', None)
+        
+        # If bambu API doesn't have job info, try the specific filename methods
+        if not current_job and self.bambu_client:
+            try:
+                # Try multiple methods to get filename
+                filename_methods = ['get_file_name', 'gcode_file', 'subtask_name']
+                for method_name in filename_methods:
+                    if hasattr(self.bambu_client, method_name):
+                        method = getattr(self.bambu_client, method_name)
+                        result = method()
+                        if result and isinstance(result, str) and result.strip() and result != "UNKNOWN":
+                            current_job = result.strip()
+                            # Clean up cache/ prefix if present
+                            if current_job.startswith('cache/'):
+                                current_job = current_job[6:]
+                            logger.debug(f"Got filename from {method_name}: {current_job}")
+                            break
+            except Exception as e:
+                logger.debug(f"Failed to get filename via methods: {e}")
+        
+        # If we're printing but don't have a job name, create a generic one
+        if printer_status == PrinterStatus.PRINTING and not current_job:
+            current_job = f"Print Job (via MQTT)"
+        
+        # Enhance the message with filename if available and printing
+        if printer_status == PrinterStatus.PRINTING and current_job and current_job != "Print Job (via MQTT)":
+            if progress > 0:
+                message = f"Printing '{current_job}' - Layer {layer_num}, {progress}%"
+            else:
+                message = f"Printing '{current_job}'"
+        
+        logger.debug("Parsed Bambu status", 
+                    printer_id=self.printer_id,
+                    status_name=status_name,
+                    printer_status=printer_status.value,
+                    bed_temp=bed_temp,
+                    nozzle_temp=nozzle_temp,
+                    progress=progress)
 
         return PrinterStatusUpdate(
             printer_id=self.printer_id,
@@ -322,22 +438,63 @@ class BambuLabPrinter(BasePrinter):
         progress = print_data.get("mc_percent", 0)
         layer_num = print_data.get("layer_num", 0)
 
-        # Determine printer status based on available data
-        if progress > 0 and nozzle_temp > 100:
+        # Improved status detection for printing
+        # High temperatures usually indicate printing activity
+        if nozzle_temp > 200 and bed_temp > 50:
+            printer_status = PrinterStatus.PRINTING
+            if progress > 0:
+                message = f"Printing - Layer {layer_num}, {progress}%"
+            else:
+                message = f"Printing - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
+        elif progress > 0 and nozzle_temp > 100:
             printer_status = PrinterStatus.PRINTING
             message = f"Printing - Layer {layer_num}, {progress}%"
         elif nozzle_temp > 50:
             printer_status = PrinterStatus.ONLINE
-            message = "Heating/Preparing"
+            message = f"Heating - Nozzle {nozzle_temp}°C"
         elif bed_temp > 30:
             printer_status = PrinterStatus.ONLINE
-            message = "Bed heating"
+            message = f"Heating - Bed {bed_temp}°C"
         else:
             printer_status = PrinterStatus.ONLINE
             message = "Ready"
 
         # Extract job information (if available)
         current_job = print_data.get("subtask_name")
+        
+        # If no job name from MQTT but we have MQTT client, try API methods
+        if not current_job and hasattr(self, 'bambu_client') and self.bambu_client:
+            try:
+                # Try bambulabs_api methods for filename
+                filename_methods = ['get_file_name', 'gcode_file', 'subtask_name']
+                for method_name in filename_methods:
+                    if hasattr(self.bambu_client, method_name):
+                        method = getattr(self.bambu_client, method_name)
+                        result = method()
+                        if result and isinstance(result, str) and result.strip() and result != "UNKNOWN":
+                            current_job = result.strip()
+                            # Clean up cache/ prefix if present
+                            if current_job.startswith('cache/'):
+                                current_job = current_job[6:]
+                            logger.debug(f"Got filename from {method_name} (MQTT fallback): {current_job}")
+                            break
+            except Exception as e:
+                logger.debug(f"Failed to get filename via API methods from MQTT: {e}")
+        
+        # If we're printing but don't have a job name, create a generic one
+        if printer_status == PrinterStatus.PRINTING and not current_job:
+            current_job = f"Active Print Job"
+        
+        # Enhance the message with filename if available and printing
+        if printer_status == PrinterStatus.PRINTING and current_job and current_job != "Active Print Job":
+            message = f"Printing '{current_job}'"
+        
+        logger.debug("Parsed MQTT status", 
+                    printer_id=self.printer_id,
+                    bed_temp=bed_temp,
+                    nozzle_temp=nozzle_temp,
+                    progress=progress,
+                    status=printer_status.value)
 
         return PrinterStatusUpdate(
             printer_id=self.printer_id,
