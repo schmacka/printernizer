@@ -196,7 +196,7 @@ class PrinterCard {
         const jobStatus = getStatusConfig('job', job.status);
         
         return `
-            <div class="current-job" data-job-id="${job.id}">
+            <div class="current-job" data-job-name="${escapeHtml(job.name)}">
                 <div class="job-name">${escapeHtml(job.name)}</div>
                 <div class="job-status">
                     <span class="status-badge ${jobStatus.class}">${jobStatus.icon} ${jobStatus.label}</span>
