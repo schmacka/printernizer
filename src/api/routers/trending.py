@@ -13,7 +13,7 @@ from services.trending_service import TrendingService
 from utils.dependencies import get_trending_service
 
 
-router = APIRouter(prefix="/api/trending", tags=["Trending"])
+router = APIRouter(prefix="/ideas/trending", tags=["Trending"])
 
 
 class TrendingModel(BaseModel):

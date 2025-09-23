@@ -11,7 +11,7 @@ from src.services.idea_service import IdeaService
 from src.services.url_parser_service import UrlParserService
 from src.models.idea import IdeaStatus, IdeaSourceType
 
-router = APIRouter(prefix="/api/ideas", tags=["ideas"])
+router = APIRouter(prefix="/ideas", tags=["ideas"])
 
 
 # Pydantic models for API

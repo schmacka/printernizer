@@ -8,7 +8,7 @@ from typing import Dict, Any, List
 from src.utils.dependencies import get_idea_service
 from src.services.idea_service import IdeaService
 
-router = APIRouter(prefix="/api/ideas/url", tags=["ideas-url"])
+router = APIRouter(prefix="/ideas/url", tags=["ideas-url"])
 
 
 class UrlPreviewRequest(BaseModel):
