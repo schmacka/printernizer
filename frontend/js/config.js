@@ -181,6 +181,11 @@ const CONFIG = {
             icon: '🖨️',
             color: '#2563eb'
         },
+        'prusa_core': {
+            label: 'Prusa Core One',
+            icon: '🖨️',
+            color: '#ea580c'
+        },
         'prusa': {
             label: 'Prusa Core One',
             icon: '🖨️',
