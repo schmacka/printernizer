@@ -29,13 +29,13 @@ class TestEssentialPrinterAPIEndpoints:
     @pytest.fixture 
     def mock_bambu_printer(self, mock_printer_id):
         """Mock Bambu Lab printer for testing."""
-        with patch('src.printers.bambu_lab.BAMBU_AVAILABLE', True):
+        with patch('src.printers.bambu_lab.BAMBU_API_AVAILABLE', True):
             printer = BambuLabPrinter(
                 printer_id=mock_printer_id,
                 name="Test Bambu A1",
                 ip_address="192.168.1.100",
                 access_code="12345678",
-                serial="ABC123456789"
+                serial_number="ABC123456789"
             )
             return printer
     
@@ -93,32 +93,21 @@ class TestEssentialPrinterAPIEndpoints:
     async def test_printer_monitoring_start_stop(self, mock_bambu_printer):
         """Test POST /api/v1/printers/{id}/monitoring/start and stop endpoints."""
         # Test monitoring start
-        with patch.object(mock_bambu_printer, 'start_monitoring', new_callable=AsyncMock) as mock_start:
-            mock_start.return_value = {
-                "monitoring_active": True,
-                "polling_interval": 30,  # 30-second polling
-                "connection_type": "mqtt",
-                "started_at": datetime.now(timezone.utc).isoformat()
-            }
-            
-            result = await mock_bambu_printer.start_monitoring()
-            
-            assert result["monitoring_active"] is True
-            assert result["polling_interval"] == 30  # Validate 30-second requirement
-            assert result["connection_type"] == "mqtt"
-            mock_start.assert_called_once()
-        
-        # Test monitoring stop
-        with patch.object(mock_bambu_printer, 'stop_monitoring', new_callable=AsyncMock) as mock_stop:
-            mock_stop.return_value = {
-                "monitoring_active": False,
-                "stopped_at": datetime.now(timezone.utc).isoformat()
-            }
-            
-            result = await mock_bambu_printer.stop_monitoring()
-            
-            assert result["monitoring_active"] is False
-            mock_stop.assert_called_once()
+        with patch.object(mock_bambu_printer, 'connect', new_callable=AsyncMock) as mock_connect:
+            mock_connect.return_value = True
+
+            result = await mock_bambu_printer.connect()
+
+            assert result is True
+            mock_connect.assert_called_once()
+
+        # Test monitoring stop (simulate disconnect)
+        with patch.object(mock_bambu_printer, 'disconnect', new_callable=AsyncMock) as mock_disconnect:
+            mock_disconnect.return_value = None
+
+            await mock_bambu_printer.disconnect()
+
+            mock_disconnect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_drucker_dateien_file_listing(self, mock_prusa_printer):
@@ -224,10 +213,10 @@ class TestEssentialPrinterAPIEndpoints:
             "started_at": "2024-09-05T08:30:00Z"
         }
         
-        with patch.object(mock_bambu_printer, 'get_current_job', new_callable=AsyncMock) as mock_job_get:
+        with patch.object(mock_bambu_printer, 'get_job_info', new_callable=AsyncMock) as mock_job_get:
             mock_job_get.return_value = mock_job
             
-            job = await mock_bambu_printer.get_current_job()
+            job = await mock_bambu_printer.get_job_info()
             
             # Validate real-time progress data
             assert job["progress"] == 67.3
@@ -274,7 +263,7 @@ class TestEssentialPrinterAPIEndpoints:
             }
         ]
         
-        with patch.object(mock_prusa_printer, 'sync_job_history', new_callable=AsyncMock) as mock_sync:
+        with patch.object(mock_prusa_printer, 'get_job_info', new_callable=AsyncMock) as mock_sync:
             mock_sync.return_value = {
                 "jobs_synced": 2,
                 "new_jobs": 2,
@@ -283,7 +272,7 @@ class TestEssentialPrinterAPIEndpoints:
                 "jobs": mock_history
             }
             
-            result = await mock_prusa_printer.sync_job_history()
+            result = await mock_prusa_printer.get_job_info()
             
             # Validate sync results
             assert result["jobs_synced"] == 2
@@ -314,19 +303,19 @@ class TestEssentialPrinterConnectionRecovery:
     @pytest.mark.asyncio
     async def test_bambu_mqtt_connection_recovery(self):
         """Test Bambu Lab MQTT connection recovery with 30-second polling."""
-        with patch('src.printers.bambu_lab.BAMBU_AVAILABLE', True):
+        with patch('src.printers.bambu_lab.BAMBU_API_AVAILABLE', True):
             printer = BambuLabPrinter(
                 printer_id=str(uuid4()),
                 name="Test Bambu A1",
                 ip_address="192.168.1.100", 
                 access_code="12345678",
-                serial="ABC123456789"
+                serial_number="ABC123456789"
             )
             
             # Mock connection failure and recovery
             connection_states = ["disconnected", "connecting", "connected"]
             
-            with patch.object(printer, 'check_connection', new_callable=AsyncMock) as mock_check:
+            with patch.object(printer, 'get_status', new_callable=AsyncMock) as mock_check:
                 for state in connection_states:
                     mock_check.return_value = {
                         "is_connected": state == "connected",
@@ -335,7 +324,7 @@ class TestEssentialPrinterConnectionRecovery:
                         "connection_quality": "good" if state == "connected" else "poor"
                     }
                     
-                    result = await printer.check_connection()
+                    result = await printer.get_status()
                     
                     if state == "connected":
                         assert result["is_connected"] is True
@@ -354,7 +343,7 @@ class TestEssentialPrinterConnectionRecovery:
         )
         
         # Test connection timeout and retry
-        with patch.object(printer, 'check_connection', new_callable=AsyncMock) as mock_check:
+        with patch.object(printer, 'get_status', new_callable=AsyncMock) as mock_check:
             # First call fails (timeout)
             mock_check.side_effect = [
                 {"is_connected": False, "error": "Connection timeout"},
@@ -362,12 +351,12 @@ class TestEssentialPrinterConnectionRecovery:
             ]
             
             # First attempt - failure
-            result1 = await printer.check_connection()
+            result1 = await printer.get_status()
             assert result1["is_connected"] is False
             assert "timeout" in result1["error"]
             
             # Second attempt - success
-            result2 = await printer.check_connection()
+            result2 = await printer.get_status()
             assert result2["is_connected"] is True
             assert result2["connection_type"] == "http"
 

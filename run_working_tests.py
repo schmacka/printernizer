@@ -22,7 +22,8 @@ def run_working_tests():
     working_tests = [
         "tests/test_essential_config.py",
         "tests/test_essential_models.py",
-        "tests/test_working_core.py"
+        "tests/test_working_core.py",
+        "tests/test_essential_printer_api.py"
     ]
 
     # Test command with basic options
@@ -74,6 +75,7 @@ def run_with_coverage():
         "tests/test_essential_config.py",
         "tests/test_essential_models.py",
         "tests/test_working_core.py",
+        "tests/test_essential_printer_api.py",
         "-v",
         "--cov=src",
         "--cov-report=term-missing",
