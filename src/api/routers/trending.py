@@ -9,8 +9,8 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel, Field
 
-from services.trending_service import TrendingService
-from utils.dependencies import get_trending_service
+from src.services.trending_service import TrendingService
+from src.utils.dependencies import get_trending_service
 
 
 router = APIRouter(prefix="/ideas/trending", tags=["Trending"])

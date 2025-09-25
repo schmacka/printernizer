@@ -372,7 +372,7 @@ class ConfigService:
         watch_folders = await self.watch_folder_db.get_all_watch_folders(active_only=True)
         
         return {
-            "watch_folders": [wf.to_dict() for wf in watch_folders],
+            "watch_folders": [wf.folder_path for wf in watch_folders],
             "enabled": settings.watch_folders_enabled,
             "recursive": settings.watch_recursive,
             "supported_extensions": ['.stl', '.3mf', '.gcode', '.obj', '.ply']

@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from models.material import (
+from src.models.material import (
     MaterialCreate,
     MaterialUpdate,
     MaterialSpool,
@@ -23,8 +23,8 @@ from models.material import (
     MaterialBrand,
     MaterialColor
 )
-from services.material_service import MaterialService
-from utils.dependencies import get_material_service
+from src.services.material_service import MaterialService
+from src.utils.dependencies import get_material_service
 
 
 router = APIRouter(prefix="/api/materials", tags=["Materials"])

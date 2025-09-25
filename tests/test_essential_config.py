@@ -49,8 +49,8 @@ class TestGermanBusinessConfig:
         material_grams = 25.5
         cost_per_gram = 0.05  # 5 cents per gram
         expected_cost = material_grams * cost_per_gram
-        
-        assert expected_cost == 1.275
+
+        assert abs(expected_cost - 1.275) < 0.001  # Use approximate comparison for floats
         # Round to 2 decimal places for EUR
         rounded_cost = round(expected_cost, 2)
         assert rounded_cost == 1.28

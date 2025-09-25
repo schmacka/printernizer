@@ -15,8 +15,8 @@ import aiohttp
 import structlog
 from bs4 import BeautifulSoup
 
-from database.database import Database
-from services.event_service import EventService
+from src.database.database import Database
+from src.services.event_service import EventService
 
 
 logger = structlog.get_logger(__name__)
