@@ -100,10 +100,38 @@ backups/
 test_*
 *.backup
 server.log
+debug_*.py
+fix_*.py
+simple_test.py
 
-# Docker
+# Deployment scripts (project uses Python setup, not containers)
+deploy.sh
+validate-deployment.sh
+deploy-*.sh
+*-deployment.sh
+
+# Build artifacts
+*.pyd
+*.so
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+site/
+
+# Development temporary files
+scratch*.md
+scratchpad*.md
+*notes*.md
+
+# Docker (Docker support removed for now)
 .dockerignore
 docker-compose.override.yml
+docker-compose.*.yml
+Dockerfile*
 
 # Monitoring
 prometheus_data/
