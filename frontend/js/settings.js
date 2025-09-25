@@ -48,17 +48,17 @@ class SettingsManager {
     async loadSettings() {
         try {
             showToast('info', 'Lade Einstellungen', 'Aktuelle Konfiguration wird geladen');
-            
+
             const response = await fetch('/api/v1/settings/application');
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             this.currentSettings = await response.json();
             this.populateSettingsForm();
-            
+
             console.log('Settings loaded:', this.currentSettings);
-            
+
         } catch (error) {
             window.ErrorHandler?.handleSettingsError(error, { operation: 'load' });
             showToast('error', 'Fehler beim Laden', 'Einstellungen konnten nicht geladen werden');

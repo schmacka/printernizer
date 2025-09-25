@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from src.models.printer import Printer, PrinterType, PrinterStatus, PrinterConfig
 from src.models.job import Job, JobStatus, JobCreate, JobUpdate
-from src.models.file import File, FileDownloadStatus
+from src.models.file import File, FileStatus
 
 
 class TestPrinterModel:
@@ -22,7 +22,7 @@ class TestPrinterModel:
             "type": PrinterType.BAMBU_LAB,
             "ip_address": "192.168.1.100",
             "access_code": "test_code",
-            "serial_number": "AC12345"
+            "serial_number": "AC12345678"
         }
         
         printer = Printer(**printer_data)
@@ -136,13 +136,13 @@ class TestFileModel:
             "printer_id": "bambu_001",
             "filename": "test_cube.3mf",
             "file_size": 1024000,
-            "printer_path": "/storage/test_cube.3mf"
+            "file_path": "/storage/test_cube.3mf"
         }
         
         file_obj = File(**file_data)
         
         assert file_obj.filename == "test_cube.3mf"
-        assert file_obj.download_status == FileDownloadStatus.AVAILABLE  # Default
+        assert file_obj.status == FileStatus.AVAILABLE  # Default
 
     def test_file_download_status_progression(self):
         """Test file download status changes."""
@@ -150,23 +150,23 @@ class TestFileModel:
         file_obj = File(
             id="file_001",
             printer_id="printer_001",
-            filename="test.stl", 
+            filename="test.stl",
             file_size=500000,
-            download_status=FileDownloadStatus.AVAILABLE
+            status=FileStatus.AVAILABLE
         )
-        assert file_obj.download_status == FileDownloadStatus.AVAILABLE
-        
+        assert file_obj.status == FileStatus.AVAILABLE
+
         # Downloaded file
         downloaded_file = File(
             id="file_002",
             printer_id="printer_001",
             filename="downloaded.stl",
             file_size=600000,
-            download_status=FileDownloadStatus.DOWNLOADED,
-            local_path="/downloads/downloaded.stl"
+            status=FileStatus.DOWNLOADED,
+            file_path="/downloads/downloaded.stl"
         )
-        assert downloaded_file.download_status == FileDownloadStatus.DOWNLOADED
-        assert downloaded_file.local_path is not None
+        assert downloaded_file.status == FileStatus.DOWNLOADED
+        assert downloaded_file.file_path is not None
 
 
 class TestEnumValidation:
@@ -193,11 +193,11 @@ class TestEnumValidation:
             assert hasattr(JobStatus, status.upper())
 
     def test_file_download_status_enum(self):
-        """Test FileDownloadStatus enum for file management."""
-        assert FileDownloadStatus.AVAILABLE == "available"
-        assert FileDownloadStatus.DOWNLOADING == "downloading" 
-        assert FileDownloadStatus.DOWNLOADED == "downloaded"
-        assert FileDownloadStatus.FAILED == "failed"
+        """Test FileStatus enum for file management."""
+        assert FileStatus.AVAILABLE == "available"
+        assert FileStatus.DOWNLOADING == "downloading"
+        assert FileStatus.DOWNLOADED == "downloaded"
+        assert FileStatus.ERROR == "error"
 
 
 class TestModelSerialization:

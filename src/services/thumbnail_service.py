@@ -15,7 +15,7 @@ import aiohttp
 import structlog
 from PIL import Image
 
-from services.event_service import EventService
+from src.services.event_service import EventService
 
 
 logger = structlog.get_logger(__name__)

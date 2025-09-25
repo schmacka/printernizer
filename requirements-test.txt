@@ -14,11 +14,11 @@ httpx>=0.24.0
 
 # WebSocket testing
 websocket-client>=1.6.0
-pytest-websocket>=0.2.0
+# pytest-websocket>=0.2.0  # Not available, will use websocket-client directly
 
 # Database testing
-sqlite3  # Built-in
-pytest-sqlite>=0.1.0
+# sqlite3  # Built-in, no need to install
+# pytest-sqlite>=0.1.0  # Not available, will use sqlite3 directly
 
 # Mock and fixtures
 factory-boy>=3.3.0

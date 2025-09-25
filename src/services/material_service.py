@@ -15,8 +15,8 @@ import aiofiles
 import structlog
 from sqlalchemy import text
 
-from database.database import Database
-from models.material import (
+from src.database.database import Database
+from src.models.material import (
     MaterialSpool,
     MaterialCreate,
     MaterialUpdate,
@@ -27,7 +27,7 @@ from models.material import (
     MaterialBrand,
     MaterialColor
 )
-from services.event_service import EventService
+from src.services.event_service import EventService
 
 
 logger = structlog.get_logger(__name__)
