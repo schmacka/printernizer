@@ -62,12 +62,24 @@ async def list_files(
     printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
     status: Optional[FileStatus] = Query(None, description="Filter by file status"),
     source: Optional[FileSource] = Query(None, description="Filter by file source"),
+    has_thumbnail: Optional[bool] = Query(None, description="Filter by thumbnail availability"),
+    limit: Optional[int] = Query(50, description="Limit number of results"),
+    order_by: Optional[str] = Query("created_at", description="Order by field"),
+    order_dir: Optional[str] = Query("desc", description="Order direction (asc/desc)"),
+    page: Optional[int] = Query(1, description="Page number"),
     file_service: FileService = Depends(get_file_service)
 ):
     """List files from printers and local storage."""
     try:
         files = await file_service.get_files(
-            printer_id=printer_id
+            printer_id=printer_id,
+            status=status,
+            source=source,
+            has_thumbnail=has_thumbnail,
+            limit=limit,
+            order_by=order_by,
+            order_dir=order_dir,
+            page=page
         )
         file_list = [FileResponse.model_validate(file) for file in files]
         return {

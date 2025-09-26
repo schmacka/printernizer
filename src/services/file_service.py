@@ -32,8 +32,15 @@ class FileService:
         self.download_progress = {}
         self.download_status = {}
         
-    async def get_files(self, printer_id: Optional[str] = None, 
-                       include_local: bool = True) -> List[Dict[str, Any]]:
+    async def get_files(self, printer_id: Optional[str] = None,
+                       include_local: bool = True,
+                       status: Optional[str] = None,
+                       source: Optional[str] = None,
+                       has_thumbnail: Optional[bool] = None,
+                       limit: Optional[int] = None,
+                       order_by: Optional[str] = "created_at",
+                       order_dir: Optional[str] = "desc",
+                       page: Optional[int] = 1) -> List[Dict[str, Any]]:
         """Get list of available files from printers and local folders."""
         files = []
         
@@ -64,10 +71,35 @@ class FileService:
             except Exception as e:
                 logger.error("Error retrieving local files", error=str(e))
         
-        # Filter by printer_id if specified (only applies to printer files)
+        # Apply filters
         if printer_id and printer_id != 'local':
             files = [f for f in files if f.get('printer_id') == printer_id or f.get('source') == 'local_watch']
-        
+
+        if status:
+            files = [f for f in files if f.get('status') == status]
+
+        if source:
+            files = [f for f in files if f.get('source') == source]
+
+        if has_thumbnail is not None:
+            files = [f for f in files if bool(f.get('has_thumbnail', False)) == has_thumbnail]
+
+        # Sort files
+        reverse_order = order_dir.lower() == 'desc'
+        if order_by == 'downloaded_at':
+            files = sorted(files, key=lambda x: x.get('downloaded_at') or x.get('created_at') or '', reverse=reverse_order)
+        elif order_by == 'created_at':
+            files = sorted(files, key=lambda x: x.get('created_at', ''), reverse=reverse_order)
+        elif order_by == 'filename':
+            files = sorted(files, key=lambda x: x.get('filename', ''), reverse=reverse_order)
+        elif order_by == 'file_size':
+            files = sorted(files, key=lambda x: x.get('file_size', 0), reverse=reverse_order)
+
+        # Apply pagination
+        if limit:
+            start_idx = (page - 1) * limit if page > 1 else 0
+            files = files[start_idx:start_idx + limit]
+
         return files
         
     async def get_printer_files(self, printer_id: str) -> List[Dict[str, Any]]:
