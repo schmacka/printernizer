@@ -44,13 +44,16 @@ class Dashboard {
         try {
             // Load overview statistics
             await this.loadOverviewStatistics();
-            
+
             // Load printers
             await this.loadPrinters();
-            
+
             // Load recent jobs
             await this.loadRecentJobs();
-            
+
+            // Load recent printed files
+            await this.loadRecentPrintedFiles();
+
             this.lastRefresh = new Date();
         } catch (error) {
             console.error('Failed to load dashboard:', error);
@@ -317,36 +320,88 @@ class Dashboard {
         const card = document.createElement('div');
         card.className = 'job-preview-card';
         card.setAttribute('data-job-id', job.id);
-        
+
         const status = getStatusConfig('job', job.status);
-        
+
         card.innerHTML = `
+            ${this.renderJobPreviewThumbnail(job)}
             <div class="job-preview-info">
                 <div class="job-preview-name">
                     <div class="job-name">${escapeHtml(job.job_name)}</div>
                     <div class="job-preview-printer">${escapeHtml(job.printer_name)}</div>
                 </div>
-                
+
                 <div class="job-preview-status">
                     <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
                 </div>
-                
+
                 <div class="job-preview-time">
                     ${job.start_time ? formatDateTime(job.start_time) : 'Nicht gestartet'}
                 </div>
-                
+
                 <div class="job-preview-progress">
                     ${this.renderJobPreviewProgress(job)}
                 </div>
             </div>
         `;
-        
+
         // Add click handler to show job details
         card.addEventListener('click', () => {
             showJobDetails(job.id);
         });
-        
+
         return card;
+    }
+
+    /**
+     * Render job preview thumbnail
+     */
+    renderJobPreviewThumbnail(job) {
+        // If job has a file_id or files array with thumbnails, show thumbnail
+        if (job.file_id || (job.files && job.files.length > 0)) {
+            const fileId = job.file_id || (job.files[0] && job.files[0].id);
+            const hasThumb = job.has_thumbnail || (job.files && job.files[0] && job.files[0].has_thumbnail);
+
+            if (fileId && hasThumb) {
+                return `
+                    <div class="job-preview-thumbnail">
+                        <img src="/api/files/${fileId}/thumbnail"
+                             alt="Print Preview"
+                             class="job-thumbnail-image"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                             loading="lazy">
+                        <div class="job-thumbnail-fallback" style="display: none">
+                            <span class="file-type-icon">${this.getJobFileTypeIcon(job)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Fallback to file type icon
+        return `
+            <div class="job-preview-thumbnail fallback">
+                <span class="file-type-icon">${this.getJobFileTypeIcon(job)}</span>
+            </div>
+        `;
+    }
+
+    /**
+     * Get file type icon for job
+     */
+    getJobFileTypeIcon(job) {
+        const fileName = job.job_name || job.filename || '';
+        const extension = fileName.split('.').pop().toLowerCase();
+
+        const iconMap = {
+            'gcode': '🔧',
+            '3mf': '📦',
+            'stl': '🏗️',
+            'obj': '📐',
+            'ply': '🧊'
+        };
+
+        return iconMap[extension] || '📄';
     }
 
     /**
@@ -392,6 +447,197 @@ class Dashboard {
                 <div class="empty-state-icon">⚙️</div>
                 <h3>Keine aktuellen Aufträge</h3>
                 <p>Hier werden Ihre neuesten Druckaufträge angezeigt.</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Load and display recent printed files
+     */
+    async loadRecentPrintedFiles() {
+        try {
+            const printedFilesContainer = document.getElementById('recentPrintedFiles');
+            if (!printedFilesContainer) return;
+
+            // Show loading state
+            setLoadingState(printedFilesContainer, true);
+
+            // Load recent files from API - focus on files with thumbnails from completed jobs
+            const response = await api.getFiles({
+                status: 'downloaded',
+                has_thumbnail: true,
+                limit: 8,
+                order_by: 'downloaded_at',
+                order_dir: 'desc'
+            });
+
+            if (response.files && response.files.length > 0) {
+                // Create file preview grid
+                printedFilesContainer.innerHTML = '';
+                const grid = document.createElement('div');
+                grid.className = 'printed-files-grid';
+
+                response.files.forEach(file => {
+                    const filePreview = this.createPrintedFilePreviewCard(file);
+                    grid.appendChild(filePreview);
+                });
+
+                printedFilesContainer.appendChild(grid);
+            } else {
+                // Show empty state
+                printedFilesContainer.innerHTML = this.renderEmptyPrintedFilesState();
+            }
+        } catch (error) {
+            console.error('Failed to load recent printed files:', error);
+            const printedFilesContainer = document.getElementById('recentPrintedFiles');
+            if (printedFilesContainer) {
+                printedFilesContainer.innerHTML = this.renderPrintedFilesError(error);
+            }
+        }
+    }
+
+    /**
+     * Create printed file preview card element
+     */
+    createPrintedFilePreviewCard(file) {
+        const card = document.createElement('div');
+        card.className = 'printed-file-preview-card';
+        card.setAttribute('data-file-id', file.id);
+
+        const fileTypeIcon = this.getFileTypeIcon(file.filename);
+
+        card.innerHTML = `
+            <div class="printed-file-thumbnail">
+                ${file.has_thumbnail ?
+                    `<img src="/api/files/${file.id}/thumbnail"
+                         alt="File Preview"
+                         class="printed-file-thumbnail-image"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                         loading="lazy">
+                     <div class="printed-file-thumbnail-fallback" style="display: none">
+                         <span class="file-type-icon">${fileTypeIcon}</span>
+                     </div>` :
+                    `<div class="printed-file-thumbnail-fallback">
+                         <span class="file-type-icon">${fileTypeIcon}</span>
+                     </div>`
+                }
+            </div>
+            <div class="printed-file-info">
+                <div class="printed-file-name" title="${escapeHtml(file.filename)}">${escapeHtml(this.truncateFileName(file.filename, 20))}</div>
+                <div class="printed-file-metadata">
+                    ${file.file_size ? `<span class="file-size">${formatBytes(file.file_size)}</span>` : ''}
+                    ${file.downloaded_at ? `<span class="download-date">${formatDate(file.downloaded_at)}</span>` : ''}
+                </div>
+                ${this.renderPrintedFileMetadata(file)}
+            </div>
+        `;
+
+        // Add click handler to open file preview or show details
+        card.addEventListener('click', () => {
+            this.showPrintedFileDetails(file);
+        });
+
+        return card;
+    }
+
+    /**
+     * Render printed file metadata
+     */
+    renderPrintedFileMetadata(file) {
+        if (!file.metadata) return '';
+
+        const metadata = file.metadata;
+        const metadataItems = [];
+
+        // Show key print information
+        if (metadata.estimated_time || metadata.estimated_print_time) {
+            const timeSeconds = metadata.estimated_time || metadata.estimated_print_time;
+            const timeText = typeof timeSeconds === 'number' ? formatDuration(timeSeconds) : timeSeconds;
+            metadataItems.push(`⏱️ ${timeText}`);
+        }
+
+        if (metadata.total_filament_used) {
+            metadataItems.push(`🧵 ${metadata.total_filament_used.toFixed(1)}g`);
+        }
+
+        if (metadataItems.length === 0) return '';
+
+        return `
+            <div class="printed-file-metadata-items">
+                ${metadataItems.slice(0, 2).map(item => `<span class="metadata-item">${item}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Show printed file details
+     */
+    showPrintedFileDetails(file) {
+        // For now, redirect to files page - later we can implement a modal
+        showPage('files');
+        // Could add file highlight or auto-filter here
+    }
+
+    /**
+     * Get file type icon
+     */
+    getFileTypeIcon(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        const iconMap = {
+            'gcode': '🔧',
+            '3mf': '📦',
+            'stl': '🏗️',
+            'obj': '📐',
+            'ply': '🧊'
+        };
+        return iconMap[extension] || '📄';
+    }
+
+    /**
+     * Truncate filename for display
+     */
+    truncateFileName(filename, maxLength) {
+        if (filename.length <= maxLength) return filename;
+
+        const extension = filename.split('.').pop();
+        const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+        const maxNameLength = maxLength - extension.length - 4; // -4 for "..." and "."
+
+        if (nameWithoutExt.length > maxNameLength) {
+            return nameWithoutExt.substring(0, maxNameLength) + '...' + '.' + extension;
+        }
+
+        return filename;
+    }
+
+    /**
+     * Render empty printed files state
+     */
+    renderEmptyPrintedFilesState() {
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">📁</div>
+                <h3>Keine gedruckten Dateien</h3>
+                <p>Hier werden Ihre kürzlich gedruckten Dateien mit Vorschaubildern angezeigt.</p>
+            </div>
+        `;
+    }
+
+    /**
+     * Render printed files error state
+     */
+    renderPrintedFilesError(error) {
+        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Dateien';
+
+        return `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <h3>Ladefehler</h3>
+                <p>${escapeHtml(message)}</p>
+                <button class="btn btn-primary" onclick="dashboard.loadRecentPrintedFiles()">
+                    <span class="btn-icon">🔄</span>
+                    Erneut versuchen
+                </button>
             </div>
         `;
     }
@@ -455,7 +701,9 @@ class Dashboard {
             // Load fresh statistics and printer data
             await Promise.all([
                 this.loadOverviewStatistics(),
-                this.updatePrintersStatus()
+                this.updatePrintersStatus(),
+                this.loadRecentJobs(),
+                this.loadRecentPrintedFiles()
             ]);
             
             this.lastRefresh = new Date();

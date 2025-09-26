@@ -200,34 +200,40 @@ class PrinterCard {
             return '<p class="text-muted text-center">Kein aktiver Auftrag</p>';
         }
 
-        const job = this.printer.current_job;
-        const jobStatus = getStatusConfig('job', job.status);
-        
+        // Handle case where current_job is a string (job name) rather than an object
+        const jobName = typeof this.printer.current_job === 'string' ? this.printer.current_job : this.printer.current_job.name;
+        const jobStatus = this.printer.status === 'printing' ? 'printing' : 'idle';
+        const statusConfig = getStatusConfig('job', jobStatus);
+
         return `
-            <div class="current-job" data-job-name="${escapeHtml(job.name)}">
-                <div class="job-name">${escapeHtml(job.name)}</div>
+            <div class="current-job" data-job-name="${escapeHtml(jobName)}">
+                <div class="job-name">${escapeHtml(jobName)}</div>
                 <div class="job-status">
-                    <span class="status-badge ${jobStatus.class}">${jobStatus.icon} ${jobStatus.label}</span>
+                    <span class="status-badge ${statusConfig.class}">${statusConfig.icon} ${statusConfig.label}</span>
                 </div>
-                
-                ${job.progress !== undefined ? `
+
+                ${this.printer.progress !== undefined ? `
                     <div class="job-progress">
                         <div class="progress-info">
-                            <span class="progress-percentage">${formatPercentage(job.progress)}</span>
+                            <span class="progress-percentage">${formatPercentage(this.printer.progress)}</span>
                             <span class="progress-time estimated-time">
-                                ${job.estimated_remaining ? `Noch ${formatDuration(job.estimated_remaining)}` : ''}
+                                ${this.printer.remaining_time_minutes ? `Noch ${formatDuration(this.printer.remaining_time_minutes * 60)}` : ''}
                             </span>
                         </div>
                         <div class="progress">
-                            <div class="progress-bar" style="width: ${job.progress}%"></div>
+                            <div class="progress-bar" style="width: ${this.printer.progress}%"></div>
                         </div>
                     </div>
                 ` : ''}
-                
-                ${job.layer_current && job.layer_total ? `
-                    <div class="layer-info">
-                        <span>Schicht: ${job.layer_current}/${job.layer_total}</span>
-                        <span>Start: ${job.started_at ? formatTime(job.started_at) : '-'}</span>
+
+                ${this.printer.remaining_time_minutes || this.printer.estimated_end_time ? `
+                    <div class="time-info">
+                        ${this.printer.remaining_time_minutes ? `
+                            <span class="remaining-time">Verbleibend: ${formatDuration(this.printer.remaining_time_minutes * 60)}</span>
+                        ` : ''}
+                        ${this.printer.estimated_end_time ? `
+                            <span class="end-time">Ende: ${formatTime(this.printer.estimated_end_time)}</span>
+                        ` : ''}
                     </div>
                 ` : ''}
             </div>
@@ -742,7 +748,7 @@ class FileListItem {
             <div class="file-visual">
                 ${this.renderThumbnailOrIcon()}
             </div>
-            
+
             <div class="file-info">
                 <div class="file-name">${escapeHtml(this.file.filename)}</div>
                 <div class="file-details">
@@ -754,18 +760,29 @@ class FileListItem {
                 </div>
                 ${this.renderMetadata()}
             </div>
-            
+
             <div class="file-status">
                 <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
             </div>
-            
+
             ${this.renderDownloadProgress()}
-            
+
             <div class="file-actions">
                 ${this.renderFileActions()}
             </div>
         `;
-        
+
+        // Add click handler for enhanced thumbnails
+        if (this.file.has_thumbnail && this.file.id) {
+            const thumbnail = this.element.querySelector('.file-thumbnail.enhanced');
+            if (thumbnail) {
+                thumbnail.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showFullThumbnail(this.file.id, this.file.filename);
+                });
+            }
+        }
+
         return this.element;
     }
 
@@ -775,13 +792,16 @@ class FileListItem {
     renderThumbnailOrIcon() {
         if (this.file.has_thumbnail && this.file.id) {
             return `
-                <div class="file-thumbnail">
-                    <img src="/api/files/${this.file.id}/thumbnail" 
-                         alt="Thumbnail" 
+                <div class="file-thumbnail enhanced" title="Click to enlarge">
+                    <img src="/api/files/${this.file.id}/thumbnail"
+                         alt="Thumbnail for ${escapeHtml(this.file.filename)}"
                          class="thumbnail-image"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
                          loading="lazy">
                     <div class="file-icon fallback-icon" style="display: none">${this.getFileIcon()}</div>
+                    <div class="thumbnail-overlay">
+                        <span class="zoom-icon">🔍</span>
+                    </div>
                 </div>
             `;
         } else {
@@ -789,6 +809,40 @@ class FileListItem {
                 <div class="file-icon">${this.getFileIcon()}</div>
             `;
         }
+    }
+
+    /**
+     * Show full thumbnail in modal
+     */
+    showFullThumbnail(fileId, filename) {
+        const modal = document.createElement('div');
+        modal.className = 'thumbnail-modal';
+        modal.innerHTML = `
+            <div class="thumbnail-modal-content">
+                <div class="thumbnail-modal-header">
+                    <h3>${escapeHtml(filename)}</h3>
+                    <button class="thumbnail-modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="thumbnail-modal-body">
+                    <img src="/api/files/${fileId}/thumbnail"
+                         alt="Full size thumbnail"
+                         class="full-thumbnail-image"
+                         onerror="this.nextElementSibling.style.display='block'; this.style.display='none'">
+                    <div class="thumbnail-error" style="display: none">
+                        <p>Unable to load thumbnail</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add click outside to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+
+        document.body.appendChild(modal);
     }
 
     /**

@@ -2375,3 +2375,200 @@
 label .required {
     margin-left: 2px;
 }
+
+/* Enhanced File Thumbnail Styles */
+.file-thumbnail.enhanced {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    background: var(--gray-100);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.file-thumbnail.enhanced:hover {
+    transform: scale(1.05);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-lg);
+}
+
+.file-thumbnail.enhanced .thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    transition: transform 0.2s ease;
+}
+
+.file-thumbnail.enhanced:hover .thumbnail-image {
+    transform: scale(1.1);
+}
+
+.thumbnail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: var(--radius-md);
+}
+
+.file-thumbnail.enhanced:hover .thumbnail-overlay {
+    opacity: 1;
+}
+
+.zoom-icon {
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Thumbnail Modal */
+.thumbnail-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.thumbnail-modal-content {
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2xl);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.thumbnail-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-6);
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.thumbnail-modal-header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--gray-900);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 400px;
+}
+
+.thumbnail-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: var(--spacing-2);
+    line-height: 1;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.thumbnail-modal-close:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.thumbnail-modal-body {
+    padding: var(--spacing-6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.full-thumbnail-image {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.thumbnail-error {
+    text-align: center;
+    color: var(--gray-500);
+    padding: var(--spacing-8);
+}
+
+.thumbnail-error p {
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+/* Enhanced File Visual Container */
+.file-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: var(--spacing-4);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+    .file-thumbnail.enhanced {
+        width: 60px;
+        height: 60px;
+    }
+
+    .thumbnail-modal-content {
+        margin: var(--spacing-4);
+        max-width: calc(100vw - 2rem);
+        max-height: calc(100vh - 2rem);
+    }
+
+    .thumbnail-modal-header {
+        padding: var(--spacing-4);
+    }
+
+    .thumbnail-modal-header h3 {
+        font-size: var(--font-size-md);
+        max-width: 250px;
+    }
+
+    .thumbnail-modal-body {
+        padding: var(--spacing-4);
+    }
+
+    .full-thumbnail-image {
+        max-height: 60vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .file-thumbnail.enhanced {
+        width: 50px;
+        height: 50px;
+    }
+
+    .zoom-icon {
+        font-size: 1.2rem;
+    }
+
+    .thumbnail-modal-header h3 {
+        max-width: 200px;
+    }
+}
