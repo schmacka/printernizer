@@ -15,11 +15,12 @@ class TestPrinterAPI:
     
     def test_get_printers_empty_database(self, api_client, temp_database, test_config):
         """Test GET /api/v1/printers with empty database"""
-        with patch('backend.database.get_connection') as mock_db:
-            mock_db.return_value.execute.return_value.fetchall.return_value = []
-            
+        # Mock the database instance's list_printers method to return empty list
+        with patch('src.database.database.Database.list_printers') as mock_list_printers:
+            mock_list_printers.return_value = []
+
             response = api_client.get(f"{test_config['api_base_url']}/printers")
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data['printers'] == []
@@ -28,7 +29,7 @@ class TestPrinterAPI:
     
     def test_get_printers_with_data(self, api_client, populated_database, test_config, sample_printer_data):
         """Test GET /api/v1/printers with existing printers"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/printers")
@@ -51,7 +52,7 @@ class TestPrinterAPI:
     
     def test_get_printers_filter_by_type(self, api_client, populated_database, test_config):
         """Test GET /api/v1/printers?type=bambu_lab"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/printers?type=bambu_lab")
@@ -63,7 +64,7 @@ class TestPrinterAPI:
     
     def test_get_printers_filter_by_active_status(self, api_client, populated_database, test_config):
         """Test GET /api/v1/printers?active=true"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/printers?active=true")
@@ -87,7 +88,7 @@ class TestPrinterAPI:
             'supports_remote_control': True
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             
             response = api_client.post(
@@ -112,7 +113,7 @@ class TestPrinterAPI:
             'api_key': 'new_prusa_api_key_67890'
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             
             response = api_client.post(
@@ -263,7 +264,7 @@ class TestPrinterAPI:
             'is_active': False
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.put(
@@ -305,7 +306,7 @@ class TestPrinterAPI:
         """Test DELETE /api/v1/printers/{id}"""
         printer_id = 'prusa_core_001'
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.delete(
@@ -325,7 +326,7 @@ class TestPrinterAPI:
         """Test DELETE /api/v1/printers/{id} with active print jobs"""
         printer_id = 'bambu_a1_001'  # This printer has an active printing job
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.delete(
@@ -514,7 +515,7 @@ class TestPrinterAPIEdgeCases:
         import time
         start_time = time.time()
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             response = api_client.get(f"{test_config['api_base_url']}/printers")
         
