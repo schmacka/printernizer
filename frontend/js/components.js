@@ -12,7 +12,6 @@ class PrinterCard {
         this.element = null;
         this.statusUpdateInterval = null;
         this.isMonitoring = false;
-        this.connectionQuality = 'good';
     }
 
     /**
@@ -31,7 +30,6 @@ class PrinterCard {
                 <div class="printer-title">
                     <h3>${escapeHtml(this.printer.name)}</h3>
                     <span class="printer-type">${printerType.label}</span>
-                    ${this.renderConnectionIndicator()}
                 </div>
                 <div class="printer-actions">
                     ${this.renderMonitoringToggle()}
@@ -72,30 +70,6 @@ class PrinterCard {
         return this.element;
     }
 
-    /**
-     * Render connection quality indicator
-     */
-    renderConnectionIndicator() {
-        const qualityIcons = {
-            'excellent': '📶',
-            'good': '📶',
-            'poor': '📶',
-            'disconnected': '📶'
-        };
-        
-        const qualityColors = {
-            'excellent': '#22c55e',
-            'good': '#eab308',
-            'poor': '#f97316',
-            'disconnected': '#ef4444'
-        };
-        
-        return `
-            <div class="connection-indicator" title="Verbindungsqualität: ${this.connectionQuality}">
-                <span style="color: ${qualityColors[this.connectionQuality]}">${qualityIcons[this.connectionQuality]}</span>
-            </div>
-        `;
-    }
 
     /**
      * Render monitoring toggle button
@@ -380,11 +354,6 @@ class PrinterCard {
      * Update real-time data without full re-render
      */
     updateRealtimeData(statusData) {
-        // Update connection quality
-        if (statusData.connection_quality) {
-            this.connectionQuality = statusData.connection_quality;
-            this.updateConnectionIndicator();
-        }
         
         // Update temperatures
         if (statusData.temperatures) {
@@ -409,23 +378,6 @@ class PrinterCard {
         }
     }
 
-    /**
-     * Update connection indicator
-     */
-    updateConnectionIndicator() {
-        const indicator = this.element.querySelector('.connection-indicator span');
-        if (!indicator) return;
-        
-        const qualityColors = {
-            'excellent': '#22c55e',
-            'good': '#eab308', 
-            'poor': '#f97316',
-            'disconnected': '#ef4444'
-        };
-        
-        indicator.style.color = qualityColors[this.connectionQuality];
-        indicator.parentElement.title = `Verbindungsqualität: ${this.connectionQuality}`;
-    }
 
     /**
      * Update temperature displays

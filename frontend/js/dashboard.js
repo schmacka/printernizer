@@ -466,7 +466,7 @@ class Dashboard {
             const response = await api.getFiles({
                 status: 'downloaded',
                 has_thumbnail: true,
-                limit: 8,
+                limit: 10,
                 order_by: 'downloaded_at',
                 order_dir: 'desc'
             });
