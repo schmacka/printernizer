@@ -26,6 +26,7 @@ class DebugManager {
             this.refreshHealthInfo(),
             this.loadApplicationLogs(),
             this.loadPerformanceMetrics(),
+            this.refreshThumbnailLog(),
             this.runAPITests()
         ]);
         
@@ -102,7 +103,9 @@ class DebugManager {
             await Promise.all([
                 this.refreshHealthInfo(),
                 this.loadApplicationLogs(),
-                this.loadPerformanceMetrics()
+                this.loadPerformanceMetrics(),
+                this.refreshThumbnailLog(),
+                this.runAPITests()
             ]);
             
             this.lastRefresh = new Date();
@@ -594,6 +597,132 @@ class DebugManager {
     /**
      * Display error messages
      */
+    /**
+     * Load thumbnail processing log
+     */
+    async loadThumbnailLog() {
+        try {
+            const response = await fetch('/api/v1/debug/thumbnail-processing-log');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            this.thumbnailLog = await response.json();
+            this.displayThumbnailLog();
+        } catch (error) {
+            console.error('Failed to load thumbnail processing log:', error);
+            this.displayThumbnailLogError();
+        }
+    }
+
+    /**
+     * Display thumbnail processing log
+     */
+    displayThumbnailLog() {
+        const container = document.getElementById('thumbnailLogViewer');
+        if (!container) return;
+
+        if (!this.thumbnailLog || !this.thumbnailLog.entries || this.thumbnailLog.entries.length === 0) {
+            container.innerHTML = `
+                <div class="thumbnail-log-empty">
+                    <div class="empty-icon">📷</div>
+                    <h4>Keine Thumbnail-Verarbeitungsaktivität</h4>
+                    <p>Es wurden noch keine Thumbnails verarbeitet.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Display summary statistics
+        const stats = this.thumbnailLog.summary;
+        const statsHtml = `
+            <div class="thumbnail-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Gesamt:</span>
+                    <span class="stat-value">${stats.total_entries}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Erfolgreich:</span>
+                    <span class="stat-value success">${stats.successful}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Fehlgeschlagen:</span>
+                    <span class="stat-value error">${stats.failed}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Erfolgsrate:</span>
+                    <span class="stat-value">${stats.success_rate}%</span>
+                </div>
+            </div>
+        `;
+
+        // Display file type breakdown
+        let fileTypesHtml = '';
+        if (stats.file_types && Object.keys(stats.file_types).length > 0) {
+            const fileTypesList = Object.entries(stats.file_types)
+                .map(([type, count]) => `<span class="file-type-badge">${type}: ${count}</span>`)
+                .join('');
+            fileTypesHtml = `
+                <div class="file-types">
+                    <span class="file-types-label">Dateitypen:</span>
+                    ${fileTypesList}
+                </div>
+            `;
+        }
+
+        // Display log entries
+        const entriesHtml = this.thumbnailLog.entries.map(entry => {
+            const timestamp = new Date(entry.timestamp).toLocaleString('de-DE');
+            const statusClass = entry.success ? 'success' : 'error';
+            const statusIcon = entry.success ? '✅' : '❌';
+            const errorInfo = entry.error ? `<div class="error-details">${entry.error}</div>` : '';
+            
+            return `
+                <div class="thumbnail-log-entry ${statusClass}">
+                    <div class="entry-header">
+                        <span class="entry-timestamp">${timestamp}</span>
+                        <span class="entry-status">
+                            <span class="status-icon">${statusIcon}</span>
+                            ${entry.success ? 'Erfolgreich' : 'Fehlgeschlagen'}
+                        </span>
+                    </div>
+                    <div class="entry-details">
+                        <span class="file-name">${entry.filename}</span>
+                        <span class="file-type-badge">${entry.file_type}</span>
+                        ${entry.dimensions ? `<span class="dimensions">${entry.dimensions.width}x${entry.dimensions.height}</span>` : ''}
+                    </div>
+                    ${errorInfo}
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="thumbnail-log-content">
+                ${statsHtml}
+                ${fileTypesHtml}
+                <div class="thumbnail-log-entries">
+                    ${entriesHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Display thumbnail processing log error
+     */
+    displayThumbnailLogError() {
+        const container = document.getElementById('thumbnailLogViewer');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="thumbnail-log-error">
+                <div class="error-icon">⚠️</div>
+                <h4>Thumbnail-Protokoll nicht verfügbar</h4>
+                <p>Das Thumbnail-Verarbeitungsprotokoll konnte nicht geladen werden.</p>
+            </div>
+        `;
+    }
+
     displayLogsError() {
         const container = document.getElementById('logViewer');
         if (!container) return;
@@ -631,6 +760,10 @@ const debugManager = new DebugManager();
  */
 function refreshDebugInfo() {
     debugManager.refreshDebugInfo();
+}
+
+function refreshThumbnailLog() {
+    debugManager.loadThumbnailLog();
 }
 
 function clearLogs() {

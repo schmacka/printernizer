@@ -395,71 +395,227 @@ class PrusaPrinter(BasePrinter):
             logger.warning("Failed to list files from Prusa - returning empty list",
                           printer_id=self.printer_id, error=str(e))
             return []  # Return empty list instead of raising exception
+    
+    async def get_files(self) -> List[dict]:
+        """Get raw file data from Prusa printer API (for download references)."""
+        if not self.is_connected or not self.session:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+            
+        try:
+            # Get file list from PrusaLink
+            async with self.session.get(f"{self.base_url}/files") as response:
+                if response.status == 403:
+                    logger.warning("Access denied to Prusa files API - check API key permissions",
+                                  printer_id=self.printer_id, status_code=response.status)
+                    return []  # Return empty list instead of raising exception
+                elif response.status != 200:
+                    logger.warning("Failed to get files from Prusa API", 
+                                  printer_id=self.printer_id, status_code=response.status)
+                    return []  # Return empty list for other HTTP errors too
+                    
+                files_data = await response.json()
+                
+            raw_files = []
+            
+            # Process files from PrusaLink response and flatten structure
+            def extract_raw_files_from_structure(items, prefix=""):
+                """Recursively extract raw file data from PrusaLink folder structure."""
+                extracted = []
+                
+                for item in items:
+                    item_type = item.get('type', '')
+                    
+                    if item_type == 'folder' and 'children' in item:
+                        # This is a folder (like USB), process its children
+                        folder_name = item.get('display', item.get('name', ''))
+                        folder_prefix = f"[{folder_name}] " if prefix == "" else f"{prefix}{folder_name}/"
+                        
+                        # Recursively process children
+                        children_files = extract_raw_files_from_structure(
+                            item['children'], 
+                            folder_prefix
+                        )
+                        extracted.extend(children_files)
+                        
+                    elif item_type != 'folder':
+                        # This is likely a file (PrusaLink doesn't always set type for files)
+                        # Check if it has common printable file extensions or references
+                        name = item.get('name', '')
+                        display_name = item.get('display', name)
+                        
+                        # Check if this looks like a printable file
+                        if (name.lower().endswith(('.gcode', '.bgcode', '.stl')) or 
+                            display_name.lower().endswith(('.gcode', '.bgcode', '.stl')) or
+                            'refs' in item):  # Files with refs are usually printable
+                            
+                            # Create a copy with prefixed display name but preserve all raw data
+                            raw_file = dict(item)
+                            raw_file['display'] = f"{prefix}{display_name}"
+                            extracted.append(raw_file)
+                        
+                return extracted
+            
+            # Extract files from the main files array
+            local_files = files_data.get('files', [])
+            raw_files.extend(extract_raw_files_from_structure(local_files))
+                    
+            # Process SD card files if available (alternative structure)
+            if 'sdcard' in files_data and files_data['sdcard'].get('ready'):
+                sd_files = files_data.get('sdcard', {}).get('files', [])
+                sd_extracted = extract_raw_files_from_structure(sd_files, "[SD] ")
+                raw_files.extend(sd_extracted)
+                        
+            logger.info("Retrieved raw file data from Prusa",
+                       printer_id=self.printer_id, file_count=len(raw_files))
+            return raw_files
+            
+        except Exception as e:
+            logger.warning("Failed to get raw files from Prusa - returning empty list",
+                          printer_id=self.printer_id, error=str(e))
+            return []  # Return empty list instead of raising exception
             
     async def download_file(self, filename: str, local_path: str) -> bool:
         """Download a file from Prusa printer."""
         if not self.is_connected or not self.session:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
             logger.info("Starting file download from Prusa",
                        printer_id=self.printer_id, filename=filename, local_path=local_path)
-                       
-            # Construct download URL based on the correct API format
-            # Need to determine if file is on USB or local storage
-            # For now, try USB first (most common) then fall back to local
-            download_urls = [
-                f"{self.base_url}/api/files/usb/{filename}",    # USB files (most common)
-                f"{self.base_url}/api/files/local/{filename}",  # Local files
-            ]
 
-            # Try each URL until one works
-            download_success = False
-            for download_url in download_urls:
-                try:
-                    async with self.session.get(download_url) as response:
-                        if response.status == 200:
-                            logger.info("Found file at URL",
-                                       printer_id=self.printer_id, url=download_url)
+            # First, get the file list to find the actual download path
+            file_info = await self._find_file_by_display_name(filename)
+            if not file_info:
+                logger.error("File not found in printer file list",
+                           printer_id=self.printer_id, filename=filename)
+                return False
 
-                            # Ensure local directory exists
-                            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+            # Get the download reference from the file info
+            download_ref = file_info.get('refs', {}).get('download')
+            if not download_ref:
+                logger.error("No download reference found for file",
+                           printer_id=self.printer_id, filename=filename)
+                return False
 
-                            # Write file content
-                            with open(local_path, 'wb') as f:
-                                async for chunk in response.content.iter_chunked(8192):
-                                    f.write(chunk)
+            logger.info(f"Raw file_info for debugging: {file_info}",
+                        printer_id=self.printer_id)
+            logger.info(f"Download reference: '{download_ref}'",
+                        printer_id=self.printer_id)
 
-                            download_success = True
-                            break
-                        elif response.status == 404:
-                            # File not found at this location, try next URL
-                            continue
-                        else:
-                            # Other error, still try next URL but log it
-                            logger.warning("Download attempt failed",
-                                         printer_id=self.printer_id,
-                                         url=download_url,
-                                         status=response.status)
-                            continue
-                except Exception as url_error:
-                    logger.warning("Error testing download URL",
-                                 printer_id=self.printer_id,
-                                 url=download_url,
-                                 error=str(url_error))
-                    continue
-
-            if not download_success:
-                raise aiohttp.ClientError("File not found at any expected location")
-
-            logger.info("Successfully downloaded file from Prusa",
-                       printer_id=self.printer_id, filename=filename, local_path=local_path)
-            return True
+            # Construct the full download URL
+            # Fix PrusaLink API path based on the actual format returned
+            base_host = f"http://{self.ip_address}"  # Get just the host without /api
             
+            if download_ref.startswith('/api/'):
+                # Modern API format - use as is
+                download_url = f"{self.base_url}{download_ref}"
+                logger.info(f"Using modern API path: {download_url}", printer_id=self.printer_id)
+            elif download_ref.startswith('/apiusb/'):
+                # Legacy format with leading slash
+                filename_part = download_ref[8:]  # Remove '/apiusb/'
+                download_url = f"{base_host}/api/v1/files/usb/{filename_part}"
+                logger.info(f"Converted legacy /apiusb/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
+            elif download_ref.startswith('/apisd/'):
+                # Legacy format with leading slash
+                filename_part = download_ref[7:]  # Remove '/apisd/'
+                download_url = f"{base_host}/api/v1/files/sdcard/{filename_part}"
+                logger.info(f"Converted legacy /apisd/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
+            elif download_ref.startswith('usb/'):
+                # Modern format without leading slash - convert to proper API path
+                filename_part = download_ref[4:]  # Remove 'usb/'
+                download_url = f"{base_host}/api/v1/files/usb/{filename_part}"
+                logger.info(f"Converted modern usb/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
+            elif download_ref.startswith('sdcard/'):
+                # Modern format without leading slash - convert to proper API path
+                filename_part = download_ref[7:]  # Remove 'sdcard/'
+                download_url = f"{base_host}/api/v1/files/sdcard/{filename_part}"
+                logger.info(f"Converted modern sdcard/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
+            else:
+                # Try legacy format construction as fallback
+                download_url = f"{base_host}/apiusb/{download_ref}"
+                logger.info(f"Using legacy fallback path: {download_url}", printer_id=self.printer_id)
+
+            logger.info("Downloading file using API reference",
+                       printer_id=self.printer_id,
+                       filename=filename,
+                       download_url=download_url)
+
+            # Download the file
+            async with self.session.get(download_url) as response:
+                if response.status == 200:
+                    # Ensure local directory exists
+                    Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+
+                    # Write file content
+                    with open(local_path, 'wb') as f:
+                        async for chunk in response.content.iter_chunked(8192):
+                            f.write(chunk)
+
+                    logger.info("Successfully downloaded file from Prusa",
+                               printer_id=self.printer_id, filename=filename, local_path=local_path)
+                    return True
+                else:
+                    logger.error("Download failed with HTTP status",
+                               printer_id=self.printer_id,
+                               filename=filename,
+                               status=response.status)
+                    return False
+
         except Exception as e:
             logger.error("Failed to download file from Prusa",
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
+
+    async def _find_file_by_display_name(self, display_name: str) -> Optional[dict]:
+        """Find a file in the printer's file list by its display name."""
+        try:
+            files = await self.get_files()
+            
+            logger.debug(f"Searching for file: '{display_name}' among {len(files)} files",
+                        printer_id=self.printer_id)
+
+            # First try exact matches
+            for file_info in files:
+                file_display = file_info.get('display', '')
+                file_name = file_info.get('name', '')
+                
+                if file_display == display_name or file_name == display_name:
+                    logger.debug(f"Found exact match: display='{file_display}', name='{file_name}'",
+                               printer_id=self.printer_id)
+                    return file_info
+            
+            # If no exact match, try partial matches (case-insensitive)
+            display_name_lower = display_name.lower()
+            for file_info in files:
+                file_display = file_info.get('display', '')
+                file_name = file_info.get('name', '')
+                
+                if (display_name_lower in file_display.lower() or 
+                    display_name_lower in file_name.lower() or
+                    file_display.lower() in display_name_lower or
+                    file_name.lower() in display_name_lower):
+                    
+                    logger.info(f"Found partial match for '{display_name}': display='{file_display}', name='{file_name}'",
+                               printer_id=self.printer_id)
+                    return file_info
+            
+            # Log all available files for debugging
+            logger.warning(f"No match found for '{display_name}'. Available files:",
+                          printer_id=self.printer_id)
+            for i, file_info in enumerate(files[:10]):  # Log first 10 files
+                logger.warning(f"  [{i}] display='{file_info.get('display', '')}', name='{file_info.get('name', '')}'",
+                              printer_id=self.printer_id)
+            if len(files) > 10:
+                logger.warning(f"  ... and {len(files) - 10} more files", printer_id=self.printer_id)
+
+            return None
+
+        except Exception as e:
+            logger.error("Failed to search for file",
+                        printer_id=self.printer_id,
+                        display_name=display_name,
+                        error=str(e))
+            return None
             
     async def pause_print(self) -> bool:
         """Pause the current print job on Prusa printer."""

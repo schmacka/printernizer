@@ -92,3 +92,41 @@ async def debug_file(
     if include_base64_length and record.get('thumbnail_data'):
         resp['thumbnail_base64_length'] = len(record['thumbnail_data'])
     return resp
+
+
+@router.get("/thumbnail-processing-log", tags=["Debug"], summary="Get thumbnail processing status log")
+async def get_thumbnail_processing_log(
+    request: Request,
+    limit: int = Query(20, description="Maximum number of log entries to return", ge=1, le=100)
+):
+    """Return recent thumbnail processing attempts with status and details.
+    
+    Helps debug why thumbnail extraction might be failing for specific files.
+    Shows the last processing attempts with timestamps, file types, and error details.
+    """
+    file_service = getattr(request.app.state, 'file_service', None)
+    if not file_service:
+        raise HTTPException(status_code=500, detail="File service unavailable")
+
+    log_entries = file_service.get_thumbnail_processing_log(limit)
+    
+    # Add some summary statistics
+    total_entries = len(log_entries)
+    status_counts = {}
+    file_type_counts = {}
+    
+    for entry in log_entries:
+        status = entry.get('status', 'unknown')
+        file_ext = entry.get('file_extension', 'unknown')
+        
+        status_counts[status] = status_counts.get(status, 0) + 1
+        file_type_counts[file_ext] = file_type_counts.get(file_ext, 0) + 1
+    
+    return {
+        "summary": {
+            "total_entries": total_entries,
+            "status_breakdown": status_counts,
+            "file_type_breakdown": file_type_counts
+        },
+        "recent_attempts": log_entries
+    }
