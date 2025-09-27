@@ -405,29 +405,55 @@ class PrusaPrinter(BasePrinter):
             logger.info("Starting file download from Prusa",
                        printer_id=self.printer_id, filename=filename, local_path=local_path)
                        
-            # Construct download URL - handle SD card files
-            if filename.startswith('[SD]'):
-                # Remove [SD] prefix and use sdcard path
-                clean_filename = filename[5:].strip()
-                download_url = f"{self.base_url}/files/sdcard/{clean_filename}"
-            else:
-                download_url = f"{self.base_url}/files/local/{filename}"
-                
-            # Download file
-            async with self.session.get(download_url) as response:
-                if response.status != 200:
-                    raise aiohttp.ClientError(f"HTTP {response.status}")
-                    
-                # Ensure local directory exists
-                Path(local_path).parent.mkdir(parents=True, exist_ok=True)
-                
-                # Write file content
-                with open(local_path, 'wb') as f:
-                    async for chunk in response.content.iter_chunked(8192):
-                        f.write(chunk)
-                        
+            # Construct download URL based on the correct API format
+            # Need to determine if file is on USB or local storage
+            # For now, try USB first (most common) then fall back to local
+            download_urls = [
+                f"{self.base_url}/api/files/usb/{filename}",    # USB files (most common)
+                f"{self.base_url}/api/files/local/{filename}",  # Local files
+            ]
+
+            # Try each URL until one works
+            download_success = False
+            for download_url in download_urls:
+                try:
+                    async with self.session.get(download_url) as response:
+                        if response.status == 200:
+                            logger.info("Found file at URL",
+                                       printer_id=self.printer_id, url=download_url)
+
+                            # Ensure local directory exists
+                            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+
+                            # Write file content
+                            with open(local_path, 'wb') as f:
+                                async for chunk in response.content.iter_chunked(8192):
+                                    f.write(chunk)
+
+                            download_success = True
+                            break
+                        elif response.status == 404:
+                            # File not found at this location, try next URL
+                            continue
+                        else:
+                            # Other error, still try next URL but log it
+                            logger.warning("Download attempt failed",
+                                         printer_id=self.printer_id,
+                                         url=download_url,
+                                         status=response.status)
+                            continue
+                except Exception as url_error:
+                    logger.warning("Error testing download URL",
+                                 printer_id=self.printer_id,
+                                 url=download_url,
+                                 error=str(url_error))
+                    continue
+
+            if not download_success:
+                raise aiohttp.ClientError("File not found at any expected location")
+
             logger.info("Successfully downloaded file from Prusa",
-                       printer_id=self.printer_id, filename=filename)
+                       printer_id=self.printer_id, filename=filename, local_path=local_path)
             return True
             
         except Exception as e:
