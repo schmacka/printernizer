@@ -97,3 +97,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - All architecture decisions should align with the core requirements in project.md
 - Focus on enterprise features while maintaining simplicity
 - Consider standard business practices and configurable accounting requirements
+- remember to increase version number accordingly when branches get integrated in to master

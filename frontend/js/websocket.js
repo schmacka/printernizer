@@ -468,6 +468,37 @@ class PrinternizerWebSocketHandler {
             this.updateCurrentJobDisplay(card, data.current_job);
         }
 
+        // Handle thumbnail updates (new real-time fields)
+        if (data.current_job_file_id) {
+            const currentJobContainer = card.querySelector('.current-job');
+            if (currentJobContainer) {
+                let thumbEl = currentJobContainer.querySelector('.job-thumbnail img.thumbnail-image');
+                if (data.current_job_has_thumbnail && data.current_job_thumbnail_url) {
+                    // Create container if missing
+                    if (!thumbEl) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'job-thumbnail';
+                        wrapper.innerHTML = `
+                            <img class="thumbnail-image" loading="lazy" alt="Job Thumbnail">
+                            <div class="thumbnail-overlay"><i class="fas fa-expand"></i></div>
+                        `;
+                        currentJobContainer.prepend(wrapper);
+                        thumbEl = wrapper.querySelector('img.thumbnail-image');
+                    }
+                    const newSrc = data.current_job_thumbnail_url;
+                    // Avoid flicker if unchanged
+                    if (thumbEl.getAttribute('src') !== newSrc) {
+                        thumbEl.src = newSrc + `?t=${Date.now()}`; // Bust cache on change
+                        thumbEl.dataset.fileId = data.current_job_file_id;
+                    }
+                } else if (thumbEl) {
+                    // Remove thumbnail if no longer available
+                    const parent = thumbEl.closest('.job-thumbnail');
+                    if (parent) parent.remove();
+                }
+            }
+        }
+
         // Update last seen time
         const lastSeenElement = card.querySelector('.printer-last-seen');
         if (lastSeenElement && data.last_seen) {

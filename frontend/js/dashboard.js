@@ -915,3 +915,29 @@ function showJobDetails(jobId) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Dashboard, dashboard };
 }
+
+/**
+ * Manually trigger current job file download & thumbnail processing from dashboard card
+ */
+async function triggerCurrentJobDownload(printerId) {
+    try {
+        showToast('info', 'Thumbnail', 'Lade aktuelle Druckdatei...');
+        const result = await api.downloadCurrentJobFile(printerId);
+        const status = result.status || 'unbekannt';
+        if (['exists_with_thumbnail','processed','success'].includes(status)) {
+            showToast('success', 'Thumbnail', 'Thumbnail verfügbar.');
+        } else if (status === 'not_printing') {
+            showToast('warning', 'Kein Druck', 'Kein aktiver Druckauftrag.');
+        } else if (status === 'exists_no_thumbnail') {
+            showToast('info', 'Keine Vorschau', 'Datei ohne eingebettetes Thumbnail.');
+        } else {
+            showToast('info', 'Status', `Status: ${status}`);
+        }
+        // Reload dashboard section to display thumbnail if new
+        refreshDashboard();
+    } catch (error) {
+        console.error('Failed to trigger current job download:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Abrufen der Druckdatei';
+        showToast('error', 'Fehler', message);
+    }
+}

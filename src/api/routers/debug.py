@@ -1,0 +1,94 @@
+"""Temporary debug endpoints for development (thumbnail/status introspection).
+
+Remove this file before production if not needed.
+"""
+
+from typing import Optional, List
+from fastapi import APIRouter, Request, Query, HTTPException
+import structlog
+
+logger = structlog.get_logger()
+
+router = APIRouter()
+
+
+@router.get("/printers/{printer_id}/thumbnail", tags=["Debug"], summary="Debug current printer thumbnail linkage")
+async def debug_printer_thumbnail(
+    request: Request,
+    printer_id: str,
+    include_file_record: bool = Query(False, description="Include full file record (excluding raw base64 data)"),
+    include_base64_lengths: bool = Query(False, description="Include thumbnail base64 length if present"),
+):
+    """Return raw status + file record & derived thumbnail info for a printer.
+
+    Helps verify why a dashboard thumbnail might not be appearing.
+    """
+    printer_service = request.app.state.printer_service
+    file_service = getattr(request.app.state, 'file_service', None)
+
+    instance = printer_service.printer_instances.get(printer_id)
+    if not instance:
+        raise HTTPException(status_code=404, detail="Printer not found")
+
+    status = getattr(instance, 'last_status', None)
+    response = {
+        "printer_id": printer_id,
+        "is_connected": instance.is_connected,
+        "status_available": bool(status),
+        "reasons": []  # accumulate potential causes for missing thumbnail
+    }
+
+    file_record = None
+    if status:
+        status_dict = status.model_dump() if hasattr(status, 'model_dump') else status.__dict__
+        response["status_raw"] = status_dict
+        file_id = status_dict.get("current_job_file_id")
+        response["current_job_file_id"] = file_id
+        response["current_job_has_thumbnail"] = status_dict.get("current_job_has_thumbnail")
+        response["current_job_thumbnail_url"] = status_dict.get("current_job_thumbnail_url")
+
+        if file_id and file_service:
+            file_record = await file_service.get_file_by_id(file_id)
+            if not file_record:
+                response["reasons"].append("File record not found for current_job_file_id")
+            else:
+                response["file_record_has_thumbnail"] = file_record.get("has_thumbnail")
+                if not file_record.get("has_thumbnail"):
+                    response["reasons"].append("File record exists but has_thumbnail is False")
+                thumb_data = file_record.get("thumbnail_data")
+                if include_base64_lengths and thumb_data:
+                    response["thumbnail_base64_length"] = len(thumb_data)
+        else:
+            if not file_id:
+                response["reasons"].append("Status has no current_job_file_id")
+            if not status_dict.get("current_job_has_thumbnail"):
+                response["reasons"].append("Status indicates no thumbnail")
+    else:
+        response["reasons"].append("Printer has no last_status yet")
+
+    if include_file_record and file_record:
+        # Exclude big base64 blob unless explicitly requested (we only send length above)
+        redacted = {k: v for k, v in file_record.items() if k != "thumbnail_data"}
+        response["file_record"] = redacted
+
+    return response
+
+
+@router.get("/files/{file_id}", tags=["Debug"], summary="Debug file record & thumbnail flags")
+async def debug_file(
+    request: Request,
+    file_id: str,
+    include_base64_length: bool = Query(False, description="Include base64 length instead of data")
+):
+    file_service = getattr(request.app.state, 'file_service', None)
+    if not file_service:
+        raise HTTPException(status_code=500, detail="File service unavailable")
+
+    record = await file_service.get_file_by_id(file_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    resp = {k: v for k, v in record.items() if k != 'thumbnail_data'}
+    if include_base64_length and record.get('thumbnail_data'):
+        resp['thumbnail_base64_length'] = len(record['thumbnail_data'])
+    return resp

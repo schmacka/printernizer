@@ -42,6 +42,9 @@ class PrinterCard {
                     <button class="btn btn-sm btn-secondary" onclick="editPrinter('${this.printer.id}')" title="Bearbeiten">
                         <span class="btn-icon">✏️</span>
                     </button>
+                    <button class="btn btn-sm btn-secondary" onclick="triggerCurrentJobDownload('${this.printer.id}')" title="Aktuelle Druckdatei herunterladen & Thumbnail verarbeiten">
+                        <span class="btn-icon">🖼️</span>
+                    </button>
                 </div>
             </div>
             <div class="printer-body">
@@ -181,6 +184,7 @@ class PrinterCard {
 
         return `
             <div class="current-job" data-job-name="${escapeHtml(jobName)}">
+                ${this.renderJobThumbnail()}
                 <div class="job-name">${escapeHtml(jobName)}</div>
                 <div class="job-status">
                     <span class="status-badge ${statusConfig.class}">${statusConfig.icon} ${statusConfig.label}</span>
@@ -210,6 +214,30 @@ class PrinterCard {
                         ` : ''}
                     </div>
                 ` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Render job thumbnail section
+     */
+    renderJobThumbnail() {
+        // Check if we have thumbnail data for the current job
+        if (!this.printer.current_job_file_id || !this.printer.current_job_has_thumbnail) {
+            return '';
+        }
+
+        return `
+            <div class="job-thumbnail">
+                <img src="/api/v1/files/${this.printer.current_job_file_id}/thumbnail"
+                     alt="Job Thumbnail"
+                     class="thumbnail-image"
+                     data-file-id="${this.printer.current_job_file_id}"
+                     loading="lazy"
+                     onclick="showFullThumbnail('${this.printer.current_job_file_id}', '${escapeHtml(this.printer.current_job || 'Current Job')}')">
+                <div class="thumbnail-overlay">
+                    <i class="fas fa-expand"></i>
+                </div>
             </div>
         `;
     }
@@ -1495,7 +1523,8 @@ class DruckerDateienManager {
                     <div class="file-name" title="${escapeHtml(file.filename)}">${escapeHtml(file.filename)}</div>
                     <div class="file-details">
                         <span class="file-size">${formatBytes(file.file_size)}</span>
-                        ${file.printer_name ? `<span class="file-printer">${escapeHtml(file.printer_name)}</span>` : ''}
+                        ${file.printer_name ? `<span class="file-printer">📟 ${escapeHtml(file.printer_name)}</span>` : ''}
+                        ${file.source ? `<span class="file-source">${this.getSourceDisplay(file.source, file.watch_folder_path)}</span>` : ''}
                     </div>
                     <div class="file-meta">
                         <span class="file-date">
@@ -1588,6 +1617,27 @@ class DruckerDateienManager {
             'ply': '🔶'
         };
         return icons[extension] || '📄';
+    }
+
+    /**
+     * Get display text for file source
+     */
+    getSourceDisplay(source, watchFolderPath) {
+        const sourceIcons = {
+            'printer': '🖨️ Drucker',
+            'local_watch': '📁 Ordner',
+            'local': '💾 Lokal'
+        };
+
+        let display = sourceIcons[source] || '❓ Unbekannt';
+
+        // Add folder path for watch folders
+        if (source === 'local_watch' && watchFolderPath) {
+            const folderName = watchFolderPath.split(/[\\/]/).pop();
+            display += `: ${folderName}`;
+        }
+
+        return display;
     }
 
     /**

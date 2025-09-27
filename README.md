@@ -56,6 +56,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - **One-click downloads** - Direct download from printer storage
 - **Status tracking** - Visual indicators for file availability and download status
 - **Smart filtering** - Filter by printer, status, and file type
+- **(Planned) Print job thumbnails** - Display current job preview (3MF embedded thumbnail) on dashboard tiles
 
 ### 🏢 Business Features
 - **Professional dashboard** - Clean, business-ready interface
@@ -82,6 +83,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 **Coming Soon:**
 - 🔄 Docker containerization (planned)
 - 🔄 Advanced deployment options (planned)
+- 🖼️ Print job thumbnail previews (3MF embedded preview extraction & caching)
 - 🔄 Enhanced monitoring and alerting (planned)
 
 ## 🚀 Quick Start

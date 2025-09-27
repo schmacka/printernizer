@@ -70,10 +70,10 @@ class FileManager {
             setLoadingState(statsContainer, true);
             
             // Load file statistics from API
-            const response = await api.getFiles({ page: 1, limit: 1 });
-            
-            if (response.summary) {
-                statsContainer.innerHTML = this.renderFileStatistics(response.summary);
+            const response = await api.getFileStatistics();
+
+            if (response && response.statistics) {
+                statsContainer.innerHTML = this.renderFileStatistics(response.statistics);
             } else {
                 statsContainer.innerHTML = this.renderFileStatisticsError();
             }

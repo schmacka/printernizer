@@ -141,7 +141,7 @@ class PrinterManager {
                     
                     <div class="info-section">
                         <h4>Status</h4>
-                        ${this.renderCurrentJobInfo(printer.current_job)}
+                        ${this.renderCurrentJobInfo(printer)}
                         ${this.renderTemperatureInfo(printer.temperatures)}
                     </div>
                     
@@ -168,40 +168,75 @@ class PrinterManager {
     /**
      * Render current job information
      */
-    renderCurrentJobInfo(currentJob) {
-        if (!currentJob) {
+    renderCurrentJobInfo(printer) {
+        if (!printer.current_job) {
             return '<div class="info-item"><span class="text-muted">Kein aktiver Auftrag</span></div>';
         }
-        
-        const status = getStatusConfig('job', currentJob.status);
-        
+
+        // Handle both old job object structure and new string job name structure
+        const jobName = typeof printer.current_job === 'string' ? printer.current_job : printer.current_job.name;
+        const jobStatus = printer.status === 'printing' ? 'printing' : 'idle';
+        const status = getStatusConfig('job', jobStatus);
+
         return `
             <div class="current-job-info">
                 <div class="info-item">
                     <label>Aktueller Auftrag:</label>
-                    <span>${escapeHtml(currentJob.name)}</span>
+                    <span>${escapeHtml(jobName)}</span>
                 </div>
+                ${this.renderJobThumbnail(printer)}
                 <div class="info-item">
                     <label>Status:</label>
                     <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
                 </div>
-                ${currentJob.progress !== undefined ? `
+                ${printer.progress !== undefined ? `
                     <div class="info-item">
                         <label>Fortschritt:</label>
                         <div class="inline-progress">
                             <div class="progress">
-                                <div class="progress-bar" style="width: ${currentJob.progress}%"></div>
+                                <div class="progress-bar" style="width: ${printer.progress}%"></div>
                             </div>
-                            <span class="progress-text">${formatPercentage(currentJob.progress)}</span>
+                            <span class="progress-text">${formatPercentage(printer.progress)}</span>
                         </div>
                     </div>
                 ` : ''}
-                ${currentJob.estimated_remaining ? `
+                ${printer.remaining_time_minutes ? `
                     <div class="info-item">
                         <label>Verbleibend:</label>
-                        <span>${formatDuration(currentJob.estimated_remaining)}</span>
+                        <span>${formatDuration(printer.remaining_time_minutes * 60)}</span>
                     </div>
                 ` : ''}
+                ${printer.estimated_end_time ? `
+                    <div class="info-item">
+                        <label>Ende:</label>
+                        <span>${formatTime(printer.estimated_end_time)}</span>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Render job thumbnail section for printers page
+     */
+    renderJobThumbnail(printer) {
+        // Check if we have thumbnail data for the current job
+        if (!printer.current_job_file_id || !printer.current_job_has_thumbnail) {
+            return '';
+        }
+
+        return `
+            <div class="info-item">
+                <label>Vorschau:</label>
+                <div class="job-thumbnail-info">
+                    <img src="/api/v1/files/${printer.current_job_file_id}/thumbnail"
+                         alt="Job Thumbnail"
+                         class="thumbnail-image-small"
+                         data-file-id="${printer.current_job_file_id}"
+                         loading="lazy"
+                         onclick="showFullThumbnail('${printer.current_job_file_id}', '${escapeHtml(printer.current_job || 'Current Job')}')"
+                         onerror="this.parentElement.innerHTML='<span class=\\'text-muted\\'>Keine Vorschau verfügbar</span>'">
+                </div>
             </div>
         `;
     }
@@ -302,6 +337,10 @@ class PrinterManager {
                 <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="Druck stoppen">
                     <span class="btn-icon">⏹️</span>
                     Stoppen
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="printerManager.downloadCurrentJob('${printer.id}')" title="Aktuelle Druckdatei herunterladen & Thumbnail verarbeiten">
+                    <span class="btn-icon">🖼️</span>
+                    Thumbnail holen
                 </button>
             `);
         } else if (printer.status === 'paused') {
@@ -544,6 +583,34 @@ class PrinterManager {
         } catch (error) {
             console.error('Failed to stop print:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Stoppen des Druckauftrags';
+            showToast('error', 'Fehler', message);
+        }
+    }
+
+    /**
+     * Manually trigger download & processing of the currently printing job file
+     */
+    async downloadCurrentJob(printerId) {
+        const printer = this.printers.get(printerId);
+        if (!printer) return;
+        try {
+            showToast('info', 'Thumbnail', 'Lade aktuelle Druckdatei herunter...');
+            const result = await api.downloadCurrentJobFile(printerId);
+            const status = result.status || 'unbekannt';
+            if (status === 'exists_with_thumbnail' || status === 'processed' || status === 'success') {
+                showToast('success', 'Thumbnail', 'Thumbnail wurde bereitgestellt.');
+            } else if (status === 'not_printing') {
+                showToast('warning', 'Kein Druck', 'Kein aktiver Druckauftrag vorhanden.');
+            } else if (status === 'exists_no_thumbnail') {
+                showToast('info', 'Keine Vorschau', 'Datei ohne eingebettetes Thumbnail oder Parsing fehlgeschlagen.');
+            } else {
+                showToast('info', 'Status', `Status: ${status}`);
+            }
+            // Refresh printers to get updated thumbnail/file id flags
+            this.refreshPrinters();
+        } catch (error) {
+            console.error('Failed to download current job file:', error);
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Herunterladen der aktuellen Datei';
             showToast('error', 'Fehler', message);
         }
     }

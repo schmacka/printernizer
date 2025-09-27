@@ -146,6 +146,19 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.SYSTEM_INFO);
     }
 
+    // Settings Endpoints
+    async getApplicationSettings() {
+        return this.get(CONFIG.ENDPOINTS.APPLICATION_SETTINGS);
+    }
+
+    async updateApplicationSettings(settingsData) {
+        return this.put(CONFIG.ENDPOINTS.APPLICATION_SETTINGS, settingsData);
+    }
+
+    async getWatchFolderSettings() {
+        return this.get(CONFIG.ENDPOINTS.WATCH_FOLDER_SETTINGS);
+    }
+
     // Printer Endpoints
     async getPrinters(filters = {}) {
         return this.get(CONFIG.ENDPOINTS.PRINTERS, filters);
@@ -180,6 +193,11 @@ class ApiClient {
     
     async stopPrinter(printerId) {
         return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'stop'));
+    }
+
+    // Manually trigger download & processing of current job file (thumbnail extraction)
+    async downloadCurrentJobFile(printerId) {
+        return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_CURRENT_JOB(printerId));
     }
 
     // Job Endpoints
@@ -226,6 +244,10 @@ class ApiClient {
 
     async getFileMetadata(fileId) {
         return this.get(`/files/${fileId}/metadata`);
+    }
+
+    async getFileStatistics() {
+        return this.get('/files/statistics');
     }
 
     async deleteFile(fileId) {

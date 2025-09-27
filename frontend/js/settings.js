@@ -49,12 +49,7 @@ class SettingsManager {
         try {
             showToast('info', 'Lade Einstellungen', 'Aktuelle Konfiguration wird geladen');
 
-            const response = await fetch('/api/v1/settings/application');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            this.currentSettings = await response.json();
+            this.currentSettings = await api.getApplicationSettings();
             this.populateSettingsForm();
 
             console.log('Settings loaded:', this.currentSettings);
@@ -102,22 +97,10 @@ class SettingsManager {
             }
 
             const formData = this.collectFormData();
-            
+
             showToast('info', 'Speichere Einstellungen', 'Konfiguration wird gespeichert');
 
-            const response = await fetch('/api/v1/settings/application', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const result = await response.json();
+            const result = await api.updateApplicationSettings(formData);
             
             showToast('success', 'Einstellungen gespeichert', 
                      `${result.updated_fields.length} Einstellungen wurden aktualisiert`);
@@ -220,12 +203,7 @@ class SettingsManager {
      */
     async loadSystemInfo() {
         try {
-            const response = await fetch('/api/v1/health');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const health = await response.json();
+            const health = await api.getHealth();
             this.displaySystemInfo(health);
 
         } catch (error) {

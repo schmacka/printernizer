@@ -29,6 +29,12 @@ class PrinternizerSettings(BaseSettings):
     # Printer Settings
     printer_polling_interval: int = Field(default=30, env="PRINTER_POLLING_INTERVAL")
     max_concurrent_downloads: int = Field(default=5, env="MAX_CONCURRENT_DOWNLOADS")
+
+    # File Management
+    downloads_path: str = Field(default="downloads", env="DOWNLOADS_PATH")
+    max_file_size: int = Field(default=100, env="MAX_FILE_SIZE")
+    monitoring_interval: int = Field(default=30, env="MONITORING_INTERVAL")
+    connection_timeout: int = Field(default=30, env="CONNECTION_TIMEOUT")
     
     # Watch Folders Settings
     watch_folders: str = Field(default="", env="WATCH_FOLDERS")

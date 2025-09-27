@@ -4,7 +4,9 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi.responses import RedirectResponse
+import base64
 from pydantic import BaseModel
 import structlog
 
@@ -364,6 +366,34 @@ async def stop_printer(
         )
 
 
+@router.post("/{printer_id}/download-current-job")
+async def download_current_job_file(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Explicitly trigger download + processing of the currently printing job file.
+
+    Returns a JSON dict with a status field describing the outcome:
+    - success: File downloaded (or already local) and thumbnail processing triggered/completed
+    - exists_with_thumbnail: File already present locally with thumbnail
+    - exists_no_thumbnail: File present but had no thumbnail extracted (non-print file or parsing failed)
+    - not_printing: Printer not currently printing / no active job
+    - printer_not_found: Unknown printer id
+    - error: Unexpected failure (see message)
+    """
+    try:
+        result = await printer_service.download_current_job_file(str(printer_id))
+        # Map service result directly; ensure a status key exists
+        if not isinstance(result, dict):
+            return {"status": "error", "message": "Unexpected service response"}
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to download current job file", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to process current job file")
+
+
 @router.get("/{printer_id}/files")
 async def get_printer_files(
     printer_id: UUID,
@@ -382,3 +412,63 @@ async def get_printer_files(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve printer files"
         )
+
+
+@router.get("/{printer_id}/thumbnail")
+async def get_printer_current_thumbnail(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service),
+):
+    """Return the current job thumbnail image for a printer (if available).
+
+    This is a convenience wrapper so clients can simply hit a printer-specific
+    endpoint instead of first resolving the file_id. If a thumbnail exists it
+    returns the raw image bytes with proper content type. 404 if not present.
+    """
+    try:
+        printer = await printer_service.get_printer(str(printer_id))
+        if not printer:
+            raise HTTPException(status_code=404, detail="Printer not found")
+
+        instance = printer_service.printer_instances.get(printer.id)
+        if not instance or not getattr(instance, 'last_status', None):
+            raise HTTPException(status_code=404, detail="No status available for printer")
+
+        status_obj = instance.last_status
+        file_id = getattr(status_obj, 'current_job_file_id', None)
+        has_thumbnail_flag = getattr(status_obj, 'current_job_has_thumbnail', False)
+        if not file_id or not has_thumbnail_flag:
+            raise HTTPException(status_code=404, detail="Printer has no current job thumbnail")
+
+        # Access file service (set on printer_service during startup)
+        file_service = getattr(printer_service, 'file_service', None)
+        if not file_service:
+            raise HTTPException(status_code=500, detail="File service unavailable")
+
+        file_record = await file_service.get_file_by_id(file_id)
+        if not file_record:
+            raise HTTPException(status_code=404, detail="File record for current job not found")
+
+        if not file_record.get('has_thumbnail') or not file_record.get('thumbnail_data'):
+            raise HTTPException(status_code=404, detail="File has no thumbnail data")
+
+        # Decode and stream
+        try:
+            raw = base64.b64decode(file_record['thumbnail_data'])
+        except Exception:
+            raise HTTPException(status_code=500, detail="Corrupt thumbnail data")
+
+        fmt = file_record.get('thumbnail_format', 'png')
+        return Response(
+            content=raw,
+            media_type=f"image/{fmt}",
+            headers={
+                "Cache-Control": "no-cache, max-age=0",  # always fresh for active job
+                "Content-Disposition": f"inline; filename=printer_{printer_id}_current_thumbnail.{fmt}"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get printer thumbnail", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to retrieve printer thumbnail")
