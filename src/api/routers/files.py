@@ -100,6 +100,25 @@ async def list_files(
         )
 
 
+@router.get("/statistics")
+async def get_file_statistics(
+    file_service: FileService = Depends(get_file_service)
+):
+    """Get file management statistics."""
+    try:
+        stats = await file_service.get_file_statistics()
+        return {
+            "statistics": stats,
+            "timestamp": "2025-09-26T18:55:00Z"
+        }
+    except Exception as e:
+        logger.error("Failed to get file statistics", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to calculate file statistics"
+        )
+
+
 @router.get("/{file_id}", response_model=FileResponse)
 async def get_file_by_id(
     file_id: str,
@@ -299,18 +318,6 @@ async def process_file_thumbnails(
             detail="Failed to process thumbnails"
         )
 
-
-
-    """Synchronize file list with printers."""
-    try:
-        await file_service.sync_printer_files(printer_id)
-        return {"status": "synced"}
-    except Exception as e:
-        logger.error("Failed to sync files", printer_id=str(printer_id) if printer_id else "all", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to sync files"
-        )
 
 
 # Watch Folder Management Endpoints

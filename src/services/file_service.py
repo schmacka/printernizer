@@ -20,14 +20,15 @@ logger = structlog.get_logger()
 class FileService:
     """Service for managing 3D files and downloads."""
     
-    def __init__(self, database: Database, event_service: EventService, 
-                 file_watcher: Optional[FileWatcherService] = None, 
-                 printer_service=None):
+    def __init__(self, database: Database, event_service: EventService,
+                 file_watcher: Optional[FileWatcherService] = None,
+                 printer_service=None, config_service=None):
         """Initialize file service."""
         self.database = database
         self.event_service = event_service
         self.file_watcher = file_watcher
         self.printer_service = printer_service
+        self.config_service = config_service
         self.bambu_parser = BambuParser()
         self.download_progress = {}
         self.download_status = {}
@@ -50,13 +51,45 @@ class FileService:
                 printer_id=printer_id if printer_id != 'local' else None,
                 source='printer'
             )
-            
-            # Convert database rows to file format
+
+            # Get printer information for enriching file data
+            printer_info_map = {}
+            if self.printer_service:
+                try:
+                    printers = await self.printer_service.list_printers()
+                    printer_info_map = {p['id']: p for p in printers}
+                except Exception as e:
+                    logger.warning("Could not fetch printer information for file enrichment", error=str(e))
+
+            # Convert database rows to file format and enrich with printer info
             for file_data in printer_files:
                 file_dict = dict(file_data)
                 file_dict['source'] = 'printer'
+
+                # Add printer name and type information
+                printer_id_val = file_dict.get('printer_id')
+                if printer_id_val and printer_id_val in printer_info_map:
+                    printer_info = printer_info_map[printer_id_val]
+
+                    # Handle both dict and object types for printer_info
+                    if isinstance(printer_info, dict):
+                        printer_name = printer_info.get('name', 'Unknown')
+                        printer_type = printer_info.get('printer_type', 'unknown')
+                    else:
+                        # Handle object with attributes
+                        printer_name = getattr(printer_info, 'name', 'Unknown')
+                        printer_type = getattr(printer_info, 'printer_type', 'unknown')
+
+                    file_dict['printer_name'] = printer_name
+                    file_dict['printer_type'] = printer_type
+                    file_dict['source_display'] = f"{printer_name} ({printer_type})"
+                else:
+                    file_dict['printer_name'] = 'Unknown'
+                    file_dict['printer_type'] = 'unknown'
+                    file_dict['source_display'] = 'Unknown Printer'
+
                 files.append(file_dict)
-                
+
             logger.debug("Retrieved printer files from database", count=len(printer_files))
             
         except Exception as e:
@@ -66,6 +99,14 @@ class FileService:
         if include_local and self.file_watcher:
             try:
                 local_files = self.file_watcher.get_local_files()
+
+                # Enrich local files with source display information
+                for local_file in local_files:
+                    if local_file.get('source') == 'local_watch':
+                        local_file['source_display'] = 'Local Watch Folder'
+                        local_file['printer_name'] = None
+                        local_file['printer_type'] = None
+
                 files.extend(local_files)
                 logger.debug("Retrieved local files", count=len(local_files))
             except Exception as e:
@@ -155,8 +196,24 @@ class FileService:
             
             # Create destination path if not provided
             if not destination_path:
-                downloads_dir = Path("downloads") / printer_id
-                downloads_dir.mkdir(parents=True, exist_ok=True)
+                # Get download path from configuration
+                base_download_path = "downloads"  # fallback default
+                if self.config_service:
+                    try:
+                        base_download_path = self.config_service.settings.downloads_path
+                    except Exception as e:
+                        logger.warning("Failed to get downloads path from config, using default",
+                                     error=str(e))
+
+                downloads_dir = Path(base_download_path) / printer_id
+                try:
+                    downloads_dir.mkdir(parents=True, exist_ok=True)
+                    logger.debug("Created downloads directory", path=str(downloads_dir),
+                                base_path=base_download_path)
+                except Exception as e:
+                    logger.error("Failed to create downloads directory",
+                                path=str(downloads_dir), error=str(e))
+                    raise ValueError(f"Cannot create downloads directory: {e}")
                 destination_path = str(downloads_dir / filename)
             
             logger.info("Starting file download", printer_id=printer_id, filename=filename, 
@@ -171,40 +228,71 @@ class FileService:
             )
             
             if success:
-                # Update database with download info
-                await self.database.update_file(file_id, {
-                    'status': 'downloaded',
-                    'file_path': destination_path,
-                    'downloaded_at': datetime.now().isoformat(),
-                    'download_progress': 100
-                })
-                
-                self.download_progress[file_id] = 100
-                self.download_status[file_id] = "completed"
-                
-                # Process thumbnails for the downloaded file
-                logger.info("Processing thumbnails for downloaded file", 
-                           file_id=file_id, destination=destination_path)
-                
-                # Process thumbnails asynchronously to not block download completion
-                asyncio.create_task(self.process_file_thumbnails(destination_path, file_id))
-                
-                # Emit download complete event
-                await self.event_service.emit_event("file_download_complete", {
-                    "printer_id": printer_id,
-                    "filename": filename,
-                    "file_id": file_id,
-                    "local_path": destination_path
-                })
-                
-                logger.info("File download completed", printer_id=printer_id, filename=filename)
-                
-                return {
-                    "status": "success",
-                    "message": "File downloaded successfully",
-                    "local_path": destination_path,
-                    "file_id": file_id
-                }
+                try:
+                    # Update database with download info
+                    await self.database.update_file(file_id, {
+                        'status': 'downloaded',
+                        'file_path': destination_path,
+                        'downloaded_at': datetime.now().isoformat(),
+                        'download_progress': 100
+                    })
+
+                    self.download_progress[file_id] = 100
+                    self.download_status[file_id] = "completed"
+
+                    # Verify the file was actually downloaded
+                    if not Path(destination_path).exists():
+                        logger.error("Download reported success but file doesn't exist",
+                                   file_id=file_id, destination=destination_path)
+                        self.download_status[file_id] = "failed"
+                        return {
+                            "status": "error",
+                            "message": "Download completed but file not found",
+                            "local_path": None
+                        }
+
+                    file_size = Path(destination_path).stat().st_size
+                    logger.info("File download verified",
+                               printer_id=printer_id, filename=filename,
+                               destination=destination_path, size=file_size)
+
+                    # Process thumbnails for the downloaded file
+                    logger.info("Processing thumbnails for downloaded file",
+                               file_id=file_id, destination=destination_path)
+
+                    # Process thumbnails asynchronously to not block download completion
+                    asyncio.create_task(self.process_file_thumbnails(destination_path, file_id))
+
+                    # Emit download complete event
+                    try:
+                        await self.event_service.emit_event("file_download_complete", {
+                            "printer_id": printer_id,
+                            "filename": filename,
+                            "file_id": file_id,
+                            "local_path": destination_path
+                        })
+                    except Exception as e:
+                        logger.warning("Failed to emit download complete event", error=str(e))
+
+                    logger.info("File download completed successfully",
+                               printer_id=printer_id, filename=filename, size=file_size)
+
+                    return {
+                        "status": "success",
+                        "message": "File downloaded successfully",
+                        "local_path": destination_path,
+                        "file_id": file_id,
+                        "file_size": file_size
+                    }
+                except Exception as e:
+                    logger.error("Error in download completion processing",
+                                printer_id=printer_id, filename=filename, error=str(e))
+                    self.download_status[file_id] = "failed"
+                    return {
+                        "status": "error",
+                        "message": f"Download post-processing failed: {str(e)}",
+                        "local_path": destination_path
+                    }
             else:
                 self.download_status[file_id] = "failed"
                 return {
@@ -424,6 +512,46 @@ class FileService:
                 "sync_time": datetime.now().isoformat()
             }
     
+    async def discover_printer_files(self, printer_id: str) -> List[Dict[str, Any]]:
+        """
+        Discover files on a specific printer for the background discovery task.
+
+        This method is called by the background file discovery task every 5 minutes.
+        It discovers files on the printer and stores them in the database.
+
+        Args:
+            printer_id: The ID of the printer to discover files for
+
+        Returns:
+            List of file info dictionaries with filename, file_size, file_type
+        """
+        try:
+            logger.info("Starting file discovery for printer", printer_id=printer_id)
+
+            # Use existing get_printer_files method which discovers and stores files
+            stored_files = await self.get_printer_files(printer_id)
+
+            # Convert to format expected by background task
+            discovered_files = []
+            for file_data in stored_files:
+                discovered_files.append({
+                    'filename': file_data['filename'],
+                    'file_size': file_data.get('file_size'),
+                    'file_type': file_data.get('file_type'),
+                    'id': file_data['id'],
+                    'status': file_data.get('status', 'available')
+                })
+
+            logger.info("File discovery completed",
+                       printer_id=printer_id,
+                       files_found=len(discovered_files))
+
+            return discovered_files
+
+        except Exception as e:
+            logger.error("File discovery failed", printer_id=printer_id, error=str(e))
+            return []
+
     async def get_file_by_id(self, file_id: str) -> Optional[Dict[str, Any]]:
         """Get file information by ID."""
         try:
@@ -444,7 +572,30 @@ class FileService:
         except Exception as e:
             logger.error("Failed to get file by ID", file_id=file_id, error=str(e))
             return None
-    
+
+    async def find_file_by_name(self, filename: str, printer_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Find file by filename, optionally filtering by printer_id."""
+        try:
+            # Check printer files in database first
+            files = await self.database.list_files(printer_id=printer_id)
+            for file_data in files:
+                if file_data.get('filename') == filename:
+                    return dict(file_data)
+
+            # Check local files from file watcher if available
+            if self.file_watcher:
+                local_files = self.file_watcher.get_local_files()
+                for file_data in local_files:
+                    if file_data.get('filename') == filename:
+                        # Only return local files if no printer_id filter or if it matches
+                        if printer_id is None or file_data.get('printer_id') == printer_id:
+                            return dict(file_data)
+
+            return None
+        except Exception as e:
+            logger.error("Failed to find file by name", filename=filename, printer_id=printer_id, error=str(e))
+            return None
+
     async def delete_file(self, file_id: str) -> bool:
         """Delete a file record (for local files, also delete physical file)."""
         try:

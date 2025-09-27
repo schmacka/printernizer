@@ -4,6 +4,7 @@ Manages printer configurations, API keys, and system settings.
 """
 from typing import Dict, Any, Optional, List
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from pathlib import Path
 import json
 import os
@@ -105,6 +106,44 @@ class Settings(BaseSettings):
     def get_cors_origins(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    # -------------------------------------------------
+    # Validators / Normalizers
+    # -------------------------------------------------
+    @field_validator("downloads_path")
+    @classmethod
+    def normalize_downloads_path(cls, v: str) -> str:
+        """Normalize the downloads path to avoid hidden control characters and ensure portability.
+
+        Handles accidental escape sequences coming from .env parsing (e.g. C:\\temp becomes C:<TAB>emp
+        when written as "C:\temp"), converts backslashes to forward slashes (Windows-compatible and
+        safer for URL/display), removes control chars, collapses duplicate slashes and resolves to an
+        absolute path when possible.
+        """
+        if not v:
+            return v
+        original = v
+        # Remove control characters (tabs, newlines, carriage returns)
+        control_chars = ['\t', '\n', '\r']
+        if any(c in v for c in ['\t', '\n', '\r']):
+            v = v.replace('\t', '').replace('\n', '').replace('\r', '')
+        # Uniform slashes
+        v = v.replace('\\', '/')
+        # Collapse duplicate slashes (preserve drive designator like C:/)
+        while '//' in v.replace('://', '§§'):  # temporary substitution to avoid touching URL schemes
+            v = v.replace('://', '§§').replace('//', '/').replace('§§', '://')
+        # Resolve to absolute path if local filesystem path
+        try:
+            # Only resolve if it looks like a local path, not a URL
+            if not (v.startswith('http://') or v.startswith('https://')):
+                v = str(Path(v).expanduser().resolve())
+        except Exception:
+            # Best-effort; keep the normalized (non-resolved) path
+            pass
+        if v != original:
+            # Log at info level so user can see the normalization (structlog fields are structured)
+            logger.info("Normalized downloads_path", original=original, normalized=v)
+        return v
     
     model_config = {
         "env_file": ".env",
@@ -391,10 +430,10 @@ class ConfigService:
             "timezone": settings.timezone,
             "currency": settings.currency,
             "vat_rate": settings.vat_rate,
-            "downloads_path": str(getattr(settings, 'downloads_path', 'downloads')),
-            "max_file_size": getattr(settings, 'max_file_size_mb', 100),
+            "downloads_path": str(settings.downloads_path),
+            "max_file_size": settings.max_file_size,
             "monitoring_interval": settings.printer_polling_interval,
-            "connection_timeout": getattr(settings, 'connection_timeout', 30),
+            "connection_timeout": settings.connection_timeout,
             "cors_origins": self._get_cors_origins_list(settings.cors_origins)
         }
 
@@ -406,26 +445,93 @@ class ConfigService:
 
     def update_application_settings(self, settings_dict: Dict[str, Any]) -> bool:
         """Update runtime-modifiable application settings."""
+        logger.info("update_application_settings called", settings_dict=settings_dict)
         updated_fields = []
         settings = get_settings()
-        
+        logger.info("Got settings object", settings_type=type(settings).__name__)
+
         # List of settings that can be updated at runtime
         updatable_settings = {
-            "log_level", "monitoring_interval", "connection_timeout", 
-            "max_file_size", "vat_rate"
+            "log_level", "monitoring_interval", "connection_timeout",
+            "max_file_size", "vat_rate", "downloads_path"
         }
-        
+
+        logger.info("Processing settings update", settings_dict=settings_dict, updatable_settings=updatable_settings)
+
         for key, value in settings_dict.items():
+            logger.info("Processing setting", key=key, value=value)
             if key in updatable_settings:
+                logger.info("Setting is updatable", key=key)
                 if hasattr(settings, key):
                     old_value = getattr(settings, key)
-                    # Note: This only updates in memory, not persisted to file
+                    logger.info("Updating setting", key=key, old_value=old_value, new_value=value)
+                    # Update in memory
                     setattr(settings, key, value)
                     updated_fields.append(key)
                     logger.info("Updated application setting", key=key, old_value=old_value, new_value=value)
-        
+                else:
+                    logger.warning("Settings object does not have attribute", key=key)
+            else:
+                logger.warning("Setting is not updatable", key=key)
+
+        # Persist changes to .env file if any updates were made
+        if updated_fields:
+            logger.info("Persisting settings to .env file", updated_fields=updated_fields)
+            try:
+                self._persist_settings_to_env(settings_dict)
+                logger.info("Successfully persisted settings to .env file")
+            except Exception as e:
+                logger.error("Failed to persist settings to .env file", error=str(e))
+                # Still return True since in-memory update succeeded
+
         return len(updated_fields) > 0
-    
+
+    def _persist_settings_to_env(self, settings_dict: Dict[str, Any]) -> None:
+        """Persist settings to .env file."""
+        import os
+        from pathlib import Path
+
+        # Path to .env file
+        env_file_path = Path(__file__).parent.parent.parent / ".env"
+
+        # Read existing .env file content
+        existing_env = {}
+        if env_file_path.exists():
+            with open(env_file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        existing_env[key.strip()] = value.strip()
+
+        # Map settings keys to environment variable names
+        env_key_mapping = {
+            "log_level": "LOG_LEVEL",
+            "monitoring_interval": "MONITORING_INTERVAL",
+            "connection_timeout": "CONNECTION_TIMEOUT",
+            "max_file_size": "MAX_FILE_SIZE",
+            "vat_rate": "VAT_RATE",
+            "downloads_path": "DOWNLOADS_PATH"
+        }
+
+        # Update environment variables
+        for key, value in settings_dict.items():
+            if key in env_key_mapping:
+                env_key = env_key_mapping[key]
+                # Format value appropriately
+                if isinstance(value, str):
+                    existing_env[env_key] = f'"{value}"'
+                else:
+                    existing_env[env_key] = str(value)
+                logger.info("Updated env variable", env_key=env_key, value=value)
+
+        # Write back to .env file
+        with open(env_file_path, 'w', encoding='utf-8') as f:
+            for key, value in existing_env.items():
+                f.write(f"{key}={value}\n")
+
+        logger.info("Persisted settings to .env file", env_file=str(env_file_path))
+
     async def add_watch_folder(self, folder_path: str) -> bool:
         """Add a watch folder to the database configuration."""
         try:

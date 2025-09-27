@@ -206,8 +206,12 @@ const CONFIG = {
     // API Endpoints
     ENDPOINTS: {
         // System
-        HEALTH: '/health',
+        HEALTH: 'health',
         SYSTEM_INFO: '/system/info',
+
+        // Settings
+        APPLICATION_SETTINGS: 'settings/application',
+        WATCH_FOLDER_SETTINGS: 'settings/watch-folders',
         
         // Printers
     PRINTERS: '/printers/',
@@ -247,6 +251,8 @@ const CONFIG = {
         PRINTER_FILES: (id) => `/printers/${id}/files`,
         PRINTER_FILE_DOWNLOAD: (id, filename) => `/printers/${id}/files/${filename}/download`,
         PRINTER_FILE_DOWNLOAD_STATUS: (id, filename) => `/printers/${id}/files/${filename}/status`,
+    // Manual trigger to download & process currently printing job file for thumbnail extraction
+    PRINTER_DOWNLOAD_CURRENT_JOB: (id) => `/printers/${id}/download-current-job`,
         
         // Enhanced Job Management
         PRINTER_CURRENT_JOB: (id) => `/printers/${id}/jobs/current`,

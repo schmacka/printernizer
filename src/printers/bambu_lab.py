@@ -36,7 +36,7 @@ class BambuLabPrinter(BasePrinter):
     """Bambu Lab printer implementation using bambulabs_api library."""
 
     def __init__(self, printer_id: str, name: str, ip_address: str,
-                 access_code: str, serial_number: str, **kwargs):
+                 access_code: str, serial_number: str, file_service=None, **kwargs):
         """Initialize Bambu Lab printer."""
         super().__init__(printer_id, name, ip_address, **kwargs)
 
@@ -53,6 +53,7 @@ class BambuLabPrinter(BasePrinter):
 
         self.access_code = access_code
         self.serial_number = serial_number
+        self.file_service = file_service
 
         # Initialize appropriate client
         if self.use_bambu_api:
@@ -332,6 +333,7 @@ class BambuLabPrinter(BasePrinter):
                 printer_id=self.printer_id,
                 status=PrinterStatus.UNKNOWN,
                 message="No status data available",
+                current_job_thumbnail_url=None,
                 timestamp=datetime.now()
             )
 
@@ -349,6 +351,8 @@ class BambuLabPrinter(BasePrinter):
         progress = 0
         layer_num = 0
         current_job = None
+        remaining_time_minutes = None
+        estimated_end_time = None
         
         try:
             # First, try to get data from MQTT dump which is most reliable
@@ -370,11 +374,25 @@ class BambuLabPrinter(BasePrinter):
                             if field in print_data and print_data[field] is not None:
                                 progress = int(print_data[field])
                                 break
-                        
-                        logger.debug("Got data from MQTT dump", 
+
+                        # Extract remaining time information
+                        remaining_time_fields = ['mc_remaining_time', 'remaining_time', 'print_time_left', 'time_left']
+                        for field in remaining_time_fields:
+                            if field in print_data and print_data[field] is not None:
+                                # Convert to minutes - assuming the field is in seconds
+                                remaining_time_seconds = int(print_data[field])
+                                if remaining_time_seconds > 0:
+                                    remaining_time_minutes = remaining_time_seconds // 60
+                                    # Calculate estimated end time
+                                    from datetime import timedelta
+                                    estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
+                                break
+
+                        logger.debug("Got data from MQTT dump",
                                    printer_id=self.printer_id,
-                                   bed_temp=bed_temp, nozzle_temp=nozzle_temp, 
+                                   bed_temp=bed_temp, nozzle_temp=nozzle_temp,
                                    progress=progress, layer_num=layer_num,
+                                   remaining_time_minutes=remaining_time_minutes,
                                    mqtt_keys=list(print_data.keys()))
 
             # If MQTT didn't provide data, use direct method calls
@@ -446,7 +464,32 @@ class BambuLabPrinter(BasePrinter):
         # If we're printing but don't have a job name, create a generic one
         if printer_status == PrinterStatus.PRINTING and not current_job:
             current_job = f"Print Job (via MQTT)"
-        
+
+        # Lookup file information for current job
+        current_job_file_id = None
+        current_job_has_thumbnail = None
+        if current_job and self.file_service:
+            try:
+                # Clean up cache/ prefix if present for matching
+                clean_filename = current_job
+                if clean_filename.startswith('cache/'):
+                    clean_filename = clean_filename[6:]
+
+                file_record = await self.file_service.find_file_by_name(clean_filename, self.printer_id)
+                if file_record:
+                    current_job_file_id = file_record.get('id')
+                    current_job_has_thumbnail = file_record.get('has_thumbnail', False)
+                    logger.debug("Found file record for current job",
+                                printer_id=self.printer_id,
+                                filename=clean_filename,
+                                file_id=current_job_file_id,
+                                has_thumbnail=current_job_has_thumbnail)
+            except Exception as e:
+                logger.debug("Failed to lookup file for current job",
+                            printer_id=self.printer_id,
+                            filename=current_job,
+                            error=str(e))
+
         # Enhance the message with filename if available and printing
         if printer_status == PrinterStatus.PRINTING and current_job and current_job != "Print Job (via MQTT)":
             if progress > 0:
@@ -470,6 +513,11 @@ class BambuLabPrinter(BasePrinter):
             temperature_nozzle=float(nozzle_temp),
             progress=int(progress),
             current_job=current_job,
+            current_job_file_id=current_job_file_id,
+            current_job_has_thumbnail=current_job_has_thumbnail,
+            current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+            remaining_time_minutes=remaining_time_minutes,
+            estimated_end_time=estimated_end_time,
             timestamp=datetime.now(),
             raw_data=status.__dict__ if hasattr(status, '__dict__') else {}
         )
@@ -487,6 +535,21 @@ class BambuLabPrinter(BasePrinter):
         nozzle_temp = print_data.get("nozzle_temper", 0.0)
         progress = print_data.get("mc_percent", 0)
         layer_num = print_data.get("layer_num", 0)
+
+        # Extract time information
+        remaining_time_minutes = None
+        estimated_end_time = None
+        remaining_time_fields = ['mc_remaining_time', 'remaining_time', 'print_time_left', 'time_left']
+        for field in remaining_time_fields:
+            if field in print_data and print_data[field] is not None:
+                # Convert to minutes - assuming the field is in seconds
+                remaining_time_seconds = int(print_data[field])
+                if remaining_time_seconds > 0:
+                    remaining_time_minutes = remaining_time_seconds // 60
+                    # Calculate estimated end time
+                    from datetime import timedelta
+                    estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
+                break
 
         # Improved status detection for printing
         # High temperatures usually indicate printing activity
@@ -534,7 +597,32 @@ class BambuLabPrinter(BasePrinter):
         # If we're printing but don't have a job name, create a generic one
         if printer_status == PrinterStatus.PRINTING and not current_job:
             current_job = f"Active Print Job"
-        
+
+        # Lookup file information for current job
+        current_job_file_id = None
+        current_job_has_thumbnail = None
+        if current_job and current_job != "Active Print Job" and self.file_service:
+            try:
+                # Clean up cache/ prefix if present for matching
+                clean_filename = current_job
+                if clean_filename.startswith('cache/'):
+                    clean_filename = clean_filename[6:]
+
+                file_record = await self.file_service.find_file_by_name(clean_filename, self.printer_id)
+                if file_record:
+                    current_job_file_id = file_record.get('id')
+                    current_job_has_thumbnail = file_record.get('has_thumbnail', False)
+                    logger.debug("Found file record for current job (MQTT)",
+                                printer_id=self.printer_id,
+                                filename=clean_filename,
+                                file_id=current_job_file_id,
+                                has_thumbnail=current_job_has_thumbnail)
+            except Exception as e:
+                logger.debug("Failed to lookup file for current job (MQTT)",
+                            printer_id=self.printer_id,
+                            filename=current_job,
+                            error=str(e))
+
         # Enhance the message with filename if available and printing
         if printer_status == PrinterStatus.PRINTING and current_job and current_job != "Active Print Job":
             message = f"Printing '{current_job}'"
@@ -554,6 +642,11 @@ class BambuLabPrinter(BasePrinter):
             temperature_nozzle=float(nozzle_temp),
             progress=int(progress),
             current_job=current_job,
+            current_job_file_id=current_job_file_id,
+            current_job_has_thumbnail=current_job_has_thumbnail,
+            current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+            remaining_time_minutes=remaining_time_minutes,
+            estimated_end_time=estimated_end_time,
             timestamp=datetime.now(),
             raw_data=self.latest_data
         )
@@ -1100,15 +1193,37 @@ class BambuLabPrinter(BasePrinter):
             return False
 
     async def _download_file_bambu_api(self, filename: str, local_path: str) -> bool:
-        """Download file using bambulabs_api."""
+        """Download file using bambulabs_api or HTTP fallback."""
         if not self.bambu_client:
             raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
 
         logger.info("Downloading file from Bambu Lab printer via API",
                    printer_id=self.printer_id, filename=filename, local_path=local_path)
 
-        # The current bambulabs_api doesn't provide a direct download method
-        logger.warning("File download not supported with current bambulabs_api version", 
+        # Method 1: Try bambulabs_api FTP client if available
+        if hasattr(self.bambu_client, 'ftp_client') and self.bambu_client.ftp_client:
+            try:
+                success = await self._download_via_ftp(filename, local_path)
+                if success:
+                    logger.info("Successfully downloaded file via FTP",
+                               printer_id=self.printer_id, filename=filename)
+                    return True
+            except Exception as e:
+                logger.debug("FTP download failed, trying HTTP fallback",
+                            printer_id=self.printer_id, error=str(e))
+
+        # Method 2: HTTP fallback download
+        try:
+            success = await self._download_via_http(filename, local_path)
+            if success:
+                logger.info("Successfully downloaded file via HTTP",
+                           printer_id=self.printer_id, filename=filename)
+                return True
+        except Exception as e:
+            logger.warning("HTTP download also failed",
+                          printer_id=self.printer_id, filename=filename, error=str(e))
+
+        logger.warning("All download methods failed for file",
                       printer_id=self.printer_id, filename=filename)
         return False
 
@@ -1118,6 +1233,143 @@ class BambuLabPrinter(BasePrinter):
         logger.warning("File download not implemented for direct MQTT approach",
                       printer_id=self.printer_id, filename=filename)
         return False
+
+    async def _download_via_ftp(self, filename: str, local_path: str) -> bool:
+        """Download file via bambulabs_api FTP client."""
+        try:
+            ftp = self.bambu_client.ftp_client
+
+            # Ensure local directory exists
+            from pathlib import Path
+            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+
+            # Try multiple possible paths for the file
+            possible_paths = [
+                filename,  # Direct filename
+                f"cache/{filename}",  # Cache directory
+                f"model/{filename}",  # Model directory
+                f"timelapse/{filename}",  # Timelapse directory
+            ]
+
+            for remote_path in possible_paths:
+                try:
+                    # Try to download the file
+                    success, file_data = ftp.download_file(remote_path)
+                    if success and file_data:
+                        # Write file data to local path
+                        with open(local_path, 'wb') as f:
+                            f.write(file_data)
+
+                        logger.info("FTP download successful",
+                                   printer_id=self.printer_id,
+                                   filename=filename,
+                                   remote_path=remote_path,
+                                   size=len(file_data))
+                        return True
+
+                except Exception as e:
+                    logger.debug("FTP download failed for path",
+                                printer_id=self.printer_id,
+                                remote_path=remote_path,
+                                error=str(e))
+                    continue
+
+            logger.warning("File not found via FTP in any expected path",
+                          printer_id=self.printer_id, filename=filename)
+            return False
+
+        except Exception as e:
+            logger.error("FTP download method failed",
+                        printer_id=self.printer_id, filename=filename, error=str(e))
+            return False
+
+    async def _download_via_http(self, filename: str, local_path: str) -> bool:
+        """Download file via HTTP from Bambu Lab printer web interface."""
+        try:
+            import aiohttp
+            from pathlib import Path
+
+            # Ensure local directory exists
+            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+
+            # Try multiple HTTP endpoints that Bambu Lab printers might expose
+            possible_urls = [
+                f"http://{self.ip_address}/cache/{filename}",
+                f"http://{self.ip_address}/model/{filename}",
+                f"http://{self.ip_address}/files/{filename}",
+                f"http://{self.ip_address}:8080/cache/{filename}",
+                f"http://{self.ip_address}:8080/model/{filename}",
+                f"http://{self.ip_address}:8080/files/{filename}",
+            ]
+
+            timeout = aiohttp.ClientTimeout(total=120)  # 2 minute timeout for large files
+
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                for url in possible_urls:
+                    try:
+                        logger.debug("Attempting HTTP download",
+                                    printer_id=self.printer_id, url=url)
+
+                        # Add basic auth if available
+                        auth = None
+                        if hasattr(self, 'access_code') and self.access_code:
+                            auth = aiohttp.BasicAuth('bblp', self.access_code)
+
+                        async with session.get(url, auth=auth) as response:
+                            if response.status == 200:
+                                # Get file size for progress tracking
+                                content_length = response.headers.get('Content-Length')
+                                total_size = int(content_length) if content_length else None
+
+                                downloaded_size = 0
+                                with open(local_path, 'wb') as f:
+                                    async for chunk in response.content.iter_chunked(8192):
+                                        f.write(chunk)
+                                        downloaded_size += len(chunk)
+
+                                        # Log progress for large files
+                                        if total_size and downloaded_size % (1024 * 1024) == 0:  # Every MB
+                                            progress = (downloaded_size / total_size) * 100
+                                            logger.debug("Download progress",
+                                                        printer_id=self.printer_id,
+                                                        filename=filename,
+                                                        progress=f"{progress:.1f}%")
+
+                                logger.info("HTTP download successful",
+                                           printer_id=self.printer_id,
+                                           filename=filename,
+                                           url=url,
+                                           size=downloaded_size)
+                                return True
+
+                            elif response.status == 401:
+                                logger.debug("HTTP 401 - authentication required",
+                                            printer_id=self.printer_id, url=url)
+                            elif response.status == 404:
+                                logger.debug("HTTP 404 - file not found at URL",
+                                            printer_id=self.printer_id, url=url)
+                            else:
+                                logger.debug("HTTP error",
+                                            printer_id=self.printer_id,
+                                            url=url, status=response.status)
+
+                    except aiohttp.ClientError as e:
+                        logger.debug("HTTP client error",
+                                    printer_id=self.printer_id, url=url, error=str(e))
+                        continue
+                    except Exception as e:
+                        logger.debug("HTTP download attempt failed",
+                                    printer_id=self.printer_id, url=url, error=str(e))
+                        continue
+
+            logger.warning("File not accessible via HTTP at any expected URL",
+                          printer_id=self.printer_id, filename=filename)
+            return False
+
+        except Exception as e:
+            logger.error("HTTP download method failed",
+                        printer_id=self.printer_id, filename=filename, error=str(e))
+            return False
             
     async def pause_print(self) -> bool:
         """Pause the current print job on Bambu Lab printer."""

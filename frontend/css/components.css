@@ -2572,3 +2572,114 @@ label .required {
         max-width: 200px;
     }
 }
+
+/* Current Job Thumbnails */
+.current-job {
+    position: relative;
+}
+
+.job-thumbnail {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    float: right;
+    margin-left: var(--spacing-3);
+    margin-bottom: var(--spacing-3);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all var(--transition-duration) var(--transition-easing);
+}
+
+.job-thumbnail:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.job-thumbnail .thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.job-thumbnail .thumbnail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition-duration) var(--transition-easing);
+}
+
+.job-thumbnail:hover .thumbnail-overlay {
+    opacity: 1;
+}
+
+.job-thumbnail .thumbnail-overlay i {
+    color: var(--color-white);
+    font-size: var(--font-size-lg);
+}
+
+/* Responsive adjustments for job thumbnails */
+@media (max-width: 768px) {
+    .job-thumbnail {
+        width: 60px;
+        height: 60px;
+        margin-left: var(--spacing-2);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .job-thumbnail .thumbnail-overlay i {
+        font-size: var(--font-size-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .job-thumbnail {
+        width: 50px;
+        height: 50px;
+        margin-left: var(--spacing-2);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .job-thumbnail .thumbnail-overlay i {
+        font-size: var(--font-size-sm);
+    }
+}
+
+/* Printer page thumbnail styles */
+.job-thumbnail-info {
+    margin-top: var(--spacing-2);
+}
+
+.thumbnail-image-small {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.thumbnail-image-small:hover {
+    border-color: var(--primary-500);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+/* Current job info section adjustments */
+.current-job-info .info-item {
+    margin-bottom: var(--spacing-3);
+}
+
+.current-job-info .info-item:last-child {
+    margin-bottom: 0;
+}

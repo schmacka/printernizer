@@ -20,13 +20,14 @@ logger = structlog.get_logger()
 class PrusaPrinter(BasePrinter):
     """Prusa Core One printer implementation using PrusaLink HTTP API."""
     
-    def __init__(self, printer_id: str, name: str, ip_address: str, 
-                 api_key: str, **kwargs):
+    def __init__(self, printer_id: str, name: str, ip_address: str,
+                 api_key: str, file_service=None, **kwargs):
         """Initialize Prusa printer."""
         super().__init__(printer_id, name, ip_address, **kwargs)
         self.api_key = api_key
         self.base_url = f"http://{ip_address}/api"
         self.session: Optional[aiohttp.ClientSession] = None
+        self.file_service = file_service
         
     async def connect(self) -> bool:
         """Establish HTTP connection to Prusa printer."""
@@ -126,21 +127,49 @@ class PrusaPrinter(BasePrinter):
             # Extract job information - handle case where job_data might be None
             current_job = ''
             progress = 0
+            remaining_time_minutes = None
+            estimated_end_time = None
+
             if job_data:
                 job_info = job_data.get('job', {})
                 if job_info and job_info.get('file'):
                     file_info = job_info.get('file', {})
                     # Try 'display_name' first (long filename), then fall back to 'name' (short filename)
                     current_job = file_info.get('display_name', file_info.get('name', ''))
-                
+
                 progress_info = job_data.get('progress', {})
                 if progress_info:
                     progress = int(progress_info.get('completion', 0) or 0)
-                
-                progress_info = job_data.get('progress', {})
-                if progress_info:
-                    progress = int(progress_info.get('completion', 0) or 0)
-            
+
+                    # Extract remaining time from Prusa API
+                    print_time_left = progress_info.get('printTimeLeft')
+                    if print_time_left is not None and print_time_left > 0:
+                        # printTimeLeft is in seconds, convert to minutes
+                        remaining_time_minutes = int(print_time_left // 60)
+                        # Calculate estimated end time
+                        from datetime import timedelta
+                        estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
+
+            # Lookup file information for current job
+            current_job_file_id = None
+            current_job_has_thumbnail = None
+            if current_job and self.file_service:
+                try:
+                    file_record = await self.file_service.find_file_by_name(current_job, self.printer_id)
+                    if file_record:
+                        current_job_file_id = file_record.get('id')
+                        current_job_has_thumbnail = file_record.get('has_thumbnail', False)
+                        logger.debug("Found file record for current job (Prusa)",
+                                    printer_id=self.printer_id,
+                                    filename=current_job,
+                                    file_id=current_job_file_id,
+                                    has_thumbnail=current_job_has_thumbnail)
+                except Exception as e:
+                    logger.debug("Failed to lookup file for current job (Prusa)",
+                                printer_id=self.printer_id,
+                                filename=current_job,
+                                error=str(e))
+
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
                 status=printer_status,
@@ -149,6 +178,11 @@ class PrusaPrinter(BasePrinter):
                 temperature_nozzle=float(nozzle_temp),
                 progress=progress,
                 current_job=current_job if current_job else None,
+                current_job_file_id=current_job_file_id,
+                current_job_has_thumbnail=current_job_has_thumbnail,
+                current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+                remaining_time_minutes=remaining_time_minutes,
+                estimated_end_time=estimated_end_time,
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )

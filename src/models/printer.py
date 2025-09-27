@@ -65,5 +65,11 @@ class PrinterStatusUpdate(BaseModel):
     temperature_nozzle: Optional[float] = None
     progress: Optional[int] = None
     current_job: Optional[str] = None
+    current_job_file_id: Optional[str] = None
+    current_job_has_thumbnail: Optional[bool] = None
+    # Derived URL for the current job thumbnail (served via files endpoint)
+    current_job_thumbnail_url: Optional[str] = None
+    remaining_time_minutes: Optional[int] = None
+    estimated_end_time: Optional[datetime] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     raw_data: Optional[Dict[str, Any]] = None

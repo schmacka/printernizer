@@ -1,6 +1,6 @@
 """Settings management endpoints."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import structlog
@@ -33,12 +33,12 @@ class ApplicationSettingsResponse(BaseModel):
 
 class ApplicationSettingsUpdate(BaseModel):
     """Application settings update model."""
-    log_level: str = None
-    monitoring_interval: int = None
-    connection_timeout: int = None
-    downloads_path: str = None
-    max_file_size: int = None
-    vat_rate: float = None
+    log_level: Optional[str] = None
+    monitoring_interval: Optional[int] = None
+    connection_timeout: Optional[int] = None
+    downloads_path: Optional[str] = None
+    max_file_size: Optional[int] = None
+    vat_rate: Optional[float] = None
 
 
 class PrinterConfigResponse(BaseModel):
@@ -93,8 +93,11 @@ async def update_application_settings(
     """Update application settings (runtime-updatable only)."""
     try:
         # Convert to dict and filter out None values
-        settings_dict = {k: v for k, v in settings.dict().items() if v is not None}
-        
+        raw_settings = settings.dict()
+        logger.info("Raw settings received", raw_settings=raw_settings)
+        settings_dict = {k: v for k, v in raw_settings.items() if v is not None}
+        logger.info("Filtered settings dict", settings_dict=settings_dict)
+
         success = config_service.update_application_settings(settings_dict)
         
         if success:

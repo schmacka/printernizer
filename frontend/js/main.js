@@ -392,6 +392,49 @@ window.printernizer = {
     ws: wsClient
 };
 
+/**
+ * Show full thumbnail in modal (global function for printer tiles)
+ */
+function showFullThumbnail(fileId, filename) {
+    const modal = document.createElement('div');
+    modal.className = 'thumbnail-modal';
+    modal.innerHTML = `
+        <div class="thumbnail-modal-content">
+            <div class="thumbnail-modal-header">
+                <h3>${escapeHtml(filename || 'Thumbnail')}</h3>
+                <button class="thumbnail-modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
+            </div>
+            <div class="thumbnail-modal-body">
+                <img src="/api/v1/files/${fileId}/thumbnail"
+                     alt="Full size thumbnail"
+                     class="full-thumbnail-image"
+                     onerror="this.nextElementSibling.style.display='block'; this.style.display='none'">
+                <div class="thumbnail-error" style="display: none">
+                    <p>Unable to load thumbnail</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add click outside to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+
+    // Add escape key to close
+    const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+            modal.remove();
+            document.removeEventListener('keydown', handleKeydown);
+        }
+    };
+    document.addEventListener('keydown', handleKeydown);
+
+    document.body.appendChild(modal);
+}
+
 // Export for debugging purposes
 console.log('Printernizer application ready');
 console.log('Available global objects:', {

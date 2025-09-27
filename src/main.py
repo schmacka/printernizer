@@ -41,9 +41,11 @@ from src.api.routers import (
     errors_router,
     camera_router
 )
+from src.api.routers.websocket import broadcast_printer_status
 from src.api.routers.ideas import router as ideas_router
 from src.api.routers.idea_url import router as idea_url_router
 from src.api.routers.trending import router as trending_router
+from src.api.routers.debug import router as debug_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -102,9 +104,12 @@ async def lifespan(app: FastAPI):
     
     # Initialize file watcher service
     file_watcher_service = FileWatcherService(config_service, event_service)
-    
-    # Initialize file service with file watcher and printer service
-    file_service = FileService(database, event_service, file_watcher_service, printer_service)
+
+    # Initialize file service with file watcher, printer service, and config service
+    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service)
+
+    # Set file service reference in printer service for circular dependency
+    printer_service.file_service = file_service
 
     # Initialize Ideas-related services
     thumbnail_service = ThumbnailService(event_service)
@@ -123,6 +128,19 @@ async def lifespan(app: FastAPI):
     # Initialize and start background services
     await event_service.start()
     await printer_service.initialize()
+
+    # Subscribe WebSocket broadcast for individual printer status updates (includes thumbnails)
+    async def _on_printer_status_update(data):
+        try:
+            # data contains printer_id and status fields
+            await broadcast_printer_status(
+                printer_id=data.get("printer_id"),
+                status_data=data
+            )
+        except Exception as e:
+            logger.warning("Failed to broadcast printer status update", error=str(e))
+
+    event_service.subscribe("printer_status_update", _on_printer_status_update)
 
     # Initialize Ideas-related services
     await trending_service.initialize()
@@ -241,6 +259,8 @@ def create_application() -> FastAPI:
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
+    # Temporary debug endpoints (remove before production if not needed)
+    app.include_router(debug_router, prefix="/api/debug", tags=["Debug"])
     
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
