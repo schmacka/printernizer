@@ -414,6 +414,82 @@ async def get_printer_files(
         )
 
 
+@router.post("/{printer_id}/monitoring/start")
+async def start_printer_monitoring(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Start monitoring for a specific printer."""
+    try:
+        printer_id_str = str(printer_id)
+        success = await printer_service.start_printer_monitoring(printer_id_str)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to start printer monitoring"
+            )
+        return {"status": "monitoring_started"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to start printer monitoring", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to start printer monitoring"
+        )
+
+
+@router.post("/{printer_id}/monitoring/stop")
+async def stop_printer_monitoring(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Stop monitoring for a specific printer."""
+    try:
+        printer_id_str = str(printer_id)
+        success = await printer_service.stop_printer_monitoring(printer_id_str)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to stop printer monitoring"
+            )
+        return {"status": "monitoring_stopped"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to stop printer monitoring", printer_id=str(printer_id), error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to stop printer monitoring"
+        )
+
+
+@router.post("/{printer_id}/files/{filename}/download")
+async def download_printer_file(
+    printer_id: UUID,
+    filename: str,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Download a specific file from printer to local storage."""
+    try:
+        printer_id_str = str(printer_id)
+        success = await printer_service.download_printer_file(printer_id_str, filename)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to download file from printer"
+            )
+        return {"status": "downloaded", "filename": filename}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to download printer file", printer_id=str(printer_id), filename=filename, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to download file from printer"
+        )
+
+
 @router.get("/{printer_id}/thumbnail")
 async def get_printer_current_thumbnail(
     printer_id: UUID,

@@ -34,41 +34,79 @@ class PrusaPrinter(BasePrinter):
         if self.is_connected:
             logger.info("Already connected to Prusa printer", printer_id=self.printer_id)
             return True
-            
+
         try:
-            logger.info("Connecting to Prusa printer", 
+            logger.info("Connecting to Prusa printer",
                        printer_id=self.printer_id, ip=self.ip_address)
-            
+
             # Create HTTP session with API key
             headers = {
                 'X-Api-Key': self.api_key,
                 'Content-Type': 'application/json'
             }
-            
-            timeout = aiohttp.ClientTimeout(total=10)
+
+            # Increase timeout and add retries for better connectivity
+            timeout = aiohttp.ClientTimeout(total=15, connect=10)
+            connector = aiohttp.TCPConnector(
+                keepalive_timeout=30,
+                ttl_dns_cache=300,
+                use_dns_cache=True,
+                limit=10,
+                enable_cleanup_closed=True
+            )
+
             self.session = aiohttp.ClientSession(
                 headers=headers,
                 timeout=timeout,
-                connector=aiohttp.TCPConnector(keepalive_timeout=30)
+                connector=connector
             )
-            
-            # Test connection with version endpoint
-            async with self.session.get(f"{self.base_url}/version") as response:
-                if response.status == 200:
-                    version_data = await response.json()
-                    logger.info("Successfully connected to Prusa printer",
-                               printer_id=self.printer_id,
-                               version=version_data.get('server', 'Unknown'))
-                    self.is_connected = True
-                    return True
-                else:
-                    raise aiohttp.ClientError(f"HTTP {response.status}")
-                    
+
+            # Test connection with version endpoint with retries
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    async with self.session.get(f"{self.base_url}/version") as response:
+                        if response.status == 200:
+                            version_data = await response.json()
+                            logger.info("Successfully connected to Prusa printer",
+                                       printer_id=self.printer_id,
+                                       version=version_data.get('server', 'Unknown'),
+                                       attempt=attempt + 1)
+                            self.is_connected = True
+                            return True
+                        elif response.status == 401:
+                            raise aiohttp.ClientError(f"Authentication failed - check API key")
+                        elif response.status == 403:
+                            raise aiohttp.ClientError(f"Access forbidden - check API key permissions")
+                        else:
+                            raise aiohttp.ClientError(f"HTTP {response.status}")
+
+                except (asyncio.TimeoutError, aiohttp.ClientConnectorError) as e:
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 2  # Exponential backoff
+                        logger.warning("Connection attempt failed, retrying",
+                                     printer_id=self.printer_id,
+                                     attempt=attempt + 1,
+                                     wait_time=wait_time,
+                                     error=str(e))
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        raise
+
         except Exception as e:
             error_msg = str(e) or f"{type(e).__name__}: Connection failed"
-            logger.error("Failed to connect to Prusa printer",
-                        printer_id=self.printer_id, error=error_msg, 
-                        error_type=type(e).__name__)
+            if "Authentication failed" in error_msg or "Access forbidden" in error_msg:
+                logger.error("Prusa printer authentication error",
+                            printer_id=self.printer_id, error=error_msg)
+            elif "timeout" in error_msg.lower() or isinstance(e, asyncio.TimeoutError):
+                logger.error("Prusa printer connection timeout - check network and IP address",
+                            printer_id=self.printer_id, ip=self.ip_address, error=error_msg)
+            else:
+                logger.error("Failed to connect to Prusa printer",
+                            printer_id=self.printer_id, error=error_msg,
+                            error_type=type(e).__name__)
+
             if self.session:
                 await self.session.close()
                 self.session = None
