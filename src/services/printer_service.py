@@ -502,19 +502,29 @@ class PrinterService:
             logger.error("Failed to get printer files", printer_id=printer_id, error=str(e))
             raise PrinterConnectionError(printer_id, f"File listing failed: {str(e)}")
             
-    async def download_printer_file(self, printer_id: str, filename: str, local_path: str) -> bool:
+    async def download_printer_file(self, printer_id: str, filename: str, local_path: str = None) -> bool:
         """Download a file from printer."""
         instance = self.printer_instances.get(printer_id)
         if not instance:
             raise NotFoundError("Printer", printer_id)
-            
+
         if not instance.is_connected:
             await instance.connect()
-            
+
+        # If no local path provided, use file service to manage the download
+        if local_path is None and self.file_service:
+            try:
+                result = await self.file_service.download_file(printer_id, filename)
+                return result.get('status') == 'success'
+            except Exception as e:
+                logger.error("Failed to download file via file service",
+                            printer_id=printer_id, filename=filename, error=str(e))
+                return False
+
         try:
             return await instance.download_file(filename, local_path)
         except Exception as e:
-            logger.error("Failed to download file", 
+            logger.error("Failed to download file",
                         printer_id=printer_id, filename=filename, error=str(e))
             return False
 
@@ -788,7 +798,7 @@ class PrinterService:
         instance = self.printer_instances.get(printer_id)
         if not instance:
             raise NotFoundError("Printer", printer_id)
-            
+
         try:
             if not instance.is_connected:
                 await instance.connect()
@@ -796,4 +806,37 @@ class PrinterService:
         except Exception as e:
             logger.error("Failed to stop printer", printer_id=printer_id, error=str(e))
             raise PrinterConnectionError(printer_id, str(e))
-        
+
+    async def start_printer_monitoring(self, printer_id: str) -> bool:
+        """Start monitoring for a specific printer."""
+        instance = self.printer_instances.get(printer_id)
+        if not instance:
+            raise NotFoundError("Printer", printer_id)
+
+        try:
+            if not instance.is_connected:
+                await instance.connect()
+
+            # For now, we'll treat this as ensuring the printer is connected and active
+            # The monitoring is handled globally by the event service
+            logger.info("Started monitoring for printer", printer_id=printer_id)
+            return True
+        except Exception as e:
+            logger.error("Failed to start monitoring", printer_id=printer_id, error=str(e))
+            return False
+
+    async def stop_printer_monitoring(self, printer_id: str) -> bool:
+        """Stop monitoring for a specific printer."""
+        instance = self.printer_instances.get(printer_id)
+        if not instance:
+            raise NotFoundError("Printer", printer_id)
+
+        try:
+            # For now, this is a no-op since monitoring is global
+            # In the future, this could be used for per-printer monitoring control
+            logger.info("Stopped monitoring for printer", printer_id=printer_id)
+            return True
+        except Exception as e:
+            logger.error("Failed to stop monitoring", printer_id=printer_id, error=str(e))
+            return False
+

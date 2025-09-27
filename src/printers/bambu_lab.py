@@ -433,21 +433,37 @@ class BambuLabPrinter(BasePrinter):
             progress = getattr(status, 'print_percent', 0) or 0
             layer_num = getattr(status, 'layer_num', 0) or 0
         
-        # Improved status detection based on temperature and progress data
-        if progress > 0 or (nozzle_temp > 200 and bed_temp > 50):
-            printer_status = PrinterStatus.PRINTING
-            if progress > 0:
+        # Improved status detection based on printer status, progress and temperature data
+        # First check the actual printer status from the API
+        if status_name == 'PRINTING':
+            # Only consider as printing if we have actual progress or confirmed printing status
+            if progress > 0 and progress < 100:
+                printer_status = PrinterStatus.PRINTING
                 message = f"Printing - Layer {layer_num}, {progress}%"
+            elif progress == 100:
+                # Print completed but printer might still be cooling down
+                printer_status = PrinterStatus.ONLINE
+                if nozzle_temp > 50 or bed_temp > 30:
+                    message = f"Print Complete - Cooling down (Nozzle {nozzle_temp}°C, Bed {bed_temp}°C)"
+                else:
+                    message = "Print Complete - Ready"
             else:
-                message = f"Printing - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
-        elif status_name == 'PRINTING':
-            printer_status = PrinterStatus.PRINTING
-            if progress > 0:
-                message = f"Printing - Layer {layer_num}, {progress}%"
-            else:
-                message = "Printing - Status detected"
+                # Fallback: use temperature as indicator only if status explicitly says PRINTING
+                if nozzle_temp > 200 and bed_temp > 50:
+                    printer_status = PrinterStatus.PRINTING
+                    message = f"Printing - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
+                else:
+                    printer_status = PrinterStatus.ONLINE
+                    message = "Ready"
         elif status_name in ['IDLE', 'UNKNOWN']:
-            if nozzle_temp > 50:
+            # Printer is idle - check if just completing a print based on temperatures
+            if progress == 100:
+                printer_status = PrinterStatus.ONLINE
+                if nozzle_temp > 50 or bed_temp > 30:
+                    message = f"Print Complete - Cooling down (Nozzle {nozzle_temp}°C, Bed {bed_temp}°C)"
+                else:
+                    message = "Print Complete - Ready"
+            elif nozzle_temp > 50:
                 message = f"Heating - Nozzle {nozzle_temp}°C"
                 printer_status = PrinterStatus.ONLINE
             elif bed_temp > 30:
@@ -459,7 +475,11 @@ class BambuLabPrinter(BasePrinter):
         else:
             # Map the status using the mapping function
             printer_status = self._map_bambu_status(status_name)
-            message = f"Status: {status_name}"
+            # Provide better status messages for other states
+            if printer_status == PrinterStatus.ONLINE and (nozzle_temp > 50 or bed_temp > 30):
+                message = f"{status_name} - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
+            else:
+                message = f"Status: {status_name}"
 
         # If we're printing but don't have a job name, create a generic one
         if printer_status == PrinterStatus.PRINTING and not current_job:
