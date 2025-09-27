@@ -76,6 +76,8 @@ class BambuParser:
                 return await self._parse_3mf_file(file_path)
             elif file_path.suffix.lower() in ['.gcode', '.g']:
                 return await self._parse_gcode_file(file_path)
+            elif file_path.suffix.lower() == '.bgcode':
+                return await self._parse_bgcode_file(file_path)
             else:
                 return {
                     'success': False,
@@ -349,6 +351,130 @@ class BambuParser:
         
         return metadata
     
+    async def _parse_bgcode_file(self, file_path: Path) -> Dict[str, Any]:
+        """Parse Binary G-code file for thumbnails and metadata.
+        
+        BGCode is a binary format that contains structured blocks.
+        For now, we'll implement basic parsing to extract embedded thumbnails.
+        """
+        try:
+            thumbnails = []
+            metadata = {}
+            
+            with open(file_path, 'rb') as f:
+                # Read BGCode file header
+                # BGCode files start with specific magic bytes
+                magic = f.read(4)
+                if magic != b'BGD\x00':  # BGCode magic bytes
+                    logger.warning("File doesn't appear to be valid BGCode format", 
+                                 magic=magic.hex())
+                    return {
+                        'success': False,
+                        'error': f"Invalid BGCode magic bytes: {magic.hex()}",
+                        'thumbnails': [],
+                        'metadata': {}
+                    }
+                
+                # For now, we'll attempt to find embedded PNG thumbnails
+                # by scanning for PNG headers in the binary data
+                f.seek(0)  # Reset to beginning
+                content = f.read()
+                
+                # Look for PNG signatures in the binary data
+                png_start = b'\x89PNG\r\n\x1a\n'
+                png_positions = []
+                start = 0
+                while True:
+                    pos = content.find(png_start, start)
+                    if pos == -1:
+                        break
+                    png_positions.append(pos)
+                    start = pos + 1
+                
+                # Extract PNG thumbnails
+                for i, png_pos in enumerate(png_positions):
+                    try:
+                        # Find the end of this PNG by looking for the next PNG or end of file
+                        if i + 1 < len(png_positions):
+                            end_pos = png_positions[i + 1]
+                        else:
+                            # Look for PNG end marker (IEND chunk)
+                            iend_marker = b'IEND\xaeB`\x82'
+                            end_search = content.find(iend_marker, png_pos)
+                            if end_search != -1:
+                                end_pos = end_search + len(iend_marker)
+                            else:
+                                # If we can't find IEND, take a reasonable chunk
+                                end_pos = min(png_pos + 100000, len(content))  # Max 100KB per thumbnail
+                        
+                        png_data = content[png_pos:end_pos]
+                        
+                        # Validate this is actually a complete PNG
+                        if len(png_data) < 100:  # Too small to be a real thumbnail
+                            continue
+                            
+                        # Convert to base64
+                        thumbnail_base64 = base64.b64encode(png_data).decode('utf-8')
+                        
+                        # Try to extract dimensions from PNG header
+                        width, height = self._extract_png_dimensions(png_data)
+                        
+                        thumbnails.append({
+                            'data': thumbnail_base64,
+                            'width': width,
+                            'height': height,
+                            'format': 'PNG'
+                        })
+                        
+                        logger.debug(f"Extracted thumbnail {i+1} from BGCode", 
+                                   width=width, height=height, size_bytes=len(png_data))
+                        
+                    except Exception as e:
+                        logger.warning(f"Failed to extract thumbnail {i+1} from BGCode", 
+                                     error=str(e))
+                        continue
+                
+                # Basic metadata extraction - try to find text blocks
+                # BGCode may contain metadata in text blocks
+                metadata = {
+                    'file_size': len(content),
+                    'format': 'bgcode',
+                    'thumbnails_found': len(thumbnails)
+                }
+                
+            logger.info("Successfully parsed BGCode file", 
+                       file_path=str(file_path), 
+                       thumbnail_count=len(thumbnails),
+                       metadata_keys=list(metadata.keys()))
+            
+            return {
+                'success': True,
+                'thumbnails': thumbnails,
+                'metadata': metadata,
+                'error': None
+            }
+            
+        except Exception as e:
+            logger.error("Failed to parse BGCode file", file_path=str(file_path), error=str(e))
+            return {
+                'success': False,
+                'error': str(e),
+                'thumbnails': [],
+                'metadata': {}
+            }
+
+    def _extract_png_dimensions(self, png_data: bytes) -> Tuple[int, int]:
+        """Extract width and height from PNG header."""
+        try:
+            # PNG dimensions are in bytes 16-23 (big endian)
+            if len(png_data) >= 24 and png_data[:8] == b'\x89PNG\r\n\x1a\n':
+                width = int.from_bytes(png_data[16:20], 'big')
+                height = int.from_bytes(png_data[20:24], 'big')
+                return width, height
+        except Exception:
+            pass
+        return 200, 200  # Default fallback dimensions
+
     def _parse_thumbnail_dimensions(self, filename: str) -> Tuple[int, int]:
         """Parse thumbnail dimensions from filename or return defaults."""
         # Try to extract dimensions from filename (e.g., thumbnail_200x200.png)

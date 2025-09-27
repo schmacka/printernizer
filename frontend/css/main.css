@@ -726,3 +726,219 @@ p {
         padding: var(--spacing-2);
     }
 }
+
+/* ==============================================
+   Thumbnail Processing Log Styles
+   ============================================== */
+
+.thumbnail-log-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.thumbnail-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-1);
+    min-width: 80px;
+}
+
+.stat-label {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.stat-value.success {
+    color: var(--success-color);
+}
+
+.stat-value.error {
+    color: var(--error-color);
+}
+
+.file-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    align-items: center;
+    padding: var(--spacing-3);
+    background: var(--white);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-200);
+}
+
+.file-types-label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.file-type-badge {
+    display: inline-block;
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    background: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--primary-color);
+}
+
+.thumbnail-log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: var(--spacing-1);
+}
+
+.thumbnail-log-entry {
+    padding: var(--spacing-3);
+    background: var(--white);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--gray-300);
+    box-shadow: var(--shadow-sm);
+}
+
+.thumbnail-log-entry.success {
+    border-left-color: var(--success-color);
+}
+
+.thumbnail-log-entry.error {
+    border-left-color: var(--error-color);
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-2);
+}
+
+.entry-timestamp {
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+    font-family: 'Courier New', monospace;
+}
+
+.entry-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+}
+
+.entry-status .status-icon {
+    font-size: var(--font-size-base);
+}
+
+.entry-details {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    flex-wrap: wrap;
+}
+
+.file-name {
+    font-family: 'Courier New', monospace;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--gray-800);
+    word-break: break-all;
+}
+
+.dimensions {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+    padding: var(--spacing-1);
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--gray-200);
+}
+
+.error-details {
+    margin-top: var(--spacing-2);
+    padding: var(--spacing-2);
+    background: var(--error-light);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+.thumbnail-log-empty,
+.thumbnail-log-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-8);
+    text-align: center;
+    color: var(--gray-500);
+}
+
+.thumbnail-log-empty .empty-icon,
+.thumbnail-log-error .error-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-4);
+    opacity: 0.5;
+}
+
+.thumbnail-log-empty h4,
+.thumbnail-log-error h4 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: var(--spacing-2);
+}
+
+.thumbnail-log-empty p,
+.thumbnail-log-error p {
+    color: var(--gray-600);
+    max-width: 400px;
+}
+
+/* Responsive Design for Thumbnail Log */
+@media (max-width: 768px) {
+    .thumbnail-stats {
+        gap: var(--spacing-2);
+    }
+    
+    .stat-item {
+        min-width: 60px;
+    }
+    
+    .entry-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-1);
+    }
+    
+    .entry-details {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

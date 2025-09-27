@@ -33,6 +33,10 @@ class FileService:
         self.download_progress = {}
         self.download_status = {}
         
+        # Thumbnail processing status tracking
+        self.thumbnail_processing_log = []  # List of recent thumbnail processing attempts
+        self.max_log_entries = 50  # Keep last 50 attempts
+        
     async def get_files(self, printer_id: Optional[str] = None,
                        include_local: bool = True,
                        status: Optional[str] = None,
@@ -668,17 +672,26 @@ class FileService:
         Returns:
             True if processing was successful, False otherwise
         """
+        start_time = datetime.utcnow()
+        
         try:
+            # Log the attempt
+            self._log_thumbnail_processing(file_path, file_id, "started", None)
+            
             if not os.path.exists(file_path):
-                logger.warning("File not found for thumbnail processing", file_path=file_path)
+                error_msg = "File not found for thumbnail processing"
+                logger.warning(error_msg, file_path=file_path)
+                self._log_thumbnail_processing(file_path, file_id, "failed", error_msg)
                 return False
             
             # Parse file with Bambu parser
             parse_result = await self.bambu_parser.parse_file(file_path)
             
             if not parse_result['success']:
+                error_msg = parse_result.get('error', 'Unknown parsing error')
                 logger.info("File parsing failed or not applicable", 
-                           file_path=file_path, error=parse_result.get('error'))
+                           file_path=file_path, error=error_msg)
+                self._log_thumbnail_processing(file_path, file_id, "failed", error_msg)
                 return False
             
             thumbnails = parse_result['thumbnails']
@@ -723,12 +736,16 @@ class FileService:
             success = await self.database.update_file(file_id, update_data)
             
             if success:
+                success_msg = f"Successfully processed {len(thumbnails)} thumbnails"
                 logger.info("Successfully processed file thumbnails",
                            file_path=file_path,
                            file_id=file_id,
                            thumbnail_count=len(thumbnails),
                            has_thumbnail=len(thumbnails) > 0,
                            metadata_keys=list(metadata.keys()))
+                
+                self._log_thumbnail_processing(file_path, file_id, "success", 
+                                             f"{len(thumbnails)} thumbnails extracted")
                 
                 # Emit file updated event
                 await self.event_service.emit_event("file_thumbnails_processed", {
@@ -741,10 +758,39 @@ class FileService:
                 
                 return True
             else:
-                logger.error("Failed to update file with thumbnail data", file_id=file_id)
+                error_msg = "Failed to update file with thumbnail data"
+                logger.error(error_msg, file_id=file_id)
+                self._log_thumbnail_processing(file_path, file_id, "failed", error_msg)
                 return False
                 
         except Exception as e:
+            error_msg = f"Exception during processing: {str(e)}"
             logger.error("Failed to process file thumbnails", 
                         file_path=file_path, file_id=file_id, error=str(e))
+            self._log_thumbnail_processing(file_path, file_id, "failed", error_msg)
             return False
+    
+    def _log_thumbnail_processing(self, file_path: str, file_id: str, 
+                                status: str, details: Optional[str] = None):
+        """Log a thumbnail processing attempt for debugging."""
+        entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'file_path': file_path,
+            'file_id': file_id,
+            'status': status,  # 'started', 'success', 'failed'
+            'details': details,
+            'file_extension': Path(file_path).suffix.lower()
+        }
+        
+        # Add to the beginning of the list (most recent first)
+        self.thumbnail_processing_log.insert(0, entry)
+        
+        # Keep only the last N entries
+        if len(self.thumbnail_processing_log) > self.max_log_entries:
+            self.thumbnail_processing_log = self.thumbnail_processing_log[:self.max_log_entries]
+    
+    def get_thumbnail_processing_log(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get recent thumbnail processing log entries."""
+        if limit:
+            return self.thumbnail_processing_log[:limit]
+        return self.thumbnail_processing_log.copy()

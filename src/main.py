@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     logger = structlog.get_logger()
-    logger.info("Starting Printernizer application", version="1.0.1")
+    logger.info("Starting Printernizer application", version="1.0.2")
     
     # Initialize database
     database = Database()
@@ -212,7 +212,7 @@ def create_application() -> FastAPI:
     app = FastAPI(
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
-        version="1.0.1",
+        version="1.0.2",
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
         lifespan=lifespan
@@ -260,7 +260,7 @@ def create_application() -> FastAPI:
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     # Temporary debug endpoints (remove before production if not needed)
-    app.include_router(debug_router, prefix="/api/debug", tags=["Debug"])
+    app.include_router(debug_router, prefix="/api/v1/debug", tags=["Debug"])
     
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
@@ -271,6 +271,11 @@ def create_application() -> FastAPI:
         async def read_index():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "index.html"))
+        
+        @app.get("/debug")
+        async def read_debug():
+            from fastapi.responses import FileResponse
+            return FileResponse(str(frontend_path / "debug.html"))
     
     # Prometheus metrics endpoint
     @app.get("/metrics")

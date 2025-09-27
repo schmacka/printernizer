@@ -738,6 +738,32 @@
                     </div>
                 </div>
 
+                <!-- Thumbnail Processing Log -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>Thumbnail Processing Log</h3>
+                        <span class="card-icon">🖼️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="debug-controls">
+                            <button onclick="debugManager.refreshThumbnailLog()" class="btn btn-sm">
+                                🔄 Aktualisieren
+                            </button>
+                            <select id="thumbnailLogLimit" onchange="debugManager.refreshThumbnailLog()">
+                                <option value="10">10 Einträge</option>
+                                <option value="20" selected>20 Einträge</option>
+                                <option value="50">50 Einträge</option>
+                            </select>
+                        </div>
+                        <div id="thumbnailProcessingLog">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Thumbnail-Verarbeitung...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- API Endpoints Test -->
                 <div class="card debug-section">
                     <div class="card-header">
