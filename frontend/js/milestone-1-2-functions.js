@@ -57,8 +57,9 @@ async function showPrinterFiles(printerId) {
         const fileManager = new DruckerDateienManager('printer-files-manager', printerId);
         await fileManager.init();
 
-        // Store reference for cleanup
+        // Store reference for cleanup and global access
         modal.fileManager = fileManager;
+        druckerDateienManager = fileManager;
 
     } catch (error) {
         console.error('Failed to show printer files:', error);
@@ -91,8 +92,9 @@ async function showDruckerDateienManager() {
         const fileManager = new DruckerDateienManager('global-files-manager', null);
         await fileManager.init();
 
-        // Store reference for cleanup
+        // Store reference for cleanup and global access
         modal.fileManager = fileManager;
+        druckerDateienManager = fileManager;
 
     } catch (error) {
         console.error('Failed to show file manager:', error);
@@ -110,6 +112,10 @@ function closeDynamicModal(closeButton) {
     // Cleanup any component instances
     if (modal.fileManager) {
         modal.fileManager.destroy();
+        // Reset global reference if this was the active manager
+        if (druckerDateienManager === modal.fileManager) {
+            druckerDateienManager = null;
+        }
     }
     if (modal.statusChart) {
         modal.statusChart.destroy();
@@ -193,7 +199,7 @@ async function downloadAllAvailable() {
     }
 
     const availableFiles = druckerDateienManager.files.filter(f => f.status === 'available');
-    
+
     if (availableFiles.length === 0) {
         showToast('Keine Dateien zum Herunterladen verfügbar', 'info');
         return;
@@ -215,8 +221,84 @@ async function downloadAllAvailable() {
         }
     }
 
-    const message = `${successCount} Dateien erfolgreich heruntergeladen` + 
+    const message = `${successCount} Dateien erfolgreich heruntergeladen` +
                    (errorCount > 0 ? `, ${errorCount} Fehler` : '');
+    showToast(message, errorCount > 0 ? 'warning' : 'success');
+}
+
+/**
+ * Download selected files based on checked checkboxes
+ */
+async function downloadSelected() {
+    // Find the active modal and its file manager
+    const activeModal = document.querySelector('.modal.show');
+    if (!activeModal || !activeModal.fileManager) {
+        console.error('DruckerDateienManager not initialized');
+        showToast('Datei-Manager nicht verfügbar', 'error');
+        return;
+    }
+
+    const fileManager = activeModal.fileManager;
+
+    // Get all checked file checkboxes
+    const checkboxes = activeModal.querySelectorAll('.file-checkbox:checked');
+    const selectedFileIds = Array.from(checkboxes).map(cb => cb.value);
+
+    if (selectedFileIds.length === 0) {
+        showToast('Keine Dateien ausgewählt', 'info');
+        return;
+    }
+
+    // Filter to only include selected files that are available for download
+    const selectedFiles = fileManager.files.filter(f =>
+        selectedFileIds.includes(f.id) && f.status === 'available'
+    );
+
+    if (selectedFiles.length === 0) {
+        showToast('Keine der ausgewählten Dateien kann heruntergeladen werden', 'info');
+        return;
+    }
+
+    // Show confirmation dialog
+    const confirmed = confirm(
+        `${selectedFiles.length} ausgewählte Dateien herunterladen?\n\n` +
+        selectedFiles.map(f => f.filename).join('\n')
+    );
+    if (!confirmed) return;
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    // Download each selected file
+    for (const file of selectedFiles) {
+        try {
+            await fileManager.downloadFile(file.id);
+            successCount++;
+
+            // Uncheck the checkbox after successful download
+            const checkbox = activeModal.querySelector(`.file-checkbox[value="${file.id}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        } catch (error) {
+            console.error(`Failed to download ${file.filename}:`, error);
+            errorCount++;
+            errors.push(`${file.filename}: ${error.message}`);
+        }
+    }
+
+    // Update selected count display
+    fileManager.updateSelectedCount();
+    fileManager.updateBulkActions();
+
+    // Show summary message
+    let message = `${successCount} Dateien erfolgreich heruntergeladen`;
+    if (errorCount > 0) {
+        message += `, ${errorCount} Fehler`;
+        console.error('Download errors:', errors);
+    }
+
     showToast(message, errorCount > 0 ? 'warning' : 'success');
 }
 
@@ -228,6 +310,71 @@ async function refreshFiles() {
         await druckerDateienManager.loadFiles();
         showToast('Dateien aktualisiert', 'success');
     }
+}
+
+/**
+ * Select all files in the current view
+ */
+function selectAllFiles() {
+    // Find the active modal and its file manager
+    const activeModal = document.querySelector('.modal.show');
+    if (!activeModal || !activeModal.fileManager) {
+        console.warn('No active file manager found');
+        return;
+    }
+
+    const fileManager = activeModal.fileManager;
+    const checkboxes = activeModal.querySelectorAll('.file-checkbox:not(:disabled)');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+
+    fileManager.updateSelectedCount();
+    fileManager.updateBulkActions();
+}
+
+/**
+ * Clear all file selections
+ */
+function selectNone() {
+    // Find the active modal and its file manager
+    const activeModal = document.querySelector('.modal.show');
+    if (!activeModal || !activeModal.fileManager) {
+        console.warn('No active file manager found');
+        return;
+    }
+
+    const fileManager = activeModal.fileManager;
+    const checkboxes = activeModal.querySelectorAll('.file-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+
+    fileManager.updateSelectedCount();
+    fileManager.updateBulkActions();
+}
+
+/**
+ * Select only available files
+ */
+function selectAvailable() {
+    // Find the active modal and its file manager
+    const activeModal = document.querySelector('.modal.show');
+    if (!activeModal || !activeModal.fileManager) {
+        console.warn('No active file manager found');
+        return;
+    }
+
+    const fileManager = activeModal.fileManager;
+    const checkboxes = activeModal.querySelectorAll('.file-checkbox');
+    checkboxes.forEach(checkbox => {
+        const fileCard = checkbox.closest('.file-card');
+        const isAvailable = fileCard && fileCard.classList.contains('available');
+        checkbox.checked = isAvailable && !checkbox.disabled;
+    });
+
+    fileManager.updateSelectedCount();
+    fileManager.updateBulkActions();
 }
 
 /**
@@ -408,8 +555,12 @@ window.showPrinterStatusHistory = showPrinterStatusHistory;
 window.registerPrinterCard = registerPrinterCard;
 window.unregisterPrinterCard = unregisterPrinterCard;
 window.downloadFile = downloadFile;
+window.downloadSelected = downloadSelected;
 window.downloadAllAvailable = downloadAllAvailable;
 window.refreshFiles = refreshFiles;
+window.selectAllFiles = selectAllFiles;
+window.selectNone = selectNone;
+window.selectAvailable = selectAvailable;
 window.previewFile = previewFile;
 window.openLocalFile = openLocalFile;
 window.deleteLocalFile = deleteLocalFile;

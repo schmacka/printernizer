@@ -1249,6 +1249,20 @@ class DruckerDateienManager {
                     </div>
                 </div>
 
+                <div class="selection-controls">
+                    <div class="selection-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="selectAllFiles()">
+                            <span class="btn-icon">☑️</span> Alle auswählen
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="selectNone()">
+                            <span class="btn-icon">☐</span> Auswahl aufheben
+                        </button>
+                        <button class="btn btn-sm btn-secondary" onclick="selectAvailable()">
+                            <span class="btn-icon">📁</span> Verfügbare auswählen
+                        </button>
+                    </div>
+                </div>
+
                 <div class="file-filters">
                     <div class="filter-group">
                         <label for="status-filter">Status:</label>
@@ -1364,6 +1378,25 @@ class DruckerDateienManager {
                 this.filters.search = e.target.value.trim();
                 this.applyFilters();
             }, 300);
+        });
+
+        // File checkbox change handling using event delegation
+        this.container.addEventListener('change', (e) => {
+            if (e.target.classList.contains('file-checkbox')) {
+                this.updateSelectedCount();
+                this.updateBulkActions();
+            }
+        });
+
+        // Also listen for clicks on checkboxes (backup for change event)
+        this.container.addEventListener('click', (e) => {
+            if (e.target.classList.contains('file-checkbox')) {
+                // Small delay to ensure checkbox state is updated
+                setTimeout(() => {
+                    this.updateSelectedCount();
+                    this.updateBulkActions();
+                }, 10);
+            }
         });
     }
 
@@ -1514,17 +1547,22 @@ class DruckerDateienManager {
         const status = getStatusConfig('file', file.status);
         const fileIcon = this.getFileIcon(file.filename);
         const downloadProgress = this.downloadProgress.get(file.id);
-        
+        const isDownloaded = file.status === 'downloaded';
+
         return `
             <div class="file-card ${file.status}" data-file-id="${file.id}">
                 <div class="file-header">
-                    <input type="checkbox" class="file-checkbox" value="${file.id}">
+                    <div class="file-checkbox-container">
+                        <input type="checkbox" class="file-checkbox" value="${file.id}"
+                               ${file.status !== 'available' ? 'disabled' : ''}>
+                        ${isDownloaded ? '<span class="downloaded-indicator" title="Bereits heruntergeladen">✅</span>' : ''}
+                    </div>
                     <div class="file-icon">${fileIcon}</div>
                     <div class="file-status">
                         <span class="status-badge ${status.class}">${status.icon}</span>
                     </div>
                 </div>
-                
+
                 <div class="file-info">
                     <div class="file-name" title="${escapeHtml(file.filename)}">${escapeHtml(file.filename)}</div>
                     <div class="file-details">
@@ -1536,11 +1574,12 @@ class DruckerDateienManager {
                         <span class="file-date">
                             ${file.created_on_printer ? formatDateTime(file.created_on_printer) : 'Unbekannt'}
                         </span>
+                        ${isDownloaded ? '<span class="downloaded-badge">📁 Heruntergeladen</span>' : ''}
                     </div>
                 </div>
-                
+
                 ${downloadProgress ? this.renderDownloadProgress(downloadProgress) : ''}
-                
+
                 <div class="file-actions">
                     ${this.renderFileActions(file)}
                 </div>
@@ -1701,7 +1740,7 @@ class DruckerDateienManager {
     updateDownloadProgress(fileId) {
         const fileCard = this.container.querySelector(`[data-file-id="${fileId}"]`);
         const progress = this.downloadProgress.get(fileId);
-        
+
         if (!fileCard || !progress) return;
 
         let progressOverlay = fileCard.querySelector('.download-progress-overlay');
@@ -1712,6 +1751,35 @@ class DruckerDateienManager {
         }
 
         progressOverlay.innerHTML = this.renderDownloadProgress(progress);
+    }
+
+    /**
+     * Update selected files count display
+     */
+    updateSelectedCount() {
+        const checkboxes = this.container.querySelectorAll('.file-checkbox:checked');
+        const count = checkboxes.length;
+
+        const countElement = this.container.querySelector('#selected-count');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+    }
+
+    /**
+     * Show/hide bulk actions based on selected files
+     */
+    updateBulkActions() {
+        const checkboxes = this.container.querySelectorAll('.file-checkbox:checked');
+        const bulkActions = this.container.querySelector('.bulk-actions');
+
+        if (bulkActions) {
+            if (checkboxes.length > 0) {
+                bulkActions.style.display = 'flex';
+            } else {
+                bulkActions.style.display = 'none';
+            }
+        }
     }
 
     /**
