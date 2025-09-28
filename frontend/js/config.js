@@ -251,8 +251,14 @@ const CONFIG = {
         PRINTER_FILES: (id) => `/printers/${id}/files`,
         PRINTER_FILE_DOWNLOAD: (id, filename) => `/printers/${id}/files/${filename}/download`,
         PRINTER_FILE_DOWNLOAD_STATUS: (id, filename) => `/printers/${id}/files/${filename}/status`,
+        PRINTER_DOWNLOAD_FILE: (id) => `/printers/${id}/download-file`,
     // Manual trigger to download & process currently printing job file for thumbnail extraction
     PRINTER_DOWNLOAD_CURRENT_JOB: (id) => `/printers/${id}/download-current-job`,
+
+        // Thumbnail Processing Endpoints
+        FILE_EXTRACT_THUMBNAIL: (fileId) => `/files/${fileId}/thumbnail/extract`,
+        FILE_GENERATE_THUMBNAIL: (fileId) => `/files/${fileId}/thumbnail/generate`,
+        FILE_ANALYZE_GCODE: (fileId) => `/files/${fileId}/analyze/gcode`,
         
         // Enhanced Job Management
         PRINTER_CURRENT_JOB: (id) => `/printers/${id}/jobs/current`,

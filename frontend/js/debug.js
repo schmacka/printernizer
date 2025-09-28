@@ -622,7 +622,7 @@ class DebugManager {
         const container = document.getElementById('thumbnailLogViewer');
         if (!container) return;
 
-        if (!this.thumbnailLog || !this.thumbnailLog.entries || this.thumbnailLog.entries.length === 0) {
+        if (!this.thumbnailLog || !this.thumbnailLog.recent_attempts || this.thumbnailLog.recent_attempts.length === 0) {
             container.innerHTML = `
                 <div class="thumbnail-log-empty">
                     <div class="empty-icon">📷</div>
@@ -671,7 +671,7 @@ class DebugManager {
         }
 
         // Display log entries
-        const entriesHtml = this.thumbnailLog.entries.map(entry => {
+        const entriesHtml = this.thumbnailLog.recent_attempts.map(entry => {
             const timestamp = new Date(entry.timestamp).toLocaleString('de-DE');
             const statusClass = entry.success ? 'success' : 'error';
             const statusIcon = entry.success ? '✅' : '❌';

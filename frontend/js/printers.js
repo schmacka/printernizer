@@ -220,22 +220,27 @@ class PrinterManager {
      * Render job thumbnail section for printers page
      */
     renderJobThumbnail(printer) {
-        // Check if we have thumbnail data for the current job
-        if (!printer.current_job_file_id || !printer.current_job_has_thumbnail) {
+        // Check if we have current job file data
+        if (!printer.current_job_file_id) {
             return '';
         }
+
+        // Determine thumbnail source
+        const thumbnailSrc = printer.current_job_has_thumbnail
+            ? `/api/v1/files/${printer.current_job_file_id}/thumbnail`
+            : 'assets/placeholder-thumbnail.svg';
 
         return `
             <div class="info-item">
                 <label>Vorschau:</label>
                 <div class="job-thumbnail-info">
-                    <img src="/api/v1/files/${printer.current_job_file_id}/thumbnail"
-                         alt="Job Thumbnail"
-                         class="thumbnail-image-small"
+                    <img src="${thumbnailSrc}"
+                         alt="${printer.current_job_has_thumbnail ? 'Job Thumbnail' : 'Keine Vorschau verfügbar'}"
+                         class="thumbnail-image-small ${!printer.current_job_has_thumbnail ? 'placeholder-image' : ''}"
                          data-file-id="${printer.current_job_file_id}"
                          loading="lazy"
                          onclick="showFullThumbnail('${printer.current_job_file_id}', '${escapeHtml(printer.current_job || 'Current Job')}')"
-                         onerror="this.parentElement.innerHTML='<span class=\\'text-muted\\'>Keine Vorschau verfügbar</span>'">
+                         ${printer.current_job_has_thumbnail ? "onerror=\"this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');\"" : ''}>
                 </div>
             </div>
         `;

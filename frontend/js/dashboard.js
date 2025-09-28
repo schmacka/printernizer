@@ -368,20 +368,19 @@ class Dashboard {
                         <img src="/api/files/${fileId}/thumbnail"
                              alt="Print Preview"
                              class="job-thumbnail-image"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                             onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
                              loading="lazy">
-                        <div class="job-thumbnail-fallback" style="display: none">
-                            <span class="file-type-icon">${this.getJobFileTypeIcon(job)}</span>
-                        </div>
                     </div>
                 `;
             }
         }
 
-        // Fallback to file type icon
+        // Show placeholder for jobs without thumbnails
         return `
             <div class="job-preview-thumbnail fallback">
-                <span class="file-type-icon">${this.getJobFileTypeIcon(job)}</span>
+                <img src="assets/placeholder-thumbnail.svg"
+                     alt="Keine Vorschau verfügbar"
+                     class="job-thumbnail-image placeholder-image">
             </div>
         `;
     }
@@ -512,14 +511,11 @@ class Dashboard {
                     `<img src="/api/files/${file.id}/thumbnail"
                          alt="File Preview"
                          class="printed-file-thumbnail-image"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
-                         loading="lazy">
-                     <div class="printed-file-thumbnail-fallback" style="display: none">
-                         <span class="file-type-icon">${fileTypeIcon}</span>
-                     </div>` :
-                    `<div class="printed-file-thumbnail-fallback">
-                         <span class="file-type-icon">${fileTypeIcon}</span>
-                     </div>`
+                         onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
+                         loading="lazy">` :
+                    `<img src="assets/placeholder-thumbnail.svg"
+                         alt="Keine Vorschau verfügbar"
+                         class="printed-file-thumbnail-image placeholder-image">`
                 }
             </div>
             <div class="printed-file-info">

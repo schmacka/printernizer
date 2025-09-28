@@ -222,19 +222,25 @@ class PrinterCard {
      * Render job thumbnail section
      */
     renderJobThumbnail() {
-        // Check if we have thumbnail data for the current job
-        if (!this.printer.current_job_file_id || !this.printer.current_job_has_thumbnail) {
+        // Check if we have current job file data
+        if (!this.printer.current_job_file_id) {
             return '';
         }
 
+        // Determine thumbnail source
+        const thumbnailSrc = this.printer.current_job_has_thumbnail
+            ? `/api/v1/files/${this.printer.current_job_file_id}/thumbnail`
+            : 'assets/placeholder-thumbnail.svg';
+
         return `
             <div class="job-thumbnail">
-                <img src="/api/v1/files/${this.printer.current_job_file_id}/thumbnail"
-                     alt="Job Thumbnail"
-                     class="thumbnail-image"
+                <img src="${thumbnailSrc}"
+                     alt="${this.printer.current_job_has_thumbnail ? 'Job Thumbnail' : 'Keine Vorschau verfügbar'}"
+                     class="thumbnail-image ${!this.printer.current_job_has_thumbnail ? 'placeholder-image' : ''}"
                      data-file-id="${this.printer.current_job_file_id}"
                      loading="lazy"
-                     onclick="showFullThumbnail('${this.printer.current_job_file_id}', '${escapeHtml(this.printer.current_job || 'Current Job')}')">
+                     onclick="showFullThumbnail('${this.printer.current_job_file_id}', '${escapeHtml(this.printer.current_job || 'Current Job')}')"
+                     ${this.printer.current_job_has_thumbnail ? "onerror=\"this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');\"" : ''}>
                 <div class="thumbnail-overlay">
                     <i class="fas fa-expand"></i>
                 </div>
@@ -776,7 +782,7 @@ class FileListItem {
                     <img src="/api/files/${this.file.id}/thumbnail"
                          alt="Thumbnail for ${escapeHtml(this.file.filename)}"
                          class="thumbnail-image"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+                         onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');"
                          loading="lazy">
                     <div class="file-icon fallback-icon" style="display: none">${this.getFileIcon()}</div>
                     <div class="thumbnail-overlay">
@@ -807,7 +813,7 @@ class FileListItem {
                     <img src="/api/files/${fileId}/thumbnail"
                          alt="Full size thumbnail"
                          class="full-thumbnail-image"
-                         onerror="this.nextElementSibling.style.display='block'; this.style.display='none'">
+                         onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');">
                     <div class="thumbnail-error" style="display: none">
                         <p>Unable to load thumbnail</p>
                     </div>

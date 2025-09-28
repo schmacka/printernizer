@@ -652,14 +652,15 @@ class FileManager {
         
         const thumbnailSection = thumbnailUrl ? `
             <div class="preview-thumbnail">
-                <img src="${thumbnailUrl}" alt="3D Preview" class="thumbnail-image" />
+                <img src="${thumbnailUrl}" alt="3D Preview" class="thumbnail-image"
+                     onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');" />
                 <div class="thumbnail-overlay">
                     <span class="thumbnail-format">3D Vorschau</span>
                 </div>
             </div>
         ` : `
             <div class="preview-placeholder">
-                <div class="preview-icon">${fileItem.getFileIcon()}</div>
+                <img src="assets/placeholder-thumbnail.svg" alt="Keine Vorschau verfügbar" class="placeholder-image" style="max-width: 200px; max-height: 200px;" />
                 <p>Keine Vorschau verfügbar</p>
             </div>
         `;
