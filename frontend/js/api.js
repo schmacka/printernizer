@@ -200,6 +200,27 @@ class ApiClient {
         return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_CURRENT_JOB(printerId));
     }
 
+    async downloadPrinterFile(printerId, filename) {
+        return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_FILE(printerId), { filename });
+    }
+
+    async getPrinterFiles(printerId) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_FILES(printerId));
+    }
+
+    // Thumbnail Processing Endpoints
+    async extractFileThumbnail(fileId) {
+        return this.post(CONFIG.ENDPOINTS.FILE_EXTRACT_THUMBNAIL(fileId));
+    }
+
+    async generateFileThumbnail(fileId) {
+        return this.post(CONFIG.ENDPOINTS.FILE_GENERATE_THUMBNAIL(fileId));
+    }
+
+    async analyzeGcodeThumbnail(fileId) {
+        return this.post(CONFIG.ENDPOINTS.FILE_ANALYZE_GCODE(fileId));
+    }
+
     // Job Endpoints
     async getJobs(filters = {}) {
         return this.get(CONFIG.ENDPOINTS.JOBS, {
