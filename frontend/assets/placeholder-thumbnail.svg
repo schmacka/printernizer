@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#f3f4f6"/>
+  <g transform="translate(100, 100)">
+    <!-- 3D Printer Icon -->
+    <g transform="translate(-30, -25)">
+      <!-- Base -->
+      <rect x="0" y="35" width="60" height="8" fill="#6b7280" rx="2"/>
+      <!-- Vertical Posts -->
+      <rect x="2" y="5" width="4" height="35" fill="#6b7280"/>
+      <rect x="54" y="5" width="4" height="35" fill="#6b7280"/>
+      <!-- Top Bar -->
+      <rect x="0" y="5" width="60" height="4" fill="#6b7280" rx="2"/>
+      <!-- Print Head -->
+      <rect x="20" y="15" width="20" height="8" fill="#374151" rx="2"/>
+      <!-- Print Bed -->
+      <rect x="8" y="30" width="44" height="2" fill="#9ca3af"/>
+      <!-- Layer being printed -->
+      <rect x="25" y="28" width="10" height="2" fill="#3b82f6"/>
+    </g>
+    <!-- Text -->
+    <text x="0" y="35" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#6b7280">
+      Keine Vorschau
+    </text>
+    <text x="0" y="50" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9ca3af">
+      verfügbar
+    </text>
+  </g>
+</svg>
