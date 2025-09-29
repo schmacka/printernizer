@@ -1265,27 +1265,41 @@ class BambuLabPrinter(BasePrinter):
 
             # Try multiple possible paths for the file
             possible_paths = [
+                f"cache/{filename}",  # Cache directory (most common)
                 filename,  # Direct filename
-                f"cache/{filename}",  # Cache directory
                 f"model/{filename}",  # Model directory
                 f"timelapse/{filename}",  # Timelapse directory
             ]
 
             for remote_path in possible_paths:
                 try:
-                    # Try to download the file
-                    success, file_data = ftp.download_file(remote_path)
-                    if success and file_data:
-                        # Write file data to local path
-                        with open(local_path, 'wb') as f:
-                            f.write(file_data)
+                    logger.debug("Attempting FTP download",
+                                printer_id=self.printer_id,
+                                remote_path=remote_path)
+                    
+                    # FIXED: Use correct bambulabs-api FTP method
+                    # download_file() returns BytesIO object, not (success, data) tuple
+                    file_data_io = ftp.download_file(remote_path)
+                    
+                    if file_data_io:
+                        # Get the actual bytes from BytesIO
+                        file_data = file_data_io.getvalue()
+                        
+                        if file_data and len(file_data) > 0:
+                            # Write file data to local path
+                            with open(local_path, 'wb') as f:
+                                f.write(file_data)
 
-                        logger.info("FTP download successful",
-                                   printer_id=self.printer_id,
-                                   filename=filename,
-                                   remote_path=remote_path,
-                                   size=len(file_data))
-                        return True
+                            logger.info("FTP download successful",
+                                       printer_id=self.printer_id,
+                                       filename=filename,
+                                       remote_path=remote_path,
+                                       size=len(file_data))
+                            return True
+                        else:
+                            logger.debug("FTP download returned empty data",
+                                        printer_id=self.printer_id,
+                                        remote_path=remote_path)
 
                 except Exception as e:
                     logger.debug("FTP download failed for path",
