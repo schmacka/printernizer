@@ -11,6 +11,7 @@ import structlog
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
+from src.services.bambu_ftp_service import BambuFTPService, BambuFTPFile
 
 # Import bambulabs_api dependencies
 try:
@@ -55,6 +56,10 @@ class BambuLabPrinter(BasePrinter):
         self.serial_number = serial_number
         self.file_service = file_service
 
+        # Direct FTP service for file operations
+        self.ftp_service: Optional[BambuFTPService] = None
+        self.use_direct_ftp = True  # Flag to enable direct FTP
+
         # Initialize appropriate client
         if self.use_bambu_api:
             self.bambu_client: Optional[BambuClient] = None
@@ -97,6 +102,24 @@ class BambuLabPrinter(BasePrinter):
             return True
 
         try:
+            # Initialize direct FTP service if enabled
+            if self.use_direct_ftp:
+                try:
+                    self.ftp_service = BambuFTPService(self.ip_address, self.access_code)
+                    # Test FTP connection
+                    success, message = await self.ftp_service.test_connection()
+                    if success:
+                        logger.info("Direct FTP service initialized successfully",
+                                   printer_id=self.printer_id, message=message)
+                    else:
+                        logger.warning("Direct FTP test failed, will use fallback",
+                                     printer_id=self.printer_id, message=message)
+                        self.ftp_service = None
+                except Exception as e:
+                    logger.warning("Failed to initialize direct FTP service",
+                                 printer_id=self.printer_id, error=str(e))
+                    self.ftp_service = None
+
             if self.use_bambu_api:
                 return await self._connect_bambu_api()
             else:
@@ -232,6 +255,9 @@ class BambuLabPrinter(BasePrinter):
         except Exception as e:
             logger.error("Error disconnecting from Bambu Lab printer",
                         printer_id=self.printer_id, error=str(e))
+
+        # Clean up FTP service
+        self.ftp_service = None
             
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Bambu Lab."""
@@ -817,7 +843,10 @@ class BambuLabPrinter(BasePrinter):
             raise PrinterConnectionError(self.printer_id, "Not connected")
 
         try:
-            if self.use_bambu_api:
+            # Try direct FTP first if available
+            if self.ftp_service:
+                return await self._list_files_direct_ftp()
+            elif self.use_bambu_api:
                 return await self._list_files_bambu_api()
             else:
                 return await self._list_files_mqtt()
@@ -1182,6 +1211,71 @@ class BambuLabPrinter(BasePrinter):
         
         return files
 
+    async def _list_files_direct_ftp(self) -> List[PrinterFile]:
+        """List files using direct FTP connection."""
+        if not self.ftp_service:
+            raise PrinterConnectionError(self.printer_id, "Direct FTP service not available")
+
+        logger.info("Listing files via direct FTP",
+                   printer_id=self.printer_id)
+
+        try:
+            # Get files from cache directory (primary location for 3D files)
+            ftp_files = await self.ftp_service.list_files("/cache")
+
+            # Convert BambuFTPFile objects to PrinterFile objects
+            printer_files = []
+            for ftp_file in ftp_files:
+                printer_file = PrinterFile(
+                    filename=ftp_file.name,
+                    size=ftp_file.size,
+                    path=f"cache/{ftp_file.name}",
+                    modified=ftp_file.modified,
+                    file_type=ftp_file.file_type
+                )
+                printer_files.append(printer_file)
+
+            logger.info("Direct FTP file listing successful",
+                       printer_id=self.printer_id,
+                       file_count=len(printer_files))
+
+            return printer_files
+
+        except Exception as e:
+            logger.error("Direct FTP file listing failed",
+                        printer_id=self.printer_id, error=str(e))
+            raise
+
+    async def _download_file_direct_ftp(self, filename: str, local_path: str) -> bool:
+        """Download file using direct FTP connection."""
+        if not self.ftp_service:
+            logger.warning("Direct FTP service not available, falling back to bambulabs-api",
+                          printer_id=self.printer_id)
+            return await self._download_file_bambu_api(filename, local_path)
+
+        logger.info("Downloading file via direct FTP",
+                   printer_id=self.printer_id, filename=filename, local_path=local_path)
+
+        try:
+            # Try to download from cache directory first
+            success = await self.ftp_service.download_file(filename, local_path, "/cache")
+
+            if success:
+                logger.info("Direct FTP download successful",
+                           printer_id=self.printer_id, filename=filename)
+                return True
+            else:
+                logger.warning("Direct FTP download failed, trying bambulabs-api fallback",
+                             printer_id=self.printer_id, filename=filename)
+                # Fallback to original method
+                return await self._download_file_bambu_api(filename, local_path)
+
+        except Exception as e:
+            logger.error("Direct FTP download error, trying bambulabs-api fallback",
+                        printer_id=self.printer_id, filename=filename, error=str(e))
+            # Fallback to original method
+            return await self._download_file_bambu_api(filename, local_path)
+
     def _get_file_type_from_name(self, filename: str) -> str:
         """Extract file type from filename extension."""
         from pathlib import Path
@@ -1202,7 +1296,10 @@ class BambuLabPrinter(BasePrinter):
             raise PrinterConnectionError(self.printer_id, "Not connected")
 
         try:
-            if self.use_bambu_api:
+            # Try direct FTP first if available
+            if self.ftp_service:
+                return await self._download_file_direct_ftp(filename, local_path)
+            elif self.use_bambu_api:
                 return await self._download_file_bambu_api(filename, local_path)
             else:
                 return await self._download_file_mqtt(filename, local_path)
@@ -1213,24 +1310,50 @@ class BambuLabPrinter(BasePrinter):
             return False
 
     async def _download_file_bambu_api(self, filename: str, local_path: str) -> bool:
-        """Download file using bambulabs_api or HTTP fallback."""
+        """Download file using bambulabs_api with corrected implementation."""
         if not self.bambu_client:
             raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
 
-        logger.info("Downloading file from Bambu Lab printer via API",
+        logger.info("Downloading file from Bambu Lab printer via bambulabs-api",
                    printer_id=self.printer_id, filename=filename, local_path=local_path)
 
-        # Method 1: Try bambulabs_api FTP client if available
+        # Method 1: Use bambulabs_api FTP client directly (this works!)
         if hasattr(self.bambu_client, 'ftp_client') and self.bambu_client.ftp_client:
             try:
-                success = await self._download_via_ftp(filename, local_path)
-                if success:
-                    logger.info("Successfully downloaded file via FTP",
-                               printer_id=self.printer_id, filename=filename)
-                    return True
+                # Use the working bambulabs-api approach
+                from pathlib import Path
+
+                # Ensure local directory exists
+                Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+
+                logger.debug("Attempting bambulabs-api FTP download",
+                           printer_id=self.printer_id, filename=filename)
+
+                # Download using the correct bambulabs-api method
+                file_data_io = self.bambu_client.ftp_client.download_file(f"cache/{filename}")
+
+                if file_data_io:
+                    file_data = file_data_io.getvalue()
+                    if file_data and len(file_data) > 0:
+                        # Write file data to local path
+                        with open(local_path, 'wb') as f:
+                            f.write(file_data)
+
+                        logger.info("bambulabs-api FTP download successful",
+                                   printer_id=self.printer_id,
+                                   filename=filename,
+                                   size=len(file_data))
+                        return True
+                    else:
+                        logger.debug("bambulabs-api FTP returned empty data",
+                                    printer_id=self.printer_id, filename=filename)
+                else:
+                    logger.debug("bambulabs-api FTP returned None",
+                                printer_id=self.printer_id, filename=filename)
+
             except Exception as e:
-                logger.debug("FTP download failed, trying HTTP fallback",
-                            printer_id=self.printer_id, error=str(e))
+                logger.debug("bambulabs-api FTP download failed, trying HTTP fallback",
+                            printer_id=self.printer_id, filename=filename, error=str(e))
 
         # Method 2: HTTP fallback download
         try:
@@ -1307,6 +1430,111 @@ class BambuLabPrinter(BasePrinter):
                                 remote_path=remote_path,
                                 error=str(e))
                     continue
+
+            # Enhanced: attempt directory scanning & fuzzy / case-insensitive matching
+            try:
+                logger.debug("Attempting enhanced FTP search", printer_id=self.printer_id, filename=filename)
+
+                # Helper to list a directory robustly
+                def _safe_list(dir_path: str):
+                    methods = [
+                        'list_dir', 'listdir', 'listfiles', 'list_files'
+                    ]
+                    for m in methods:
+                        if hasattr(ftp, m):
+                            try:
+                                return getattr(ftp, m)(dir_path)
+                            except Exception:
+                                continue
+                    return []
+
+                # Candidate directories to scan
+                scan_dirs = ['', 'cache', 'model', 'timelapse', 'sdcard', 'usb', 'USB', 'gcodes']
+                target_lower = filename.lower()
+                discovered = []  # (dir, name)
+
+                for d in scan_dirs:
+                    try:
+                        entries = _safe_list(d) if d != '' else _safe_list('.')
+                        if not entries:
+                            continue
+                        # Normalize entry names depending on structure (str or dict)
+                        for entry in entries:
+                            if isinstance(entry, dict):
+                                name = entry.get('name') or entry.get('filename') or ''
+                                path_component = entry.get('path') or name
+                            else:
+                                name = str(entry)
+                                path_component = name
+                            if not name:
+                                continue
+                            discovered.append((d, name, path_component))
+                    except Exception as e:
+                        logger.debug("Directory scan failed", printer_id=self.printer_id, directory=d, error=str(e))
+                        continue
+
+                # First try exact case-insensitive match
+                exact_match = next((item for item in discovered if item[1].lower() == target_lower), None)
+                if exact_match:
+                    dir_part, name_part, path_component = exact_match
+                    remote_path = f"{dir_part}/{name_part}" if dir_part and not path_component.startswith(dir_part) else path_component
+                    try:
+                        logger.debug("Attempting FTP download (enhanced exact match)", printer_id=self.printer_id, remote_path=remote_path)
+                        file_data_io = ftp.download_file(remote_path)
+                        if file_data_io:
+                            data = file_data_io.getvalue()
+                            if data:
+                                with open(local_path, 'wb') as f:
+                                    f.write(data)
+                                logger.info("FTP download successful (enhanced exact match)", printer_id=self.printer_id, filename=filename, remote_path=remote_path, size=len(data))
+                                return True
+                    except Exception as e:
+                        logger.debug("Enhanced exact match download failed", printer_id=self.printer_id, remote_path=remote_path, error=str(e))
+
+                # Fuzzy: allow substring match without extension differences
+                base_no_ext = target_lower.rsplit('.', 1)[0]
+                fuzzy_candidates = []
+                for d, name, path_component in discovered:
+                    n_lower = name.lower()
+                    if base_no_ext in n_lower:
+                        fuzzy_candidates.append((d, name, path_component))
+
+                # If multiple, prefer those with same extension or .3mf/.gcode
+                if fuzzy_candidates:
+                    def rank(item):
+                        _, name, _ = item
+                        n_lower = name.lower()
+                        score = 0
+                        if n_lower.endswith('.3mf'): score += 3
+                        if n_lower.endswith('.gcode'): score += 2
+                        if n_lower.startswith(base_no_ext): score += 1
+                        if base_no_ext in n_lower: score += 0.5
+                        return -score  # smallest first
+                    fuzzy_candidates.sort(key=rank)
+                    best = fuzzy_candidates[0]
+                    dir_part, name_part, path_component = best
+                    remote_path = f"{dir_part}/{name_part}" if dir_part and not path_component.startswith(dir_part) else path_component
+                    try:
+                        logger.debug("Attempting FTP download (enhanced fuzzy)", printer_id=self.printer_id, remote_path=remote_path)
+                        file_data_io = ftp.download_file(remote_path)
+                        if file_data_io:
+                            data = file_data_io.getvalue()
+                            if data:
+                                with open(local_path, 'wb') as f:
+                                    f.write(data)
+                                logger.info("FTP download successful (enhanced fuzzy)", printer_id=self.printer_id, requested=filename, matched=name_part, remote_path=remote_path, size=len(data))
+                                return True
+                    except Exception as e:
+                        logger.debug("Enhanced fuzzy download failed", printer_id=self.printer_id, remote_path=remote_path, error=str(e))
+
+                # Provide diagnostic suggestions
+                if discovered:
+                    similar = [name for _, name, _ in discovered if target_lower.split('.')[0] in name.lower()][:10]
+                    logger.warning("File not found via FTP after enhanced search", printer_id=self.printer_id, filename=filename, similar=similar, scanned_dirs=scan_dirs)
+                else:
+                    logger.warning("No files discovered during enhanced FTP search (empty listings)", printer_id=self.printer_id, filename=filename)
+            except Exception as e:
+                logger.debug("Enhanced FTP search failed", printer_id=self.printer_id, filename=filename, error=str(e))
 
             logger.warning("File not found via FTP in any expected path",
                           printer_id=self.printer_id, filename=filename)
