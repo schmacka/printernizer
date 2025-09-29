@@ -28,6 +28,7 @@ sys.path.insert(0, str(project_root))
 
 try:
     from printers.bambu_lab import BambuLabPrinter
+    from services.bambu_ftp_service import BambuFTPService
     IMPORTS_OK = True
 except ImportError as e:
     print(f"❌ Import error: {e}")
@@ -35,7 +36,7 @@ except ImportError as e:
     IMPORTS_OK = False
 
 
-async def verify_download(ip_address: str, access_code: str, serial_number: str):
+async def verify_download(ip_address: str, access_code: str, serial_number: str, target_file: str | None = None):
     """Verify download functionality with real printer."""
     print("🖨️ Bambu Lab Download Verification")
     print("=" * 40)
@@ -68,6 +69,22 @@ async def verify_download(ip_address: str, access_code: str, serial_number: str)
         
         print("✅ Connected successfully")
         
+        # Step 1.5: Test direct FTP service (new implementation)
+        print("🔧 Testing direct FTP service...")
+        try:
+            ftp_service = BambuFTPService(ip_address, access_code)
+            ftp_success, ftp_message = await ftp_service.test_connection()
+            if ftp_success:
+                print(f"✅ Direct FTP service: {ftp_message}")
+
+                # Test file listing via direct FTP
+                ftp_files = await ftp_service.list_files("/cache")
+                print(f"✅ Direct FTP found {len(ftp_files)} files in /cache")
+            else:
+                print(f"⚠️ Direct FTP failed: {ftp_message}")
+        except Exception as e:
+            print(f"⚠️ Direct FTP service error: {e}")
+
         # Step 2: Get printer status
         print("📊 Checking printer status...")
         try:
@@ -99,11 +116,27 @@ async def verify_download(ip_address: str, access_code: str, serial_number: str)
             print(f"⚠️ File listing failed: {e}")
             files = []
         
-        # Step 4: Test download if files are available
-        if files:
+        # Step 4: Select file
+        filename = None
+        if target_file:
+            # Attempt to find exact or fuzzy match
+            target_lower = target_file.lower()
+            exact = next((f for f in files if getattr(f, 'filename', str(f)).lower() == target_lower), None)
+            if exact:
+                filename = getattr(exact, 'filename', str(exact))
+            else:
+                fuzzy = [f for f in files if target_lower.split('.')[0] in getattr(f, 'filename', str(f)).lower()]
+                if fuzzy:
+                    filename = getattr(fuzzy[0], 'filename', str(fuzzy[0]))
+                    print(f"🔍 Requested file not exact; using closest match: {filename}")
+                else:
+                    print(f"❌ Target file not found in listing: {target_file}")
+        if not filename and files:
             test_file = files[0]
             filename = getattr(test_file, 'filename', str(test_file))
             
+        # Step 5: Test download if a file was selected
+        if filename:
             print(f"⬇️ Testing download of: {filename}")
             
             with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{filename}") as temp_file:
@@ -155,6 +188,7 @@ def main():
     parser.add_argument("--ip", help="Printer IP address", default=os.getenv("BAMBU_IP"))
     parser.add_argument("--code", help="Access code", default=os.getenv("BAMBU_ACCESS_CODE"))  
     parser.add_argument("--serial", help="Printer serial number", default=os.getenv("BAMBU_SERIAL"))
+    parser.add_argument("--file", help="Specific filename to attempt (e.g., top-option-2-color-change_plate_1.3mf)")
     
     args = parser.parse_args()
     
@@ -172,19 +206,19 @@ def main():
         return 1
     
     try:
-        result = asyncio.run(verify_download(args.ip, args.code, args.serial))
-        
+        result = asyncio.run(verify_download(args.ip, args.code, args.serial, args.file))
+
         print("\n" + "=" * 40)
         if result:
             print("🎉 VERIFICATION SUCCESSFUL")
             print("   Bambu Lab file download is working!")
         else:
-            print("❌ VERIFICATION FAILED") 
+            print("❌ VERIFICATION FAILED")
             print("   Check printer connection and configuration")
         print("=" * 40)
-        
+
         return 0 if result else 1
-        
+
     except KeyboardInterrupt:
         print("\n⏹️ Verification cancelled by user")
         return 1

@@ -150,8 +150,25 @@ async def download_file(
 ):
     """Download a file from printer to local storage."""
     try:
-        success = await file_service.download_file(file_id)
-        if not success:
+        # Parse file_id to extract printer_id and filename
+        # file_id format: "{printer_id}_{filename}"
+        if "_" not in file_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid file_id format"
+            )
+
+        # Split on the first underscore to separate printer_id from filename
+        parts = file_id.split("_", 1)
+        printer_id = parts[0]
+        filename = parts[1]
+
+        logger.info("Downloading file",
+                   file_id=file_id, printer_id=printer_id, filename=filename)
+
+        result = await file_service.download_file(printer_id, filename)
+
+        if not result.get('success', False):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to download file"
