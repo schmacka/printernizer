@@ -4,6 +4,7 @@ SQLite database with async support for job tracking and printer management.
 """
 import asyncio
 import aiosqlite
+import json
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -581,14 +582,14 @@ class Database:
             logger.error("Failed to create file", error=str(e))
             return False
     
-    async def list_files(self, printer_id: Optional[str] = None, status: Optional[str] = None, 
+    async def list_files(self, printer_id: Optional[str] = None, status: Optional[str] = None,
                         source: Optional[str] = None) -> List[Dict[str, Any]]:
         """List files with optional filtering."""
         try:
             query = "SELECT * FROM files"
             params = []
             conditions = []
-            
+
             if printer_id:
                 conditions.append("printer_id = ?")
                 params.append(printer_id)
@@ -598,15 +599,26 @@ class Database:
             if source:
                 conditions.append("source = ?")
                 params.append(source)
-                
+
             if conditions:
                 query += " WHERE " + " AND ".join(conditions)
-            
+
             query += " ORDER BY created_at DESC"
-            
+
             async with self._connection.execute(query, params) as cursor:
                 rows = await cursor.fetchall()
-                return [dict(row) for row in rows]
+                files = []
+                for row in rows:
+                    file_data = dict(row)
+                    # Deserialize JSON metadata back to dict
+                    if file_data.get('metadata') and isinstance(file_data['metadata'], str):
+                        try:
+                            file_data['metadata'] = json.loads(file_data['metadata'])
+                        except (json.JSONDecodeError, TypeError):
+                            # If deserialization fails, set to empty dict
+                            file_data['metadata'] = {}
+                    files.append(file_data)
+                return files
         except Exception as e:
             logger.error("Failed to list files", error=str(e))
             return []
@@ -617,9 +629,13 @@ class Database:
             # Build dynamic update query
             set_clauses = []
             params = []
-            
+
             for field, value in updates.items():
                 if field not in ['id', 'printer_id', 'filename', 'created_at']:  # Protect immutable fields
+                    # Handle special types that need JSON serialization
+                    if field == 'metadata' and isinstance(value, dict):
+                        value = json.dumps(value)
+
                     set_clauses.append(f"{field} = ?")
                     params.append(value)
             
