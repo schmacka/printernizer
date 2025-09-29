@@ -150,13 +150,45 @@ async def download_file(
 ):
     """Download a file from printer to local storage."""
     try:
-        success = await file_service.download_file(file_id)
-        if not success:
+        # Parse file_id to extract printer_id and filename
+        # Format: "printer_id_filename"
+        if '_' not in file_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to download file"
+                detail="Invalid file_id format"
             )
-        return {"status": "downloaded"}
+
+        # Split on first underscore to separate printer_id from filename
+        # Handle case where filename itself contains underscores
+        parts = file_id.split('_', 1)
+        if len(parts) != 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid file_id format - expected printer_id_filename"
+            )
+
+        printer_id, filename = parts
+        logger.info("Downloading file",
+                   file_id=file_id,
+                   printer_id=printer_id,
+                   filename=filename)
+
+        # Call file service with correct parameters
+        result = await file_service.download_file(printer_id, filename)
+
+        if not result or result.get("status") != "success":
+            error_message = result.get("message", "Failed to download file") if result else "Failed to download file"
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message
+            )
+
+        return {
+            "status": "downloaded",
+            "local_path": result.get("local_path"),
+            "file_size": result.get("file_size"),
+            "message": result.get("message", "File downloaded successfully")
+        }
     except HTTPException:
         raise
     except Exception as e:
