@@ -1298,32 +1298,118 @@ class BambuLabPrinter(BasePrinter):
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
 
+    def _normalize_filename(self, filename: str) -> tuple[str, str]:
+        """
+        Normalize filename for both FTPS and local storage.
+
+        Returns:
+            tuple: (ftps_filename, safe_local_filename)
+        """
+        import urllib.parse
+        import unicodedata
+        import re
+
+        # Original filename for FTPS (try as-is first)
+        ftps_filename = filename
+
+        # Create safe local filename
+        # 1. Normalize Unicode characters
+        safe_filename = unicodedata.normalize('NFC', filename)
+
+        # 2. Handle URL encoding/decoding attempts
+        try:
+            # Try URL decoding in case filename is URL-encoded
+            decoded = urllib.parse.unquote(safe_filename)
+            if decoded != safe_filename and len(decoded) > 0:
+                safe_filename = decoded
+        except Exception:
+            pass
+
+        # 3. Replace problematic characters for Windows/Linux compatibility
+        char_replacements = {
+            '<': '(',
+            '>': ')',
+            ':': '-',
+            '"': "'",
+            '|': '-',
+            '?': '',
+            '*': '-',
+            '/': '-',
+            '\\': '-',
+        }
+
+        for bad_char, replacement in char_replacements.items():
+            safe_filename = safe_filename.replace(bad_char, replacement)
+
+        # 4. Clean up multiple spaces/dashes and trim
+        safe_filename = re.sub(r'\s+', ' ', safe_filename)  # Multiple spaces -> single space
+        safe_filename = re.sub(r'-+', '-', safe_filename)   # Multiple dashes -> single dash
+        safe_filename = safe_filename.strip(' -._')         # Trim problematic edge characters
+
+        # 5. Ensure filename isn't empty or just extension
+        if not safe_filename or safe_filename.startswith('.'):
+            safe_filename = f"downloaded_file_{hash(filename) % 10000}{safe_filename}"
+
+        # 6. Limit length (Windows MAX_PATH considerations)
+        if len(safe_filename) > 200:
+            name_part, ext_part = safe_filename.rsplit('.', 1) if '.' in safe_filename else (safe_filename, '')
+            max_name_len = 200 - len(ext_part) - 1 if ext_part else 200
+            name_part = name_part[:max_name_len]
+            safe_filename = f"{name_part}.{ext_part}" if ext_part else name_part
+
+        logger.debug("Filename normalization",
+                   printer_id=self.printer_id,
+                   original=filename,
+                   ftps=ftps_filename,
+                   safe_local=safe_filename)
+
+        return ftps_filename, safe_filename
+
     async def _download_file_bambu_api(self, filename: str, local_path: str) -> bool:
         """Download file using direct FTPS connection to Bambu Lab printer."""
+        # Normalize filename for safe handling
+        ftps_filename, safe_local_filename = self._normalize_filename(filename)
+
+        # Update local path to use safe filename
+        from pathlib import Path
+        local_dir = Path(local_path).parent
+        safe_local_path = local_dir / safe_local_filename
+
         logger.info("Downloading file from Bambu Lab printer via FTPS",
-                   printer_id=self.printer_id, filename=filename, local_path=local_path)
+                   printer_id=self.printer_id,
+                   original_filename=filename,
+                   ftps_filename=ftps_filename,
+                   safe_local_path=str(safe_local_path))
 
         # Method 1: Try direct FTPS connection (primary method)
         try:
-            success = await self._download_via_ftps(filename, local_path)
+            success = await self._download_via_ftps(ftps_filename, str(safe_local_path))
             if success:
                 logger.info("Successfully downloaded file via FTPS",
-                           printer_id=self.printer_id, filename=filename)
+                           printer_id=self.printer_id,
+                           filename=filename,
+                           local_path=str(safe_local_path))
                 return True
         except Exception as e:
             logger.debug("FTPS download failed, trying HTTP fallback",
                         printer_id=self.printer_id, error=str(e))
 
-        # Method 2: HTTP fallback download
-        try:
-            success = await self._download_via_http(filename, local_path)
-            if success:
-                logger.info("Successfully downloaded file via HTTP",
-                           printer_id=self.printer_id, filename=filename)
-                return True
-        except Exception as e:
-            logger.warning("HTTP download also failed",
-                          printer_id=self.printer_id, filename=filename, error=str(e))
+        # Method 2: HTTP fallback download (with both filename variants)
+        for attempt_filename in [ftps_filename, filename]:
+            try:
+                success = await self._download_via_http(attempt_filename, str(safe_local_path))
+                if success:
+                    logger.info("Successfully downloaded file via HTTP",
+                               printer_id=self.printer_id,
+                               filename=attempt_filename,
+                               local_path=str(safe_local_path))
+                    return True
+            except Exception as e:
+                logger.debug("HTTP download failed for filename variant",
+                            printer_id=self.printer_id,
+                            filename=attempt_filename,
+                            error=str(e))
+                continue
 
         logger.warning("All download methods failed for file",
                       printer_id=self.printer_id, filename=filename)
@@ -1377,14 +1463,28 @@ class BambuLabPrinter(BasePrinter):
                     logger.debug("FTPS connection established successfully",
                                printer_id=self.printer_id)
 
-                    # Try multiple possible paths for the file
-                    possible_paths = [
-                        filename,  # Direct filename
-                        f"cache/{filename}",  # Cache directory (most common)
-                        f"model/{filename}",  # Model directory
-                        f"timelapse/{filename}",  # Timelapse directory
-                        f"gcode/{filename}",  # G-code directory
+                    # Try multiple possible paths and filename variants
+                    import urllib.parse
+
+                    # Generate filename variants to handle encoding issues
+                    filename_variants = [
+                        filename,  # Original filename
+                        urllib.parse.quote(filename),  # URL encoded
+                        urllib.parse.unquote(filename),  # URL decoded
                     ]
+
+                    # Remove duplicates while preserving order
+                    filename_variants = list(dict.fromkeys(filename_variants))
+
+                    possible_paths = []
+                    for variant in filename_variants:
+                        possible_paths.extend([
+                            variant,  # Direct filename
+                            f"cache/{variant}",  # Cache directory (most common)
+                            f"model/{variant}",  # Model directory
+                            f"timelapse/{variant}",  # Timelapse directory
+                            f"gcode/{variant}",  # G-code directory
+                        ])
 
                     file_downloaded = False
                     downloaded_size = 0
