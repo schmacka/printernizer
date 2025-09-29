@@ -866,14 +866,13 @@ class BambuLabPrinter(BasePrinter):
                     logger.debug("get_files API failed, trying FTP methods", 
                                 printer_id=self.printer_id, error=str(e))
 
-            # Method 2: Try FTP client methods if available
-            if hasattr(self.bambu_client, 'ftp_client'):
-                try:
-                    ftp_files = await self._discover_files_via_ftp()
-                    files.extend(ftp_files)
-                except Exception as e:
-                    logger.debug("FTP file discovery failed", 
-                                printer_id=self.printer_id, error=str(e))
+            # Method 2: Try direct FTPS file discovery
+            try:
+                ftps_files = await self._discover_files_via_ftps()
+                files.extend(ftps_files)
+            except Exception as e:
+                logger.debug("FTPS file discovery failed",
+                            printer_id=self.printer_id, error=str(e))
 
             # Method 3: Try to access the printer's file system via MQTT dump
             if len(files) == 0:
@@ -914,73 +913,160 @@ class BambuLabPrinter(BasePrinter):
         
         return files
 
-    async def _discover_files_via_ftp(self) -> List[PrinterFile]:
-        """Discover files using FTP client methods."""
+    async def _discover_files_via_ftps(self) -> List[PrinterFile]:
+        """Discover files using direct FTPS connection to Bambu Lab printer."""
         files = []
-        
-        if not hasattr(self.bambu_client, 'ftp_client'):
-            return files
-            
-        ftp = self.bambu_client.ftp_client
-        
+
         try:
-            # Check various FTP directories for files
-            # Note: The bambulabs_api FTP client mainly provides access to logs, images, etc.
-            # Actual 3D print files (3mf, gcode) are typically on SD card or internal storage
-            
-            # Try to get image files (could indicate recent prints)
-            if hasattr(ftp, 'list_images_dir'):
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+            import ftplib
+            import ssl
+            from datetime import datetime
+            import re
+
+            # Run FTPS operations in thread pool to avoid blocking
+            def _ftps_list_files():
+                ftps = None
+                discovered_files = []
+
                 try:
-                    result, image_files = ftp.list_images_dir()
-                    for img_file in image_files or []:
-                        if img_file.lower().endswith(('.jpg', '.png', '.jpeg')):
-                            # Extract potential model name from preview images
-                            model_name = img_file.replace('_preview.jpg', '').replace('_plate_1.jpg', '')
-                            if model_name and model_name != img_file:
-                                # This suggests there might be a corresponding 3mf file
-                                potential_file = f"{model_name}.3mf"
-                                files.append(PrinterFile(
-                                    filename=potential_file,
-                                    size=0,  # Size unknown from preview
-                                    path=f"inferred/{potential_file}",
-                                    modified=None,
-                                    file_type='3mf'
-                                ))
+                    # Create FTPS connection
+                    ftps = ftplib.FTP_TLS()
+                    ftps.set_debuglevel(0)
+
+                    # Configure SSL context
+                    context = ssl.create_default_context()
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
+                    ftps.ssl_version = ssl.PROTOCOL_TLS
+
+                    logger.debug("Connecting to FTPS for file discovery",
+                               printer_id=self.printer_id)
+
+                    # Connect and authenticate
+                    ftps.connect(self.ip_address, 990, timeout=30)
+                    ftps.login(user="bblp", passwd=self.access_code)
+                    ftps.prot_p()
+
+                    # Directories to check for files
+                    directories_to_check = [
+                        "/",           # Root directory
+                        "/cache",      # Cache directory (most common for files)
+                        "/model",      # Model directory
+                        "/gcode",      # G-code directory
+                        "/timelapse",  # Timelapse directory
+                    ]
+
+                    for directory in directories_to_check:
+                        try:
+                            logger.debug("Scanning directory",
+                                       printer_id=self.printer_id, directory=directory)
+
+                            # Get directory listing
+                            listing = []
+                            try:
+                                ftps.cwd(directory)
+                                ftps.retrlines('LIST', listing.append)
+                            except ftplib.error_perm as e:
+                                if "550" in str(e):  # Directory not found
+                                    logger.debug("Directory not accessible",
+                                               printer_id=self.printer_id,
+                                               directory=directory)
+                                    continue
+                                else:
+                                    raise
+
+                            # Parse FTP listing
+                            for line in listing:
+                                try:
+                                    # Parse standard FTP LIST format:
+                                    # "-rw-rw-rw-   1 root  root    445349 Apr 22 01:10 filename.ext"
+                                    # "drwxrwxrwx   1 root  root         0 Apr 22 01:10 dirname"
+
+                                    parts = line.strip().split()
+                                    if len(parts) >= 9:
+                                        # Check if it's a file (starts with '-')
+                                        if parts[0].startswith('-'):
+                                            # Extract filename (handle spaces in filenames)
+                                            filename = ' '.join(parts[8:])
+                                            file_size = int(parts[4]) if parts[4].isdigit() else 0
+
+                                            # Try to parse date (basic parsing)
+                                            try:
+                                                # Format: "Apr 22 01:10" or "Apr 22  2023"
+                                                month_day_time = ' '.join(parts[5:8])
+                                                # For now, just use current year for simplicity
+                                                modified_time = datetime.now()
+                                            except:
+                                                modified_time = None
+
+                                            # Check if it's a file type we're interested in
+                                            file_extensions = ['.3mf', '.gcode', '.bgcode', '.stl', '.obj']
+                                            if any(filename.lower().endswith(ext) for ext in file_extensions):
+                                                file_path = f"{directory.strip('/')}/{filename}" if directory != "/" else filename
+
+                                                discovered_files.append(PrinterFile(
+                                                    filename=filename,
+                                                    size=file_size,
+                                                    path=file_path,
+                                                    modified=modified_time,
+                                                    file_type=self._get_file_type_from_name(filename)
+                                                ))
+
+                                                logger.debug("Found file via FTPS",
+                                                           printer_id=self.printer_id,
+                                                           filename=filename,
+                                                           directory=directory,
+                                                           size=file_size)
+
+                                except Exception as e:
+                                    logger.debug("Failed to parse FTP listing line",
+                                               printer_id=self.printer_id,
+                                               line=line, error=str(e))
+                                    continue
+
+                        except Exception as e:
+                            logger.debug("Failed to scan directory",
+                                       printer_id=self.printer_id,
+                                       directory=directory, error=str(e))
+                            continue
+
+                    logger.info("FTPS file discovery completed",
+                              printer_id=self.printer_id,
+                              file_count=len(discovered_files))
+
+                    return discovered_files
+
+                except ftplib.all_errors as e:
+                    logger.debug("FTPS file discovery connection error",
+                               printer_id=self.printer_id, error=str(e))
+                    return []
                 except Exception as e:
-                    logger.debug("Failed to list image directory", error=str(e))
-            
-            # Try cache directory (might contain temporary files)
-            if hasattr(ftp, 'list_cache_dir'):
-                try:
-                    result, cache_files = ftp.list_cache_dir()
-                    for cache_file in cache_files or []:
-                        # Parse FTP listing line to extract just the filename
-                        # Format: "-rw-rw-rw-   1 root  root    445349 Apr 22 01:10 filename.ext"
-                        if isinstance(cache_file, str):
-                            # Split on whitespace and take the last part as filename
-                            parts = cache_file.strip().split()
-                            if len(parts) >= 9:  # Standard FTP ls -l format
-                                filename = ' '.join(parts[8:])  # filename might contain spaces
-                            else:
-                                filename = parts[-1] if parts else cache_file
-                        else:
-                            filename = str(cache_file)
-                        
-                        if any(filename.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']):
-                            files.append(PrinterFile(
-                                filename=filename,
-                                size=0,  # Size unknown
-                                path=f"cache/{filename}",
-                                modified=None,
-                                file_type=self._get_file_type_from_name(filename)
-                            ))
-                except Exception as e:
-                    logger.debug("Failed to list cache directory", error=str(e))
-                    
+                    logger.debug("FTPS file discovery error",
+                               printer_id=self.printer_id, error=str(e))
+                    return []
+                finally:
+                    if ftps:
+                        try:
+                            ftps.quit()
+                        except:
+                            try:
+                                ftps.close()
+                            except:
+                                pass
+
+            # Execute FTPS operations in thread pool
+            executor = ThreadPoolExecutor(max_workers=1)
+            loop = asyncio.get_event_loop()
+            files = await loop.run_in_executor(executor, _ftps_list_files)
+
+            return files
+
         except Exception as e:
-            logger.debug("FTP file discovery error", error=str(e))
-            
-        return files
+            logger.debug("FTPS file discovery method failed",
+                        printer_id=self.printer_id, error=str(e))
+            return []
 
     async def _discover_files_via_mqtt_dump(self) -> List[PrinterFile]:
         """Discover files using MQTT dump data."""
@@ -1213,24 +1299,20 @@ class BambuLabPrinter(BasePrinter):
             return False
 
     async def _download_file_bambu_api(self, filename: str, local_path: str) -> bool:
-        """Download file using bambulabs_api or HTTP fallback."""
-        if not self.bambu_client:
-            raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
-
-        logger.info("Downloading file from Bambu Lab printer via API",
+        """Download file using direct FTPS connection to Bambu Lab printer."""
+        logger.info("Downloading file from Bambu Lab printer via FTPS",
                    printer_id=self.printer_id, filename=filename, local_path=local_path)
 
-        # Method 1: Try bambulabs_api FTP client if available
-        if hasattr(self.bambu_client, 'ftp_client') and self.bambu_client.ftp_client:
-            try:
-                success = await self._download_via_ftp(filename, local_path)
-                if success:
-                    logger.info("Successfully downloaded file via FTP",
-                               printer_id=self.printer_id, filename=filename)
-                    return True
-            except Exception as e:
-                logger.debug("FTP download failed, trying HTTP fallback",
-                            printer_id=self.printer_id, error=str(e))
+        # Method 1: Try direct FTPS connection (primary method)
+        try:
+            success = await self._download_via_ftps(filename, local_path)
+            if success:
+                logger.info("Successfully downloaded file via FTPS",
+                           printer_id=self.printer_id, filename=filename)
+                return True
+        except Exception as e:
+            logger.debug("FTPS download failed, trying HTTP fallback",
+                        printer_id=self.printer_id, error=str(e))
 
         # Method 2: HTTP fallback download
         try:
@@ -1254,52 +1336,158 @@ class BambuLabPrinter(BasePrinter):
                       printer_id=self.printer_id, filename=filename)
         return False
 
-    async def _download_via_ftp(self, filename: str, local_path: str) -> bool:
-        """Download file via bambulabs_api FTP client."""
+    async def _download_via_ftps(self, filename: str, local_path: str) -> bool:
+        """Download file via direct FTPS connection to Bambu Lab printer."""
         try:
-            ftp = self.bambu_client.ftp_client
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+            from pathlib import Path
+            import ftplib
+            import ssl
 
             # Ensure local directory exists
-            from pathlib import Path
             Path(local_path).parent.mkdir(parents=True, exist_ok=True)
 
-            # Try multiple possible paths for the file
-            possible_paths = [
-                filename,  # Direct filename
-                f"cache/{filename}",  # Cache directory
-                f"model/{filename}",  # Model directory
-                f"timelapse/{filename}",  # Timelapse directory
-            ]
-
-            for remote_path in possible_paths:
+            # Run FTPS operations in thread pool to avoid blocking
+            def _ftps_download():
+                ftps = None
                 try:
-                    # Try to download the file
-                    success, file_data = ftp.download_file(remote_path)
-                    if success and file_data:
-                        # Write file data to local path
-                        with open(local_path, 'wb') as f:
-                            f.write(file_data)
+                    # Create FTPS connection
+                    ftps = ftplib.FTP_TLS()
+                    ftps.set_debuglevel(0)  # Disable debug output
 
-                        logger.info("FTP download successful",
-                                   printer_id=self.printer_id,
-                                   filename=filename,
-                                   remote_path=remote_path,
-                                   size=len(file_data))
-                        return True
+                    # Configure SSL context to handle self-signed certificates
+                    context = ssl.create_default_context()
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
+                    ftps.ssl_version = ssl.PROTOCOL_TLS
 
+                    logger.debug("Connecting to FTPS server",
+                               printer_id=self.printer_id, ip=self.ip_address)
+
+                    # Connect to printer FTPS (port 990 - implicit FTPS)
+                    ftps.connect(self.ip_address, 990, timeout=30)
+
+                    # Login with Bambu Lab credentials
+                    ftps.login(user="bblp", passwd=self.access_code)
+
+                    # Enable data encryption
+                    ftps.prot_p()
+
+                    logger.debug("FTPS connection established successfully",
+                               printer_id=self.printer_id)
+
+                    # Try multiple possible paths for the file
+                    possible_paths = [
+                        filename,  # Direct filename
+                        f"cache/{filename}",  # Cache directory (most common)
+                        f"model/{filename}",  # Model directory
+                        f"timelapse/{filename}",  # Timelapse directory
+                        f"gcode/{filename}",  # G-code directory
+                    ]
+
+                    file_downloaded = False
+                    downloaded_size = 0
+
+                    for remote_path in possible_paths:
+                        try:
+                            logger.debug("Attempting to download file",
+                                       printer_id=self.printer_id,
+                                       remote_path=remote_path)
+
+                            # Try to get file size first
+                            try:
+                                file_size = ftps.size(remote_path)
+                                logger.debug("File size determined",
+                                           printer_id=self.printer_id,
+                                           remote_path=remote_path,
+                                           size=file_size)
+                            except Exception:
+                                file_size = None
+                                logger.debug("Could not determine file size",
+                                           printer_id=self.printer_id,
+                                           remote_path=remote_path)
+
+                            # Download the file
+                            with open(local_path, 'wb') as local_file:
+                                def write_callback(data):
+                                    nonlocal downloaded_size
+                                    local_file.write(data)
+                                    downloaded_size += len(data)
+
+                                    # Log progress for large files
+                                    if file_size and downloaded_size % (1024 * 1024) == 0:  # Every MB
+                                        progress = (downloaded_size / file_size) * 100
+                                        logger.debug("Download progress",
+                                                   printer_id=self.printer_id,
+                                                   filename=filename,
+                                                   progress=f"{progress:.1f}%")
+
+                                # Download file using RETR command
+                                ftps.retrbinary(f"RETR {remote_path}", write_callback)
+
+                            file_downloaded = True
+                            logger.info("FTPS download successful",
+                                      printer_id=self.printer_id,
+                                      filename=filename,
+                                      remote_path=remote_path,
+                                      size=downloaded_size)
+                            break
+
+                        except ftplib.error_perm as e:
+                            # Check if it's a "file not found" error (550)
+                            if "550" in str(e):
+                                logger.debug("File not found at path",
+                                           printer_id=self.printer_id,
+                                           remote_path=remote_path)
+                                continue
+                            else:
+                                logger.debug("FTP permission error",
+                                           printer_id=self.printer_id,
+                                           remote_path=remote_path,
+                                           error=str(e))
+                                continue
+                        except Exception as e:
+                            logger.debug("FTPS download failed for path",
+                                       printer_id=self.printer_id,
+                                       remote_path=remote_path,
+                                       error=str(e))
+                            continue
+
+                    if not file_downloaded:
+                        logger.warning("File not found via FTPS in any expected path",
+                                     printer_id=self.printer_id, filename=filename)
+                        return False
+
+                    return True
+
+                except ftplib.all_errors as e:
+                    logger.error("FTPS connection or transfer error",
+                               printer_id=self.printer_id, filename=filename, error=str(e))
+                    return False
                 except Exception as e:
-                    logger.debug("FTP download failed for path",
-                                printer_id=self.printer_id,
-                                remote_path=remote_path,
-                                error=str(e))
-                    continue
+                    logger.error("Unexpected FTPS error",
+                               printer_id=self.printer_id, filename=filename, error=str(e))
+                    return False
+                finally:
+                    if ftps:
+                        try:
+                            ftps.quit()
+                        except:
+                            try:
+                                ftps.close()
+                            except:
+                                pass
 
-            logger.warning("File not found via FTP in any expected path",
-                          printer_id=self.printer_id, filename=filename)
-            return False
+            # Execute FTPS operations in thread pool
+            executor = ThreadPoolExecutor(max_workers=1)
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(executor, _ftps_download)
+
+            return result
 
         except Exception as e:
-            logger.error("FTP download method failed",
+            logger.error("FTPS download method failed",
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
 
