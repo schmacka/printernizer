@@ -22,7 +22,9 @@ from pathlib import Path
 import tempfile
 
 # Add source directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / 'src'))
+sys.path.insert(0, str(project_root))
 
 try:
     from printers.bambu_lab import BambuLabPrinter
