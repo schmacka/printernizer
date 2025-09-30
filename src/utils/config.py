@@ -63,6 +63,11 @@ class PrinternizerSettings(BaseSettings):
     # Security
     secret_key: str = Field(default="your-super-secret-key-change-in-production", env="SECRET_KEY")
     
+    # G-code Preview Optimization
+    gcode_optimize_print_only: bool = Field(default=True, env="GCODE_OPTIMIZE_PRINT_ONLY")
+    gcode_optimization_max_lines: int = Field(default=1000, env="GCODE_OPTIMIZATION_MAX_LINES")
+    gcode_render_max_lines: int = Field(default=10000, env="GCODE_RENDER_MAX_LINES")
+    
     @property
     def cors_origins_list(self) -> List[str]:
         """Get CORS origins as list."""

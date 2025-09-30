@@ -13,6 +13,9 @@ from typing import Optional, Tuple, Dict, Any
 
 import structlog
 
+from ..utils.gcode_analyzer import GcodeAnalyzer
+from ..utils.config import get_settings
+
 logger = structlog.get_logger(__name__)
 
 # Optional imports with graceful degradation
@@ -53,13 +56,21 @@ class PreviewRenderService:
             'dpi': 100
         }
 
+        # Load settings
+        settings = get_settings()
+        
         # GCODE rendering configuration
         self.gcode_config = {
             'enabled': True,  # Enabled for testing
-            'max_lines': 10000,
+            'max_lines': settings.gcode_render_max_lines,
             'line_color': '#007bff',
-            'background_color': '#ffffff'
+            'background_color': '#ffffff',
+            'optimize_print_only': settings.gcode_optimize_print_only,
+            'optimization_max_lines': settings.gcode_optimization_max_lines
         }
+        
+        # Initialize G-code analyzer
+        self.gcode_analyzer = GcodeAnalyzer(optimize_enabled=self.gcode_config['optimize_print_only'])
 
         # Cache settings
         self.cache_duration = timedelta(days=30)
@@ -360,10 +371,7 @@ class PreviewRenderService:
 
     def _render_gcode_toolpath(self, file_path: str, size: Tuple[int, int]) -> Optional[bytes]:
         """
-        Render GCODE toolpath visualization.
-
-        Note: This is a simplified visualization showing the toolpath.
-        For better performance, this is disabled by default.
+        Render GCODE toolpath visualization with optional print optimization.
 
         Args:
             file_path: Path to GCODE file
@@ -373,29 +381,56 @@ class PreviewRenderService:
             PNG bytes or None
         """
         try:
-            # Parse gcode and extract movement commands
-            points = []
+            logger.info(f"Rendering G-code toolpath: {file_path}", 
+                       optimize_enabled=self.gcode_config['optimize_print_only'])
+            
+            # Read and potentially optimize G-code
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                current_pos = [0.0, 0.0, 0.0]
-                line_count = 0
-
-                for line in f:
-                    line_count += 1
-                    if line_count > self.gcode_config['max_lines']:
+                lines = []
+                for i, line in enumerate(f):
+                    # Limit lines for performance, but analyze more for optimization
+                    max_lines = (self.gcode_config['optimization_max_lines'] 
+                               if self.gcode_config['optimize_print_only'] 
+                               else self.gcode_config['max_lines'])
+                    if i >= max_lines:
                         break
-
-                    # Parse G0/G1 movement commands
-                    if line.startswith('G0 ') or line.startswith('G1 '):
-                        parts = line.strip().split()
-                        for part in parts[1:]:
+                    lines.append(line.rstrip())
+            
+            # Apply G-code optimization if enabled
+            if self.gcode_config['optimize_print_only']:
+                original_count = len(lines)
+                lines = self.gcode_analyzer.get_optimized_gcode_lines(lines)
+                
+                # Extend to max_lines from optimized start if needed
+                if len(lines) < self.gcode_config['max_lines']:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        all_lines = f.readlines()
+                        start_idx = original_count - len(lines)
+                        end_idx = min(start_idx + self.gcode_config['max_lines'], len(all_lines))
+                        lines = [line.rstrip() for line in all_lines[start_idx:end_idx]]
+                        
+                logger.info(f"G-code optimization applied: {original_count} -> {len(lines)} lines")
+            
+            # Parse movement commands
+            points = []
+            current_pos = [0.0, 0.0, 0.0]
+            
+            for line in lines:
+                # Parse G0/G1 movement commands
+                if line.startswith('G0 ') or line.startswith('G1 '):
+                    parts = line.strip().split()
+                    for part in parts[1:]:
+                        try:
                             if part.startswith('X'):
                                 current_pos[0] = float(part[1:])
                             elif part.startswith('Y'):
                                 current_pos[1] = float(part[1:])
                             elif part.startswith('Z'):
                                 current_pos[2] = float(part[1:])
-
-                        points.append(current_pos.copy())
+                        except ValueError:
+                            continue  # Skip invalid coordinates
+                    
+                    points.append(current_pos.copy())
 
             if not points:
                 logger.warning(f"No toolpath points found in {file_path}")
@@ -403,6 +438,7 @@ class PreviewRenderService:
 
             # Convert to numpy array
             points = np.array(points)
+            logger.debug(f"Extracted {len(points)} toolpath points")
 
             # Create figure
             dpi = self.stl_config['dpi']
@@ -414,16 +450,23 @@ class PreviewRenderService:
 
             # Plot toolpath
             ax.plot(points[:, 0], points[:, 1], points[:, 2],
-                   color=self.gcode_config['line_color'], linewidth=0.5)
+                   color=self.gcode_config['line_color'], linewidth=0.5, alpha=0.8)
 
             # Styling
             fig.patch.set_facecolor(self.gcode_config['background_color'])
             ax.set_facecolor(self.gcode_config['background_color'])
             ax.set_axis_off()
+            
+            # Auto-fit the view
+            if len(points) > 0:
+                ax.set_xlim(points[:, 0].min(), points[:, 0].max())
+                ax.set_ylim(points[:, 1].min(), points[:, 1].max())
+                ax.set_zlim(points[:, 2].min(), points[:, 2].max())
 
             # Save
             buf = BytesIO()
-            plt.savefig(buf, format='png', dpi=dpi, bbox_inches='tight', pad_inches=0.1)
+            plt.savefig(buf, format='png', dpi=dpi, bbox_inches='tight', pad_inches=0.1,
+                       facecolor=self.gcode_config['background_color'])
             plt.close(fig)
 
             buf.seek(0)
@@ -517,6 +560,9 @@ class PreviewRenderService:
 
         if 'gcode_rendering' in config:
             self.gcode_config.update(config['gcode_rendering'])
+            # Update analyzer optimization setting
+            if 'optimize_print_only' in config['gcode_rendering']:
+                self.gcode_analyzer.optimize_enabled = config['gcode_rendering']['optimize_print_only']
 
         if 'cache_duration_days' in config:
             self.cache_duration = timedelta(days=config['cache_duration_days'])
