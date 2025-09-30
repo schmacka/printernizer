@@ -56,7 +56,8 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - **One-click downloads** - Direct download from printer storage
 - **Status tracking** - Visual indicators for file availability and download status
 - **Smart filtering** - Filter by printer, status, and file type
-- **(Planned) Print job thumbnails** - Display current job preview (3MF embedded thumbnail) on dashboard tiles
+- **3D preview thumbnails** - Automatic thumbnail generation for STL, 3MF, GCODE, and BGCODE files
+- **Intelligent caching** - 30-day cache for fast preview loading
 
 ### 🏢 Business Features
 - **Professional dashboard** - Clean, business-ready interface
@@ -70,7 +71,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - **Docker support** - Containerization (planned for future release)
 - **Kubernetes deployment** - Production orchestration (planned for future release)
 
-## ✅ Current Status: **CORE FEATURES COMPLETE**
+## ✅ Current Status: **PRODUCTION READY v1.1.0**
 
 **Core functionality implemented and tested:**
 - ✅ Complete backend with FastAPI + async SQLite
@@ -78,13 +79,14 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - ✅ Full printer integration (Bambu Lab A1 + Prusa Core One)
 - ✅ Real-time monitoring with WebSocket updates
 - ✅ File management and download system
+- ✅ 3D preview system (STL, 3MF, GCODE, BGCODE rendering)
+- ✅ System optimization (error handling, monitoring, health checks)
 - ✅ Business analytics and reporting features
 
 **Coming Soon:**
-- 🔄 Docker containerization (planned)
+- 🔄 Docker containerization (on hold)
 - 🔄 Advanced deployment options (planned)
-- 🖼️ Print job thumbnail previews (3MF embedded preview extraction & caching)
-- 🔄 Enhanced monitoring and alerting (planned)
+- 🔄 Watch folders and automation (planned)
 
 ## 🚀 Quick Start
 
@@ -99,7 +101,7 @@ venv\Scripts\activate
 source venv/bin/activate
 
 # 2. Install core dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles
+pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
 
 # 3. Create environment file (already exists)
 # Edit .env with your printer configurations if needed
@@ -129,7 +131,7 @@ If you only need the API backend:
 
 ```bash
 # Install dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles
+pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
 
 # Start just the backend (from project root)
 # Windows: run.bat
@@ -473,9 +475,11 @@ kubectl apply -f production.yml
 ## 📝 Support & Documentation
 
 ### Additional Documentation
+- **User Guide**: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) - Complete user documentation
 - **API Documentation**: http://localhost:8000/docs (Swagger UI)
-- **Development Plan**: `DEVELOPMENT_PLAN.md` - Complete project roadmap
-- **Deployment Guide**: `MILESTONE_1_1_DEPLOYMENT_READY.md`
+- **Development Plan**: [`docs/development/development-plan.md`](docs/development/development-plan.md) - Complete project roadmap
+- **Preview Rendering**: [`docs/PREVIEW_RENDERING.md`](docs/PREVIEW_RENDERING.md) - 3D preview system documentation
+- **Server Improvements**: [`docs/SERVER_IMPROVEMENTS.md`](docs/SERVER_IMPROVEMENTS.md) - Optimization and monitoring
 
 ### Getting Help
 1. Check the troubleshooting section above
