@@ -177,7 +177,7 @@ class MaterialService:
             await conn.commit()
 
         self.materials_cache[material.id] = material
-        await self.event_service.emit('material_created', {'material': material.__dict__})
+        await self.event_service.emit_event('material_created', {'material': material.__dict__})
 
         return material
 
@@ -218,7 +218,7 @@ class MaterialService:
             await conn.execute(query, values)
             await conn.commit()
 
-        await self.event_service.emit('material_updated', {'material': material.__dict__})
+        await self.event_service.emit_event('material_updated', {'material': material.__dict__})
         return material
 
     async def record_consumption(self, job_id: str, material_id: str,
@@ -273,7 +273,7 @@ class MaterialService:
 
         # Check for low stock
         if material.remaining_percentage < 20:
-            await self.event_service.emit('material_low_stock', {
+            await self.event_service.emit_event('material_low_stock', {
                 'material_id': material_id,
                 'remaining_percentage': material.remaining_percentage,
                 'remaining_weight': material.remaining_weight
