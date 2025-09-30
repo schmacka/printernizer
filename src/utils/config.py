@@ -4,8 +4,9 @@ Handles environment variables, settings validation, and Home Assistant integrati
 """
 
 import os
+import secrets
 from typing import Optional, List
-from pydantic import Field
+from pydantic import Field, validator
 from pydantic_settings import BaseSettings
 
 
@@ -61,12 +62,21 @@ class PrinternizerSettings(BaseSettings):
     redis_url: Optional[str] = Field(default=None, env="REDIS_URL")
     
     # Security
-    secret_key: str = Field(default="your-super-secret-key-change-in-production", env="SECRET_KEY")
+    secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(32), env="SECRET_KEY")
     
     # G-code Preview Optimization
     gcode_optimize_print_only: bool = Field(default=True, env="GCODE_OPTIMIZE_PRINT_ONLY")
     gcode_optimization_max_lines: int = Field(default=1000, env="GCODE_OPTIMIZATION_MAX_LINES")
     gcode_render_max_lines: int = Field(default=10000, env="GCODE_RENDER_MAX_LINES")
+    
+    @validator('secret_key')
+    def validate_secret_key(cls, v):
+        """Validate that secret key is secure and not default."""
+        if v == "your-super-secret-key-change-in-production":
+            raise ValueError("Secret key must not be the default value. Set SECRET_KEY environment variable.")
+        if len(v) < 32:
+            raise ValueError("Secret key must be at least 32 characters long for security.")
+        return v
     
     @property
     def cors_origins_list(self) -> List[str]:
