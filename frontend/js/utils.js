@@ -144,7 +144,9 @@ function formatBytes(bytes) {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return `${formatNumber(bytes / Math.pow(k, i), 2)} ${sizes[i]}`;
+    // Use toFixed(2) to ensure exactly 2 decimal places for file sizes
+    const value = (bytes / Math.pow(k, i)).toFixed(2);
+    return `${value} ${sizes[i]}`;
 }
 
 /**
