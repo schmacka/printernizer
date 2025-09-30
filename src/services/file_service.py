@@ -61,7 +61,8 @@ class FileService:
             if self.printer_service:
                 try:
                     printers = await self.printer_service.list_printers()
-                    printer_info_map = {p['id']: p for p in printers}
+                    # list_printers() returns Printer objects, convert to dict for mapping
+                    printer_info_map = {p.id: p for p in printers}
                 except Exception as e:
                     logger.warning("Could not fetch printer information for file enrichment", error=str(e))
 
@@ -74,15 +75,9 @@ class FileService:
                 printer_id_val = file_dict.get('printer_id')
                 if printer_id_val and printer_id_val in printer_info_map:
                     printer_info = printer_info_map[printer_id_val]
-
-                    # Handle both dict and object types for printer_info
-                    if isinstance(printer_info, dict):
-                        printer_name = printer_info.get('name', 'Unknown')
-                        printer_type = printer_info.get('printer_type', 'unknown')
-                    else:
-                        # Handle object with attributes
-                        printer_name = getattr(printer_info, 'name', 'Unknown')
-                        printer_type = getattr(printer_info, 'printer_type', 'unknown')
+                    # printer_info is a Printer Pydantic model, access attributes directly
+                    printer_name = printer_info.name
+                    printer_type = printer_info.type.value if hasattr(printer_info.type, 'value') else str(printer_info.type)
 
                     file_dict['printer_name'] = printer_name
                     file_dict['printer_type'] = printer_type
@@ -601,14 +596,19 @@ class FileService:
             return None
 
     async def delete_file(self, file_id: str) -> bool:
-        """Delete a file record (for local files, also delete physical file)."""
+        """Delete a file record (for local files and downloaded files, also delete physical file)."""
         try:
             file_data = await self.get_file_by_id(file_id)
             if not file_data:
                 raise NotFoundError("File", file_id)
-            
-            # If it's a local file, delete the physical file too
-            if file_data.get('source') == 'local_watch' and file_data.get('file_path'):
+
+            # Delete physical file if it exists locally
+            should_delete_physical = (
+                file_data.get('source') == 'local_watch' or
+                (file_data.get('source') == 'printer' and file_data.get('status') == 'downloaded')
+            )
+
+            if should_delete_physical and file_data.get('file_path'):
                 try:
                     file_path = Path(file_data['file_path'])
                     if file_path.exists():
@@ -616,7 +616,7 @@ class FileService:
                         logger.info("Deleted physical file", path=str(file_path))
                 except Exception as e:
                     logger.warning("Could not delete physical file", path=file_data['file_path'], error=str(e))
-            
+
             # Delete from database
             if file_data.get('source') == 'local_watch':
                 success = await self.database.delete_local_file(file_id)

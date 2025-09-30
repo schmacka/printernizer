@@ -203,33 +203,39 @@ class FileWatcherService:
         """Add a folder to watch list."""
         try:
             path = Path(folder_path)
-            
+
             # Validate folder
             validation = self.config_service.validate_watch_folder(str(path))
             if not validation["valid"]:
-                logger.error("Cannot watch folder", 
+                logger.error("Cannot watch folder",
                            folder_path=folder_path, error=validation["error"])
                 return
-            
-            # Add to observer
+
+            # Always add to watched_folders dict, even in fallback mode
+            # This ensures _initial_scan() can find folders to scan
+            watch = None
             if self._observer:
+                # Add to observer for real-time monitoring
                 watch = self._observer.schedule(
-                    self._file_handler, 
-                    str(path), 
+                    self._file_handler,
+                    str(path),
                     recursive=recursive
                 )
-                
-                self._watched_folders[folder_path] = {
-                    'watch': watch,
-                    'path': path,
-                    'recursive': recursive
-                }
-                
-                logger.info("Added watch folder", 
+                logger.info("Added watch folder with real-time monitoring",
                           folder_path=folder_path, recursive=recursive)
-        
+            else:
+                logger.info("Added watch folder in fallback mode (no real-time monitoring)",
+                          folder_path=folder_path, recursive=recursive)
+
+            # Store folder info regardless of observer status
+            self._watched_folders[folder_path] = {
+                'watch': watch,
+                'path': path,
+                'recursive': recursive
+            }
+
         except Exception as e:
-            logger.error("Failed to add watch folder", 
+            logger.error("Failed to add watch folder",
                        folder_path=folder_path, error=str(e))
     
     async def _initial_scan(self):

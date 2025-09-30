@@ -401,6 +401,32 @@ class PrinterService:
             logger.error("Failed to disconnect printer", printer_id=printer_id, error=str(e))
             return False
             
+    async def _connect_and_monitor_printer(self, printer_id: str, instance: BasePrinter):
+        """Connect to printer and start monitoring (background task helper)."""
+        try:
+            if not instance.is_connected:
+                logger.info("Connecting to printer", printer_id=printer_id)
+                connected = await instance.connect()
+                if connected:
+                    # Update last_seen timestamp when connection succeeds
+                    from datetime import datetime
+                    await self.database.update_printer_status(
+                        printer_id,
+                        "online",
+                        datetime.now()
+                    )
+                    logger.info("Printer connected successfully", printer_id=printer_id)
+                else:
+                    logger.warning("Printer connection failed", printer_id=printer_id)
+                    return
+
+            await instance.start_monitoring()
+            logger.info("Printer monitoring started", printer_id=printer_id)
+
+        except Exception as e:
+            logger.error("Failed to connect and monitor printer",
+                        printer_id=printer_id, error=str(e), exc_info=True)
+
     async def start_monitoring(self, printer_id: Optional[str] = None) -> bool:
         """Start printer monitoring for all or specific printer."""
         if printer_id:
@@ -427,29 +453,24 @@ class PrinterService:
                 logger.error("Failed to start monitoring", printer_id=printer_id, error=str(e))
                 return False
         else:
-            # Start monitoring for all printers
-            success_count = 0
-            
+            # Start monitoring for all printers in parallel (non-blocking)
+            tasks = []
+
             for printer_id, instance in self.printer_instances.items():
-                try:
-                    if not instance.is_connected:
-                        connected = await instance.connect()
-                        if connected:
-                            # Update last_seen timestamp when connection succeeds
-                            from datetime import datetime
-                            await self.database.update_printer_status(
-                                printer_id,
-                                "online",
-                                datetime.now()
-                            )
-                    await instance.start_monitoring()
-                    success_count += 1
-                except Exception as e:
-                    logger.error("Failed to start monitoring", printer_id=printer_id, error=str(e))
-                    
-            self.monitoring_active = success_count > 0
-            logger.info("Started printer monitoring", active_printers=success_count)
-            return success_count > 0
+                # Create background task for each printer connection
+                task = asyncio.create_task(
+                    self._connect_and_monitor_printer(printer_id, instance)
+                )
+                tasks.append(task)
+
+            # Don't wait for connections to complete - they run in background
+            # Just log that monitoring has been initiated
+            logger.info("Started printer monitoring in background",
+                       printer_count=len(self.printer_instances))
+
+            # Mark as active if we have any printers configured
+            self.monitoring_active = len(self.printer_instances) > 0
+            return True
         
     async def stop_monitoring(self, printer_id: Optional[str] = None) -> bool:
         """Stop printer monitoring for all or specific printer."""
