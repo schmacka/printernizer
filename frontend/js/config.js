@@ -171,6 +171,16 @@ const CONFIG = {
             label: 'Fehler',
             icon: '❌',
             class: 'status-error'
+        },
+        'deleted': {
+            label: 'Gelöscht',
+            icon: '🗑️',
+            class: 'status-deleted'
+        },
+        'unavailable': {
+            label: 'Nicht verfügbar',
+            icon: '⚠️',
+            class: 'status-unavailable'
         }
     },
     

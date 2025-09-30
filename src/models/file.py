@@ -15,6 +15,8 @@ class FileStatus(str, Enum):
     DOWNLOADED = "downloaded"    # Successfully downloaded
     LOCAL = "local"             # Local file only (not on printer)
     ERROR = "error"             # Download or processing error
+    DELETED = "deleted"          # Marked as deleted
+    UNAVAILABLE = "unavailable"  # No longer available on printer
 
 
 class FileSource(str, Enum):
