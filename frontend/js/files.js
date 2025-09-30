@@ -280,28 +280,45 @@ class FileManager {
     async loadPrinterOptions() {
         try {
             const printerFilter = document.getElementById('filePrinterFilter');
-            if (!printerFilter) return;
-            
+            if (!printerFilter) {
+                console.warn('Printer filter dropdown not found');
+                return;
+            }
+
+            console.log('Loading printer options for filter dropdown...');
             const response = await api.getPrinters();
-            
+            console.log('Printers API response:', response);
+
             // Clear existing options (except "All Printers")
             const firstOption = printerFilter.firstElementChild;
             printerFilter.innerHTML = '';
             if (firstOption) {
                 printerFilter.appendChild(firstOption);
             }
-            
+
             // Add printer options
-            if (response.printers) {
+            if (response && response.printers && Array.isArray(response.printers)) {
+                console.log(`Adding ${response.printers.length} printers to filter dropdown`);
                 response.printers.forEach(printer => {
                     const option = document.createElement('option');
                     option.value = printer.id;
                     option.textContent = printer.name;
                     printerFilter.appendChild(option);
+                    console.log(`Added printer: ${printer.name} (${printer.id})`);
                 });
+
+                if (response.printers.length === 0) {
+                    console.warn('No printers found in response');
+                }
+            } else {
+                console.error('Invalid printers response format:', response);
             }
         } catch (error) {
             console.error('Failed to load printer options:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
         }
     }
 
@@ -1096,24 +1113,31 @@ class FileManager {
     /**
      * Load and display discovered files from watch folders
      */
-    async loadDiscoveredFiles() {
+    async loadDiscoveredFiles(page = 1) {
         const container = document.getElementById('discoveredFilesContainer');
         if (!container) return;
 
         try {
-            // Show loading state
-            container.innerHTML = `
-                <div class="loading-placeholder">
-                    <div class="spinner"></div>
-                    <p>Lade entdeckte Dateien...</p>
-                </div>
-            `;
+            // Show loading state on initial load
+            if (page === 1) {
+                container.innerHTML = `
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade entdeckte Dateien...</p>
+                    </div>
+                `;
+            }
 
-            // Fetch discovered files
-            const response = await api.getFiles({ source: 'local_watch' });
+            // Fetch discovered files with pagination
+            const response = await api.getFiles({
+                source: 'local_watch',
+                page: page,
+                limit: 50
+            });
             const files = response.files || [];
+            const pagination = response.pagination || { page: 1, total_pages: 1, total_items: files.length };
 
-            if (files.length === 0) {
+            if (files.length === 0 && page === 1) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">📂</div>
@@ -1124,8 +1148,8 @@ class FileManager {
                 return;
             }
 
-            // Render discovered files table
-            container.innerHTML = this.renderDiscoveredFilesTable(files);
+            // Render discovered files table with pagination
+            container.innerHTML = this.renderDiscoveredFilesTable(files, pagination);
 
         } catch (error) {
             console.error('Failed to load discovered files:', error);
@@ -1146,23 +1170,52 @@ class FileManager {
     /**
      * Render discovered files table
      */
-    renderDiscoveredFilesTable(files) {
-        const totalFiles = files.length;
-        const totalSize = files.reduce((sum, file) => sum + (file.size || 0), 0);
+    renderDiscoveredFilesTable(files, pagination) {
+        const currentPageSize = files.length;
+        const totalSize = files.reduce((sum, file) => sum + (file.file_size || 0), 0);
+        const totalItems = pagination ? pagination.total_items : files.length;
+
+        const paginationHtml = pagination && pagination.total_pages > 1 ? `
+            <div class="discovered-files-pagination">
+                <div class="pagination-info">
+                    Seite ${pagination.page} von ${pagination.total_pages} (${totalItems} Dateien insgesamt)
+                </div>
+                <div class="pagination-controls">
+                    ${pagination.page > 1 ? `
+                        <button class="btn btn-small btn-secondary" onclick="fileManager.loadDiscoveredFiles(${pagination.page - 1})">
+                            <span class="btn-icon">◀</span>
+                            Zurück
+                        </button>
+                    ` : ''}
+                    ${pagination.page < pagination.total_pages ? `
+                        <button class="btn btn-small btn-secondary" onclick="fileManager.loadDiscoveredFiles(${pagination.page + 1})">
+                            Weiter
+                            <span class="btn-icon">▶</span>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        ` : '';
 
         return `
             <div class="discovered-files-summary">
                 <div class="summary-stats">
                     <div class="stat-item">
-                        <span class="stat-value">${totalFiles}</span>
-                        <span class="stat-label">Dateien</span>
+                        <span class="stat-value">${totalItems}</span>
+                        <span class="stat-label">Dateien gesamt</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${currentPageSize}</span>
+                        <span class="stat-label">Auf dieser Seite</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-value">${formatBytes(totalSize)}</span>
-                        <span class="stat-label">Gesamtgröße</span>
+                        <span class="stat-label">Größe (Seite)</span>
                     </div>
                 </div>
             </div>
+
+            ${paginationHtml}
 
             <div class="table-container">
                 <table class="files-table">
@@ -1170,6 +1223,7 @@ class FileManager {
                         <tr>
                             <th>📄 Dateiname</th>
                             <th>📐 Größe</th>
+                            <th>📁 Quelle</th>
                             <th>📁 Verzeichnis</th>
                             <th>📅 Geändert</th>
                             <th>🔧 Aktionen</th>
@@ -1180,6 +1234,8 @@ class FileManager {
                     </tbody>
                 </table>
             </div>
+
+            ${paginationHtml}
         `;
     }
 
@@ -1187,28 +1243,43 @@ class FileManager {
      * Render individual discovered file row
      */
     renderDiscoveredFileRow(file) {
-        const fileName = file.name || 'Unbekannt';
-        const fileSize = formatBytes(file.size || 0);
+        const fileName = file.filename || file.name || 'Unbekannt';
+        const fileSize = formatBytes(file.file_size || 0);
         const watchFolderPath = file.watch_folder_path || 'Unbekannt';
         const modifiedTime = file.modified_time ?
             new Date(file.modified_time).toLocaleString('de-DE') : 'Unbekannt';
 
+        // Determine source display (printer or watch folder)
+        let sourceDisplay = 'Lokal';
+        if (file.source === 'printer' && file.printer_name) {
+            sourceDisplay = file.printer_name;
+        } else if (file.source === 'local_watch') {
+            sourceDisplay = 'Watch Folder';
+        } else if (file.source_display) {
+            sourceDisplay = file.source_display;
+        }
+
         const fileIcon = this.getFileIcon(fileName);
         const truncatedPath = truncateText(watchFolderPath, 40);
+        const filePath = file.file_path || file.path || '';
 
         return `
-            <tr class="file-row discovered-file" data-file-path="${file.path}">
+            <tr class="file-row discovered-file" data-file-path="${escapeHtml(filePath)}">
                 <td class="file-name">
                     <div class="file-info">
                         <span class="file-icon">${fileIcon}</span>
                         <div class="file-details">
-                            <span class="name" title="${fileName}">${truncateText(fileName, 30)}</span>
-                            <span class="path" title="${file.path}">${truncateText(file.relative_path || '', 50)}</span>
+                            <span class="name" title="${escapeHtml(fileName)}">${truncateText(fileName, 30)}</span>
+                            <span class="path" title="${escapeHtml(filePath)}">${truncateText(file.relative_path || '', 50)}</span>
                         </div>
                     </div>
                 </td>
                 <td class="file-size">${fileSize}</td>
-                <td class="watch-folder" title="${watchFolderPath}">
+                <td class="file-source" title="${escapeHtml(sourceDisplay)}">
+                    <span class="source-icon">📍</span>
+                    ${truncateText(sourceDisplay, 20)}
+                </td>
+                <td class="watch-folder" title="${escapeHtml(watchFolderPath)}">
                     <span class="folder-icon">📁</span>
                     ${truncatedPath}
                 </td>
@@ -1216,7 +1287,7 @@ class FileManager {
                 <td class="file-actions">
                     <div class="action-buttons">
                         <button class="btn btn-small btn-secondary"
-                                onclick="openFileLocation('${file.path}')"
+                                onclick="openFileLocation('${escapeHtml(filePath)}')"
                                 title="Im Explorer öffnen">
                             <span class="btn-icon">📂</span>
                         </button>
