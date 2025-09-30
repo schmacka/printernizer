@@ -441,7 +441,7 @@ class TrendingService:
             await self.cleanup_expired()
 
             # Emit event
-            await self.event_service.emit('trending_updated', {
+            await self.event_service.emit_event('trending_updated', {
                 'platforms': ['makerworld', 'printables'],
                 'timestamp': datetime.now().isoformat()
             })
@@ -512,7 +512,7 @@ class TrendingService:
             await conn.commit()
 
         # Emit event
-        await self.event_service.emit('idea_created_from_trending', {
+        await self.event_service.emit_event('idea_created_from_trending', {
             'idea_id': idea_id,
             'trending_id': trending_id,
             'platform': item['platform']
