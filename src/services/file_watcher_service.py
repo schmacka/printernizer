@@ -4,9 +4,10 @@ Implements cross-platform file system monitoring using watchdog.
 """
 
 import os
+import sys
 import asyncio
 import threading
-from typing import Dict, List, Set, Optional, Callable, Any
+from typing import Dict, List, Set, Optional, Callable, Any, TYPE_CHECKING
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass
@@ -14,6 +15,16 @@ from dataclasses import dataclass
 import structlog
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
+
+# Platform-specific observer imports for better Windows compatibility
+if sys.platform == "win32":
+    from watchdog.observers.polling import PollingObserver
+    WindowsObserver = PollingObserver
+else:
+    WindowsObserver = Observer
+
+if TYPE_CHECKING:
+    from watchdog.observers import Observer as ObserverType
 
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -117,7 +128,7 @@ class FileWatcherService:
         self.config_service = config_service
         self.event_service = event_service
         
-        self._observer: Optional[Observer] = None
+        self._observer = None
         self._watched_folders: Dict[str, Any] = {}  # folder_path -> watch descriptor
         self._local_files: Dict[str, LocalFile] = {}  # file_id -> LocalFile
         self._is_running = False
@@ -139,8 +150,13 @@ class FileWatcherService:
             return
         
         try:
-            # Initialize observer
-            self._observer = Observer()
+            # Initialize observer with platform-specific handling
+            try:
+                self._observer = Observer()
+            except Exception as e:
+                logger.warning("Standard observer failed, falling back to polling observer", error=str(e))
+                # Fallback to polling observer on Windows if native observer fails
+                self._observer = WindowsObserver()
             
             # Add watch folders
             watch_folders = await self.config_service.get_watch_folders()
@@ -151,17 +167,26 @@ class FileWatcherService:
             
             # Start observer
             try:
-                # Run in executor to avoid asyncio issues
-                loop = asyncio.get_running_loop()
-                await loop.run_in_executor(None, self._observer.start)
+                # Start observer in the main thread (Windows compatible)
+                # Watchdog Observer creates its own threads internally
+                self._observer.start()
                 self._is_running = True
                 
                 logger.info("File watcher service started", 
                            watched_folders=len(self._watched_folders),
-                           recursive=recursive)
+                           recursive=recursive,
+                           observer_type=type(self._observer).__name__)
             except Exception as e:
-                logger.warning("Failed to start watchdog observer, running in fallback mode", error=str(e))
+                logger.warning("Failed to start watchdog observer, running in fallback mode", 
+                             error=str(e), 
+                             observer_type=type(self._observer).__name__ if self._observer else "None",
+                             platform=sys.platform)
                 # Fallback mode - file watcher API still works, but no real-time watching
+                if self._observer:
+                    try:
+                        self._observer.stop()
+                    except:
+                        pass
                 self._observer = None
                 self._is_running = True  # Mark as running so API endpoints work
             
@@ -183,9 +208,22 @@ class FileWatcherService:
             with self._lock:
                 if self._observer:
                     try:
+                        # Stop observer gracefully
                         self._observer.stop()
-                        if self._observer.is_alive():
-                            self._observer.join(timeout=5.0)
+                        
+                        # Wait for observer thread to finish with timeout
+                        if hasattr(self._observer, 'is_alive') and self._observer.is_alive():
+                            # Run join in executor to avoid blocking async loop
+                            loop = asyncio.get_running_loop()
+                            await loop.run_in_executor(
+                                None, 
+                                lambda: self._observer.join(timeout=5.0)
+                            )
+                            
+                            # Force stop if still alive
+                            if hasattr(self._observer, 'is_alive') and self._observer.is_alive():
+                                logger.warning("Observer thread did not stop gracefully, forcing termination")
+                                
                     except Exception as e:
                         logger.warning("Error stopping observer", error=str(e))
                     finally:
