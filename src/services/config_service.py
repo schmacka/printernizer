@@ -434,7 +434,11 @@ class ConfigService:
             "max_file_size": settings.max_file_size,
             "monitoring_interval": settings.printer_polling_interval,
             "connection_timeout": settings.connection_timeout,
-            "cors_origins": self._get_cors_origins_list(settings.cors_origins)
+            "cors_origins": self._get_cors_origins_list(settings.cors_origins),
+            # G-code optimization settings
+            "gcode_optimize_print_only": settings.gcode_optimize_print_only,
+            "gcode_optimization_max_lines": settings.gcode_optimization_max_lines,
+            "gcode_render_max_lines": settings.gcode_render_max_lines
         }
 
     def _get_cors_origins_list(self, cors_origins_str: str) -> List[str]:
