@@ -163,42 +163,93 @@ async def lifespan(app: FastAPI):
     
     yield
     
-    # Shutdown
-    logger.info("Shutting down Printernizer")
-    await printer_service.shutdown()
-    
-    # Stop file watcher service if it exists
+    # Shutdown with proper error handling and timeouts
+    logger.info("Shutting down Printernizer gracefully")
+    shutdown_timeout = 30  # seconds
+
+    async def shutdown_with_timeout(coro, service_name: str, timeout: float = 10):
+        """Execute shutdown coroutine with timeout."""
+        try:
+            await asyncio.wait_for(coro, timeout=timeout)
+            logger.info(f"{service_name} stopped successfully")
+        except asyncio.TimeoutError:
+            logger.warning(f"{service_name} shutdown timed out after {timeout}s")
+        except Exception as e:
+            logger.warning(f"Error stopping {service_name}", error=str(e))
+
+    # Shutdown services in parallel where possible
+    shutdown_tasks = []
+
+    # Printer service shutdown
+    if hasattr(app.state, 'printer_service') and app.state.printer_service:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.printer_service.shutdown(),
+                "Printer service",
+                timeout=15
+            )
+        )
+
+    # File watcher service
     if hasattr(app.state, 'file_watcher_service') and app.state.file_watcher_service:
-        try:
-            await app.state.file_watcher_service.stop()
-            logger.info("File watcher service stopped")
-        except Exception as e:
-            logger.warning("Error stopping file watcher service", error=str(e))
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.file_watcher_service.stop(),
+                "File watcher service",
+                timeout=5
+            )
+        )
 
-    # Clean up Ideas-related services
+    # Trending service
     if hasattr(app.state, 'trending_service') and app.state.trending_service:
-        try:
-            await app.state.trending_service.cleanup()
-            logger.info("Trending service cleaned up")
-        except Exception as e:
-            logger.warning("Error cleaning up trending service", error=str(e))
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.trending_service.cleanup(),
+                "Trending service",
+                timeout=5
+            )
+        )
 
+    # Thumbnail service
     if hasattr(app.state, 'thumbnail_service') and app.state.thumbnail_service:
-        try:
-            await app.state.thumbnail_service.cleanup()
-            logger.info("Thumbnail service cleaned up")
-        except Exception as e:
-            logger.warning("Error cleaning up thumbnail service", error=str(e))
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.thumbnail_service.cleanup(),
+                "Thumbnail service",
+                timeout=5
+            )
+        )
 
+    # URL parser service
     if hasattr(app.state, 'url_parser_service') and app.state.url_parser_service:
-        try:
-            await app.state.url_parser_service.close()
-            logger.info("URL parser service cleaned up")
-        except Exception as e:
-            logger.warning("Error cleaning up URL parser service", error=str(e))
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.url_parser_service.close(),
+                "URL parser service",
+                timeout=5
+            )
+        )
 
-    await event_service.stop()
-    await database.close()
+    # Execute all service shutdowns in parallel
+    if shutdown_tasks:
+        await asyncio.gather(*shutdown_tasks, return_exceptions=True)
+
+    # Stop event service (depends on other services)
+    if hasattr(app.state, 'event_service') and app.state.event_service:
+        await shutdown_with_timeout(
+            app.state.event_service.stop(),
+            "Event service",
+            timeout=5
+        )
+
+    # Close database connection last
+    if hasattr(app.state, 'database') and app.state.database:
+        await shutdown_with_timeout(
+            app.state.database.close(),
+            "Database",
+            timeout=5
+        )
+
     logger.info("Printernizer shutdown complete")
 
 
@@ -366,4 +417,4 @@ if __name__ == "__main__":
             "workers": 1
         })
     
-    uvicorn.run("main:app", **config)
+    uvicorn.run("src.main:app", **config)
