@@ -105,6 +105,11 @@ pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt pyth
 # Edit .env with your printer configurations if needed
 
 # 4. Start the backend
+# Windows:
+run.bat
+# Linux/Mac:
+./run.sh
+# Or manually:
 cd src
 python main.py
 
@@ -126,7 +131,10 @@ If you only need the API backend:
 # Install dependencies
 pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles
 
-# Start just the backend
+# Start just the backend (from project root)
+# Windows: run.bat
+# Linux/Mac: ./run.sh
+# Or manually from root:
 cd src
 python main.py
 
@@ -439,7 +447,8 @@ sqlite3 data/printernizer.db ".tables"
 
 ### 1. Local Development
 ```bash
-python src/main.py
+# Windows: run.bat
+# Linux/Mac: ./run.sh
 # Access: http://localhost:8000
 ```
 
