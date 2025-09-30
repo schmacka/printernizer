@@ -12,6 +12,7 @@ from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.file_watcher_service import FileWatcherService
 from src.services.bambu_parser import BambuParser
+from src.services.preview_render_service import PreviewRenderService
 from src.utils.exceptions import NotFoundError
 
 logger = structlog.get_logger()
@@ -30,9 +31,10 @@ class FileService:
         self.printer_service = printer_service
         self.config_service = config_service
         self.bambu_parser = BambuParser()
+        self.preview_render_service = PreviewRenderService()
         self.download_progress = {}
         self.download_status = {}
-        
+
         # Thumbnail processing status tracking
         self.thumbnail_processing_log = []  # List of recent thumbnail processing attempts
         self.max_log_entries = 50  # Keep last 50 attempts
@@ -725,26 +727,55 @@ class FileService:
             thumbnail_width = None
             thumbnail_height = None
             thumbnail_format = None
-            
+            thumbnail_source = 'embedded'
+
             if thumbnails:
                 # Prefer thumbnail closest to 200x200 for UI display
                 best_thumbnail = self.bambu_parser.get_thumbnail_by_size(
                     thumbnails, (200, 200)
                 )
-                
+
                 if best_thumbnail:
                     thumbnail_data = best_thumbnail['data']
                     thumbnail_width = best_thumbnail['width']
                     thumbnail_height = best_thumbnail['height']
                     thumbnail_format = best_thumbnail.get('format', 'png')
+                    thumbnail_source = 'embedded'
+            elif parse_result.get('needs_generation', False):
+                # No embedded thumbnails - try to generate preview
+                try:
+                    import base64
+                    file_type = self._get_file_type(os.path.basename(file_path))
+                    logger.info("Generating preview thumbnail for file",
+                               file_path=file_path, file_type=file_type)
+
+                    preview_bytes = await self.preview_render_service.get_or_generate_preview(
+                        file_path, file_type, size=(200, 200)
+                    )
+
+                    if preview_bytes:
+                        thumbnail_data = base64.b64encode(preview_bytes).decode('utf-8')
+                        thumbnail_width = 200
+                        thumbnail_height = 200
+                        thumbnail_format = 'png'
+                        thumbnail_source = 'generated'
+                        logger.info("Successfully generated preview thumbnail",
+                                   file_path=file_path)
+                    else:
+                        logger.warning("Preview generation returned no data",
+                                     file_path=file_path)
+                except Exception as e:
+                    logger.error("Failed to generate preview thumbnail",
+                                file_path=file_path, error=str(e))
             
             # Update file record with thumbnail and metadata
             update_data = {
-                'has_thumbnail': len(thumbnails) > 0,
+                'has_thumbnail': thumbnail_data is not None,
                 'thumbnail_data': thumbnail_data,
                 'thumbnail_width': thumbnail_width,
                 'thumbnail_height': thumbnail_height,
                 'thumbnail_format': thumbnail_format,
+                'thumbnail_source': thumbnail_source,
             }
             
             # Merge parsed metadata with existing metadata
