@@ -404,25 +404,43 @@ class FileService:
     async def get_file_statistics(self) -> Dict[str, Any]:
         """Get file management statistics."""
         try:
-            files = await self.get_files()
-            
+            # Get all files without pagination
+            files = await self.get_files(limit=None)
+
             # Calculate statistics
             total_files = len(files)
+
+            # Separate by source
             local_files = [f for f in files if f.get('source') == 'local_watch']
-            printer_files = [f for f in files if f.get('source') != 'local_watch']
-            
-            total_size = sum(f.get('file_size', 0) for f in files)
-            
-            # Count by status
-            available_count = len([f for f in files if f.get('status') in ['available', 'local']])
-            downloaded_count = len([f for f in files if f.get('status') == 'downloaded'])
-            failed_count = len([f for f in files if f.get('status') == 'failed'])
+            printer_files = [f for f in files if f.get('source') == 'printer']
+
+            # Calculate total size
+            total_size = sum(f.get('file_size', 0) or 0 for f in files)
+
+            # Count by status for PRINTER files
+            # available: Files on printer that haven't been downloaded yet
+            available_count = len([f for f in printer_files if f.get('status') == 'available'])
+
+            # downloaded: Files that were downloaded from printer to local storage
+            downloaded_count = len([f for f in printer_files if f.get('status') == 'downloaded'])
+
+            # failed: Download attempts that failed
+            failed_count = len([f for f in printer_files if f.get('status') == 'failed'])
+
+            # local: Files found in watch folders (local_watch source)
             local_count = len(local_files)
-            
+
             # Calculate download success rate
             total_download_attempts = downloaded_count + failed_count
             download_success_rate = downloaded_count / total_download_attempts if total_download_attempts > 0 else 1.0
-            
+
+            logger.debug("File statistics calculated",
+                        total=total_files,
+                        available=available_count,
+                        downloaded=downloaded_count,
+                        local=local_count,
+                        failed=failed_count)
+
             return {
                 "total_files": total_files,
                 "local_files": len(local_files),
@@ -434,9 +452,9 @@ class FileService:
                 "total_size": total_size,
                 "download_success_rate": download_success_rate
             }
-            
+
         except Exception as e:
-            logger.error("Error calculating file statistics", error=str(e))
+            logger.error("Error calculating file statistics", error=str(e), exc_info=True)
             return {
                 "total_files": 0,
                 "local_files": 0,
@@ -621,21 +639,26 @@ class FileService:
             if file_data.get('source') == 'local_watch':
                 success = await self.database.delete_local_file(file_id)
             else:
-                # For printer files, mark as deleted rather than removing
-                success = await self.database.update_file(file_id, {'status': 'deleted'})
-            
+                # For printer files, reset to available status so they can be downloaded again
+                success = await self.database.update_file(file_id, {
+                    'status': 'available',
+                    'file_path': None,
+                    'downloaded_at': None,
+                    'download_progress': 0
+                })
+
             if success:
                 logger.info("File deleted successfully", file_id=file_id)
-                
+
                 # Emit file deleted event
                 await self.event_service.emit_event("file_deleted", {
                     "file_id": file_id,
                     "filename": file_data.get('filename'),
                     "source": file_data.get('source')
                 })
-                
+
             return success
-            
+
         except Exception as e:
             logger.error("Failed to delete file", file_id=file_id, error=str(e))
             return False

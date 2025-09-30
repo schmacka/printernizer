@@ -139,12 +139,12 @@ function formatPercentage(value, decimals = 1) {
  */
 function formatBytes(bytes) {
     if (!bytes || bytes === 0) return '0 B';
-    
+
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return `${formatNumber(bytes / Math.pow(k, i), 1)} ${sizes[i]}`;
+
+    return `${formatNumber(bytes / Math.pow(k, i), 2)} ${sizes[i]}`;
 }
 
 /**
