@@ -78,6 +78,8 @@ Thumbs.db
 # Database files
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
@@ -97,12 +99,20 @@ temp/
 backups/
 
 # Development files
-test_*
+test_*.py
+test_*.html
+test_*.bat
+test_*.sh
 *.backup
 server.log
 debug_*.py
+debug_*.log
 fix_*.py
 simple_test.py
+analyze_*.py
+tmp_*.py
+temp_*.json
+nul
 
 # Deployment scripts (project uses Python setup, not containers)
 deploy.sh
