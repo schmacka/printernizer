@@ -17,8 +17,9 @@ from services.bambu_ftp_service import BambuFTPService
 
 async def test_download_specific_file():
     """Test downloading the specific file requested."""
+    from bambu_credentials import get_bambu_credentials
+    
     ip = "192.168.176.101"
-    code = "40722898"
     target_file = "top-option-2-color-change_plate_1.3mf"
 
     print("Bambu Lab FTP Test")
@@ -26,6 +27,13 @@ async def test_download_specific_file():
     print(f"IP: {ip}")
     print(f"Target file: {target_file}")
     print()
+
+    try:
+        username, code = get_bambu_credentials(ip)
+        print(f"Using username: {username}")
+    except ValueError as e:
+        print(f"Error getting credentials: {e}")
+        return
 
     try:
         # Create FTP service
