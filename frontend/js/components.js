@@ -779,7 +779,7 @@ class FileListItem {
         if (this.file.has_thumbnail && this.file.id) {
             return `
                 <div class="file-thumbnail enhanced" title="Click to enlarge">
-                    <img src="/api/files/${this.file.id}/thumbnail"
+                    <img src="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail"
                          alt="Thumbnail for ${escapeHtml(this.file.filename)}"
                          class="thumbnail-image"
                          onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');"
@@ -810,7 +810,7 @@ class FileListItem {
                     <button class="thumbnail-modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
                 </div>
                 <div class="thumbnail-modal-body">
-                    <img src="/api/files/${fileId}/thumbnail"
+                    <img src="${CONFIG.API_BASE_URL}/files/${fileId}/thumbnail"
                          alt="Full size thumbnail"
                          class="full-thumbnail-image"
                          onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');">

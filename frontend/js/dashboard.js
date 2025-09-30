@@ -365,7 +365,7 @@ class Dashboard {
             if (fileId && hasThumb) {
                 return `
                     <div class="job-preview-thumbnail">
-                        <img src="/api/files/${fileId}/thumbnail"
+                        <img src="${CONFIG.API_BASE_URL}/files/${fileId}/thumbnail"
                              alt="Print Preview"
                              class="job-thumbnail-image"
                              onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
@@ -508,7 +508,7 @@ class Dashboard {
         card.innerHTML = `
             <div class="printed-file-thumbnail">
                 ${file.has_thumbnail ?
-                    `<img src="/api/files/${file.id}/thumbnail"
+                    `<img src="${CONFIG.API_BASE_URL}/files/${file.id}/thumbnail"
                          alt="File Preview"
                          class="printed-file-thumbnail-image"
                          onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
