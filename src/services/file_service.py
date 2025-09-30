@@ -436,12 +436,26 @@ class FileService:
             total_download_attempts = downloaded_count + failed_count
             download_success_rate = downloaded_count / total_download_attempts if total_download_attempts > 0 else 1.0
 
-            logger.debug("File statistics calculated",
+            logger.info("File statistics calculated",
                         total=total_files,
                         available=available_count,
                         downloaded=downloaded_count,
-                        local=local_count,
-                        failed=failed_count)
+                        local_files_count=len(local_files),
+                        local_count=local_count,
+                        printer_files_count=len(printer_files),
+                        failed=failed_count,
+                        total_size_bytes=total_size)
+
+            # Log some sample files for debugging
+            if local_files:
+                logger.debug("Sample local files",
+                           sample_count=min(5, len(local_files)),
+                           samples=[{
+                               'id': f.get('id'),
+                               'filename': f.get('filename'),
+                               'source': f.get('source'),
+                               'status': f.get('status')
+                           } for f in local_files[:5]])
 
             return {
                 "total_files": total_files,

@@ -72,33 +72,42 @@ async def list_files(
     """List files from printers and local storage."""
     try:
         logger.info("Listing files", printer_id=printer_id, status=status, source=source,
-                   has_thumbnail=has_thumbnail, limit=limit)
+                   has_thumbnail=has_thumbnail, limit=limit, page=page)
 
-        files = await file_service.get_files(
+        # Get all files matching filters (without pagination)
+        all_files = await file_service.get_files(
             printer_id=printer_id,
             status=status,
             source=source,
             has_thumbnail=has_thumbnail,
-            limit=limit,
+            limit=None,  # Get all files first
             order_by=order_by,
             order_dir=order_dir,
-            page=page
+            page=1
         )
 
-        logger.info("Got files from service", count=len(files))
+        total_items = len(all_files)
+        total_pages = max(1, (total_items + limit - 1) // limit) if limit else 1
 
-        file_list = [FileResponse.model_validate(file) for file in files]
+        # Apply pagination
+        start_idx = (page - 1) * limit if limit and page > 1 else 0
+        end_idx = start_idx + limit if limit else total_items
+        paginated_files = all_files[start_idx:end_idx]
+
+        logger.info("Got files from service", total=total_items, page_count=len(paginated_files))
+
+        file_list = [FileResponse.model_validate(file) for file in paginated_files]
 
         logger.info("Validated files", count=len(file_list))
 
         return {
             "files": file_list,
-            "total_count": len(file_list),
+            "total_count": total_items,
             "pagination": {
-                "page": 1,
-                "limit": len(file_list),
-                "total_items": len(file_list),
-                "total_pages": 1
+                "page": page,
+                "limit": limit,
+                "total_items": total_items,
+                "total_pages": total_pages
             }
         }
     except Exception as e:
