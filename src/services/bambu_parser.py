@@ -49,28 +49,30 @@ class BambuParser:
     async def parse_file(self, file_path: str) -> Dict[str, Any]:
         """
         Parse a Bambu G-code or 3MF file and extract thumbnails and metadata.
-        
+
         Args:
             file_path: Path to the file to parse
-            
+
         Returns:
             Dictionary containing parsed data with keys:
             - thumbnails: List of thumbnail data (base64, width, height)
             - metadata: Dictionary of parsed metadata
             - success: Boolean indicating if parsing was successful
             - error: Error message if parsing failed
+            - needs_generation: Boolean indicating if preview rendering is needed
         """
         try:
             file_path = Path(file_path)
-            
+
             if not file_path.exists():
                 return {
                     'success': False,
                     'error': f"File not found: {file_path}",
                     'thumbnails': [],
-                    'metadata': {}
+                    'metadata': {},
+                    'needs_generation': False
                 }
-            
+
             # Determine file type and parse accordingly
             if file_path.suffix.lower() == '.3mf':
                 return await self._parse_3mf_file(file_path)
@@ -78,21 +80,25 @@ class BambuParser:
                 return await self._parse_gcode_file(file_path)
             elif file_path.suffix.lower() == '.bgcode':
                 return await self._parse_bgcode_file(file_path)
+            elif file_path.suffix.lower() == '.stl':
+                return await self._parse_stl_file(file_path)
             else:
                 return {
                     'success': False,
                     'error': f"Unsupported file type: {file_path.suffix}",
                     'thumbnails': [],
-                    'metadata': {}
+                    'metadata': {},
+                    'needs_generation': False
                 }
-                
+
         except Exception as e:
             logger.error("Failed to parse file", file_path=str(file_path), error=str(e))
             return {
                 'success': False,
                 'error': str(e),
                 'thumbnails': [],
-                'metadata': {}
+                'metadata': {},
+                'needs_generation': False
             }
     
     async def _parse_gcode_file(self, file_path: Path) -> Dict[str, Any]:
@@ -107,16 +113,17 @@ class BambuParser:
             # Extract metadata
             metadata = self._extract_gcode_metadata(content)
             
-            logger.info("Successfully parsed G-code file", 
-                       file_path=str(file_path), 
+            logger.info("Successfully parsed G-code file",
+                       file_path=str(file_path),
                        thumbnail_count=len(thumbnails),
                        metadata_keys=list(metadata.keys()))
-            
+
             return {
                 'success': True,
                 'thumbnails': thumbnails,
                 'metadata': metadata,
-                'error': None
+                'error': None,
+                'needs_generation': len(thumbnails) == 0  # Generate if no embedded thumbnails
             }
             
         except Exception as e:
@@ -125,7 +132,8 @@ class BambuParser:
                 'success': False,
                 'error': str(e),
                 'thumbnails': [],
-                'metadata': {}
+                'metadata': {},
+                'needs_generation': False
             }
     
     async def _parse_3mf_file(self, file_path: Path) -> Dict[str, Any]:
@@ -184,16 +192,17 @@ class BambuParser:
                                      file=meta_file, error=str(e))
                         continue
             
-            logger.info("Successfully parsed 3MF file", 
-                       file_path=str(file_path), 
+            logger.info("Successfully parsed 3MF file",
+                       file_path=str(file_path),
                        thumbnail_count=len(thumbnails),
                        metadata_keys=list(metadata.keys()))
-            
+
             return {
                 'success': True,
                 'thumbnails': thumbnails,
                 'metadata': metadata,
-                'error': None
+                'error': None,
+                'needs_generation': len(thumbnails) == 0  # Generate if no embedded thumbnails
             }
             
         except Exception as e:
@@ -202,7 +211,8 @@ class BambuParser:
                 'success': False,
                 'error': str(e),
                 'thumbnails': [],
-                'metadata': {}
+                'metadata': {},
+                'needs_generation': False
             }
     
     def _extract_gcode_thumbnails(self, content: str) -> List[Dict[str, Any]]:
@@ -442,16 +452,17 @@ class BambuParser:
                     'thumbnails_found': len(thumbnails)
                 }
                 
-            logger.info("Successfully parsed BGCode file", 
-                       file_path=str(file_path), 
+            logger.info("Successfully parsed BGCode file",
+                       file_path=str(file_path),
                        thumbnail_count=len(thumbnails),
                        metadata_keys=list(metadata.keys()))
-            
+
             return {
                 'success': True,
                 'thumbnails': thumbnails,
                 'metadata': metadata,
-                'error': None
+                'error': None,
+                'needs_generation': len(thumbnails) == 0  # Generate if no embedded thumbnails
             }
             
         except Exception as e:
@@ -460,7 +471,51 @@ class BambuParser:
                 'success': False,
                 'error': str(e),
                 'thumbnails': [],
-                'metadata': {}
+                'metadata': {},
+                'needs_generation': False
+            }
+
+    async def _parse_stl_file(self, file_path: Path) -> Dict[str, Any]:
+        """
+        Parse STL file - STL files never have embedded thumbnails.
+        Returns success but marks that generation is needed.
+
+        Args:
+            file_path: Path to STL file
+
+        Returns:
+            Parse result indicating generation is needed
+        """
+        try:
+            # STL files don't contain embedded thumbnails or metadata
+            # We can extract basic file info though
+            file_size = file_path.stat().st_size
+
+            metadata = {
+                'file_size': file_size,
+                'file_type': 'stl'
+            }
+
+            logger.info("STL file detected - will require preview generation",
+                       file_path=str(file_path),
+                       file_size=file_size)
+
+            return {
+                'success': True,
+                'thumbnails': [],
+                'metadata': metadata,
+                'error': None,
+                'needs_generation': True  # STL always needs generation
+            }
+
+        except Exception as e:
+            logger.error("Failed to parse STL file", file_path=str(file_path), error=str(e))
+            return {
+                'success': False,
+                'error': str(e),
+                'thumbnails': [],
+                'metadata': {},
+                'needs_generation': False
             }
 
     def _extract_png_dimensions(self, png_data: bytes) -> Tuple[int, int]:
