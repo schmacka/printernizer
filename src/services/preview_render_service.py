@@ -55,7 +55,7 @@ class PreviewRenderService:
 
         # GCODE rendering configuration
         self.gcode_config = {
-            'enabled': False,  # Disabled by default for performance
+            'enabled': True,  # Enabled for testing
             'max_lines': 10000,
             'line_color': '#007bff',
             'background_color': '#ffffff'
