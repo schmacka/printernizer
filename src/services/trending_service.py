@@ -22,6 +22,12 @@ from src.services.event_service import EventService
 logger = structlog.get_logger(__name__)
 
 
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 1.0  # seconds
+RETRY_MAX_DELAY = 30.0  # seconds
+
+
 class TrendingService:
     """Service for discovering and caching trending 3D models."""
 
@@ -34,6 +40,17 @@ class TrendingService:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._refresh_task = None
         self._refresh_interval = 6 * 3600  # 6 hours in seconds
+
+        # Metrics tracking
+        self._metrics = {
+            "total_requests": 0,
+            "failed_requests": 0,
+            "successful_fetches": 0,
+            "last_fetch_time": None,
+            "last_error": None,
+            "cache_hits": 0,
+            "cache_misses": 0
+        }
 
     async def initialize(self):
         """Initialize trending service and create tables."""
@@ -75,14 +92,60 @@ class TrendingService:
 
             await conn.commit()
 
+    async def _retry_with_backoff(self, func, *args, **kwargs):
+        """Retry function with exponential backoff."""
+        last_exception = None
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                return await func(*args, **kwargs)
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                last_exception = e
+                if attempt < MAX_RETRIES - 1:
+                    delay = min(RETRY_BASE_DELAY * (2 ** attempt), RETRY_MAX_DELAY)
+                    logger.warning(
+                        f"Request failed, retrying in {delay}s",
+                        attempt=attempt + 1,
+                        max_retries=MAX_RETRIES,
+                        error=str(e)
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"Request failed after {MAX_RETRIES} attempts", error=str(e))
+            except Exception as e:
+                # Don't retry on non-network errors
+                logger.error(f"Non-retryable error occurred: {e}")
+                raise
+
+        raise last_exception
+
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create HTTP session."""
-        if self.session is None:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            timeout = aiohttp.ClientTimeout(total=30)
-            self.session = aiohttp.ClientSession(headers=headers, timeout=timeout)
+        """Get or create HTTP session with proper error handling."""
+        if self.session is None or self.session.closed:
+            try:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
+                # Increase header size limits to handle large cookies/headers from sites like Printables
+                connector = aiohttp.TCPConnector(
+                    limit=100,
+                    limit_per_host=30,
+                    ttl_dns_cache=300,  # DNS cache for 5 minutes
+                    force_close=False,  # Keep connections alive
+                    enable_cleanup_closed=True
+                )
+                self.session = aiohttp.ClientSession(
+                    headers=headers,
+                    timeout=timeout,
+                    connector=connector,
+                    max_line_size=16384,
+                    max_field_size=16384
+                )
+                logger.debug("HTTP session created successfully")
+            except Exception as e:
+                logger.error(f"Failed to create HTTP session: {e}")
+                raise
         return self.session
 
     async def _start_refresh_task(self):
@@ -127,98 +190,114 @@ class TrendingService:
 
         return False
 
+    async def _fetch_url(self, url: str) -> str:
+        """Fetch URL content with retry logic and metrics tracking."""
+        self._metrics["total_requests"] += 1
+
+        async def _fetch():
+            session = await self._get_session()
+            async with session.get(url) as response:
+                response.raise_for_status()
+                return await response.text()
+
+        try:
+            result = await self._retry_with_backoff(_fetch)
+            self._metrics["successful_fetches"] += 1
+            self._metrics["last_fetch_time"] = datetime.now().isoformat()
+            return result
+        except Exception as e:
+            self._metrics["failed_requests"] += 1
+            self._metrics["last_error"] = str(e)
+            raise
+
     async def fetch_makerworld_trending(self) -> List[Dict[str, Any]]:
-        """Fetch trending models from MakerWorld."""
+        """Fetch trending models from MakerWorld with retry logic."""
         trending_items = []
 
         try:
-            session = await self._get_session()
-
             # MakerWorld doesn't have a public API, so we'll scrape the trending page
             url = "https://makerworld.com/en/models?sort=trend"
 
-            async with session.get(url) as response:
-                if response.status == 200:
-                    content = await response.text()
-                    soup = BeautifulSoup(content, 'html.parser')
+            content = await self._fetch_url(url)
+            soup = BeautifulSoup(content, 'html.parser')
 
-                    # Parse model cards (structure may change)
-                    model_cards = soup.find_all('div', class_='model-card', limit=50)
+            # Parse model cards (structure may change)
+            model_cards = soup.find_all('div', class_='model-card', limit=50)
 
-                    for card in model_cards:
-                        try:
-                            # Extract data from card
-                            title_elem = card.find('h3', class_='model-title')
-                            link_elem = card.find('a', href=True)
-                            creator_elem = card.find('span', class_='creator-name')
-                            downloads_elem = card.find('span', class_='download-count')
+            for card in model_cards:
+                try:
+                    # Extract data from card
+                    title_elem = card.find('h3', class_='model-title')
+                    link_elem = card.find('a', href=True)
+                    creator_elem = card.find('span', class_='creator-name')
+                    downloads_elem = card.find('span', class_='download-count')
 
-                            if title_elem and link_elem:
-                                model_url = f"https://makerworld.com{link_elem['href']}"
-                                model_id = self._extract_id_from_url(model_url, 'makerworld')
+                    if title_elem and link_elem:
+                        model_url = f"https://makerworld.com{link_elem['href']}"
+                        model_id = self._extract_id_from_url(model_url, 'makerworld')
 
-                                trending_items.append({
-                                    'platform': 'makerworld',
-                                    'model_id': model_id or str(uuid4()),
-                                    'title': title_elem.text.strip(),
-                                    'url': model_url,
-                                    'creator': creator_elem.text.strip() if creator_elem else None,
-                                    'downloads': self._parse_count(downloads_elem.text) if downloads_elem else 0,
-                                    'category': 'general'
-                                })
-                        except Exception as e:
-                            logger.warning(f"Failed to parse MakerWorld model card: {e}")
+                        trending_items.append({
+                            'platform': 'makerworld',
+                            'model_id': model_id or str(uuid4()),
+                            'title': title_elem.text.strip(),
+                            'url': model_url,
+                            'creator': creator_elem.text.strip() if creator_elem else None,
+                            'downloads': self._parse_count(downloads_elem.text) if downloads_elem else 0,
+                            'category': 'general'
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to parse MakerWorld model card: {e}")
+
+            logger.info(f"Successfully fetched {len(trending_items)} MakerWorld trending items")
 
         except Exception as e:
-            logger.error(f"Failed to fetch MakerWorld trending: {e}")
+            logger.error(f"Failed to fetch MakerWorld trending: {e}", exc_info=True)
 
         return trending_items
 
     async def fetch_printables_trending(self) -> List[Dict[str, Any]]:
-        """Fetch trending models from Printables."""
+        """Fetch trending models from Printables with retry logic."""
         trending_items = []
 
         try:
-            session = await self._get_session()
-
             # Printables has a more structured page
             url = "https://www.printables.com/model?ordering=-popularity_score"
 
-            async with session.get(url) as response:
-                if response.status == 200:
-                    content = await response.text()
-                    soup = BeautifulSoup(content, 'html.parser')
+            content = await self._fetch_url(url)
+            soup = BeautifulSoup(content, 'html.parser')
 
-                    # Parse model listings
-                    model_items = soup.find_all('div', class_='model-list-item', limit=50)
+            # Parse model listings
+            model_items = soup.find_all('div', class_='model-list-item', limit=50)
 
-                    for item in model_items:
-                        try:
-                            title_elem = item.find('h3', class_='model-name')
-                            link_elem = item.find('a', href=True)
-                            creator_elem = item.find('a', class_='author-name')
-                            likes_elem = item.find('span', class_='likes-count')
-                            downloads_elem = item.find('span', class_='downloads-count')
+            for item in model_items:
+                try:
+                    title_elem = item.find('h3', class_='model-name')
+                    link_elem = item.find('a', href=True)
+                    creator_elem = item.find('a', class_='author-name')
+                    likes_elem = item.find('span', class_='likes-count')
+                    downloads_elem = item.find('span', class_='downloads-count')
 
-                            if title_elem and link_elem:
-                                model_url = f"https://www.printables.com{link_elem['href']}"
-                                model_id = self._extract_id_from_url(model_url, 'printables')
+                    if title_elem and link_elem:
+                        model_url = f"https://www.printables.com{link_elem['href']}"
+                        model_id = self._extract_id_from_url(model_url, 'printables')
 
-                                trending_items.append({
-                                    'platform': 'printables',
-                                    'model_id': model_id or str(uuid4()),
-                                    'title': title_elem.text.strip(),
-                                    'url': model_url,
-                                    'creator': creator_elem.text.strip() if creator_elem else None,
-                                    'likes': self._parse_count(likes_elem.text) if likes_elem else 0,
-                                    'downloads': self._parse_count(downloads_elem.text) if downloads_elem else 0,
-                                    'category': 'general'
-                                })
-                        except Exception as e:
-                            logger.warning(f"Failed to parse Printables model item: {e}")
+                        trending_items.append({
+                            'platform': 'printables',
+                            'model_id': model_id or str(uuid4()),
+                            'title': title_elem.text.strip(),
+                            'url': model_url,
+                            'creator': creator_elem.text.strip() if creator_elem else None,
+                            'likes': self._parse_count(likes_elem.text) if likes_elem else 0,
+                            'downloads': self._parse_count(downloads_elem.text) if downloads_elem else 0,
+                            'category': 'general'
+                        })
+                except Exception as e:
+                    logger.warning(f"Failed to parse Printables model item: {e}")
+
+            logger.info(f"Successfully fetched {len(trending_items)} Printables trending items")
 
         except Exception as e:
-            logger.error(f"Failed to fetch Printables trending: {e}")
+            logger.error(f"Failed to fetch Printables trending: {e}", exc_info=True)
 
         return trending_items
 
@@ -442,7 +521,7 @@ class TrendingService:
         return idea_id
 
     async def get_statistics(self) -> Dict[str, Any]:
-        """Get trending cache statistics."""
+        """Get trending cache statistics with performance metrics."""
         async with self.db.connection() as conn:
             # Total cached items
             cursor = await conn.execute('SELECT COUNT(*) as count FROM trending_cache')
@@ -473,12 +552,29 @@ class TrendingService:
             last_refresh = {row['platform']: row['last_refresh']
                           for row in await cursor.fetchall()}
 
+        # Calculate success rate
+        total_requests = self._metrics["total_requests"]
+        success_rate = (
+            (self._metrics["successful_fetches"] / total_requests * 100)
+            if total_requests > 0 else 0
+        )
+
         return {
             'total_cached': total,
             'valid_items': valid,
             'by_platform': by_platform,
             'last_refresh': last_refresh,
-            'refresh_interval_hours': self._refresh_interval / 3600
+            'refresh_interval_hours': self._refresh_interval / 3600,
+            'performance_metrics': {
+                'total_requests': self._metrics["total_requests"],
+                'successful_fetches': self._metrics["successful_fetches"],
+                'failed_requests': self._metrics["failed_requests"],
+                'success_rate': f"{success_rate:.2f}%",
+                'last_fetch_time': self._metrics["last_fetch_time"],
+                'last_error': self._metrics["last_error"],
+                'cache_hits': self._metrics["cache_hits"],
+                'cache_misses': self._metrics["cache_misses"]
+            }
         }
 
     async def cleanup(self):
