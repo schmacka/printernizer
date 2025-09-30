@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     logger = structlog.get_logger()
-    logger.info("Starting Printernizer application", version="1.0.2")
+    logger.info("Starting Printernizer application", version="1.1.0")
     
     # Initialize database
     database = Database()
@@ -263,7 +263,7 @@ def create_application() -> FastAPI:
     app = FastAPI(
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
-        version="1.0.2",
+        version="1.1.0",
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
         lifespan=lifespan
