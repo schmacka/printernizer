@@ -93,14 +93,42 @@ class TrendingService:
             await conn.commit()
 
     async def _retry_with_backoff(self, func, *args, **kwargs):
-        """Retry function with exponential backoff."""
+        """Retry function with exponential backoff and header-specific error handling."""
         last_exception = None
 
         for attempt in range(MAX_RETRIES):
             try:
                 return await func(*args, **kwargs)
+            except aiohttp.ClientResponseError as e:
+                last_exception = e
+                # Handle HTTP 400 errors that might be header-related
+                if e.status == 400 and "header" in str(e).lower():
+                    logger.warning(f"Header-related HTTP 400 error: {e}")
+                    if attempt < MAX_RETRIES - 1:
+                        # Recreate session with fresh headers
+                        await self._close_session()
+                if attempt < MAX_RETRIES - 1:
+                    delay = min(RETRY_BASE_DELAY * (2 ** attempt), RETRY_MAX_DELAY)
+                    logger.warning(
+                        f"HTTP error {e.status}, retrying in {delay}s",
+                        attempt=attempt + 1,
+                        max_retries=MAX_RETRIES,
+                        status=e.status,
+                        error=str(e)
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"HTTP request failed after {MAX_RETRIES} attempts", 
+                               status=e.status, error=str(e))
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 last_exception = e
+                error_msg = str(e).lower()
+                # Check for header size related errors
+                if any(term in error_msg for term in ['header', 'field', 'line too long', 'too large']):
+                    logger.error(f"Header size error detected: {e}")
+                    # Try to recreate session with even larger limits
+                    await self._close_session()
+                    
                 if attempt < MAX_RETRIES - 1:
                     delay = min(RETRY_BASE_DELAY * (2 ** attempt), RETRY_MAX_DELAY)
                     logger.warning(
@@ -124,29 +152,47 @@ class TrendingService:
         if self.session is None or self.session.closed:
             try:
                 headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'DNT': '1',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1'
                 }
-                timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
-                # Increase header size limits to handle large cookies/headers from sites like Printables
+                timeout = aiohttp.ClientTimeout(total=45, connect=15, sock_read=30)
+                # Significantly increase header size limits to handle large responses from Printables
+                # Printables can send very large headers with session data, cookies, and tracking info
                 connector = aiohttp.TCPConnector(
-                    limit=100,
-                    limit_per_host=30,
+                    limit=50,  # Reduce concurrent connections
+                    limit_per_host=10,  # Be more conservative per host
                     ttl_dns_cache=300,  # DNS cache for 5 minutes
                     force_close=False,  # Keep connections alive
-                    enable_cleanup_closed=True
+                    enable_cleanup_closed=True,
+                    keepalive_timeout=30  # Keep connections alive longer
                 )
                 self.session = aiohttp.ClientSession(
                     headers=headers,
                     timeout=timeout,
                     connector=connector,
-                    max_line_size=16384,
-                    max_field_size=16384
+                    max_line_size=65536,  # 64KB - 4x larger for long response lines
+                    max_field_size=32768  # 32KB - 2x larger for header fields
                 )
                 logger.debug("HTTP session created successfully")
             except Exception as e:
                 logger.error(f"Failed to create HTTP session: {e}")
                 raise
         return self.session
+
+    async def _close_session(self):
+        """Close and recreate HTTP session for error recovery."""
+        if self.session and not self.session.closed:
+            try:
+                await self.session.close()
+                logger.debug("HTTP session closed for recreation")
+            except Exception as e:
+                logger.warning(f"Error closing HTTP session: {e}")
+        self.session = None
 
     async def _start_refresh_task(self):
         """Start background task for periodic refresh."""
@@ -191,14 +237,40 @@ class TrendingService:
         return False
 
     async def _fetch_url(self, url: str) -> str:
-        """Fetch URL content with retry logic and metrics tracking."""
+        """Fetch URL content with retry logic, chunked reading, and metrics tracking."""
         self._metrics["total_requests"] += 1
 
         async def _fetch():
             session = await self._get_session()
-            async with session.get(url) as response:
+            
+            # Use chunked reading for large responses to avoid memory issues
+            async with session.get(url, chunked=True) as response:
                 response.raise_for_status()
-                return await response.text()
+                
+                # Check content length and handle large responses appropriately
+                content_length = response.headers.get('content-length')
+                if content_length and int(content_length) > 10 * 1024 * 1024:  # 10MB
+                    logger.warning(f"Large response detected: {content_length} bytes from {url}")
+                
+                # Read response in chunks to handle large content
+                chunks = []
+                total_size = 0
+                max_size = 50 * 1024 * 1024  # 50MB limit
+                
+                async for chunk in response.content.iter_chunked(8192):  # 8KB chunks
+                    total_size += len(chunk)
+                    if total_size > max_size:
+                        raise aiohttp.ClientPayloadError(f"Response too large: {total_size} bytes")
+                    chunks.append(chunk)
+                
+                # Decode response
+                content = b''.join(chunks)
+                encoding = response.get_encoding()
+                try:
+                    return content.decode(encoding)
+                except (UnicodeDecodeError, LookupError):
+                    # Fallback to utf-8 with error handling
+                    return content.decode('utf-8', errors='replace')
 
         try:
             result = await self._retry_with_backoff(_fetch)
@@ -441,7 +513,7 @@ class TrendingService:
             await self.cleanup_expired()
 
             # Emit event
-            await self.event_service.emit('trending_updated', {
+            await self.event_service.emit_event('trending_updated', {
                 'platforms': ['makerworld', 'printables'],
                 'timestamp': datetime.now().isoformat()
             })
@@ -512,7 +584,7 @@ class TrendingService:
             await conn.commit()
 
         # Emit event
-        await self.event_service.emit('idea_created_from_trending', {
+        await self.event_service.emit_event('idea_created_from_trending', {
             'idea_id': idea_id,
             'trending_id': trending_id,
             'platform': item['platform']

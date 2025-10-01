@@ -142,7 +142,7 @@ class ThumbnailService:
             temp_path.unlink(missing_ok=True)
 
             # Emit event
-            await self.event_service.emit('thumbnail_cached', {
+            await self.event_service.emit_event('thumbnail_cached', {
                 'url': original_url,
                 'cache_path': str(final_path),
                 'size': img.size,

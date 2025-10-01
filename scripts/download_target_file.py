@@ -20,8 +20,9 @@ except ImportError as e:
 
 def download_target_file():
     """Download the specific target file."""
+    from bambu_credentials import get_bambu_credentials
+    
     ip = "192.168.176.101"
-    access_code = "40722898"
     serial = "00M00A301901234"  # Dummy serial
     target_file = "top-option-2-color-change_plate_1.3mf"
 
@@ -29,6 +30,13 @@ def download_target_file():
     print("=" * 40)
     print(f"Target: {target_file}")
     print()
+
+    try:
+        username, access_code = get_bambu_credentials(ip)
+        print(f"Using username: {username}")
+    except ValueError as e:
+        print(f"Error getting credentials: {e}")
+        return
 
     try:
         # Create and connect client

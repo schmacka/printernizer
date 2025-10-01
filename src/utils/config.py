@@ -4,9 +4,13 @@ Handles environment variables, settings validation, and Home Assistant integrati
 """
 
 import os
+import secrets
 from typing import Optional, List
-from pydantic import Field
+from pydantic import Field, validator
 from pydantic_settings import BaseSettings
+import structlog
+
+logger = structlog.get_logger()
 
 
 class PrinternizerSettings(BaseSettings):
@@ -61,12 +65,27 @@ class PrinternizerSettings(BaseSettings):
     redis_url: Optional[str] = Field(default=None, env="REDIS_URL")
     
     # Security
-    secret_key: str = Field(default="your-super-secret-key-change-in-production", env="SECRET_KEY")
+    secret_key: str = Field(default="", env="SECRET_KEY")
     
     # G-code Preview Optimization
     gcode_optimize_print_only: bool = Field(default=True, env="GCODE_OPTIMIZE_PRINT_ONLY")
     gcode_optimization_max_lines: int = Field(default=1000, env="GCODE_OPTIMIZATION_MAX_LINES")
     gcode_render_max_lines: int = Field(default=10000, env="GCODE_RENDER_MAX_LINES")
+    
+    @validator('secret_key')
+    def validate_secret_key(cls, v):
+        """Validate and generate secure secret key if needed."""
+        # If no secret key provided (empty or default), generate one
+        if not v or v == "your-super-secret-key-change-in-production":
+            generated_key = secrets.token_urlsafe(32)
+            logger.warning("No SECRET_KEY environment variable set. Generated secure key for this session.")
+            logger.info("For production, set SECRET_KEY environment variable to persist sessions across restarts.")
+            return generated_key
+        
+        # Validate provided key
+        if len(v) < 32:
+            raise ValueError("Secret key must be at least 32 characters long for security. Set a longer SECRET_KEY environment variable.")
+        return v
     
     @property
     def cors_origins_list(self) -> List[str]:
