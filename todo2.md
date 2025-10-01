@@ -1,9 +1,9 @@
 
 # Issues to work on
 
-[] Frontend: 
+[] Frontend:
     [x] Files: Can not sort by printer. Only "Alle Drucker" is shown in the dropdown. I would expect A1BL and CoreOne to be selectable.
-    [] Files: all files are displayed with "0 B" size
+    [x] Files: all files are displayed with "0 B" size
     [x] Files: Fehlermeldung Fehler beim Laden Entdeckte Dateien konnten nicht geladen werden.
     [] files: Layer count and other statistics of the file
     [] files: Add search bar to search for files by name
