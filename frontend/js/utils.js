@@ -556,13 +556,22 @@ function createStatusBadge(type, status) {
  */
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return unsafe;
-    
+
     return unsafe
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+/**
+ * Truncate text to specified length with ellipsis
+ */
+function truncateText(text, maxLength) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + '...';
 }
 
 /**
@@ -710,7 +719,7 @@ if (typeof module !== 'undefined' && module.exports) {
         isValidIP, isValidEmail, validateForm,
         setLoadingState, showToast, showModal, closeModal,
         debounce, throttle, copyToClipboard, downloadFile,
-        getStatusConfig, createStatusBadge, escapeHtml, generateId,
+        getStatusConfig, createStatusBadge, escapeHtml, truncateText, generateId,
         Storage, URLParams
     };
 }
