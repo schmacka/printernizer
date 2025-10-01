@@ -756,31 +756,72 @@ class FileService:
                     thumbnail_format = best_thumbnail.get('format', 'png')
                     thumbnail_source = 'embedded'
             elif parse_result.get('needs_generation', False):
-                # No embedded thumbnails - try to generate preview
-                try:
-                    import base64
-                    file_type = self._get_file_type(os.path.basename(file_path))
-                    logger.info("Generating preview thumbnail for file",
-                               file_path=file_path, file_type=file_type)
+                # No embedded thumbnails - try Prusa printer API first, then generate preview
 
-                    preview_bytes = await self.preview_render_service.get_or_generate_preview(
-                        file_path, file_type, size=(200, 200)
-                    )
+                # Try to download thumbnail from Prusa printer if this is a Prusa file
+                if file_id.startswith('59dd18ca-b8c3-4a69-b00d-1931257ecbce'):  # Prusa printer ID
+                    try:
+                        import base64
+                        # Extract filename from file_id (format: printer_id_filename)
+                        filename = file_id.split('_', 1)[1] if '_' in file_id else os.path.basename(file_path)
 
-                    if preview_bytes:
-                        thumbnail_data = base64.b64encode(preview_bytes).decode('utf-8')
-                        thumbnail_width = 200
-                        thumbnail_height = 200
-                        thumbnail_format = 'png'
-                        thumbnail_source = 'generated'
-                        logger.info("Successfully generated preview thumbnail",
-                                   file_path=file_path)
-                    else:
-                        logger.warning("Preview generation returned no data",
-                                     file_path=file_path)
-                except Exception as e:
-                    logger.error("Failed to generate preview thumbnail",
-                                file_path=file_path, error=str(e))
+                        logger.info("Attempting to download thumbnail from Prusa API",
+                                   file_id=file_id, filename=filename)
+
+                        # Get the Prusa printer instance
+                        printer_instance = self.printer_service.printers.get('59dd18ca-b8c3-4a69-b00d-1931257ecbce')
+                        if printer_instance and hasattr(printer_instance, 'download_thumbnail'):
+                            prusa_thumb_bytes = await printer_instance.download_thumbnail(filename, size='l')
+
+                            if prusa_thumb_bytes:
+                                thumbnail_data = base64.b64encode(prusa_thumb_bytes).decode('utf-8')
+                                # Try to extract dimensions from PNG header
+                                if len(prusa_thumb_bytes) > 24 and prusa_thumb_bytes[:8] == b'\x89PNG\r\n\x1a\n':
+                                    try:
+                                        import struct
+                                        width, height = struct.unpack('>II', prusa_thumb_bytes[16:24])
+                                        thumbnail_width = width
+                                        thumbnail_height = height
+                                    except Exception:
+                                        thumbnail_width = 200
+                                        thumbnail_height = 200
+                                else:
+                                    thumbnail_width = 200
+                                    thumbnail_height = 200
+                                thumbnail_format = 'png'
+                                thumbnail_source = 'printer'
+                                logger.info("Successfully downloaded thumbnail from Prusa API",
+                                           file_path=file_path, size_bytes=len(prusa_thumb_bytes))
+                    except Exception as e:
+                        logger.warning("Failed to download thumbnail from Prusa API, will try generation",
+                                     file_path=file_path, error=str(e))
+
+                # If still no thumbnail, generate preview
+                if not thumbnail_data:
+                    try:
+                        import base64
+                        file_type = self._get_file_type(os.path.basename(file_path))
+                        logger.info("Generating preview thumbnail for file",
+                                   file_path=file_path, file_type=file_type)
+
+                        preview_bytes = await self.preview_render_service.get_or_generate_preview(
+                            file_path, file_type, size=(200, 200)
+                        )
+
+                        if preview_bytes:
+                            thumbnail_data = base64.b64encode(preview_bytes).decode('utf-8')
+                            thumbnail_width = 200
+                            thumbnail_height = 200
+                            thumbnail_format = 'png'
+                            thumbnail_source = 'generated'
+                            logger.info("Successfully generated preview thumbnail",
+                                       file_path=file_path)
+                        else:
+                            logger.warning("Preview generation returned no data",
+                                         file_path=file_path)
+                    except Exception as e:
+                        logger.error("Failed to generate preview thumbnail",
+                                    file_path=file_path, error=str(e))
             
             # Update file record with thumbnail and metadata
             update_data = {
