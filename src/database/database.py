@@ -49,7 +49,7 @@ class Database:
             # Jobs table - Enhanced for German business requirements
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS jobs (
-                    id TEXT PRIMARY KEY,
+                    id TEXT PRIMARY KEY NOT NULL CHECK(length(id) > 0),
                     printer_id TEXT NOT NULL,
                     printer_type TEXT NOT NULL,
                     job_name TEXT NOT NULL,
@@ -555,29 +555,57 @@ class Database:
     
     # File CRUD Operations
     async def create_file(self, file_data: Dict[str, Any]) -> bool:
-        """Create a new file record."""
+        """Create a new file record or update if exists (preserving thumbnails)."""
         try:
-            return await self._execute_write(
-                """INSERT OR REPLACE INTO files (id, printer_id, filename, display_name, file_path, file_size,
-                                            file_type, status, source, metadata, watch_folder_path,
-                                            relative_path, modified_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    file_data['id'],
-                    file_data.get('printer_id', 'local'),
-                    file_data['filename'],
-                    file_data.get('display_name'),
-                    file_data.get('file_path'),
-                    file_data.get('file_size'),
-                    file_data.get('file_type'),
-                    file_data.get('status', 'available'),
-                    file_data.get('source', 'printer'),
-                    file_data.get('metadata'),
-                    file_data.get('watch_folder_path'),
-                    file_data.get('relative_path'),
-                    file_data.get('modified_time')
+            file_id = file_data['id']
+
+            # Check if file already exists
+            async with self._connection.execute("SELECT id, has_thumbnail, thumbnail_data, thumbnail_width, thumbnail_height, thumbnail_format, thumbnail_source FROM files WHERE id = ?", (file_id,)) as cursor:
+                existing = await cursor.fetchone()
+
+            if existing:
+                # File exists - update only non-thumbnail fields to preserve thumbnail data
+                updates = {
+                    'display_name': file_data.get('display_name'),
+                    'file_size': file_data.get('file_size'),
+                    'file_type': file_data.get('file_type'),
+                    'modified_time': file_data.get('modified_time')
+                }
+
+                # Only update file_path and status if provided (e.g., after download)
+                if file_data.get('file_path'):
+                    updates['file_path'] = file_data['file_path']
+                if file_data.get('status'):
+                    updates['status'] = file_data['status']
+
+                # Update metadata if provided
+                if file_data.get('metadata'):
+                    updates['metadata'] = file_data['metadata']
+
+                return await self.update_file(file_id, updates)
+            else:
+                # New file - insert with all fields
+                return await self._execute_write(
+                    """INSERT INTO files (id, printer_id, filename, display_name, file_path, file_size,
+                                                file_type, status, source, metadata, watch_folder_path,
+                                                relative_path, modified_time)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        file_id,
+                        file_data.get('printer_id', 'local'),
+                        file_data['filename'],
+                        file_data.get('display_name'),
+                        file_data.get('file_path'),
+                        file_data.get('file_size'),
+                        file_data.get('file_type'),
+                        file_data.get('status', 'available'),
+                        file_data.get('source', 'printer'),
+                        file_data.get('metadata'),
+                        file_data.get('watch_folder_path'),
+                        file_data.get('relative_path'),
+                        file_data.get('modified_time')
+                    )
                 )
-            )
         except Exception as e:  # pragma: no cover
             logger.error("Failed to create file", error=str(e))
             return False
@@ -999,29 +1027,96 @@ class Database:
         """Run database migrations to update schema."""
         try:
             async with self._connection.cursor() as cursor:
-                # Check if watch_folder_path column exists in files table
-                await cursor.execute("PRAGMA table_info(files)")
-                columns = await cursor.fetchall()
-                column_names = [col['name'] for col in columns]
-                
-                # Add watch_folder_path column if it doesn't exist
-                if 'watch_folder_path' not in column_names:
-                    logger.info("Adding watch_folder_path column to files table")
-                    await cursor.execute("ALTER TABLE files ADD COLUMN watch_folder_path TEXT")
-                
-                # Add relative_path column if it doesn't exist
-                if 'relative_path' not in column_names:
-                    logger.info("Adding relative_path column to files table")
-                    await cursor.execute("ALTER TABLE files ADD COLUMN relative_path TEXT")
-                
-                # Add modified_time column if it doesn't exist  
-                if 'modified_time' not in column_names:
-                    logger.info("Adding modified_time column to files table")
-                    await cursor.execute("ALTER TABLE files ADD COLUMN modified_time TIMESTAMP")
-                
+                # Create migrations tracking table if it doesn't exist
+                await cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS migrations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        version TEXT NOT NULL UNIQUE,
+                        description TEXT,
+                        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                # Check which migrations have been applied
+                await cursor.execute("SELECT version FROM migrations")
+                applied_migrations = {row['version'] for row in await cursor.fetchall()}
+
+                # Migration 001: Add watch folder columns to files table
+                if '001' not in applied_migrations:
+                    await cursor.execute("PRAGMA table_info(files)")
+                    columns = await cursor.fetchall()
+                    column_names = [col['name'] for col in columns]
+
+                    # Add watch_folder_path column if it doesn't exist
+                    if 'watch_folder_path' not in column_names:
+                        logger.info("Migration 001: Adding watch_folder_path column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN watch_folder_path TEXT")
+
+                    # Add relative_path column if it doesn't exist
+                    if 'relative_path' not in column_names:
+                        logger.info("Migration 001: Adding relative_path column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN relative_path TEXT")
+
+                    # Add modified_time column if it doesn't exist
+                    if 'modified_time' not in column_names:
+                        logger.info("Migration 001: Adding modified_time column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN modified_time TIMESTAMP")
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('001', 'Add watch folder columns to files table')
+                    )
+                    logger.info("Migration 001 completed")
+
+                # Migration 005: Fix NULL job IDs
+                if '005' not in applied_migrations:
+                    logger.info("Migration 005: Checking for NULL job IDs")
+
+                    # Check if we have jobs with NULL IDs
+                    await cursor.execute("SELECT COUNT(*) as count FROM jobs WHERE id IS NULL OR id = ''")
+                    null_count_row = await cursor.fetchone()
+                    null_count = null_count_row['count'] if null_count_row else 0
+
+                    if null_count > 0:
+                        logger.info(f"Migration 005: Found {null_count} jobs with NULL/empty IDs, fixing...")
+
+                        # Read the migration SQL file and execute it
+                        from pathlib import Path
+                        migration_file = Path(__file__).parent.parent.parent / "migrations" / "005_fix_null_job_ids.sql"
+
+                        if migration_file.exists():
+                            with open(migration_file, 'r') as f:
+                                migration_sql = f.read()
+
+                            # Split by semicolons and execute each statement
+                            # Skip the migration tracking insert since we'll do that separately
+                            statements = [s.strip() for s in migration_sql.split(';') if s.strip() and 'INSERT INTO migrations' not in s]
+
+                            for statement in statements:
+                                if statement and not statement.startswith('--'):
+                                    await cursor.execute(statement)
+
+                            logger.info("Migration 005: Jobs table recreated with NOT NULL constraint")
+                        else:
+                            # Fallback: Generate UUIDs inline
+                            logger.warning("Migration file not found, using inline migration")
+                            await cursor.execute("""
+                                UPDATE jobs
+                                SET id = lower(hex(randomblob(16)))
+                                WHERE id IS NULL OR id = ''
+                            """)
+                    else:
+                        logger.info("Migration 005: No NULL job IDs found, schema already compliant")
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('005', 'Fix NULL job IDs and add NOT NULL constraint')
+                    )
+                    logger.info("Migration 005 completed")
+
                 await self._connection.commit()
-                logger.info("Database migrations completed successfully")
-                
+                logger.info("All database migrations completed successfully")
+
         except Exception as e:
             logger.error("Failed to run database migrations", error=str(e))
             raise
