@@ -370,7 +370,7 @@ document.addEventListener('change', (e) => {
  */
 window.printernizer = {
     // Application state
-    version: '1.0.0',
+    version: '1.1.3',
     currentPage: 'dashboard',
     connectionStatus: 'connecting',
     
