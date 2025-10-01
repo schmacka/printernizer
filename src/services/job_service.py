@@ -26,34 +26,53 @@ class JobService:
         """Get list of print jobs."""
         try:
             jobs_data = await self.database.list_jobs()
-            
+
             # Apply pagination
             start = offset
             end = offset + limit
             paginated_jobs = jobs_data[start:end]
-            
+
             # Convert to Job models for validation and formatting
             jobs = []
+            skipped_count = 0
             for job_data in paginated_jobs:
                 try:
+                    # Validate job has ID - critical field
+                    if not job_data.get('id'):
+                        logger.error("Job missing ID field, skipping",
+                                   printer_id=job_data.get('printer_id'),
+                                   job_name=job_data.get('job_name'),
+                                   job_data=job_data)
+                        skipped_count += 1
+                        continue
+
                     # Parse customer_info JSON if present
                     if job_data.get('customer_info'):
                         job_data['customer_info'] = json.loads(job_data['customer_info'])
-                    
+
                     # Convert datetime strings to datetime objects
                     for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
                         if job_data.get(field):
                             job_data[field] = datetime.fromisoformat(job_data[field])
-                    
+
                     job = Job(**job_data)
                     jobs.append(job.dict())
                 except Exception as e:
-                    logger.warning("Failed to parse job data", job_id=job_data.get('id'), error=str(e))
+                    logger.error("Failed to parse job data, skipping",
+                               job_id=job_data.get('id'),
+                               error=str(e),
+                               error_type=type(e).__name__)
+                    skipped_count += 1
                     continue
-            
+
+            if skipped_count > 0:
+                logger.warning("Skipped jobs during retrieval",
+                             skipped_count=skipped_count,
+                             valid_count=len(jobs))
+
             logger.info("Retrieved jobs", count=len(jobs), total_available=len(jobs_data))
             return jobs
-            
+
         except Exception as e:
             logger.error("Failed to get jobs", error=str(e))
             return []
@@ -63,41 +82,59 @@ class JobService:
         try:
             # Use enhanced database method with direct filtering and pagination
             jobs_data = await self.database.list_jobs(
-                printer_id=printer_id, 
-                status=status, 
+                printer_id=printer_id,
+                status=status,
                 is_business=is_business,
                 limit=limit,
                 offset=offset
             )
-            
+
             # Convert to Job models
             jobs = []
+            skipped_count = 0
             for job_data in jobs_data:
                 try:
+                    # Validate job has ID - critical field
+                    if not job_data.get('id'):
+                        logger.error("Job missing ID field, skipping",
+                                   printer_id=job_data.get('printer_id'),
+                                   job_name=job_data.get('job_name'))
+                        skipped_count += 1
+                        continue
+
                     # Parse customer_info JSON if present
                     if job_data.get('customer_info'):
                         job_data['customer_info'] = json.loads(job_data['customer_info'])
-                    
+
                     # Convert datetime strings to datetime objects
                     for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
                         if job_data.get(field):
                             job_data[field] = datetime.fromisoformat(job_data[field])
-                    
+
                     job = Job(**job_data)
                     jobs.append(job.dict())
                 except Exception as e:
-                    logger.warning("Failed to parse job data", job_id=job_data.get('id'), error=str(e))
+                    logger.error("Failed to parse job data, skipping",
+                               job_id=job_data.get('id'),
+                               error=str(e),
+                               error_type=type(e).__name__)
+                    skipped_count += 1
                     continue
-            
-            logger.info("Listed jobs", 
-                       printer_id=printer_id, 
-                       status=status, 
-                       is_business=is_business, 
-                       count=len(jobs), 
-                       limit=limit, 
+
+            if skipped_count > 0:
+                logger.warning("Skipped jobs during list operation",
+                             skipped_count=skipped_count,
+                             valid_count=len(jobs))
+
+            logger.info("Listed jobs",
+                       printer_id=printer_id,
+                       status=status,
+                       is_business=is_business,
+                       count=len(jobs),
+                       limit=limit,
                        offset=offset)
             return jobs
-            
+
         except Exception as e:
             logger.error("Failed to list jobs", error=str(e))
             return []
@@ -198,10 +235,12 @@ class JobService:
                 job_create = JobCreate(**job_data)
             else:
                 job_create = job_data
-            
-            # Generate unique job ID
+
+            # Generate unique job ID - ensure it's never NULL
             job_id = str(uuid.uuid4())
-            
+            if not job_id or job_id == '':
+                raise ValueError("Generated job ID is empty")
+
             # Prepare job data for database
             db_job_data = {
                 'id': job_id,
@@ -214,13 +253,19 @@ class JobService:
                 'is_business': job_create.is_business,
                 'customer_info': json.dumps(job_create.customer_info) if job_create.customer_info else None
             }
-            
+
+            # Validate all required fields are present before database insert
+            required_fields = ['id', 'printer_id', 'printer_type', 'job_name']
+            for field in required_fields:
+                if not db_job_data.get(field):
+                    raise ValueError(f"Required field '{field}' is missing or empty")
+
             # Create job in database
             success = await self.database.create_job(db_job_data)
-            
+
             if success:
                 logger.info("Job created successfully", job_id=job_id, job_name=job_create.job_name)
-                
+
                 # Emit event for job creation
                 await self.event_service.emit_event('job_created', {
                     'job_id': job_id,
@@ -229,14 +274,14 @@ class JobService:
                     'is_business': job_create.is_business,
                     'timestamp': datetime.now().isoformat()
                 })
-                
+
                 return job_id
             else:
                 logger.error("Failed to create job in database", data=job_data)
                 raise Exception("Database operation failed")
-                
+
         except Exception as e:
-            logger.error("Failed to create job", error=str(e), data=job_data)
+            logger.error("Failed to create job", error=str(e), error_type=type(e).__name__, data=job_data)
             raise
         
     async def update_job_status(self, job_id: str, status: str, data: Dict[str, Any] = None):
