@@ -211,9 +211,9 @@ class BambuFTP:
 
 def test_working_ftp():
     """Test the working FTP implementation."""
+    from bambu_credentials import get_bambu_credentials
+    
     host = "192.168.176.101"
-    username = "bblp"
-    password = "40722898"
     target_file = "top-option-2-color-change_plate_1.3mf"
 
     print("Working Bambu Lab FTP Test")
@@ -221,6 +221,13 @@ def test_working_ftp():
     print(f"Host: {host}")
     print(f"Target: {target_file}")
     print()
+    
+    try:
+        username, password = get_bambu_credentials(host)
+        print(f"Using username: {username}")
+    except ValueError as e:
+        print(f"Error getting credentials: {e}")
+        return
 
     try:
         # Connect

@@ -1,6 +1,12 @@
 # Bambu Lab Credentials Test Scripts
 
+**🔒 SECURITY UPDATE: All hardcoded credentials have been removed!**
+
 This directory contains helper scripts to test Bambu Lab printer credentials before adding them to your Printernizer configuration.
+
+## 🚨 Important Security Changes
+
+Scripts now use the secure credential management system via `bambu_credentials.py`. No more hardcoded passwords!
 
 ## What These Scripts Do
 
