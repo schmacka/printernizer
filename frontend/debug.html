@@ -134,7 +134,7 @@
     <script>
         // Initialize debug page when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            debugManager.initialize();
+            debugManager.init();
         });
     </script>
 
@@ -289,6 +289,27 @@
                 justify-content: center;
             }
         }
+
+        .app-footer {
+            background: var(--gray-800);
+            color: var(--gray-300);
+            padding: var(--spacing-4);
+            text-align: center;
+            margin-top: var(--spacing-8);
+            font-size: var(--font-size-sm);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
     </style>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span class="footer-text">Printernizer v<span id="appVersion">...</span></span>
+        </div>
+    </footer>
 </body>
 </html>

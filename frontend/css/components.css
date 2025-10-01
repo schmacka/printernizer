@@ -3160,3 +3160,23 @@ label .required {
     object-fit: contain;
     padding: var(--spacing-2);
 }
+
+/* App Footer */
+.app-footer {
+    background: var(--gray-800);
+    color: var(--gray-300);
+    padding: var(--spacing-4);
+    text-align: center;
+    margin-top: var(--spacing-8);
+    font-size: var(--font-size-sm);
+    border-top: 1px solid var(--gray-700);
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.footer-text {
+    opacity: 0.8;
+}

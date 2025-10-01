@@ -100,33 +100,55 @@ async def get_thumbnail_processing_log(
     limit: int = Query(20, description="Maximum number of log entries to return", ge=1, le=100)
 ):
     """Return recent thumbnail processing attempts with status and details.
-    
+
     Helps debug why thumbnail extraction might be failing for specific files.
     Shows the last processing attempts with timestamps, file types, and error details.
     """
+    from pathlib import Path
+
     file_service = getattr(request.app.state, 'file_service', None)
     if not file_service:
         raise HTTPException(status_code=500, detail="File service unavailable")
 
     log_entries = file_service.get_thumbnail_processing_log(limit)
-    
-    # Add some summary statistics
-    total_entries = len(log_entries)
-    status_counts = {}
-    file_type_counts = {}
-    
+
+    # Transform entries to match frontend expectations
+    transformed_entries = []
     for entry in log_entries:
         status = entry.get('status', 'unknown')
+        transformed = {
+            'timestamp': entry.get('timestamp'),
+            'success': status == 'success',
+            'filename': Path(entry.get('file_path', '')).name,
+            'file_type': entry.get('file_extension', 'unknown'),
+            'file_id': entry.get('file_id'),
+        }
+
+        # Add error field only if failed
+        if status == 'failed' and entry.get('details'):
+            transformed['error'] = entry.get('details')
+
+        transformed_entries.append(transformed)
+
+    # Calculate summary statistics
+    total_entries = len(log_entries)
+    successful = sum(1 for e in log_entries if e.get('status') == 'success')
+    failed = sum(1 for e in log_entries if e.get('status') == 'failed')
+    success_rate = round((successful / total_entries * 100) if total_entries > 0 else 0, 1)
+
+    # Count file types
+    file_type_counts = {}
+    for entry in log_entries:
         file_ext = entry.get('file_extension', 'unknown')
-        
-        status_counts[status] = status_counts.get(status, 0) + 1
         file_type_counts[file_ext] = file_type_counts.get(file_ext, 0) + 1
-    
+
     return {
         "summary": {
             "total_entries": total_entries,
-            "status_breakdown": status_counts,
-            "file_type_breakdown": file_type_counts
+            "successful": successful,
+            "failed": failed,
+            "success_rate": success_rate,
+            "file_types": file_type_counts
         },
-        "recent_attempts": log_entries
+        "recent_attempts": transformed_entries
     }
