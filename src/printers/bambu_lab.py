@@ -983,22 +983,28 @@ class BambuLabPrinter(BasePrinter):
                 try:
                     result, cache_files = ftp.list_cache_dir()
                     for cache_file in cache_files or []:
-                        # Parse FTP listing line to extract just the filename
+                        # Parse FTP listing line to extract filename and size
                         # Format: "-rw-rw-rw-   1 root  root    445349 Apr 22 01:10 filename.ext"
+                        file_size = None
                         if isinstance(cache_file, str):
                             # Split on whitespace and take the last part as filename
                             parts = cache_file.strip().split()
                             if len(parts) >= 9:  # Standard FTP ls -l format
                                 filename = ' '.join(parts[8:])  # filename might contain spaces
+                                # Extract file size (5th column in ls -l format)
+                                try:
+                                    file_size = int(parts[4])
+                                except (ValueError, IndexError):
+                                    file_size = None
                             else:
                                 filename = parts[-1] if parts else cache_file
                         else:
                             filename = str(cache_file)
-                        
+
                         if any(filename.lower().endswith(ext) for ext in ['.3mf', '.gcode', '.bgcode']):
                             files.append(PrinterFile(
                                 filename=filename,
-                                size=0,  # Size unknown
+                                size=file_size,
                                 path=f"cache/{filename}",
                                 modified=None,
                                 file_type=self._get_file_type_from_name(filename)

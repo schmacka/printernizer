@@ -297,9 +297,9 @@ class FileManager {
             }
 
             // Add printer options
-            if (response && response.printers && Array.isArray(response.printers)) {
-                console.log(`Adding ${response.printers.length} printers to filter dropdown`);
-                response.printers.forEach(printer => {
+            if (response && Array.isArray(response)) {
+                console.log(`Adding ${response.length} printers to filter dropdown`);
+                response.forEach(printer => {
                     const option = document.createElement('option');
                     option.value = printer.id;
                     option.textContent = printer.name;
@@ -307,7 +307,7 @@ class FileManager {
                     console.log(`Added printer: ${printer.name} (${printer.id})`);
                 });
 
-                if (response.printers.length === 0) {
+                if (response.length === 0) {
                     console.warn('No printers found in response');
                 }
             } else {
