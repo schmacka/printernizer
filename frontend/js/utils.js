@@ -667,8 +667,40 @@ function initSystemTime() {
     setInterval(updateTime, 1000);
 }
 
-// Initialize system time when DOM loads
-document.addEventListener('DOMContentLoaded', initSystemTime);
+/**
+ * Fetch and display application version in footer
+ */
+async function loadAppVersion() {
+    const versionElement = document.getElementById('appVersion');
+    if (!versionElement) {
+        console.warn('appVersion element not found in footer');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/v1/health', {
+            cache: 'no-cache' // Force fresh data
+        });
+        if (response.ok) {
+            const data = await response.json();
+            const version = data.version || '1.1.3';
+            console.log('Setting app version to:', version);
+            versionElement.textContent = version;
+        } else {
+            console.error('Health endpoint returned non-OK status:', response.status);
+            versionElement.textContent = '1.1.3';
+        }
+    } catch (error) {
+        console.error('Failed to load version:', error);
+        versionElement.textContent = '1.1.3';
+    }
+}
+
+// Initialize system time and version when DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+    initSystemTime();
+    loadAppVersion();
+});
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

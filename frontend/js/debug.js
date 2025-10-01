@@ -20,22 +20,55 @@ class DebugManager {
      */
     async init() {
         console.log('Initializing debug manager');
-        
-        // Load all debug information
-        await Promise.all([
+
+        // Load all debug information with individual error handling
+        await Promise.allSettled([
             this.refreshHealthInfo(),
             this.loadApplicationLogs(),
             this.loadPerformanceMetrics(),
-            this.refreshThumbnailLog(),
-            this.runAPITests()
-        ]);
-        
+            this.loadThumbnailLog(),
+            this.runAPITests(),
+            this.loadAppVersion()
+        ]).then(results => {
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`Failed to load component ${index}:`, result.reason);
+                }
+            });
+        });
+
         // Setup form handlers and auto-refresh
         this.setupEventHandlers();
         this.startAutoRefresh();
-        
+
         this.lastRefresh = new Date();
         console.log('Debug manager initialized');
+    }
+
+    /**
+     * Load and display app version in footer
+     */
+    async loadAppVersion() {
+        const versionElement = document.getElementById('appVersion');
+        if (!versionElement) {
+            console.warn('Version element not found');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/v1/health');
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Health data received:', data);
+                versionElement.textContent = data.version || '1.1.3';
+            } else {
+                console.error('Health endpoint returned non-OK status:', response.status);
+                versionElement.textContent = '1.1.3';
+            }
+        } catch (error) {
+            console.error('Failed to load version:', error);
+            versionElement.textContent = '1.1.3';
+        }
     }
 
     /**
@@ -100,17 +133,23 @@ class DebugManager {
      */
     async refreshDebugInfo() {
         try {
-            await Promise.all([
+            await Promise.allSettled([
                 this.refreshHealthInfo(),
                 this.loadApplicationLogs(),
                 this.loadPerformanceMetrics(),
-                this.refreshThumbnailLog(),
+                this.loadThumbnailLog(),
                 this.runAPITests()
-            ]);
-            
+            ]).then(results => {
+                results.forEach((result, index) => {
+                    if (result.status === 'rejected') {
+                        console.error(`Failed to refresh component ${index}:`, result.reason);
+                    }
+                });
+            });
+
             this.lastRefresh = new Date();
             console.log('Debug info refreshed');
-            
+
         } catch (error) {
             console.error('Failed to refresh debug info:', error);
         }
@@ -598,6 +637,13 @@ class DebugManager {
      * Display error messages
      */
     /**
+     * Refresh thumbnail processing log (alias for button onclick)
+     */
+    async refreshThumbnailLog() {
+        await this.loadThumbnailLog();
+    }
+
+    /**
      * Load thumbnail processing log
      */
     async loadThumbnailLog() {
@@ -763,7 +809,7 @@ function refreshDebugInfo() {
 }
 
 function refreshThumbnailLog() {
-    debugManager.loadThumbnailLog();
+    debugManager.refreshThumbnailLog();
 }
 
 function clearLogs() {
