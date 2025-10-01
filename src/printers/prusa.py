@@ -503,37 +503,19 @@ class PrusaPrinter(BasePrinter):
                         printer_id=self.printer_id)
 
             # Construct the full download URL
-            # Fix PrusaLink API path based on the actual format returned
-            base_host = f"http://{self.ip_address}"  # Get just the host without /api
-            
-            if download_ref.startswith('/api/'):
-                # Modern API format - use as is
-                download_url = f"{self.base_url}{download_ref}"
-                logger.info(f"Using modern API path: {download_url}", printer_id=self.printer_id)
-            elif download_ref.startswith('/apiusb/'):
-                # Legacy format with leading slash
-                filename_part = download_ref[8:]  # Remove '/apiusb/'
-                download_url = f"{base_host}/api/v1/files/usb/{filename_part}"
-                logger.info(f"Converted legacy /apiusb/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
-            elif download_ref.startswith('/apisd/'):
-                # Legacy format with leading slash
-                filename_part = download_ref[7:]  # Remove '/apisd/'
-                download_url = f"{base_host}/api/v1/files/sdcard/{filename_part}"
-                logger.info(f"Converted legacy /apisd/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
-            elif download_ref.startswith('usb/'):
-                # Modern format without leading slash - convert to proper API path
-                filename_part = download_ref[4:]  # Remove 'usb/'
-                download_url = f"{base_host}/api/v1/files/usb/{filename_part}"
-                logger.info(f"Converted modern usb/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
-            elif download_ref.startswith('sdcard/'):
-                # Modern format without leading slash - convert to proper API path
-                filename_part = download_ref[7:]  # Remove 'sdcard/'
-                download_url = f"{base_host}/api/v1/files/sdcard/{filename_part}"
-                logger.info(f"Converted modern sdcard/ path: {download_ref} -> {download_url}", printer_id=self.printer_id)
-            else:
-                # Try legacy format construction as fallback
-                download_url = f"{base_host}/apiusb/{download_ref}"
-                logger.info(f"Using legacy fallback path: {download_url}", printer_id=self.printer_id)
+            # PrusaLink returns direct storage paths (e.g., "usb/FILE" or "/usb/FILE")
+            # These are HTTP file paths, NOT API endpoints
+            # The /api/v1/files/ endpoint returns JSON metadata, not the binary file
+            base_host = f"http://{self.ip_address}"
+
+            # Ensure path starts with /
+            if not download_ref.startswith('/'):
+                download_ref = f"/{download_ref}"
+
+            # Use direct path - NOT the API endpoint
+            download_url = f"{base_host}{download_ref}"
+            logger.info(f"Download URL: {download_ref} -> {download_url}",
+                       printer_id=self.printer_id)
 
             logger.info("Downloading file using API reference",
                        printer_id=self.printer_id,
@@ -546,19 +528,45 @@ class PrusaPrinter(BasePrinter):
                     # Ensure local directory exists
                     Path(local_path).parent.mkdir(parents=True, exist_ok=True)
 
+                    # Read first chunk to validate content type
+                    first_chunk = None
+                    chunks = []
+
+                    async for chunk in response.content.iter_chunked(8192):
+                        if first_chunk is None:
+                            first_chunk = chunk
+                            # Validate that this is not JSON metadata
+                            if chunk.startswith(b'{') or chunk.startswith(b'['):
+                                # This looks like JSON, not a binary file
+                                try:
+                                    json_preview = chunk[:200].decode('utf-8', errors='ignore')
+                                    logger.error("Downloaded JSON metadata instead of binary file",
+                                               printer_id=self.printer_id,
+                                               filename=filename,
+                                               download_url=download_url,
+                                               content_preview=json_preview)
+                                    return False
+                                except Exception:
+                                    pass
+                        chunks.append(chunk)
+
                     # Write file content
                     with open(local_path, 'wb') as f:
-                        async for chunk in response.content.iter_chunked(8192):
+                        for chunk in chunks:
                             f.write(chunk)
 
+                    file_size = Path(local_path).stat().st_size
                     logger.info("Successfully downloaded file from Prusa",
-                               printer_id=self.printer_id, filename=filename, local_path=local_path)
+                               printer_id=self.printer_id, filename=filename,
+                               local_path=local_path, size_bytes=file_size)
                     return True
                 else:
                     logger.error("Download failed with HTTP status",
                                printer_id=self.printer_id,
                                filename=filename,
-                               status=response.status)
+                               download_url=download_url,
+                               status=response.status,
+                               reason=response.reason)
                     return False
 
         except Exception as e:
@@ -616,7 +624,75 @@ class PrusaPrinter(BasePrinter):
                         display_name=display_name,
                         error=str(e))
             return None
-            
+
+    async def download_thumbnail(self, filename: str, size: str = 'l') -> Optional[bytes]:
+        """
+        Download thumbnail for a file from Prusa printer.
+
+        Args:
+            filename: Display name of the file
+            size: Thumbnail size - 's' (small/icon) or 'l' (large/thumbnail)
+
+        Returns:
+            PNG thumbnail data as bytes, or None if not available
+        """
+        if not self.is_connected or not self.session:
+            logger.warning("Cannot download thumbnail - not connected",
+                         printer_id=self.printer_id)
+            return None
+
+        try:
+            # Find the file to get thumbnail reference
+            file_info = await self._find_file_by_display_name(filename)
+            if not file_info:
+                logger.warning("Cannot download thumbnail - file not found",
+                             printer_id=self.printer_id, filename=filename)
+                return None
+
+            # Get thumbnail reference from file info
+            refs = file_info.get('refs', {})
+            thumb_ref = refs.get('thumbnail') if size == 'l' else refs.get('icon')
+
+            if not thumb_ref:
+                logger.debug("No thumbnail reference in file metadata",
+                           printer_id=self.printer_id, filename=filename, size=size)
+                return None
+
+            # Construct thumbnail URL
+            base_host = f"http://{self.ip_address}"
+            if thumb_ref.startswith('/api/'):
+                thumb_url = f"{base_host}{thumb_ref}"
+            elif thumb_ref.startswith('/thumb/'):
+                # Direct thumbnail path - convert to API endpoint
+                thumb_url = f"{base_host}{thumb_ref}"
+            else:
+                logger.warning("Unexpected thumbnail reference format",
+                             printer_id=self.printer_id, thumb_ref=thumb_ref)
+                return None
+
+            logger.info("Downloading thumbnail from Prusa",
+                       printer_id=self.printer_id, filename=filename,
+                       size=size, url=thumb_url)
+
+            # Download the thumbnail
+            async with self.session.get(thumb_url) as response:
+                if response.status == 200:
+                    thumbnail_data = await response.read()
+                    logger.info("Successfully downloaded thumbnail",
+                               printer_id=self.printer_id, filename=filename,
+                               size_bytes=len(thumbnail_data))
+                    return thumbnail_data
+                else:
+                    logger.warning("Failed to download thumbnail",
+                                 printer_id=self.printer_id, filename=filename,
+                                 status=response.status)
+                    return None
+
+        except Exception as e:
+            logger.error("Error downloading thumbnail from Prusa",
+                        printer_id=self.printer_id, filename=filename, error=str(e))
+            return None
+
     async def pause_print(self) -> bool:
         """Pause the current print job on Prusa printer."""
         if not self.is_connected or not self.session:
