@@ -129,7 +129,7 @@ async def health_check(
         return HealthResponse(
             status=overall_status,
             timestamp=datetime.now(),
-            version="1.1.1",
+            version="1.1.5",
             environment=getattr(config.settings, "environment", "production"),
             database={
                 "type": "sqlite",
@@ -145,7 +145,7 @@ async def health_check(
         return HealthResponse(
             status="unhealthy",
             timestamp=datetime.now(),
-            version="1.1.1",
+            version="1.1.5",
             environment=getattr(config.settings, "environment", "production"),
             database={"type": "sqlite", "healthy": False},
             services={"error": str(e)}

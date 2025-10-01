@@ -1,8 +1,25 @@
 # Printernizer Deep Technical & Architectural Audit (Ultra Review)
 Generated: 2025-09-30
-Scope Branch: `feature/gcode-print-optimization`
+Updated: 2025-10-01
+Scope Branch: `feature/gcode-print-optimization` → `master`
 
 > Objective: Enumerate ALL temporary constructs, placeholders, fragile patterns, latent risks, architectural improvement vectors, and provide an actionable, categorized remediation backlog without altering source code.
+
+---
+
+## RECENT UPDATES (2025-10-01)
+### ✅ Completed Items
+- **Debug Page Fixed** - Resolved two promise errors on debug page load:
+  - Fixed method name mismatch: `initialize()` → `init()` in [debug.html:137](frontend/debug.html#L137)
+  - Fixed internal method call: added `refreshThumbnailLog()` wrapper for `loadThumbnailLog()` in [debug.js](frontend/js/debug.js)
+  - Errors resolved: Promise rejection on page initialization
+
+### 🔍 Active Features Verified
+- **G-code Warmup Detection** - Feature is ENABLED and functional:
+  - Located in [gcode_analyzer.py](src/utils/gcode_analyzer.py)
+  - Integrated in [preview_render_service.py:73](src/services/preview_render_service.py#L73)
+  - Controlled by `gcode_optimize_print_only` setting
+  - Identifies and filters warmup phases from print preview rendering
 
 ---
 ## 0. Methodology Snapshot
@@ -48,10 +65,10 @@ Event emission | Trending service referencing `emit` vs event service using `emi
 Trending Fetch | Failing early due to long header / 400 | Platform-specific adaptation missing | Add adaptive pagination / fallback HTML parse | M |
 
 ### 1.5 Temporary Artifacts & Scripts
-| File | Issue | Severity | Disposition |
-|------|-------|---------|-------------|
-`scripts/working_bambu_ftp.py` | Hardcoded credentials | H | Quarantine or gate behind dev flag |
-`scripts/debug_*` / `test_*` (FTP variants) | Environment leakage risk if committed | M | Add `/scripts/` hardening policy + secret scan hook |
+| File | Issue | Severity | Disposition | Status |
+|------|-------|---------|-------------|--------|
+`scripts/working_bambu_ftp.py` | Hardcoded credentials | H | Quarantine or gate behind dev flag | ⚠️ OPEN |
+`scripts/debug_*` / `test_*` (FTP variants) | Environment leakage risk if committed | M | Add `/scripts/` hardening policy + secret scan hook | ⚠️ OPEN |
 
 ### 1.6 Overly Verbose / Development Console Logging (Frontend)
 | Module | Approx. Debug Statements | Concern | Fix Path |
@@ -71,12 +88,12 @@ Trending Fetch | Failing early due to long header / 400 | Platform-specific adap
 Sequence validated: config normalization → DB init → migrations → services bring-up → printers → trending fetch → watch folder fallback.
 
 ### 2.1 Observed Errors / Warnings
-| Timestamp | Event | Type | Root Cause Hypothesis | Mitigation |
-|-----------|-------|------|-----------------------|-----------|
-13:56:34.476688Z | Failed to start watchdog observer | Warning | Windows thread handle mismatch usage of watchdog observer thread life-cycle | Use platform-specific observer; ensure correct thread type; fallback instrumentation |
-13:56:35.485848Z | Printables trending 400 header too long | Error | Remote site expecting user-agent / header limitations or compression mismatch | Adjust request headers, add user-agent rotation, implement smaller query segments |
-13:56:35.487576Z | `'EventService' object has no attribute 'emit'` | Error | Interface expectation mismatch: trending calls `emit` while existing implementation offers `emit_event` | Adapter or rename; add contract tests |
-13:56:45.268408Z | Prusa connection retry w/ backoff | Warning | Connectivity / device offline | Add escalating telemetry + circuit open after threshold |
+| Timestamp | Event | Type | Root Cause Hypothesis | Mitigation | Status |
+|-----------|-------|------|-----------------------|-----------|--------|
+13:56:34.476688Z | Failed to start watchdog observer | Warning | Windows thread handle mismatch usage of watchdog observer thread life-cycle | Use platform-specific observer; ensure correct thread type; fallback instrumentation | ⚠️ OPEN |
+13:56:35.485848Z | Printables trending 400 header too long | Error | Remote site expecting user-agent / header limitations or compression mismatch | Adjust request headers, add user-agent rotation, implement smaller query segments | ⚠️ OPEN |
+13:56:35.487576Z | `'EventService' object has no attribute 'emit'` | Error | Interface expectation mismatch: trending calls `emit` while existing implementation offers `emit_event` | Adapter or rename; add contract tests | ⚠️ OPEN |
+13:56:45.268408Z | Prusa connection retry w/ backoff | Warning | Connectivity / device offline | Add escalating telemetry + circuit open after threshold | ⚠️ OPEN |
 
 ### 2.2 Missing From Logs
 - No structured health summaries post-start (should emit system readiness bundle)
