@@ -289,3 +289,69 @@ The Printernizer project demonstrates solid architectural foundations but requir
 **Business Impact**: High (security and stability issues affect user trust and system reliability)
 
 **Next Steps**: Begin with Phase 1 critical security fixes while planning architectural improvements for sustainable long-term growth.
+
+---
+
+# Active Runtime Issues (October 1, 2025)
+*From 2-minute server runtime test - Follow-up required*
+
+## 🔴 Critical Issues
+
+### 1. Missing Brotli Compression Library
+**Error:** `Can not decode content-encoding: brotli (br). Please install 'Brotli'`
+- **Location:** [trending_service.py](src/services/trending_service.py)
+- **Impact:** Trending feature completely non-functional - cannot fetch from MakerWorld/Printables
+- **Fix:** `pip install brotli` or `pip install brotlipy`
+- **Priority:** HIGH - Feature completely broken
+
+## ⚠️ Warnings & Stability Issues
+
+### 2. Watchdog Observer Thread Failure
+**Error:** `'handle' must be a _ThreadHandle`
+- **Location:** [file_watcher_service.py](src/services/file_watcher_service.py:476)
+- **Impact:** File watcher running in fallback polling mode (performance degradation)
+- **Status:** Running but degraded functionality
+- **Fix Required:** Windows threading compatibility fix
+
+### 3. Job Validation Errors - NULL IDs ✅ FIXED (v1.1.2)
+**Error:** `1 validation error for Job - id: Input should be a valid string [type=string_type, input_value=None]`
+- **Occurrences:** Multiple times during runtime
+- **Impact:** Jobs with NULL IDs silently skipped from processing
+- **Root Cause:** Database contains jobs with NULL id field
+- **Fix Applied:**
+  - Migration 005 created to fix existing NULL IDs and add NOT NULL constraint
+  - Database schema updated with `id TEXT PRIMARY KEY NOT NULL CHECK(length(id) > 0)`
+  - Enhanced job_service.py validation with detailed error logging
+  - Added comprehensive test suite (test_job_validation.py)
+- **Branch:** fix/null-job-ids
+- **Status:** RESOLVED
+
+### 4. Bambu FTP Connection Timeouts
+**Error:** `FTP connection failed: timed out`
+- **Location:** [bambu_ftp_service.py](src/services/bambu_ftp_service.py)
+- **Impact:** Initial connection attempts fail (retry mechanism works)
+- **Behavior:** Retries 3 times then falls back to MQTT (functional but slow)
+- **Fix Required:** Investigate FTP connectivity issues or adjust timeout values
+
+### 5. Bambu MQTT Connection Instability
+**Errors:**
+- `Printer Values Not Available Yet` (8 occurrences)
+- `Not connected to the MQTT server`
+- `Exception. Type: <class 'TimeoutError'> Args: The read operation timed out` (2 times)
+- **Location:** bambulabs_api library / [bambu_lab.py](src/printers/bambu_lab.py)
+- **Impact:** Connection eventually succeeds but unstable during startup
+- **Behavior:** Multiple timeout/reconnect cycles before stable connection
+- **Fix Required:** Improve MQTT connection initialization and error handling
+
+## Summary Statistics
+- **Critical (Broken):** 1 issue (Brotli)
+- **Warnings (Degraded):** 3 issues (Watchdog, FTP, MQTT)
+- **Fixed:** 1 issue (NULL Job IDs - v1.1.2)
+- **Total Issues:** 4 active problems (1 fixed)
+
+## Recommended Immediate Actions
+1. ✅ **COMPLETED:** GZipMiddleware removed (version 1.1.1)
+2. ✅ **COMPLETED:** Fix NULL job IDs in database (version 1.1.2)
+3. 🔴 **NEXT:** Install Brotli library to fix trending feature
+4. ⚠️ **INVESTIGATE:** Windows watchdog threading compatibility
+5. ⚠️ **OPTIMIZE:** Bambu FTP/MQTT connection stability
