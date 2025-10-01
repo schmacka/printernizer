@@ -24,7 +24,6 @@ import uvicorn
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
@@ -294,7 +293,6 @@ def create_application() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(GermanComplianceMiddleware)
     app.add_middleware(RequestTimingMiddleware)
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
     
     # API Routes
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
