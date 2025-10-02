@@ -902,4 +902,163 @@ class FileService:
         """Get recent thumbnail processing log entries."""
         if limit:
             return self.thumbnail_processing_log[:limit]
-        return self.thumbnail_processing_log.copy()
+        return self.thumbnail_processing_log
+    
+    async def extract_enhanced_metadata(self, file_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract enhanced metadata from a file using BambuParser and ThreeMFAnalyzer.
+        
+        This method implements Phase 1 of Issue #43 - METADATA-001.
+        It extracts comprehensive metadata including physical properties, print settings,
+        material requirements, cost analysis, quality metrics, and compatibility info.
+        
+        Args:
+            file_id: ID of the file to analyze
+            
+        Returns:
+            Enhanced metadata dictionary or None if extraction failed
+        """
+        try:
+            from src.services.threemf_analyzer import ThreeMFAnalyzer
+            from src.models.file import (
+                EnhancedFileMetadata, PhysicalProperties, PrintSettings,
+                MaterialRequirements, CostBreakdown, QualityMetrics, CompatibilityInfo
+            )
+            
+            logger.info("Extracting enhanced metadata", file_id=file_id)
+            
+            # Get file record
+            file_record = await self.database.get_file(file_id)
+            if not file_record:
+                logger.error("File not found", file_id=file_id)
+                return None
+            
+            file_path = file_record.get('file_path')
+            if not file_path or not Path(file_path).exists():
+                logger.warning("File path not found or does not exist", 
+                             file_id=file_id, file_path=file_path)
+                return None
+            
+            file_path = Path(file_path)
+            file_type = file_path.suffix.lower()
+            
+            # Extract metadata based on file type
+            enhanced_metadata = {}
+            
+            if file_type == '.3mf':
+                # Use ThreeMFAnalyzer for 3MF files
+                analyzer = ThreeMFAnalyzer()
+                result = await analyzer.analyze_file(file_path)
+                
+                if result.get('success'):
+                    enhanced_metadata = result
+                else:
+                    logger.warning("3MF analysis failed", file_id=file_id, 
+                                 error=result.get('error'))
+                    return None
+            
+            elif file_type in ['.gcode', '.g']:
+                # Use BambuParser for G-code files
+                result = await self.bambu_parser.parse_file(str(file_path))
+                
+                if result.get('success'):
+                    metadata = result.get('metadata', {})
+                    
+                    # Convert parser output to enhanced metadata format
+                    enhanced_metadata = {
+                        'physical_properties': {
+                            'width': metadata.get('model_width'),
+                            'depth': metadata.get('model_depth'),
+                            'height': metadata.get('model_height'),
+                            'object_count': 1
+                        },
+                        'print_settings': {
+                            'layer_height': metadata.get('layer_height'),
+                            'first_layer_height': metadata.get('first_layer_height'),
+                            'nozzle_diameter': metadata.get('nozzle_diameter'),
+                            'wall_count': metadata.get('wall_loops'),
+                            'wall_thickness': metadata.get('wall_thickness'),
+                            'infill_density': metadata.get('infill_density') or metadata.get('sparse_infill_density'),
+                            'infill_pattern': metadata.get('infill_pattern') or metadata.get('sparse_infill_pattern'),
+                            'support_used': metadata.get('support_used') or metadata.get('enable_support'),
+                            'nozzle_temperature': metadata.get('nozzle_temperature'),
+                            'bed_temperature': metadata.get('bed_temperature'),
+                            'print_speed': metadata.get('print_speed'),
+                            'total_layer_count': metadata.get('total_layer_count')
+                        },
+                        'material_requirements': {
+                            'total_weight': metadata.get('total_filament_weight_sum') or metadata.get('total_filament_used'),
+                            'filament_length': metadata.get('filament_length_meters'),
+                            'multi_material': isinstance(metadata.get('filament_used_grams', []), list) and 
+                                            len(metadata.get('filament_used_grams', [])) > 1
+                        },
+                        'cost_breakdown': {
+                            'material_cost': metadata.get('material_cost_estimate'),
+                            'energy_cost': metadata.get('energy_cost_estimate'),
+                            'total_cost': metadata.get('total_cost_estimate')
+                        },
+                        'quality_metrics': {
+                            'complexity_score': metadata.get('complexity_score'),
+                            'difficulty_level': metadata.get('difficulty_level'),
+                            'success_probability': 100 - (metadata.get('complexity_score', 5) * 5) if metadata.get('complexity_score') else None
+                        },
+                        'compatibility_info': {
+                            'compatible_printers': metadata.get('compatible_printers'),
+                            'slicer_name': metadata.get('generator'),
+                            'bed_type': metadata.get('curr_bed_type')
+                        },
+                        'success': True
+                    }
+                else:
+                    logger.warning("G-code parsing failed", file_id=file_id)
+                    return None
+            
+            else:
+                logger.warning("Unsupported file type for enhanced metadata", 
+                             file_id=file_id, file_type=file_type)
+                return None
+            
+            # Convert to Pydantic models
+            try:
+                enhanced_model = EnhancedFileMetadata(
+                    physical_properties=PhysicalProperties(**enhanced_metadata.get('physical_properties', {})) 
+                        if enhanced_metadata.get('physical_properties') else None,
+                    print_settings=PrintSettings(**enhanced_metadata.get('print_settings', {}))
+                        if enhanced_metadata.get('print_settings') else None,
+                    material_requirements=MaterialRequirements(**enhanced_metadata.get('material_requirements', {}))
+                        if enhanced_metadata.get('material_requirements') else None,
+                    cost_breakdown=CostBreakdown(**enhanced_metadata.get('cost_breakdown', {}))
+                        if enhanced_metadata.get('cost_breakdown') else None,
+                    quality_metrics=QualityMetrics(**enhanced_metadata.get('quality_metrics', {}))
+                        if enhanced_metadata.get('quality_metrics') else None,
+                    compatibility_info=CompatibilityInfo(**enhanced_metadata.get('compatibility_info', {}))
+                        if enhanced_metadata.get('compatibility_info') else None
+                )
+                
+                # Update file record with enhanced metadata
+                await self.database.update_file_enhanced_metadata(
+                    file_id=file_id,
+                    enhanced_metadata=enhanced_model.model_dump(),
+                    last_analyzed=datetime.now()
+                )
+                
+                logger.info("Successfully extracted enhanced metadata", file_id=file_id)
+                
+                # Emit event
+                await self.event_service.emit_event("file_metadata_extracted", {
+                    "file_id": file_id,
+                    "file_path": str(file_path),
+                    "has_physical_properties": enhanced_model.physical_properties is not None,
+                    "has_print_settings": enhanced_model.print_settings is not None,
+                    "complexity_score": enhanced_model.quality_metrics.complexity_score if enhanced_model.quality_metrics else None
+                })
+                
+                return enhanced_model.model_dump()
+                
+            except Exception as e:
+                logger.error("Failed to create metadata models", file_id=file_id, error=str(e))
+                return None
+                
+        except Exception as e:
+            logger.error("Failed to extract enhanced metadata", file_id=file_id, error=str(e))
+            return None.copy()

@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from pydantic import BaseModel, Field
+from decimal import Decimal
 
 
 class FileStatus(str, Enum):
@@ -25,6 +26,82 @@ class FileSource(str, Enum):
     LOCAL = "local"            # Local file upload
     IMPORTED = "imported"      # Imported from external source
     LOCAL_WATCH = "local_watch" # File discovered in watch folder
+
+
+# Enhanced metadata models for Issue #43
+class PhysicalProperties(BaseModel):
+    """Physical properties of the 3D model."""
+    width: Optional[float] = Field(None, description="Model width in mm")
+    depth: Optional[float] = Field(None, description="Model depth in mm") 
+    height: Optional[float] = Field(None, description="Model height in mm")
+    volume: Optional[float] = Field(None, description="Model volume in cm³")
+    surface_area: Optional[float] = Field(None, description="Surface area in cm²")
+    object_count: int = Field(1, description="Number of objects in the model")
+    bounding_box: Optional[Dict[str, float]] = Field(None, description="3D bounding box coordinates")
+
+
+class PrintSettings(BaseModel):
+    """Print configuration settings."""
+    layer_height: Optional[float] = Field(None, description="Layer height in mm")
+    first_layer_height: Optional[float] = Field(None, description="First layer height in mm")
+    nozzle_diameter: Optional[float] = Field(None, description="Nozzle diameter in mm")
+    wall_count: Optional[int] = Field(None, description="Number of perimeter walls")
+    wall_thickness: Optional[float] = Field(None, description="Total wall thickness in mm")
+    infill_density: Optional[float] = Field(None, description="Infill density percentage")
+    infill_pattern: Optional[str] = Field(None, description="Infill pattern type")
+    support_used: Optional[bool] = Field(None, description="Whether supports are required")
+    nozzle_temperature: Optional[int] = Field(None, description="Nozzle temperature in °C")
+    bed_temperature: Optional[int] = Field(None, description="Bed temperature in °C")
+    print_speed: Optional[float] = Field(None, description="Print speed in mm/s")
+    total_layer_count: Optional[int] = Field(None, description="Total number of layers")
+
+
+class MaterialRequirements(BaseModel):
+    """Material usage and requirements."""
+    total_weight: Optional[float] = Field(None, description="Total filament weight in grams")
+    filament_length: Optional[float] = Field(None, description="Total filament length in meters")
+    filament_colors: Optional[List[str]] = Field(None, description="Filament color codes")
+    material_types: Optional[List[str]] = Field(None, description="Material types (PLA, PETG, etc.)")
+    waste_weight: Optional[float] = Field(None, description="Estimated waste material in grams")
+    multi_material: bool = Field(False, description="Whether multi-material printing is used")
+
+
+class CostBreakdown(BaseModel):
+    """Detailed cost analysis."""
+    material_cost: Optional[float] = Field(None, description="Material cost in EUR")
+    energy_cost: Optional[float] = Field(None, description="Energy cost in EUR")
+    total_cost: Optional[float] = Field(None, description="Total estimated cost in EUR")
+    cost_per_gram: Optional[float] = Field(None, description="Cost per gram in EUR")
+    breakdown: Optional[Dict[str, float]] = Field(None, description="Detailed cost components")
+
+
+class QualityMetrics(BaseModel):
+    """Print quality and difficulty assessment."""
+    complexity_score: Optional[int] = Field(None, description="Complexity score 1-10", ge=1, le=10)
+    difficulty_level: Optional[str] = Field(None, description="Beginner, Intermediate, Advanced, Expert")
+    success_probability: Optional[float] = Field(None, description="Estimated success rate 0-100", ge=0, le=100)
+    overhang_percentage: Optional[float] = Field(None, description="Percentage of overhanging surfaces")
+    recommended_settings: Optional[Dict[str, Any]] = Field(None, description="Optimization suggestions")
+
+
+class CompatibilityInfo(BaseModel):
+    """Printer and software compatibility."""
+    compatible_printers: Optional[List[str]] = Field(None, description="List of compatible printer models")
+    slicer_name: Optional[str] = Field(None, description="Slicer software name")
+    slicer_version: Optional[str] = Field(None, description="Slicer software version")
+    profile_name: Optional[str] = Field(None, description="Print profile name")
+    bed_type: Optional[str] = Field(None, description="Required bed surface type")
+    required_features: Optional[List[str]] = Field(None, description="Required printer features")
+
+
+class EnhancedFileMetadata(BaseModel):
+    """Comprehensive file metadata (Issue #43 - METADATA-001)."""
+    physical_properties: Optional[PhysicalProperties] = None
+    print_settings: Optional[PrintSettings] = None
+    material_requirements: Optional[MaterialRequirements] = None
+    cost_breakdown: Optional[CostBreakdown] = None
+    quality_metrics: Optional[QualityMetrics] = None
+    compatibility_info: Optional[CompatibilityInfo] = None
 
 
 class File(BaseModel):
@@ -54,6 +131,10 @@ class File(BaseModel):
     watch_folder_path: Optional[str] = Field(None, description="Watch folder path for local files")
     relative_path: Optional[str] = Field(None, description="Relative path within watch folder")
     modified_time: Optional[datetime] = Field(None, description="File modification time")
+    
+    # Enhanced metadata (Issue #43 - METADATA-001)
+    enhanced_metadata: Optional[EnhancedFileMetadata] = Field(None, description="Comprehensive metadata")
+    last_analyzed: Optional[datetime] = Field(None, description="When metadata was last extracted")
     
     class Config:
         """Pydantic configuration."""
