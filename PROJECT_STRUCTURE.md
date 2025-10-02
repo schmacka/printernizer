@@ -145,7 +145,10 @@ printernizer/
 │       ├── THUMBNAILS.md        # File handling
 │       ├── development/         # Development guides
 │       ├── deployment/          # Deployment configs
-│       ├── features/            # Feature documentation
+│       ├── features/            # Feature specifications
+│       │   ├── ENHANCED_3D_MODEL_METADATA.md     # v1.2.0 metadata feature
+│       │   ├── ENHANCED_3D_MODEL_METADATA_TECHNICAL.md  # Technical design
+│       │   └── ENHANCED_3D_MODEL_METADATA_ROADMAP.md    # Implementation plan
 │       └── user-guide/          # User documentation
 │
 ├── 🚀 Deployment
@@ -441,6 +444,7 @@ docker-compose -f docker-compose.prod.yml up -d
 - **Deployment Guide**: `docs/PRODUCTION_DEPLOYMENT.md`
 - **Testing Guide**: `docs/TESTING_GUIDE.md`
 - **Debug Procedures**: `docs/DEBUG_PROCEDURES.md`
+- **Feature Specifications**: `docs/features/` - Detailed feature documentation and roadmaps
 
 ### Development Tools
 - **Debug Scripts**: `scripts/` directory
