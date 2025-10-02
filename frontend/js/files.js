@@ -585,7 +585,7 @@ class FileManager {
     }
 
     /**
-     * Preview file with STL/3MF support
+     * Preview file with STL/3MF support and enhanced metadata
      */
     async previewFile(fileId) {
         const fileItem = this.files.get(fileId);
@@ -606,25 +606,55 @@ class FileManager {
         `;
         
         try {
-            // Load metadata and thumbnail
+            // Load metadata, enhanced metadata, and thumbnail
             const [metadata, thumbnailUrl] = await Promise.all([
                 this.loadFileMetadata(fileId),
                 this.loadFileThumbnail(fileId)
             ]);
+            
+            // Load enhanced metadata separately (non-blocking)
+            const enhancedMetadata = new EnhancedFileMetadata(fileId);
             
             // Render preview based on file type
             const fileType = fileItem.file.file_type?.toLowerCase();
             const is3DFile = fileType && ['stl', '3mf', 'gcode', 'obj', 'ply'].includes(fileType);
             
             if (is3DFile) {
-                content.innerHTML = this.render3DFilePreview(fileItem, metadata, thumbnailUrl);
+                content.innerHTML = this.render3DFilePreview(fileItem, metadata, thumbnailUrl, enhancedMetadata);
             } else {
                 content.innerHTML = this.renderGenericFilePreview(fileItem, metadata);
+            }
+            
+            // Load and render enhanced metadata asynchronously
+            if (is3DFile) {
+                await this.loadAndRenderEnhancedMetadata(fileId, enhancedMetadata);
             }
             
         } catch (error) {
             console.error('Failed to load file preview:', error);
             content.innerHTML = this.renderPreviewError(fileItem, error);
+        }
+    }
+    
+    /**
+     * Load and render enhanced metadata asynchronously
+     */
+    async loadAndRenderEnhancedMetadata(fileId, enhancedMetadata) {
+        const metadataContainer = document.getElementById(`enhanced-metadata-${fileId}`);
+        if (!metadataContainer) return;
+        
+        // Show loading state
+        metadataContainer.innerHTML = enhancedMetadata.renderLoading();
+        
+        try {
+            // Load metadata from API
+            await enhancedMetadata.loadMetadata();
+            
+            // Render the enhanced metadata
+            metadataContainer.innerHTML = enhancedMetadata.render();
+        } catch (error) {
+            console.error('Failed to load enhanced metadata:', error);
+            metadataContainer.innerHTML = enhancedMetadata.renderError();
         }
     }
     
@@ -661,9 +691,9 @@ class FileManager {
     }
     
     /**
-     * Render 3D file preview with thumbnail and metadata
+     * Render 3D file preview with thumbnail and enhanced metadata
      */
-    render3DFilePreview(fileItem, metadata, thumbnailUrl) {
+    render3DFilePreview(fileItem, metadata, thumbnailUrl, enhancedMetadata) {
         const file = fileItem.file;
         const fileMetadata = metadata?.metadata || {};
         
@@ -683,7 +713,6 @@ class FileManager {
         `;
         
         const basicInfo = this.renderBasicFileInfo(file);
-        const metadataSection = this.render3DMetadata(fileMetadata);
         
         return `
             <div class="file-preview-3d">
@@ -695,12 +724,13 @@ class FileManager {
                 <div class="preview-content">
                     <div class="preview-main">
                         ${thumbnailSection}
-                    </div>
-                    
-                    <div class="preview-sidebar">
                         ${basicInfo}
-                        ${metadataSection}
                     </div>
+                </div>
+                
+                <!-- Enhanced Metadata Section -->
+                <div id="enhanced-metadata-${file.id}" class="enhanced-metadata-container">
+                    ${enhancedMetadata ? enhancedMetadata.renderLoading() : ''}
                 </div>
             </div>
         `;
