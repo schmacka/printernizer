@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-10-02
+
+### Added - Phase 2: Enhanced 3D Model Metadata Display (Issue #43, #45)
+- **Enhanced Metadata Display Component** (`frontend/js/enhanced-metadata.js`)
+  - Comprehensive metadata viewer with async loading and caching
+  - Summary cards showing dimensions, cost, quality score, and object count
+  - Detailed sections for physical properties, print settings, materials, costs, quality metrics, and compatibility
+  - Smart caching with 5-minute TTL to reduce API calls
+  - Loading, error, and empty state handling
+  
+- **Enhanced Metadata Styles** (`frontend/css/enhanced-metadata.css`)
+  - Modern card-based design system with responsive grid layouts
+  - Full responsive design support (desktop, tablet, mobile, small mobile)
+  - Dark/light theme compatibility with both media query and class-based support
+  - Color-coded quality indicators (green/yellow/red)
+  - Smooth animations and transitions for better UX
+  - Icon system using emoji for universal recognition
+  
+- **File Browser Integration**
+  - Integrated enhanced metadata into file preview modal
+  - Non-blocking async metadata loading for better performance
+  - Enhanced 3D file preview with comprehensive information display
+  
+- **Documentation**
+  - Comprehensive Phase 2 implementation documentation
+  - Integration verification script
+  - Test HTML file for component validation
+
+### Changed
+- Updated application version to 1.2.0 in health check endpoint
+- Modified file preview rendering to include metadata container
+- Enhanced files.js with async metadata loading functionality
+
+### Technical Details
+- ES6+ JavaScript with async/await patterns
+- Responsive CSS Grid layouts with mobile-first approach
+- WCAG 2.1 AA accessibility compliance
+- Browser compatibility: Chrome 90+, Firefox 88+, Safari 14+, Edge 90+
+
+## [1.1.6] - Previous Version
+
 ### Added
 - Project cleanup for public GitHub release
 - Comprehensive documentation structure in `docs/`
