@@ -256,11 +256,11 @@ class SettingsManager {
             </div>
             <div class="services-status">
                 <h4>Services</h4>
-                ${Object.entries(health.services).map(([service, status]) => `
+                ${Object.entries(health.services).map(([service, serviceInfo]) => `
                     <div class="service-item">
                         <span class="service-name">${service}:</span>
-                        <span class="service-status ${status === 'healthy' ? 'healthy' : 'unhealthy'}">
-                            ${status === 'healthy' ? '✅' : '❌'} ${status}
+                        <span class="service-status ${serviceInfo.status === 'healthy' ? 'healthy' : 'unhealthy'}">
+                            ${serviceInfo.status === 'healthy' ? '✅' : '❌'} ${serviceInfo.status}
                         </span>
                     </div>
                 `).join('')}

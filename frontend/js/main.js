@@ -275,16 +275,26 @@ function setupKeyboardShortcuts() {
  */
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded, initializing application...');
-    
+
     // Create global app instance
     window.app = new PrinternizerApp();
-    
+
     // Initialize application
     app.init();
-    
+
     // Setup keyboard shortcuts
     setupKeyboardShortcuts();
-    
+
+    // Load version after app initialization (with delay to ensure DOM is ready)
+    setTimeout(() => {
+        console.log('[Main] Loading app version after initialization');
+        if (typeof loadAppVersion === 'function') {
+            loadAppVersion();
+        } else {
+            console.error('[Main] loadAppVersion function not found');
+        }
+    }, 500);
+
     // Show welcome message
     setTimeout(() => {
         showToast('info', 'Willkommen', 'Printernizer wurde erfolgreich geladen');
@@ -370,10 +380,10 @@ document.addEventListener('change', (e) => {
  */
 window.printernizer = {
     // Application state
-    version: '1.1.3',
+    version: 'loading...',  // Will be loaded from /api/v1/health
     currentPage: 'dashboard',
     connectionStatus: 'connecting',
-    
+
     // System information
     systemInfo: null,
     

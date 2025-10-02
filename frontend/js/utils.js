@@ -680,30 +680,50 @@ function initSystemTime() {
  * Fetch and display application version in footer
  */
 async function loadAppVersion() {
+    console.log('[Version] Loading app version...');
+
     const versionElement = document.getElementById('appVersion');
     if (!versionElement) {
-        console.warn('appVersion element not found in footer');
+        console.error('[Version] ERROR: appVersion element not found in DOM');
+        console.log('[Version] Available elements with "version":',
+            Array.from(document.querySelectorAll('[id*="version"]')).map(el => el.id));
         return;
     }
 
+    console.log('[Version] Found appVersion element:', versionElement);
+
     try {
+        console.log('[Version] Fetching /api/v1/health...');
         const response = await fetch('/api/v1/health', {
             cache: 'no-cache' // Force fresh data
         });
+
+        console.log('[Version] Response status:', response.status, response.statusText);
+
         if (response.ok) {
             const data = await response.json();
-            const version = data.version || '1.1.3';
-            console.log('Setting app version to:', version);
+            console.log('[Version] Health data received:', data);
+
+            const version = data.version || 'unknown';
+            console.log('[Version] Setting version to:', version);
             versionElement.textContent = version;
+            console.log('[Version] Version element content now:', versionElement.textContent);
+
+            // Store version globally
+            window.printernizer = window.printernizer || {};
+            window.printernizer.version = version;
         } else {
-            console.error('Health endpoint returned non-OK status:', response.status);
-            versionElement.textContent = '1.1.3';
+            console.error('[Version] Health endpoint returned non-OK status:', response.status);
+            versionElement.textContent = 'error';
         }
     } catch (error) {
-        console.error('Failed to load version:', error);
-        versionElement.textContent = '1.1.3';
+        console.error('[Version] Failed to load version:', error);
+        versionElement.textContent = 'error';
     }
 }
+
+// Make loadAppVersion available globally
+window.loadAppVersion = loadAppVersion;
 
 // Initialize system time and version when DOM loads
 document.addEventListener('DOMContentLoaded', () => {

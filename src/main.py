@@ -65,6 +65,11 @@ from src.utils.middleware import (
 )
 
 
+# Application version - SINGLE SOURCE OF TRUTH
+# Update this version number when releasing new versions
+APP_VERSION = "1.2.0"  # Phase 2: Enhanced metadata display + file search
+
+
 # Prometheus metrics - initialized once
 try:
     REQUEST_COUNT = Counter('printernizer_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
@@ -84,7 +89,7 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     logger = structlog.get_logger()
-    logger.info("Starting Printernizer application", version="1.2.0")
+    logger.info("Starting Printernizer application", version=APP_VERSION)
     
     # Initialize database
     database = Database()
@@ -262,7 +267,7 @@ def create_application() -> FastAPI:
     app = FastAPI(
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
-        version="1.2.0",
+        version=APP_VERSION,
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
         lifespan=lifespan
