@@ -44,6 +44,7 @@ class FileService:
                        status: Optional[str] = None,
                        source: Optional[str] = None,
                        has_thumbnail: Optional[bool] = None,
+                       search: Optional[str] = None,
                        limit: Optional[int] = None,
                        order_by: Optional[str] = "created_at",
                        order_dir: Optional[str] = "desc",
@@ -125,6 +126,11 @@ class FileService:
 
         if has_thumbnail is not None:
             files = [f for f in files if bool(f.get('has_thumbnail', False)) == has_thumbnail]
+
+        # Apply search filter (case-insensitive partial match on filename)
+        if search:
+            search_lower = search.lower()
+            files = [f for f in files if search_lower in f.get('filename', '').lower()]
 
         # Sort files
         reverse_order = order_dir.lower() == 'desc'

@@ -63,6 +63,7 @@ async def list_files(
     status: Optional[FileStatus] = Query(None, description="Filter by file status"),
     source: Optional[FileSource] = Query(None, description="Filter by file source"),
     has_thumbnail: Optional[bool] = Query(None, description="Filter by thumbnail availability"),
+    search: Optional[str] = Query(None, description="Search by filename"),
     limit: Optional[int] = Query(50, description="Limit number of results"),
     order_by: Optional[str] = Query("created_at", description="Order by field"),
     order_dir: Optional[str] = Query("desc", description="Order direction (asc/desc)"),
@@ -72,7 +73,7 @@ async def list_files(
     """List files from printers and local storage."""
     try:
         logger.info("Listing files", printer_id=printer_id, status=status, source=source,
-                   has_thumbnail=has_thumbnail, limit=limit, page=page)
+                   has_thumbnail=has_thumbnail, search=search, limit=limit, page=page)
 
         # Get all files matching filters (without pagination)
         all_files = await file_service.get_files(
@@ -80,6 +81,7 @@ async def list_files(
             status=status,
             source=source,
             has_thumbnail=has_thumbnail,
+            search=search,
             limit=None,  # Get all files first
             order_by=order_by,
             order_dir=order_dir,

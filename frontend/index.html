@@ -258,6 +258,19 @@
             <div class="page-header">
                 <h1>Drucker-Dateien</h1>
                 <div class="header-actions">
+                    <div class="search-controls">
+                        <div class="search-input-wrapper">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="fileSearchInput" class="search-input"
+                                   placeholder="Nach Dateinamen suchen..."
+                                   autocomplete="off"
+                                   aria-label="Nach Dateinamen suchen">
+                            <button class="search-clear-btn" id="fileSearchClear"
+                                    onclick="clearFileSearch()"
+                                    style="display: none;"
+                                    aria-label="Suche löschen">✕</button>
+                        </div>
+                    </div>
                     <div class="filter-controls">
                         <select id="fileStatusFilter" class="filter-select">
                             <option value="">Alle Status</option>

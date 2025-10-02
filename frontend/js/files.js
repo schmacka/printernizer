@@ -12,6 +12,7 @@ class FileManager {
         this.totalPages = 1;
         this.pagination = null;
         this.downloadProgress = new Map(); // Track download progress
+        this.searchDebounceTimer = null; // Debounce timer for search input
     }
 
     /**
@@ -253,6 +254,46 @@ class FileManager {
      * Setup filter change handlers
      */
     setupFilterHandlers() {
+        // Search input
+        const searchInput = document.getElementById('fileSearchInput');
+        const searchClearBtn = document.getElementById('fileSearchClear');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchValue = e.target.value.trim();
+
+                // Show/hide clear button
+                if (searchClearBtn) {
+                    searchClearBtn.style.display = searchValue ? 'flex' : 'none';
+                }
+
+                // Debounce search to reduce API calls
+                if (this.searchDebounceTimer) {
+                    clearTimeout(this.searchDebounceTimer);
+                }
+
+                this.searchDebounceTimer = setTimeout(() => {
+                    this.currentFilters.search = searchValue || undefined;
+                    this.loadFiles(1);
+                    this.loadFileStatistics(); // Refresh stats with filter
+                }, 300); // 300ms debounce delay
+            });
+
+            // Handle Enter key
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (this.searchDebounceTimer) {
+                        clearTimeout(this.searchDebounceTimer);
+                    }
+                    const searchValue = searchInput.value.trim();
+                    this.currentFilters.search = searchValue || undefined;
+                    this.loadFiles(1);
+                    this.loadFileStatistics();
+                }
+            });
+        }
+
         // Status filter
         const statusFilter = document.getElementById('fileStatusFilter');
         if (statusFilter) {
@@ -262,7 +303,7 @@ class FileManager {
                 this.loadFileStatistics(); // Refresh stats with filter
             });
         }
-        
+
         // Printer filter
         const printerFilter = document.getElementById('filePrinterFilter');
         if (printerFilter) {
@@ -375,14 +416,18 @@ class FileManager {
      */
     clearFilters() {
         this.currentFilters = {};
-        
+
         // Reset filter controls
         const statusFilter = document.getElementById('fileStatusFilter');
         const printerFilter = document.getElementById('filePrinterFilter');
-        
+        const searchInput = document.getElementById('fileSearchInput');
+        const searchClearBtn = document.getElementById('fileSearchClear');
+
         if (statusFilter) statusFilter.value = '';
         if (printerFilter) printerFilter.value = '';
-        
+        if (searchInput) searchInput.value = '';
+        if (searchClearBtn) searchClearBtn.style.display = 'none';
+
         // Reload files
         this.loadFiles(1);
         this.loadFileStatistics();
@@ -1447,6 +1492,26 @@ const fileManager = new FileManager();
  */
 function refreshFiles() {
     fileManager.loadFiles();
+    fileManager.loadFileStatistics();
+}
+
+/**
+ * Clear file search
+ */
+function clearFileSearch() {
+    const searchInput = document.getElementById('fileSearchInput');
+    const searchClearBtn = document.getElementById('fileSearchClear');
+
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    if (searchClearBtn) {
+        searchClearBtn.style.display = 'none';
+    }
+
+    // Clear search filter and reload
+    fileManager.currentFilters.search = undefined;
+    fileManager.loadFiles(1);
     fileManager.loadFileStatistics();
 }
 
