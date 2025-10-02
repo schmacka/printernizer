@@ -535,6 +535,70 @@ p {
     background-color: var(--white);
 }
 
+/* Search Controls */
+.search-controls {
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 300px;
+}
+
+.search-icon {
+    position: absolute;
+    left: var(--spacing-3);
+    color: var(--gray-400);
+    pointer-events: none;
+    font-size: var(--font-size-base);
+}
+
+.search-input {
+    width: 100%;
+    padding: var(--spacing-2) var(--spacing-10) var(--spacing-2) var(--spacing-8);
+    font-size: var(--font-size-sm);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    background-color: var(--white);
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-input::placeholder {
+    color: var(--gray-400);
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: var(--spacing-2);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: var(--gray-200);
+    border: none;
+    border-radius: 50%;
+    color: var(--gray-600);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-clear-btn:hover {
+    background: var(--gray-300);
+    color: var(--gray-800);
+}
+
 /* Loading States */
 .loading-placeholder {
     display: flex;
@@ -926,19 +990,35 @@ p {
     .thumbnail-stats {
         gap: var(--spacing-2);
     }
-    
+
     .stat-item {
         min-width: 60px;
     }
-    
+
     .entry-header {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--spacing-1);
     }
-    
+
     .entry-details {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    /* Search controls responsive */
+    .search-input-wrapper {
+        width: 100%;
+        min-width: 200px;
+    }
+
+    .header-actions {
+        flex-wrap: wrap;
+    }
+
+    .search-controls {
+        order: -1;
+        width: 100%;
+        margin-bottom: var(--spacing-3);
     }
 }
