@@ -678,6 +678,78 @@ class Database:
             logger.error("Failed to update file", file_id=file_id, error=str(e))
             return False
     
+    async def update_file_enhanced_metadata(self, file_id: str, enhanced_metadata: Dict[str, Any], 
+                                           last_analyzed: datetime) -> bool:
+        """
+        Update file with enhanced metadata (Issue #43 - METADATA-001).
+        
+        This method stores comprehensive metadata extracted from 3D files including
+        physical properties, print settings, material requirements, cost analysis,
+        quality metrics, and compatibility information.
+        """
+        try:
+            import json
+            
+            # Extract individual fields from enhanced metadata structure
+            physical_props = enhanced_metadata.get('physical_properties') or {}
+            print_settings = enhanced_metadata.get('print_settings') or {}
+            material_req = enhanced_metadata.get('material_requirements') or {}
+            cost_breakdown = enhanced_metadata.get('cost_breakdown') or {}
+            quality_metrics = enhanced_metadata.get('quality_metrics') or {}
+            compatibility = enhanced_metadata.get('compatibility_info') or {}
+            
+            # Build update query with all enhanced metadata fields
+            updates = {
+                # Physical properties
+                'model_width': physical_props.get('width'),
+                'model_depth': physical_props.get('depth'),
+                'model_height': physical_props.get('height'),
+                'model_volume': physical_props.get('volume'),
+                'surface_area': physical_props.get('surface_area'),
+                'object_count': physical_props.get('object_count', 1),
+                
+                # Print settings
+                'nozzle_diameter': print_settings.get('nozzle_diameter'),
+                'wall_count': print_settings.get('wall_count'),
+                'wall_thickness': print_settings.get('wall_thickness'),
+                'infill_pattern': print_settings.get('infill_pattern'),
+                'first_layer_height': print_settings.get('first_layer_height'),
+                
+                # Material information
+                'total_filament_weight': material_req.get('total_weight'),
+                'filament_length': material_req.get('filament_length'),
+                'filament_colors': json.dumps(material_req.get('filament_colors', [])) if material_req.get('filament_colors') else None,
+                
+                # Cost analysis
+                'material_cost': cost_breakdown.get('material_cost'),
+                'energy_cost': cost_breakdown.get('energy_cost'),
+                'total_cost': cost_breakdown.get('total_cost'),
+                
+                # Quality metrics
+                'complexity_score': quality_metrics.get('complexity_score'),
+                'success_probability': quality_metrics.get('success_probability'),
+                'difficulty_level': quality_metrics.get('difficulty_level'),
+                
+                # Compatibility
+                'compatible_printers': json.dumps(compatibility.get('compatible_printers', [])) if compatibility.get('compatible_printers') else None,
+                'slicer_name': compatibility.get('slicer_name'),
+                'slicer_version': compatibility.get('slicer_version'),
+                'profile_name': compatibility.get('profile_name'),
+                
+                # Metadata timestamp
+                'last_analyzed': last_analyzed.isoformat() if isinstance(last_analyzed, datetime) else last_analyzed
+            }
+            
+            # Filter out None values
+            updates = {k: v for k, v in updates.items() if v is not None}
+            
+            # Use existing update_file method
+            return await self.update_file(file_id, updates)
+            
+        except Exception as e:
+            logger.error("Failed to update file enhanced metadata", file_id=file_id, error=str(e))
+            return False
+    
     async def create_local_file(self, file_data: Dict[str, Any]) -> bool:
         """Create a local file record specifically for watch folder files."""
         local_file_data = {
