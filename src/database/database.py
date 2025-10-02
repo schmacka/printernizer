@@ -1095,6 +1095,259 @@ class Database:
             logger.error("Failed to get idea statistics", error=str(e))
             return {}
 
+    # ========================================================================
+    # Library Management Methods
+    # ========================================================================
+
+    async def create_library_file(self, file_data: Dict[str, Any]) -> bool:
+        """Create a new library file record."""
+        try:
+            return await self._execute_write(
+                """INSERT INTO library_files
+                (id, checksum, filename, display_name, library_path, file_size, file_type,
+                 sources, status, added_to_library, last_modified, search_index)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    file_data['id'],
+                    file_data['checksum'],
+                    file_data['filename'],
+                    file_data.get('display_name'),
+                    file_data['library_path'],
+                    file_data['file_size'],
+                    file_data['file_type'],
+                    file_data['sources'],
+                    file_data.get('status', 'available'),
+                    file_data['added_to_library'],
+                    file_data.get('last_modified'),
+                    file_data.get('search_index', '')
+                )
+            )
+        except Exception as e:
+            logger.error("Failed to create library file", error=str(e))
+            return False
+
+    async def get_library_file(self, file_id: str) -> Optional[Dict[str, Any]]:
+        """Get library file by ID."""
+        row = await self._fetch_one(
+            "SELECT * FROM library_files WHERE id = ?",
+            [file_id]
+        )
+        return dict(row) if row else None
+
+    async def get_library_file_by_checksum(self, checksum: str) -> Optional[Dict[str, Any]]:
+        """Get library file by checksum."""
+        row = await self._fetch_one(
+            "SELECT * FROM library_files WHERE checksum = ?",
+            [checksum]
+        )
+        return dict(row) if row else None
+
+    async def update_library_file(self, checksum: str, updates: Dict[str, Any]) -> bool:
+        """Update library file by checksum."""
+        if not updates:
+            return False
+
+        # Build update query
+        set_clauses = [f"{key} = ?" for key in updates.keys()]
+        set_clause = ", ".join(set_clauses)
+
+        query = f"UPDATE library_files SET {set_clause} WHERE checksum = ?"
+        params = list(updates.values()) + [checksum]
+
+        return await self._execute_write(query, tuple(params))
+
+    async def delete_library_file(self, checksum: str) -> bool:
+        """Delete library file by checksum."""
+        return await self._execute_write(
+            "DELETE FROM library_files WHERE checksum = ?",
+            (checksum,)
+        )
+
+    async def list_library_files(self, filters: Optional[Dict[str, Any]] = None,
+                                 page: int = 1, limit: int = 50) -> tuple:
+        """
+        List library files with filters and pagination.
+
+        Returns:
+            Tuple of (files_list, pagination_info)
+        """
+        try:
+            filters = filters or {}
+
+            # Build WHERE clause
+            where_clauses = []
+            params = []
+
+            if filters.get('source_type'):
+                where_clauses.append("sources LIKE ?")
+                params.append(f'%"type": "{filters["source_type"]}"%')
+
+            if filters.get('file_type'):
+                where_clauses.append("file_type = ?")
+                params.append(filters['file_type'])
+
+            if filters.get('status'):
+                where_clauses.append("status = ?")
+                params.append(filters['status'])
+
+            if filters.get('search'):
+                where_clauses.append("search_index LIKE ?")
+                params.append(f"%{filters['search'].lower()}%")
+
+            if filters.get('has_thumbnail') is not None:
+                where_clauses.append("has_thumbnail = ?")
+                params.append(1 if filters['has_thumbnail'] else 0)
+
+            if filters.get('has_metadata') is not None:
+                where_clauses.append("last_analyzed IS NOT NULL" if filters['has_metadata'] else "last_analyzed IS NULL")
+
+            # Build query
+            where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+            # Get total count
+            count_query = f"SELECT COUNT(*) as total FROM library_files WHERE {where_clause}"
+            count_row = await self._fetch_one(count_query, params)
+            total_items = count_row['total'] if count_row else 0
+
+            # Calculate pagination
+            offset = (page - 1) * limit
+            total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
+
+            # Get files
+            order_by = "added_to_library DESC"  # Default sort
+            query = f"""
+                SELECT * FROM library_files
+                WHERE {where_clause}
+                ORDER BY {order_by}
+                LIMIT ? OFFSET ?
+            """
+            params.extend([limit, offset])
+
+            rows = await self._fetch_all(query, params)
+            files = [dict(row) for row in rows]
+
+            pagination = {
+                'page': page,
+                'limit': limit,
+                'total_items': total_items,
+                'total_pages': total_pages
+            }
+
+            return files, pagination
+
+        except Exception as e:
+            logger.error("Failed to list library files", error=str(e))
+            return [], {'page': page, 'limit': limit, 'total_items': 0, 'total_pages': 0}
+
+    async def create_library_file_source(self, source_data: Dict[str, Any]) -> bool:
+        """Create library file source record."""
+        try:
+            return await self._execute_write(
+                """INSERT OR IGNORE INTO library_file_sources
+                (file_checksum, source_type, source_id, source_name, original_path,
+                 original_filename, discovered_at, metadata)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    source_data['file_checksum'],
+                    source_data['source_type'],
+                    source_data.get('source_id'),
+                    source_data.get('source_name'),
+                    source_data.get('original_path'),
+                    source_data.get('original_filename'),
+                    source_data['discovered_at'],
+                    source_data.get('metadata')
+                )
+            )
+        except Exception as e:
+            logger.error("Failed to create library file source", error=str(e))
+            return False
+
+    async def get_library_file_sources(self, checksum: str) -> List[Dict[str, Any]]:
+        """Get all sources for a library file."""
+        rows = await self._fetch_all(
+            "SELECT * FROM library_file_sources WHERE file_checksum = ?",
+            [checksum]
+        )
+        return [dict(row) for row in rows]
+
+    async def delete_library_file_sources(self, checksum: str) -> bool:
+        """Delete all sources for a library file."""
+        return await self._execute_write(
+            "DELETE FROM library_file_sources WHERE file_checksum = ?",
+            (checksum,)
+        )
+
+    async def get_library_stats(self) -> Dict[str, Any]:
+        """Get library statistics."""
+        try:
+            row = await self._fetch_one("SELECT * FROM library_stats", [])
+            return dict(row) if row else {}
+        except Exception as e:
+            logger.error("Failed to get library stats", error=str(e))
+            return {}
+
+    async def update_file_enhanced_metadata(self, file_id: str,
+                                           enhanced_metadata: Dict[str, Any],
+                                           last_analyzed: datetime) -> bool:
+        """Update enhanced metadata for a file (compatibility method)."""
+        # This method is for backwards compatibility with existing enhanced metadata code
+        # It updates both old files table and new library_files table if they exist
+
+        updates = {
+            'last_analyzed': last_analyzed.isoformat() if isinstance(last_analyzed, datetime) else last_analyzed
+        }
+
+        # Add metadata fields
+        if 'physical_properties' in enhanced_metadata and enhanced_metadata['physical_properties']:
+            pp = enhanced_metadata['physical_properties']
+            if 'width' in pp: updates['model_width'] = pp['width']
+            if 'depth' in pp: updates['model_depth'] = pp['depth']
+            if 'height' in pp: updates['model_height'] = pp['height']
+            if 'volume' in pp: updates['model_volume'] = pp['volume']
+            if 'surface_area' in pp: updates['surface_area'] = pp['surface_area']
+            if 'object_count' in pp: updates['object_count'] = pp['object_count']
+
+        if 'print_settings' in enhanced_metadata and enhanced_metadata['print_settings']:
+            ps = enhanced_metadata['print_settings']
+            if 'layer_height' in ps: updates['layer_height'] = ps['layer_height']
+            if 'first_layer_height' in ps: updates['first_layer_height'] = ps['first_layer_height']
+            if 'nozzle_diameter' in ps: updates['nozzle_diameter'] = ps['nozzle_diameter']
+            if 'wall_count' in ps: updates['wall_count'] = ps['wall_count']
+            if 'wall_thickness' in ps: updates['wall_thickness'] = ps['wall_thickness']
+            if 'infill_density' in ps: updates['infill_density'] = ps['infill_density']
+            if 'infill_pattern' in ps: updates['infill_pattern'] = ps['infill_pattern']
+            if 'support_used' in ps: updates['support_used'] = ps['support_used']
+            if 'nozzle_temperature' in ps: updates['nozzle_temperature'] = ps['nozzle_temperature']
+            if 'bed_temperature' in ps: updates['bed_temperature'] = ps['bed_temperature']
+            if 'print_speed' in ps: updates['print_speed'] = ps['print_speed']
+            if 'total_layer_count' in ps: updates['total_layer_count'] = ps['total_layer_count']
+
+        # Try to update in both tables
+        success = False
+
+        # Update old files table
+        try:
+            set_clauses = [f"{key} = ?" for key in updates.keys()]
+            set_clause = ", ".join(set_clauses)
+            query = f"UPDATE files SET {set_clause} WHERE id = ?"
+            params = list(updates.values()) + [file_id]
+            await self._execute_write(query, tuple(params))
+            success = True
+        except Exception as e:
+            logger.debug("Could not update files table (expected if library-only)", error=str(e))
+
+        # Update library_files table
+        try:
+            # Get checksum from file_id if it's a library file
+            file = await self.get_library_file(file_id)
+            if file:
+                await self.update_library_file(file['checksum'], updates)
+                success = True
+        except Exception as e:
+            logger.debug("Could not update library_files table", error=str(e))
+
+        return success
+
     async def _run_migrations(self):
         """Run database migrations to update schema."""
         try:
