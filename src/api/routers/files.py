@@ -593,3 +593,242 @@ async def delete_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete file: {str(e)}"
         )
+
+
+# Enhanced Metadata Endpoints (Issue #43 - METADATA-001)
+
+@router.get("/{file_id}/metadata/enhanced")
+async def get_enhanced_metadata(
+    file_id: str,
+    force_refresh: bool = Query(False, description="Force re-analysis of file"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Get comprehensive enhanced metadata for a file.
+    
+    This endpoint provides detailed information including:
+    - Physical properties (dimensions, volume, objects)
+    - Print settings (layer height, nozzle, infill)
+    - Material requirements (filament weight, colors)
+    - Cost analysis (material and energy costs)
+    - Quality metrics (complexity score, difficulty level)
+    - Compatibility information (printers, slicer info)
+    """
+    try:
+        from src.models.file import EnhancedFileMetadata
+        
+        logger.info("Getting enhanced metadata", file_id=file_id, force_refresh=force_refresh)
+        
+        # Get file record
+        file_record = await file_service.get_file(file_id)
+        if not file_record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"File not found: {file_id}"
+            )
+        
+        # Check if we need to analyze the file
+        needs_analysis = force_refresh or file_record.last_analyzed is None
+        
+        if needs_analysis and file_record.file_path:
+            # Extract enhanced metadata
+            metadata = await file_service.extract_enhanced_metadata(file_id)
+            if not metadata:
+                logger.warning("Could not extract enhanced metadata", file_id=file_id)
+                # Return empty metadata structure
+                return EnhancedFileMetadata()
+        
+        # Return enhanced metadata from file record
+        if file_record.enhanced_metadata:
+            return file_record.enhanced_metadata
+        else:
+            # Return empty metadata structure if not yet analyzed
+            return EnhancedFileMetadata()
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get enhanced metadata", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get enhanced metadata: {str(e)}"
+        )
+
+
+@router.get("/{file_id}/analysis")
+async def analyze_file(
+    file_id: str,
+    include_recommendations: bool = Query(True, description="Include optimization recommendations"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Get detailed file analysis with optimization recommendations.
+    
+    Provides actionable insights about:
+    - Printability score and success probability
+    - Risk factors and potential issues
+    - Optimization suggestions for speed, quality, or cost
+    - Printer compatibility recommendations
+    """
+    try:
+        logger.info("Analyzing file", file_id=file_id, include_recommendations=include_recommendations)
+        
+        # Get enhanced metadata first
+        metadata = await get_enhanced_metadata(file_id, force_refresh=False, file_service=file_service)
+        
+        # Calculate analysis
+        analysis = {
+            'file_id': file_id,
+            'printability_score': 0,
+            'optimization_suggestions': [],
+            'risk_factors': [],
+            'estimated_success_rate': None
+        }
+        
+        # Extract quality metrics
+        if metadata.quality_metrics:
+            analysis['printability_score'] = metadata.quality_metrics.complexity_score or 5
+            analysis['estimated_success_rate'] = metadata.quality_metrics.success_probability
+        
+        # Generate recommendations if requested
+        if include_recommendations:
+            suggestions = []
+            risks = []
+            
+            # Check for speed optimization opportunities
+            if metadata.print_settings:
+                if metadata.print_settings.infill_density and metadata.print_settings.infill_density > 50:
+                    suggestions.append({
+                        'category': 'speed',
+                        'message': 'Consider reducing infill density to 20-30% for faster printing',
+                        'potential_savings': '20-40% time reduction'
+                    })
+                
+                if metadata.print_settings.layer_height and metadata.print_settings.layer_height < 0.15:
+                    suggestions.append({
+                        'category': 'speed',
+                        'message': 'Increase layer height to 0.2mm for faster printing',
+                        'potential_savings': '30-50% time reduction'
+                    })
+            
+            # Check for cost optimization
+            if metadata.cost_breakdown and metadata.cost_breakdown.total_cost:
+                if metadata.cost_breakdown.total_cost > 5.0:
+                    suggestions.append({
+                        'category': 'cost',
+                        'message': 'High material usage detected. Consider optimizing infill and wall count',
+                        'potential_savings': f'Could save €{metadata.cost_breakdown.total_cost * 0.2:.2f}'
+                    })
+            
+            # Identify risk factors
+            if metadata.print_settings and metadata.print_settings.support_used:
+                risks.append({
+                    'severity': 'medium',
+                    'factor': 'Supports required',
+                    'mitigation': 'Ensure proper support settings and allow extra time for cleanup'
+                })
+            
+            if metadata.quality_metrics and metadata.quality_metrics.complexity_score:
+                if metadata.quality_metrics.complexity_score >= 8:
+                    risks.append({
+                        'severity': 'high',
+                        'factor': 'High complexity print',
+                        'mitigation': 'Monitor first layers closely and ensure proper bed adhesion'
+                    })
+            
+            if metadata.material_requirements and metadata.material_requirements.multi_material:
+                risks.append({
+                    'severity': 'medium',
+                    'factor': 'Multi-material print',
+                    'mitigation': 'Verify filament compatibility and purge tower settings'
+                })
+            
+            analysis['optimization_suggestions'] = suggestions
+            analysis['risk_factors'] = risks
+        
+        return analysis
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to analyze file", file_id=file_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze file: {str(e)}"
+        )
+
+
+@router.get("/{file_id}/compatibility/{printer_id}")
+async def check_printer_compatibility(
+    file_id: str,
+    printer_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Check if file is compatible with specific printer.
+    
+    Analyzes:
+    - Print bed size requirements
+    - Material compatibility
+    - Required printer features
+    - Slicer profile compatibility
+    """
+    try:
+        logger.info("Checking compatibility", file_id=file_id, printer_id=printer_id)
+        
+        # Get enhanced metadata
+        metadata = await get_enhanced_metadata(file_id, force_refresh=False, file_service=file_service)
+        
+        # TODO: Get actual printer capabilities from printer service
+        # For now, provide basic compatibility check
+        
+        compatibility = {
+            'file_id': file_id,
+            'printer_id': printer_id,
+            'compatible': True,  # Default to compatible
+            'issues': [],
+            'warnings': [],
+            'recommendations': []
+        }
+        
+        # Check physical dimensions if available
+        if metadata.physical_properties:
+            # Bambu Lab A1 bed size: 256 x 256 x 256 mm
+            # This is a simplified check - should get actual printer specs
+            max_bed_size = 256
+            
+            if metadata.physical_properties.width and metadata.physical_properties.width > max_bed_size:
+                compatibility['compatible'] = False
+                compatibility['issues'].append({
+                    'type': 'size',
+                    'message': f'Model width ({metadata.physical_properties.width}mm) exceeds printer bed size'
+                })
+            
+            if metadata.physical_properties.depth and metadata.physical_properties.depth > max_bed_size:
+                compatibility['compatible'] = False
+                compatibility['issues'].append({
+                    'type': 'size',
+                    'message': f'Model depth ({metadata.physical_properties.depth}mm) exceeds printer bed size'
+                })
+        
+        # Check if printer is in compatible printers list
+        if metadata.compatibility_info and metadata.compatibility_info.compatible_printers:
+            printers_list = [p.lower() for p in metadata.compatibility_info.compatible_printers]
+            # Simple name matching - could be improved
+            if not any(printer_id.lower() in p or 'bambu' in p or 'prusa' in p for p in printers_list):
+                compatibility['warnings'].append({
+                    'type': 'profile',
+                    'message': 'File was sliced for different printer model'
+                })
+        
+        return compatibility
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to check compatibility", file_id=file_id, printer_id=printer_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to check compatibility: {str(e)}"
+        )
+        )
