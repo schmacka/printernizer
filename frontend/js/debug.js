@@ -27,8 +27,7 @@ class DebugManager {
             this.loadApplicationLogs(),
             this.loadPerformanceMetrics(),
             this.loadThumbnailLog(),
-            this.runAPITests(),
-            this.loadAppVersion()
+            this.runAPITests()
         ]).then(results => {
             results.forEach((result, index) => {
                 if (result.status === 'rejected') {
@@ -43,32 +42,6 @@ class DebugManager {
 
         this.lastRefresh = new Date();
         console.log('Debug manager initialized');
-    }
-
-    /**
-     * Load and display app version in footer
-     */
-    async loadAppVersion() {
-        const versionElement = document.getElementById('appVersion');
-        if (!versionElement) {
-            console.warn('Version element not found');
-            return;
-        }
-
-        try {
-            const response = await fetch('/api/v1/health');
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Health data received:', data);
-                versionElement.textContent = data.version || '1.1.3';
-            } else {
-                console.error('Health endpoint returned non-OK status:', response.status);
-                versionElement.textContent = '1.1.3';
-            }
-        } catch (error) {
-            console.error('Failed to load version:', error);
-            versionElement.textContent = '1.1.3';
-        }
     }
 
     /**
@@ -160,12 +133,7 @@ class DebugManager {
      */
     async refreshHealthInfo() {
         try {
-            const response = await fetch('/api/v1/health');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            this.healthData = await response.json();
+            this.healthData = await api.getHealth();
             this.displayHealthInfo();
 
         } catch (error) {
@@ -232,11 +200,11 @@ class DebugManager {
                     <div class="health-card">
                         <h5>🔧 Services</h5>
                         <div class="health-details">
-                            ${Object.entries(this.healthData.services).map(([service, status]) => `
+                            ${Object.entries(this.healthData.services).map(([service, serviceInfo]) => `
                                 <div class="detail-item">
                                     <span class="label">${service}:</span>
-                                    <span class="value ${status === 'healthy' ? 'healthy' : 'unhealthy'}">
-                                        ${status === 'healthy' ? '✅' : '❌'} ${status}
+                                    <span class="value ${serviceInfo.status === 'healthy' ? 'healthy' : 'unhealthy'}">
+                                        ${serviceInfo.status === 'healthy' ? '✅' : '❌'} ${serviceInfo.status}
                                     </span>
                                 </div>
                             `).join('')}
@@ -518,11 +486,11 @@ class DebugManager {
      */
     async runAPITests() {
         const endpoints = [
-            { name: 'Health', url: '/api/v1/health', method: 'GET' },
-            { name: 'Printers', url: '/api/v1/printers', method: 'GET' },
-            { name: 'Jobs', url: '/api/v1/jobs', method: 'GET' },
-            { name: 'Files', url: '/api/v1/files', method: 'GET' },
-            { name: 'Settings', url: '/api/v1/settings/application', method: 'GET' }
+            { name: 'Health', url: `${CONFIG.API_BASE_URL}/health`, method: 'GET' },
+            { name: 'Printers', url: `${CONFIG.API_BASE_URL}/printers`, method: 'GET' },
+            { name: 'Jobs', url: `${CONFIG.API_BASE_URL}/jobs`, method: 'GET' },
+            { name: 'Files', url: `${CONFIG.API_BASE_URL}/files`, method: 'GET' },
+            { name: 'Settings', url: `${CONFIG.API_BASE_URL}/settings/application`, method: 'GET' }
         ];
 
         const testResults = [];
@@ -648,7 +616,7 @@ class DebugManager {
      */
     async loadThumbnailLog() {
         try {
-            const response = await fetch('/api/v1/debug/thumbnail-processing-log');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/debug/thumbnail-processing-log`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }

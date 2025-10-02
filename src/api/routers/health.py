@@ -126,10 +126,13 @@ async def health_check(
         else:
             overall_status = "degraded"
 
+        # Import APP_VERSION from main
+        from src.main import APP_VERSION
+
         return HealthResponse(
             status=overall_status,
             timestamp=datetime.now(),
-            version="1.2.0",  # Phase 2: Enhanced metadata display
+            version=APP_VERSION,
             environment=getattr(config.settings, "environment", "production"),
             database={
                 "type": "sqlite",
@@ -142,10 +145,13 @@ async def health_check(
 
     except Exception as e:
         logger.error("Health check failed", error=str(e), exc_info=True)
+        # Import APP_VERSION from main
+        from src.main import APP_VERSION
+
         return HealthResponse(
             status="unhealthy",
             timestamp=datetime.now(),
-            version="1.2.0",  # Phase 2: Enhanced metadata display
+            version=APP_VERSION,
             environment=getattr(config.settings, "environment", "production"),
             database={"type": "sqlite", "healthy": False},
             services={"error": str(e)}
