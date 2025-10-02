@@ -3180,3 +3180,9 @@ label .required {
 .footer-text {
     opacity: 0.8;
 }
+/* Enhanced Metadata Container Styles */
+.enhanced-metadata-container {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--border-color, #e0e0e0);
+}
