@@ -1,0 +1,35 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/runner/work/printernizer/printernizer
+configfile: pytest.ini
+plugins: asyncio-1.2.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 24 items
+
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_extract_physical_properties PASSED [  4%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_extract_print_settings PASSED [  8%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_extract_material_properties PASSED [ 12%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_extract_compatibility_info PASSED [ 16%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_wall_thickness_calculation PASSED [ 20%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_filament_weight_sum_single_material PASSED [ 25%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_filament_weight_sum_multi_material PASSED [ 29%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_filament_length_conversion PASSED [ 33%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_complexity_score_calculation PASSED [ 37%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_difficulty_level_assessment PASSED [ 41%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_material_cost_estimate PASSED [ 45%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_energy_cost_estimate PASSED [ 50%]
+tests/backend/test_enhanced_metadata.py::TestBambuParserEnhancement::test_time_duration_parsing PASSED [ 54%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_analyze_file_success PASSED [ 58%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_extract_physical_properties_from_plate_json PASSED [ 62%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_extract_print_settings_from_config PASSED [ 66%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_calculate_costs PASSED [ 70%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_quality_assessment PASSED [ 75%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_compatibility_extraction PASSED [ 79%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_handle_missing_file PASSED [ 83%]
+tests/backend/test_enhanced_metadata.py::TestThreeMFAnalyzer::test_handle_invalid_3mf_format PASSED [ 87%]
+tests/backend/test_enhanced_metadata.py::TestEnhancedMetadataIntegration::test_extract_enhanced_metadata_gcode PASSED [ 91%]
+tests/backend/test_enhanced_metadata.py::TestEnhancedMetadataIntegration::test_enhanced_metadata_consistency PASSED [ 95%]
+tests/backend/test_enhanced_metadata.py::TestEnhancedMetadataIntegration::test_metadata_database_persistence PASSED [100%]
+
+============================== 24 passed in 0.15s ==============================
