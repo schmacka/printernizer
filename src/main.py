@@ -314,6 +314,22 @@ def create_application() -> FastAPI:
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
     if frontend_path.exists():
+        # Mount CSS files
+        css_path = frontend_path / "css"
+        if css_path.exists():
+            app.mount("/css", StaticFiles(directory=str(css_path)), name="css")
+        
+        # Mount JS files
+        js_path = frontend_path / "js"
+        if js_path.exists():
+            app.mount("/js", StaticFiles(directory=str(js_path)), name="js")
+        
+        # Mount assets
+        assets_path = frontend_path / "assets"
+        if assets_path.exists():
+            app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
+        
+        # Mount remaining static files
         app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
         
         @app.get("/")
