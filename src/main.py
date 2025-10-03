@@ -115,8 +115,8 @@ async def lifespan(app: FastAPI):
     # Initialize file watcher service with library integration
     file_watcher_service = FileWatcherService(config_service, event_service, library_service)
 
-    # Initialize file service with file watcher, printer service, and config service
-    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service)
+    # Initialize file service with file watcher, printer service, config service, and library
+    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
 
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
