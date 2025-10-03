@@ -39,6 +39,11 @@
                     <span class="nav-icon" aria-hidden="true">📁</span>
                     Dateien
                 </a>
+                <a href="#library" class="nav-link" data-page="library"
+                   role="button" aria-describedby="nav-library-desc">
+                    <span class="nav-icon" aria-hidden="true">🗄️</span>
+                    Bibliothek
+                </a>
                 <a href="#ideas" class="nav-link" data-page="ideas"
                    role="button" aria-describedby="nav-ideas-desc">
                     <span class="nav-icon" aria-hidden="true">💡</span>
@@ -61,6 +66,7 @@
                 <div id="nav-printers-desc">Verwaltung und Konfiguration der 3D-Drucker</div>
                 <div id="nav-jobs-desc">Übersicht und Verwaltung der Druckaufträge</div>
                 <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
+                <div id="nav-library-desc">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
                 <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
                 <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
                 <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
@@ -347,6 +353,145 @@
                         <div class="spinner"></div>
                         <p>Lade Dateien...</p>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Page -->
+        <div id="library" class="page">
+            <div class="page-header">
+                <h1>🗄️ Bibliothek</h1>
+                <div class="header-subtitle">Zentrale Dateiverwaltung mit Metadaten und Quellenverfolgung</div>
+                <div class="header-actions">
+                    <div class="search-controls">
+                        <div class="search-input-wrapper">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="librarySearchInput" class="search-input"
+                                   placeholder="Nach Dateinamen suchen..."
+                                   autocomplete="off"
+                                   aria-label="Suche in Bibliothek">
+                            <button class="search-clear-btn" id="librarySearchClear"
+                                    onclick="clearLibrarySearch()"
+                                    style="display: none;"
+                                    aria-label="Suche löschen">✕</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshLibrary()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Library Statistics -->
+            <div class="library-stats-container" id="libraryStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalFiles">--</div>
+                    <div class="stat-label">Dateien</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalSize">--</div>
+                    <div class="stat-label">Gesamt</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statWithThumbnails">--</div>
+                    <div class="stat-label">Mit Vorschau</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statAnalyzed">--</div>
+                    <div class="stat-label">Analysiert</div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label for="filterSourceType">Quelle:</label>
+                    <select id="filterSourceType" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle</option>
+                        <option value="printer">🖨️ Drucker</option>
+                        <option value="watch_folder">📁 Überwacht</option>
+                        <option value="upload">⬆️ Hochgeladen</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterFileType">Typ:</label>
+                    <select id="filterFileType" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle Dateitypen</option>
+                        <option value=".3mf">.3MF</option>
+                        <option value=".stl">.STL</option>
+                        <option value=".gcode">.GCODE</option>
+                        <option value=".obj">.OBJ</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterStatus">Status:</label>
+                    <select id="filterStatus" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle Status</option>
+                        <option value="available">✅ Verfügbar</option>
+                        <option value="processing">⏳ Verarbeitung</option>
+                        <option value="ready">✓ Bereit</option>
+                        <option value="error">❌ Fehler</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterMetadata">Metadaten:</label>
+                    <select id="filterMetadata" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle</option>
+                        <option value="has_thumbnail">🖼️ Mit Vorschau</option>
+                        <option value="has_metadata">📊 Mit Metadaten</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sortBy">Sortierung:</label>
+                    <select id="sortBy" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="added_desc">Neueste zuerst</option>
+                        <option value="added_asc">Älteste zuerst</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                        <option value="size_desc">Größe (groß→klein)</option>
+                        <option value="size_asc">Größe (klein→groß)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Library Files Grid -->
+            <div class="library-container">
+                <div class="library-files-grid" id="libraryFilesGrid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Bibliothek...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container" id="libraryPagination" style="display: none;">
+                <div class="pagination-info">
+                    <span id="paginationInfo">Seite 1 von 1</span>
+                </div>
+                <div class="pagination-controls">
+                    <button class="btn btn-sm" id="btnFirstPage" onclick="goToLibraryPage(1)" disabled>
+                        ⏮️ Erste
+                    </button>
+                    <button class="btn btn-sm" id="btnPrevPage" onclick="previousLibraryPage()" disabled>
+                        ◀️ Zurück
+                    </button>
+                    <span class="page-numbers" id="pageNumbers"></span>
+                    <button class="btn btn-sm" id="btnNextPage" onclick="nextLibraryPage()">
+                        Weiter ▶️
+                    </button>
+                    <button class="btn btn-sm" id="btnLastPage" onclick="goToLibraryPage('last')">
+                        Letzte ⏭️
+                    </button>
+                </div>
+                <div class="pagination-size">
+                    <label for="pageSize">Pro Seite:</label>
+                    <select id="pageSize" class="filter-select" onchange="changePageSize()">
+                        <option value="20">20</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
                 </div>
             </div>
         </div>
