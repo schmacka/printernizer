@@ -268,12 +268,29 @@ class LibraryManager {
     }
 
     /**
+     * Parse sources field (handles both JSON string and array)
+     */
+    parseSources(sources) {
+        if (!sources) return [];
+        if (Array.isArray(sources)) return sources;
+
+        try {
+            // Parse JSON string
+            return JSON.parse(sources);
+        } catch (e) {
+            console.warn('Failed to parse sources:', e);
+            return [];
+        }
+    }
+
+    /**
      * Get source icon
      */
     getSourceIcon(sources) {
-        if (!sources || sources.length === 0) return '❓';
+        const sourceArray = this.parseSources(sources);
+        if (sourceArray.length === 0) return '❓';
 
-        const sourceTypes = sources.map(s => s.type);
+        const sourceTypes = sourceArray.map(s => s.type);
 
         if (sourceTypes.includes('printer')) return '🖨️';
         if (sourceTypes.includes('watch_folder')) return '📁';
@@ -561,13 +578,15 @@ class LibraryManager {
      * Render sources tab
      */
     renderSourcesTab(file) {
-        if (!file.sources || file.sources.length === 0) {
+        const sourceArray = this.parseSources(file.sources);
+
+        if (sourceArray.length === 0) {
             return '<div class="empty-state-small">Keine Quelleninformationen verfügbar</div>';
         }
 
         return `
             <div class="sources-list">
-                ${file.sources.map((source, index) => `
+                ${sourceArray.map((source, index) => `
                     <div class="source-item">
                         <div class="source-header">
                             <span class="source-icon">${this.getSourceIcon([source])}</span>

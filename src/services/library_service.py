@@ -36,7 +36,7 @@ class LibraryService:
 
         # Get library configuration
         self.library_path = Path(getattr(config_service.settings, 'library_path', '/app/data/library'))
-        self.enabled = getattr(config_service.settings, 'library_enabled', False)
+        self.enabled = getattr(config_service.settings, 'library_enabled', True)
         self.auto_organize = getattr(config_service.settings, 'library_auto_organize', True)
         self.auto_extract_metadata = getattr(config_service.settings, 'library_auto_extract_metadata', True)
         self.checksum_algorithm = getattr(config_service.settings, 'library_checksum_algorithm', 'sha256')

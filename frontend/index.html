@@ -507,6 +507,124 @@
             </div>
         </div>
 
+        <!-- Library Page -->
+        <div id="library" class="page">
+            <div class="page-header">
+                <h1>Bibliothek</h1>
+                <div class="header-actions">
+                    <div class="search-controls">
+                        <div class="search-input-wrapper">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="librarySearchInput" class="search-input"
+                                   placeholder="Nach Dateinamen suchen..."
+                                   autocomplete="off"
+                                   aria-label="Nach Dateinamen suchen">
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="libraryManager.loadFiles()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="library-stats-container">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalFiles">0</div>
+                    <div class="stat-label">Dateien</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalSize">0 B</div>
+                    <div class="stat-label">Gesamtgröße</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statWithThumbnails">0</div>
+                    <div class="stat-label">Mit Vorschaubildern</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statAnalyzed">0</div>
+                    <div class="stat-label">Analysiert</div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <select id="filterSourceType" class="filter-select" aria-label="Quelle filtern">
+                    <option value="all">Alle Quellen</option>
+                    <option value="printer">🖨️ Drucker</option>
+                    <option value="watch_folder">📁 Überwachter Ordner</option>
+                    <option value="upload">⬆️ Upload</option>
+                </select>
+
+                <select id="filterFileType" class="filter-select" aria-label="Dateityp filtern">
+                    <option value="all">Alle Dateitypen</option>
+                    <option value=".3mf">📦 3MF</option>
+                    <option value=".gcode">📝 G-Code</option>
+                    <option value=".stl">🔺 STL</option>
+                    <option value=".obj">🔷 OBJ</option>
+                </select>
+
+                <select id="filterStatus" class="filter-select" aria-label="Status filtern">
+                    <option value="all">Alle Status</option>
+                    <option value="available">Verfügbar</option>
+                    <option value="processing">Verarbeitung</option>
+                    <option value="ready">Bereit</option>
+                    <option value="error">Fehler</option>
+                </select>
+
+                <select id="filterMetadata" class="filter-select" aria-label="Metadaten filtern">
+                    <option value="all">Alle Dateien</option>
+                    <option value="with_thumbnail">Mit Vorschaubild</option>
+                    <option value="analyzed">Analysiert</option>
+                </select>
+
+                <select id="sortBy" class="filter-select" aria-label="Sortierung">
+                    <option value="created_at:desc">Neueste zuerst</option>
+                    <option value="created_at:asc">Älteste zuerst</option>
+                    <option value="filename:asc">Name A-Z</option>
+                    <option value="filename:desc">Name Z-A</option>
+                    <option value="file_size:desc">Größte zuerst</option>
+                    <option value="file_size:asc">Kleinste zuerst</option>
+                </select>
+            </div>
+
+            <!-- Files Grid -->
+            <div class="library-files-grid" id="libraryFilesGrid">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Bibliothek...</p>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container">
+                <div class="page-size-selector">
+                    <label for="pageSizeSelect">Dateien pro Seite:</label>
+                    <select id="pageSizeSelect">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+
+                <div class="pagination-info">
+                    <span id="paginationInfo">0-0 von 0</span>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" disabled>
+                        ← Vorherige
+                    </button>
+                    <span id="currentPageInfo">Seite 1 von 1</span>
+                    <button id="nextPageBtn" disabled>
+                        Nächste →
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Ideas Page -->
         <div id="ideas" class="page">
             <div class="page-header">
@@ -741,6 +859,75 @@
                                     <input type="number" id="vatRate" name="vat_rate" 
                                            class="form-control" min="0" max="50" step="0.1">
                                     <small class="form-text text-muted">Mehrwertsteuersatz für Kostenberechnungen</small>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Library System Settings -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Bibliothek-Einstellungen</h3>
+                            <span class="card-icon">🗄️</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="librarySettingsForm" class="settings-form">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryEnabled" name="library_enabled">
+                                        <span class="checkbox-custom"></span>
+                                        Bibliothek-System aktivieren
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Automatische Dateiverwaltung mit Deduplizierung und Metadaten
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="libraryPath">Bibliothek-Pfad</label>
+                                    <input type="text" id="libraryPath" name="library_path"
+                                           class="form-control"
+                                           placeholder="z.B. C:\3DLibrary oder ./data/library">
+                                    <small class="form-text text-muted">
+                                        Verzeichnis für die zentrale Datei-Bibliothek (absolut oder relativ)
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryAutoOrganize" name="library_auto_organize">
+                                        <span class="checkbox-custom"></span>
+                                        Automatische Organisation
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Dateien aus überwachten Ordnern und Downloads automatisch zur Bibliothek hinzufügen
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryAutoExtractMetadata" name="library_auto_extract_metadata">
+                                        <span class="checkbox-custom"></span>
+                                        Automatische Metadaten-Extraktion
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Druckeinstellungen und Modell-Informationen automatisch aus Dateien auslesen
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryAutoDeduplicate" name="library_auto_deduplicate">
+                                        <span class="checkbox-custom"></span>
+                                        Automatische Deduplizierung
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Doppelte Dateien anhand ihres Inhalts erkennen und zusammenführen
+                                    </small>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <strong>ℹ️ Hinweis:</strong> Nach Änderung des Bibliothek-Pfads ist ein Neustart erforderlich.
                                 </div>
                             </form>
                         </div>
