@@ -95,10 +95,29 @@ class PrinternizerSettings(BaseSettings):
             logger.warning("No SECRET_KEY environment variable set. Generated secure key for this session.")
             logger.info("For production, set SECRET_KEY environment variable to persist sessions across restarts.")
             return generated_key
-        
+
         # Validate provided key
         if len(v) < 32:
             raise ValueError("Secret key must be at least 32 characters long for security. Set a longer SECRET_KEY environment variable.")
+        return v
+
+    @validator('library_path')
+    def validate_library_path(cls, v):
+        """Validate library path is absolute."""
+        if not v:
+            return "/app/data/library"  # Default
+
+        from pathlib import Path
+        path = Path(v)
+
+        # Ensure absolute path
+        if not path.is_absolute():
+            logger.warning(
+                f"LIBRARY_PATH '{v}' is not absolute. "
+                f"Converting to absolute path: {path.absolute()}"
+            )
+            return str(path.absolute())
+
         return v
     
     @property
