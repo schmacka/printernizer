@@ -438,7 +438,13 @@ class ConfigService:
             # G-code optimization settings
             "gcode_optimize_print_only": settings.gcode_optimize_print_only,
             "gcode_optimization_max_lines": settings.gcode_optimization_max_lines,
-            "gcode_render_max_lines": settings.gcode_render_max_lines
+            "gcode_render_max_lines": settings.gcode_render_max_lines,
+            # Library System settings
+            "library_enabled": settings.library_enabled,
+            "library_path": str(settings.library_path),
+            "library_auto_organize": settings.library_auto_organize,
+            "library_auto_extract_metadata": settings.library_auto_extract_metadata,
+            "library_auto_deduplicate": getattr(settings, 'library_auto_deduplicate', True)
         }
 
     def _get_cors_origins_list(self, cors_origins_str: str) -> List[str]:

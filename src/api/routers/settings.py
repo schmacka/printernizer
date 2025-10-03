@@ -29,11 +29,18 @@ class ApplicationSettingsResponse(BaseModel):
     monitoring_interval: int
     connection_timeout: int
     cors_origins: List[str]
-    
+
     # G-code optimization settings
     gcode_optimize_print_only: bool
     gcode_optimization_max_lines: int
     gcode_render_max_lines: int
+
+    # Library System settings
+    library_enabled: bool
+    library_path: str
+    library_auto_organize: bool
+    library_auto_extract_metadata: bool
+    library_auto_deduplicate: bool
 
 
 class ApplicationSettingsUpdate(BaseModel):
@@ -44,11 +51,18 @@ class ApplicationSettingsUpdate(BaseModel):
     downloads_path: Optional[str] = None
     max_file_size: Optional[int] = None
     vat_rate: Optional[float] = None
-    
+
     # G-code optimization settings
     gcode_optimize_print_only: Optional[bool] = None
     gcode_optimization_max_lines: Optional[int] = None
     gcode_render_max_lines: Optional[int] = None
+
+    # Library System settings
+    library_enabled: Optional[bool] = None
+    library_path: Optional[str] = None
+    library_auto_organize: Optional[bool] = None
+    library_auto_extract_metadata: Optional[bool] = None
+    library_auto_deduplicate: Optional[bool] = None
 
 
 class PrinterConfigResponse(BaseModel):

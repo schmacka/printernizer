@@ -45,6 +45,7 @@ from src.api.routers.ideas import router as ideas_router
 from src.api.routers.idea_url import router as idea_url_router
 from src.api.routers.trending import router as trending_router
 from src.api.routers.debug import router as debug_router
+from src.api.routers.library import router as library_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -67,7 +68,7 @@ from src.utils.middleware import (
 
 # Application version - SINGLE SOURCE OF TRUTH
 # Update this version number when releasing new versions
-APP_VERSION = "1.2.0"  # Phase 2: Enhanced metadata display + file search
+APP_VERSION = "1.2.2"  # Bugfix: Library frontend uses CONFIG.API_BASE_URL for port 8000
 
 
 # Prometheus metrics - initialized once
@@ -105,12 +106,17 @@ async def lifespan(app: FastAPI):
     config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
-    
-    # Initialize file watcher service
-    file_watcher_service = FileWatcherService(config_service, event_service)
 
-    # Initialize file service with file watcher, printer service, and config service
-    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service)
+    # Initialize Library service (before file_watcher so it can use it)
+    from src.services.library_service import LibraryService
+    library_service = LibraryService(database, config_service, event_service)
+    await library_service.initialize()
+
+    # Initialize file watcher service with library integration
+    file_watcher_service = FileWatcherService(config_service, event_service, library_service)
+
+    # Initialize file service with file watcher, printer service, config service, and library
+    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
 
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
@@ -128,6 +134,7 @@ async def lifespan(app: FastAPI):
     app.state.thumbnail_service = thumbnail_service
     app.state.url_parser_service = url_parser_service
     app.state.trending_service = trending_service
+    app.state.library_service = library_service
     
     # Initialize and start background services
     await event_service.start()
@@ -303,8 +310,9 @@ def create_application() -> FastAPI:
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
     app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
     app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
-    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"]) 
+    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"])
     app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
+    app.include_router(library_router, prefix="/api/v1", tags=["Library"])  # New library system
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])

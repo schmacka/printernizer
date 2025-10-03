@@ -122,18 +122,19 @@ class PrintFileHandler(FileSystemEventHandler):
 
 class FileWatcherService:
     """Service for watching local folders for 3D print files."""
-    
-    def __init__(self, config_service: ConfigService, event_service: EventService):
+
+    def __init__(self, config_service: ConfigService, event_service: EventService, library_service=None):
         """Initialize file watcher service."""
         self.config_service = config_service
         self.event_service = event_service
-        
+        self.library_service = library_service  # Optional library integration
+
         self._observer = None
         self._watched_folders: Dict[str, Any] = {}  # folder_path -> watch descriptor
         self._local_files: Dict[str, LocalFile] = {}  # file_id -> LocalFile
         self._is_running = False
         self._lock = threading.Lock()
-        
+
         # Initialize file handler
         self._file_handler = PrintFileHandler(self)
     
@@ -307,31 +308,31 @@ class FileWatcherService:
                        folder_path=str(folder_path), error=str(e))
     
     async def _process_discovered_file(self, file_path: str):
-        """Process a discovered file and add to local files."""
+        """Process a discovered file and add to local files and library."""
         try:
             path = Path(file_path)
-            
+
             if not path.exists():
                 return
-            
+
             stat = path.stat()
-            
+
             # Find which watch folder this file belongs to
             watch_folder_path = self._find_watch_folder_for_file(file_path)
             if not watch_folder_path:
                 logger.warning("File not in any watch folder", file_path=file_path)
                 return
-            
+
             # Create relative path
             watch_path = Path(watch_folder_path)
             try:
                 relative_path = path.relative_to(watch_path)
             except ValueError:
                 relative_path = Path(path.name)
-            
+
             # Generate file ID
             file_id = f"local_{abs(hash(file_path))}"
-            
+
             # Create LocalFile object
             local_file = LocalFile(
                 file_id=file_id,
@@ -343,18 +344,45 @@ class FileWatcherService:
                 watch_folder_path=watch_folder_path,
                 relative_path=str(relative_path)
             )
-            
+
             # Store file
             self._local_files[file_id] = local_file
-            
+
+            # Add to library if library service is available and enabled
+            if self.library_service and self.library_service.enabled:
+                try:
+                    source_info = {
+                        'type': 'watch_folder',
+                        'folder_path': watch_folder_path,
+                        'relative_path': str(relative_path),
+                        'discovered_at': datetime.now().isoformat()
+                    }
+
+                    # Add file to library (will copy to library folder)
+                    await self.library_service.add_file_to_library(
+                        source_path=path,
+                        source_info=source_info,
+                        copy_file=True  # Copy, don't move (preserve original)
+                    )
+
+                    logger.info("Added watch folder file to library",
+                               filename=path.name,
+                               watch_folder=watch_folder_path)
+
+                except Exception as e:
+                    logger.error("Failed to add file to library",
+                                filename=path.name,
+                                error=str(e))
+                    # Continue anyway - file still tracked locally
+
             # Emit file discovered event
             await self._emit_file_event('file_discovered', local_file)
-            
-            logger.debug("Processed local file", 
+
+            logger.debug("Processed local file",
                         filename=local_file.filename, file_id=file_id)
-                        
+
         except Exception as e:
-            logger.error("Error processing discovered file", 
+            logger.error("Error processing discovered file",
                        file_path=file_path, error=str(e))
     
     def _find_watch_folder_for_file(self, file_path: str) -> Optional[str]:

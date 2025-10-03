@@ -20,16 +20,17 @@ logger = structlog.get_logger()
 
 class FileService:
     """Service for managing 3D files and downloads."""
-    
+
     def __init__(self, database: Database, event_service: EventService,
                  file_watcher: Optional[FileWatcherService] = None,
-                 printer_service=None, config_service=None):
+                 printer_service=None, config_service=None, library_service=None):
         """Initialize file service."""
         self.database = database
         self.event_service = event_service
         self.file_watcher = file_watcher
         self.printer_service = printer_service
         self.config_service = config_service
+        self.library_service = library_service  # Optional library integration
         self.bambu_parser = BambuParser()
         self.preview_render_service = PreviewRenderService()
         self.download_progress = {}
@@ -269,6 +270,41 @@ class FileService:
 
                     # Process thumbnails asynchronously to not block download completion
                     asyncio.create_task(self.process_file_thumbnails(destination_path, file_id))
+
+                    # Add to library if library service is available and enabled
+                    if self.library_service and self.library_service.enabled:
+                        try:
+                            # Get printer info
+                            printer = await self.printer_service.get_printer(printer_id)
+                            printer_name = printer.get('name', 'unknown') if printer else 'unknown'
+
+                            source_info = {
+                                'type': 'printer',
+                                'printer_id': printer_id,
+                                'printer_name': printer_name,
+                                'original_filename': filename,
+                                'original_path': f'/cache/{filename}',  # Typical printer path
+                                'discovered_at': datetime.now().isoformat()
+                            }
+
+                            # Add file to library (will copy to library folder)
+                            await self.library_service.add_file_to_library(
+                                source_path=Path(destination_path),
+                                source_info=source_info,
+                                copy_file=True  # Copy, preserve downloads folder
+                            )
+
+                            logger.info("Added downloaded file to library",
+                                       filename=filename,
+                                       printer_id=printer_id,
+                                       printer_name=printer_name)
+
+                        except Exception as e:
+                            logger.error("Failed to add downloaded file to library",
+                                        filename=filename,
+                                        printer_id=printer_id,
+                                        error=str(e))
+                            # Continue anyway - download still successful
 
                     # Emit download complete event
                     try:

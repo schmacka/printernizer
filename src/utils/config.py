@@ -71,7 +71,21 @@ class PrinternizerSettings(BaseSettings):
     gcode_optimize_print_only: bool = Field(default=True, env="GCODE_OPTIMIZE_PRINT_ONLY")
     gcode_optimization_max_lines: int = Field(default=1000, env="GCODE_OPTIMIZATION_MAX_LINES")
     gcode_render_max_lines: int = Field(default=10000, env="GCODE_RENDER_MAX_LINES")
-    
+
+    # Library System Configuration
+    library_enabled: bool = Field(default=True, env="LIBRARY_ENABLED")
+    library_path: str = Field(default="/app/data/library", env="LIBRARY_PATH")
+    library_auto_organize: bool = Field(default=True, env="LIBRARY_AUTO_ORGANIZE")
+    library_auto_extract_metadata: bool = Field(default=True, env="LIBRARY_AUTO_EXTRACT_METADATA")
+    library_auto_deduplicate: bool = Field(default=True, env="LIBRARY_AUTO_DEDUPLICATE")
+    library_preserve_originals: bool = Field(default=True, env="LIBRARY_PRESERVE_ORIGINALS")
+    library_checksum_algorithm: str = Field(default="sha256", env="LIBRARY_CHECKSUM_ALGORITHM")
+    library_processing_workers: int = Field(default=2, env="LIBRARY_PROCESSING_WORKERS")
+
+    # Library Search Configuration
+    library_search_enabled: bool = Field(default=True, env="LIBRARY_SEARCH_ENABLED")
+    library_search_min_length: int = Field(default=3, env="LIBRARY_SEARCH_MIN_LENGTH")
+
     @validator('secret_key')
     def validate_secret_key(cls, v):
         """Validate and generate secure secret key if needed."""
@@ -81,10 +95,29 @@ class PrinternizerSettings(BaseSettings):
             logger.warning("No SECRET_KEY environment variable set. Generated secure key for this session.")
             logger.info("For production, set SECRET_KEY environment variable to persist sessions across restarts.")
             return generated_key
-        
+
         # Validate provided key
         if len(v) < 32:
             raise ValueError("Secret key must be at least 32 characters long for security. Set a longer SECRET_KEY environment variable.")
+        return v
+
+    @validator('library_path')
+    def validate_library_path(cls, v):
+        """Validate library path is absolute."""
+        if not v:
+            return "/app/data/library"  # Default
+
+        from pathlib import Path
+        path = Path(v)
+
+        # Ensure absolute path
+        if not path.is_absolute():
+            logger.warning(
+                f"LIBRARY_PATH '{v}' is not absolute. "
+                f"Converting to absolute path: {path.absolute()}"
+            )
+            return str(path.absolute())
+
         return v
     
     @property
