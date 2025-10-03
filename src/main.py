@@ -106,9 +106,14 @@ async def lifespan(app: FastAPI):
     config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
-    
-    # Initialize file watcher service
-    file_watcher_service = FileWatcherService(config_service, event_service)
+
+    # Initialize Library service (before file_watcher so it can use it)
+    from src.services.library_service import LibraryService
+    library_service = LibraryService(database, config_service, event_service)
+    await library_service.initialize()
+
+    # Initialize file watcher service with library integration
+    file_watcher_service = FileWatcherService(config_service, event_service, library_service)
 
     # Initialize file service with file watcher, printer service, and config service
     file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service)
@@ -120,11 +125,6 @@ async def lifespan(app: FastAPI):
     thumbnail_service = ThumbnailService(event_service)
     url_parser_service = UrlParserService()
     trending_service = TrendingService(database, event_service)
-
-    # Initialize Library service
-    from src.services.library_service import LibraryService
-    library_service = LibraryService(database, config_service, event_service)
-    await library_service.initialize()
 
     app.state.config_service = config_service
     app.state.event_service = event_service
