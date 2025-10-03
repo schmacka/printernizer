@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/enhanced-metadata.css">
+    <link rel="stylesheet" href="css/library.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
 <body>
@@ -492,6 +493,16 @@
                         <option value="50" selected>50</option>
                         <option value="100">100</option>
                     </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Detail Modal -->
+        <div id="fileDetailModal" class="modal">
+            <div class="modal-content">
+                <button id="closeFileDetailModal" class="modal-close">✕</button>
+                <div id="fileDetailContent">
+                    <div class="loading">Lädt...</div>
                 </div>
             </div>
         </div>
@@ -1532,6 +1543,7 @@
     <script src="js/auto-download-ui.js"></script>
     <script src="js/download-debug.js"></script>
     <script src="js/auto-download-init.js"></script>
+    <script src="js/library.js"></script>
 
     <script src="js/main.js?v=1.1"></script>
 
