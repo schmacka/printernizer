@@ -833,4 +833,3 @@ async def check_printer_compatibility(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to check compatibility: {str(e)}"
         )
-        )
