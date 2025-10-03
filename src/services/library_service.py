@@ -132,23 +132,24 @@ class LibraryService:
         return hasher.hexdigest()
 
     def get_library_path_for_file(self, checksum: str, source_type: str,
-                                   original_filename: str = None) -> Path:
+                                   original_filename: str = None, printer_name: str = None) -> Path:
         """
         Get library storage path for a file based on source type.
 
         Args:
             checksum: File checksum
             source_type: Source type (printer, watch_folder, upload)
-            original_filename: Original filename (optional, for printers)
+            original_filename: Original filename (optional)
+            printer_name: Printer name (required for printer source type)
 
         Returns:
             Path object for library storage location
         """
-        # Use first 2 characters of checksum for sharding
+        # Use first 2 characters of checksum for sharding (scalability)
         shard = checksum[:2]
 
         if source_type == 'watch_folder':
-            # Store in models/ with just checksum + extension
+            # Store in models/{shard}/ with checksum + extension
             if original_filename:
                 ext = Path(original_filename).suffix
             else:
@@ -156,14 +157,16 @@ class LibraryService:
             return self.library_path / 'models' / shard / f"{checksum}{ext}"
 
         elif source_type == 'printer':
-            # Store in printers/{printer_name}/ with checksum + original filename
-            # Printer name will be added by caller
+            # Store in printers/{printer_name}/{shard}/ with checksum + original filename
+            if not printer_name:
+                printer_name = 'unknown'
             if original_filename:
-                return self.library_path / 'printers' / shard / f"{checksum}_{original_filename}"
+                return self.library_path / 'printers' / printer_name / shard / f"{checksum}_{original_filename}"
             else:
-                return self.library_path / 'printers' / shard / f"{checksum}"
+                return self.library_path / 'printers' / printer_name / shard / f"{checksum}"
 
         elif source_type == 'upload':
+            # Store in uploads/{shard}/ with checksum + extension
             if original_filename:
                 ext = Path(original_filename).suffix
             else:
@@ -230,17 +233,26 @@ class LibraryService:
             # File is new - add to library
             logger.info("Adding new file to library", checksum=checksum[:16])
 
+            # Check disk space before copying
+            file_size = source_path.stat().st_size
+            required_space = file_size * 1.5  # 50% buffer for safety
+            disk_usage = shutil.disk_usage(self.library_path)
+            if disk_usage.free < required_space:
+                free_gb = disk_usage.free / (1024**3)
+                required_gb = required_space / (1024**3)
+                raise IOError(
+                    f"Insufficient disk space: {free_gb:.2f} GB free, "
+                    f"need {required_gb:.2f} GB for this file"
+                )
+
             # Determine library path
             printer_name = source_info.get('printer_name', 'unknown')
             library_path = self.get_library_path_for_file(
                 checksum,
                 source_type,
-                source_path.name
+                source_path.name,
+                printer_name=printer_name
             )
-
-            # For printer sources, include printer name in path
-            if source_type == 'printer':
-                library_path = self.library_path / 'printers' / printer_name / library_path.name
 
             # Create parent directory
             library_path.parent.mkdir(parents=True, exist_ok=True)
@@ -293,8 +305,32 @@ class LibraryService:
                 'search_index': search_index,
             }
 
-            # Save to database
-            await self.database.create_library_file(file_record)
+            # Save to database (handle race condition with UNIQUE constraint)
+            try:
+                success = await self.database.create_library_file(file_record)
+
+                if not success:
+                    # Database insert failed - likely race condition
+                    # Check if file now exists (another process added it)
+                    existing_file = await self.get_file_by_checksum(checksum)
+                    if existing_file:
+                        logger.info("File was added by another process, adding source",
+                                   checksum=checksum[:16])
+                        # Delete our copy and add source to existing record
+                        library_path.unlink()
+                        await self.add_file_source(checksum, source_info)
+                        return existing_file
+                    else:
+                        # Insert failed for other reason
+                        library_path.unlink()
+                        raise RuntimeError("Failed to create library file record")
+
+            except Exception as e:
+                # Clean up on any database error
+                if library_path.exists():
+                    library_path.unlink()
+                logger.error("Database error while adding file", checksum=checksum[:16], error=str(e))
+                raise
 
             # Add source to junction table
             await self.add_file_source(checksum, source_info)
