@@ -45,6 +45,7 @@ from src.api.routers.ideas import router as ideas_router
 from src.api.routers.idea_url import router as idea_url_router
 from src.api.routers.trending import router as trending_router
 from src.api.routers.debug import router as debug_router
+from src.api.routers.library import router as library_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -120,6 +121,11 @@ async def lifespan(app: FastAPI):
     url_parser_service = UrlParserService()
     trending_service = TrendingService(database, event_service)
 
+    # Initialize Library service
+    from src.services.library_service import LibraryService
+    library_service = LibraryService(database, config_service, event_service)
+    await library_service.initialize()
+
     app.state.config_service = config_service
     app.state.event_service = event_service
     app.state.printer_service = printer_service
@@ -128,6 +134,7 @@ async def lifespan(app: FastAPI):
     app.state.thumbnail_service = thumbnail_service
     app.state.url_parser_service = url_parser_service
     app.state.trending_service = trending_service
+    app.state.library_service = library_service
     
     # Initialize and start background services
     await event_service.start()
@@ -303,8 +310,9 @@ def create_application() -> FastAPI:
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
     app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
     app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
-    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"]) 
+    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"])
     app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
+    app.include_router(library_router, prefix="/api/v1", tags=["Library"])  # New library system
     app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
