@@ -42,7 +42,7 @@ class LibraryManager {
      */
     setupEventListeners() {
         // Search input with debounce
-        const searchInput = document.getElementById('librarySearch');
+        const searchInput = document.getElementById('librarySearchInput');
         if (searchInput) {
             let debounceTimer;
             searchInput.addEventListener('input', (e) => {
@@ -130,7 +130,7 @@ class LibraryManager {
      */
     async loadStatistics() {
         try {
-            const response = await fetch('/api/v1/library/statistics');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/library/statistics`);
             if (!response.ok) throw new Error('Failed to load statistics');
 
             const stats = await response.json();
@@ -170,7 +170,7 @@ class LibraryManager {
                 }
             });
 
-            const response = await fetch(`/api/v1/library/files?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/library/files?${params}`);
             if (!response.ok) throw new Error('Failed to load files');
 
             const data = await response.json();
@@ -222,7 +222,7 @@ class LibraryManager {
     createFileCard(file) {
         const sourceIcon = this.getSourceIcon(file.sources);
         const statusBadge = this.getStatusBadge(file.status);
-        const thumbnailUrl = file.has_thumbnail ? `/api/v1/library/files/${file.checksum}/thumbnail` : null;
+        const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
         return `
             <div class="library-file-card" data-checksum="${file.checksum}">
@@ -369,7 +369,7 @@ class LibraryManager {
 
         try {
             // Fetch full file details
-            const response = await fetch(`/api/v1/library/files/${file.checksum}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/library/files/${file.checksum}`);
             if (!response.ok) throw new Error('Failed to load file details');
 
             const fullFile = await response.json();
@@ -389,7 +389,7 @@ class LibraryManager {
      * Render file detail view
      */
     renderFileDetail(file) {
-        const thumbnailUrl = file.has_thumbnail ? `/api/v1/library/files/${file.checksum}/thumbnail` : null;
+        const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
         return `
             <div class="file-detail-container">
@@ -596,7 +596,7 @@ class LibraryManager {
 
         // Download button
         document.getElementById('downloadFileBtn')?.addEventListener('click', () => {
-            window.open(`/api/v1/library/files/${file.checksum}/download`, '_blank');
+            window.open(`${CONFIG.API_BASE_URL}/library/files/${file.checksum}/download`, '_blank');
         });
 
         // Delete button
@@ -627,7 +627,7 @@ class LibraryManager {
      */
     async reprocessFile(checksum) {
         try {
-            const response = await fetch(`/api/v1/library/files/${checksum}/reprocess`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/library/files/${checksum}/reprocess`, {
                 method: 'POST'
             });
 
@@ -652,7 +652,7 @@ class LibraryManager {
      */
     async deleteFile(checksum) {
         try {
-            const response = await fetch(`/api/v1/library/files/${checksum}`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/library/files/${checksum}`, {
                 method: 'DELETE'
             });
 

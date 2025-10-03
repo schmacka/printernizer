@@ -693,8 +693,8 @@ async function loadAppVersion() {
     console.log('[Version] Found appVersion element:', versionElement);
 
     try {
-        console.log('[Version] Fetching /api/v1/health...');
-        const response = await fetch('/api/v1/health', {
+        console.log('[Version] Fetching health endpoint...');
+        const response = await fetch(`${CONFIG.API_BASE_URL}/health`, {
             cache: 'no-cache' // Force fresh data
         });
 

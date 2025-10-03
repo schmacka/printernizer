@@ -273,7 +273,7 @@ class SettingsManager {
      */
     async loadWatchFolderSettings() {
         try {
-            const response = await fetch('/api/v1/settings/watch-folders');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/settings/watch-folders`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -358,7 +358,7 @@ class SettingsManager {
         try {
             showToast('info', 'Zurücksetzen', 'Einstellungen werden zurückgesetzt');
 
-            const response = await fetch('/api/v1/settings/reset', {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/settings/reset`, {
                 method: 'POST'
             });
 
