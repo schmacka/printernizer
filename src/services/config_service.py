@@ -98,7 +98,16 @@ class Settings(BaseSettings):
     # File Management
     downloads_path: str = "./data/downloads"
     max_file_size: int = 500 * 1024 * 1024  # 500MB limit
-    
+
+    # Library System Configuration
+    library_enabled: bool = True
+    library_path: str = "/app/data/library"
+    library_auto_organize: bool = True
+    library_auto_extract_metadata: bool = True
+    library_auto_deduplicate: bool = True
+    library_preserve_originals: bool = True
+    library_checksum_algorithm: str = "sha256"
+
     # Monitoring
     monitoring_interval: int = 30  # seconds
     connection_timeout: int = 10  # seconds
@@ -143,6 +152,31 @@ class Settings(BaseSettings):
         if v != original:
             # Log at info level so user can see the normalization (structlog fields are structured)
             logger.info("Normalized downloads_path", original=original, normalized=v)
+        return v
+
+    @field_validator("library_path")
+    @classmethod
+    def normalize_library_path(cls, v: str) -> str:
+        """Normalize the library path to avoid hidden control characters and ensure portability."""
+        if not v:
+            return v
+        original = v
+        # Remove control characters
+        if any(c in v for c in ['\t', '\n', '\r']):
+            v = v.replace('\t', '').replace('\n', '').replace('\r', '')
+        # Uniform slashes
+        v = v.replace('\\', '/')
+        # Collapse duplicate slashes
+        while '//' in v.replace('://', '§§'):
+            v = v.replace('://', '§§').replace('//', '/').replace('§§', '://')
+        # Resolve to absolute path
+        try:
+            if not (v.startswith('http://') or v.startswith('https://')):
+                v = str(Path(v).expanduser().resolve())
+        except Exception:
+            pass
+        if v != original:
+            logger.info("Normalized library_path", original=original, normalized=v)
         return v
     
     model_config = {

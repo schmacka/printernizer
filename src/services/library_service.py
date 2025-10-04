@@ -135,46 +135,82 @@ class LibraryService:
                                    original_filename: str = None, printer_name: str = None) -> Path:
         """
         Get library storage path for a file based on source type.
+        Uses natural filenames without checksum-based sharding.
 
         Args:
-            checksum: File checksum
+            checksum: File checksum (not used in path anymore)
             source_type: Source type (printer, watch_folder, upload)
-            original_filename: Original filename (optional)
+            original_filename: Original filename (required)
             printer_name: Printer name (required for printer source type)
 
         Returns:
             Path object for library storage location
         """
-        # Use first 2 characters of checksum for sharding (scalability)
-        shard = checksum[:2]
+        if not original_filename:
+            raise ValueError("original_filename is required for natural filename storage")
 
         if source_type == 'watch_folder':
-            # Store in models/{shard}/ with checksum + extension
-            if original_filename:
-                ext = Path(original_filename).suffix
-            else:
-                ext = ''
-            return self.library_path / 'models' / shard / f"{checksum}{ext}"
+            # Store in models/ with original filename
+            return self.library_path / 'models' / original_filename
 
         elif source_type == 'printer':
-            # Store in printers/{printer_name}/{shard}/ with checksum + original filename
+            # Store in printers/{printer_name}/ with original filename
             if not printer_name:
                 printer_name = 'unknown'
-            if original_filename:
-                return self.library_path / 'printers' / printer_name / shard / f"{checksum}_{original_filename}"
-            else:
-                return self.library_path / 'printers' / printer_name / shard / f"{checksum}"
+            return self.library_path / 'printers' / printer_name / original_filename
 
         elif source_type == 'upload':
-            # Store in uploads/{shard}/ with checksum + extension
-            if original_filename:
-                ext = Path(original_filename).suffix
-            else:
-                ext = ''
-            return self.library_path / 'uploads' / shard / f"{checksum}{ext}"
+            # Store in uploads/ with original filename
+            return self.library_path / 'uploads' / original_filename
 
         else:
             raise ValueError(f"Unknown source type: {source_type}")
+
+    def _resolve_filename_conflict(self, target_path: Path) -> Path:
+        """
+        Resolve filename conflict by appending _1, _2, etc.
+
+        Args:
+            target_path: Desired target path
+
+        Returns:
+            Resolved path that doesn't conflict with existing files
+        """
+        if not target_path.exists():
+            return target_path
+
+        # File exists, need to append counter
+        stem = target_path.stem
+        suffix = target_path.suffix
+        parent = target_path.parent
+
+        counter = 1
+        while True:
+            new_filename = f"{stem}_{counter}{suffix}"
+            new_path = parent / new_filename
+            if not new_path.exists():
+                logger.info("Resolved filename conflict",
+                           original=target_path.name,
+                           resolved=new_filename)
+                return new_path
+            counter += 1
+
+            # Safety check to prevent infinite loop
+            if counter > 1000:
+                raise RuntimeError(f"Too many filename conflicts for {target_path.name}")
+
+    async def _check_duplicate(self, checksum: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if a file with this checksum already exists (duplicate detection).
+
+        Args:
+            checksum: File checksum to check
+
+        Returns:
+            Original file record if duplicate found, None otherwise
+        """
+        existing_file = await self.get_file_by_checksum(checksum)
+        return existing_file
 
     async def add_file_to_library(self, source_path: Path, source_info: Dict[str, Any],
                                   copy_file: bool = True, calculate_hash: bool = True) -> Dict[str, Any]:
@@ -214,24 +250,25 @@ class LibraryService:
                 if not checksum:
                     raise ValueError("Checksum required when calculate_hash=False")
 
-            # Check if file already exists in library
-            existing_file = await self.get_file_by_checksum(checksum)
+            # Check for duplicate (same checksum = same content)
+            original_file = await self._check_duplicate(checksum)
+            is_duplicate = original_file is not None
+            duplicate_of_checksum = original_file['checksum'] if is_duplicate else None
 
-            if existing_file:
-                logger.info("File already in library", checksum=checksum[:16])
+            if is_duplicate:
+                logger.info("Duplicate file detected",
+                           checksum=checksum[:16],
+                           original=original_file['filename'])
+                # Continue to add the duplicate with a different filename
+                # (will be handled by filename conflict resolution)
 
-                # Add new source to existing file
-                await self.add_file_source(checksum, source_info)
-
-                # Update file access time
-                await self.database.update_library_file(checksum, {
-                    'last_accessed': datetime.now().isoformat()
-                })
-
-                return existing_file
-
-            # File is new - add to library
-            logger.info("Adding new file to library", checksum=checksum[:16])
+            # Determine if this is a new unique file or a duplicate
+            if not is_duplicate:
+                logger.info("Adding new unique file to library", checksum=checksum[:16])
+            else:
+                logger.info("Adding duplicate file to library",
+                           checksum=checksum[:16],
+                           duplicate_of=original_file['filename'])
 
             # Check disk space before copying
             file_size = source_path.stat().st_size
@@ -245,14 +282,17 @@ class LibraryService:
                     f"need {required_gb:.2f} GB for this file"
                 )
 
-            # Determine library path
+            # Determine library path with natural filename
             printer_name = source_info.get('printer_name', 'unknown')
-            library_path = self.get_library_path_for_file(
+            desired_library_path = self.get_library_path_for_file(
                 checksum,
                 source_type,
                 source_path.name,
                 printer_name=printer_name
             )
+
+            # Resolve filename conflicts (append _1, _2, etc. if needed)
+            library_path = self._resolve_filename_conflict(desired_library_path)
 
             # Create parent directory
             library_path.parent.mkdir(parents=True, exist_ok=True)
@@ -282,6 +322,15 @@ class LibraryService:
             file_type = library_path.suffix.lower()
 
             # Create library file record
+            # For duplicates, we use a modified checksum to bypass UNIQUE constraint
+            # The modified checksum is checksum + "-" + UUID to make it unique
+            # The real checksum is stored in duplicate_of_checksum
+            if is_duplicate:
+                # Generate a unique "fake" checksum for database constraint
+                unique_checksum = f"{checksum}-{str(uuid4())}"
+            else:
+                unique_checksum = checksum
+
             file_id = str(uuid4())
 
             # Prepare sources array
@@ -292,9 +341,9 @@ class LibraryService:
 
             file_record = {
                 'id': file_id,
-                'checksum': checksum,
-                'filename': source_path.name,
-                'display_name': source_path.name,
+                'checksum': unique_checksum,  # Unique for database, may be modified for duplicates
+                'filename': library_path.name,  # Use actual filename (may have _1, _2 suffix)
+                'display_name': library_path.name,
                 'library_path': str(library_path.relative_to(self.library_path)),
                 'file_size': file_size,
                 'file_type': file_type,
@@ -303,6 +352,9 @@ class LibraryService:
                 'added_to_library': datetime.now().isoformat(),
                 'last_modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
                 'search_index': search_index,
+                'is_duplicate': is_duplicate,
+                'duplicate_of_checksum': duplicate_of_checksum or checksum,  # Always store original checksum
+                'duplicate_count': 0,  # Will be updated if other duplicates are added later
             }
 
             # Save to database (handle race condition with UNIQUE constraint)
@@ -332,12 +384,23 @@ class LibraryService:
                 logger.error("Database error while adding file", checksum=checksum[:16], error=str(e))
                 raise
 
-            # Add source to junction table
-            await self.add_file_source(checksum, source_info)
+            # Add source to junction table (use unique_checksum which is what's in the database)
+            await self.add_file_source(unique_checksum, source_info)
+
+            # If this is a duplicate, increment the duplicate_count on the original file
+            if is_duplicate and original_file:
+                current_count = original_file.get('duplicate_count', 0)
+                await self.database.update_library_file(original_file['checksum'], {
+                    'duplicate_count': current_count + 1
+                })
+                logger.info("Incremented duplicate count on original file",
+                           original_checksum=original_file['checksum'][:16],
+                           new_count=current_count + 1)
 
             logger.info("File added to library successfully",
                        checksum=checksum[:16],
-                       library_path=str(library_path))
+                       library_path=str(library_path),
+                       is_duplicate=is_duplicate)
 
             # Emit event
             await self.event_service.emit_event('library_file_added', {
@@ -444,6 +507,8 @@ class LibraryService:
             'source_type': source_info.get('type'),
             'source_id': source_info.get('printer_id') or source_info.get('folder_path'),
             'source_name': source_info.get('printer_name') or source_info.get('folder_path'),
+            'manufacturer': source_info.get('manufacturer'),  # NEW: manufacturer field
+            'printer_model': source_info.get('printer_model'),  # NEW: printer model field
             'original_path': source_info.get('original_path', ''),
             'original_filename': source_info.get('original_filename', ''),
             'discovered_at': source_info.get('discovered_at', datetime.now().isoformat()),

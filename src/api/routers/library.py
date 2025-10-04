@@ -97,6 +97,10 @@ async def list_library_files(
     search: Optional[str] = Query(None, min_length=2, description="Search in filename"),
     has_thumbnail: Optional[bool] = Query(None, description="Filter by thumbnail presence"),
     has_metadata: Optional[bool] = Query(None, description="Filter by metadata analysis"),
+    manufacturer: Optional[str] = Query(None, description="Filter by manufacturer (bambu_lab, prusa_research)"),
+    printer_model: Optional[str] = Query(None, description="Filter by printer model (A1, Core One, etc.)"),
+    show_duplicates: Optional[bool] = Query(True, description="Show duplicate files (default: true)"),
+    only_duplicates: Optional[bool] = Query(False, description="Show only duplicate files (default: false)"),
     library_service = Depends(get_library_service)
 ):
     """
@@ -109,6 +113,8 @@ async def list_library_files(
     - `search`: Search in filename (case-insensitive)
     - `has_thumbnail`: Only files with/without thumbnails
     - `has_metadata`: Only files with/without extracted metadata
+    - `manufacturer`: Filter by printer manufacturer (bambu_lab, prusa_research)
+    - `printer_model`: Filter by printer model (A1, P1P, Core One, MK4, etc.)
 
     **Pagination:**
     - `page`: Page number (starts at 1)
@@ -136,6 +142,14 @@ async def list_library_files(
             filters['has_thumbnail'] = has_thumbnail
         if has_metadata is not None:
             filters['has_metadata'] = has_metadata
+        if manufacturer:
+            filters['manufacturer'] = manufacturer
+        if printer_model:
+            filters['printer_model'] = printer_model
+        if show_duplicates is not None:
+            filters['show_duplicates'] = show_duplicates
+        if only_duplicates is not None:
+            filters['only_duplicates'] = only_duplicates
 
         # Get files from library service
         files, pagination = await library_service.list_files(filters, page, limit)

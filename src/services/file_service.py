@@ -278,10 +278,18 @@ class FileService:
                             printer = await self.printer_service.get_printer(printer_id)
                             printer_name = printer.get('name', 'unknown') if printer else 'unknown'
 
+                            # Extract manufacturer and model
+                            printer_info = self._extract_printer_info(printer) if printer else {
+                                'manufacturer': 'unknown',
+                                'printer_model': 'unknown'
+                            }
+
                             source_info = {
                                 'type': 'printer',
                                 'printer_id': printer_id,
                                 'printer_name': printer_name,
+                                'manufacturer': printer_info['manufacturer'],
+                                'printer_model': printer_info['printer_model'],
                                 'original_filename': filename,
                                 'original_path': f'/cache/{filename}',  # Typical printer path
                                 'discovered_at': datetime.now().isoformat()
@@ -297,7 +305,9 @@ class FileService:
                             logger.info("Added downloaded file to library",
                                        filename=filename,
                                        printer_id=printer_id,
-                                       printer_name=printer_name)
+                                       printer_name=printer_name,
+                                       manufacturer=printer_info['manufacturer'],
+                                       printer_model=printer_info['printer_model'])
 
                         except Exception as e:
                             logger.error("Failed to add downloaded file to library",
@@ -537,6 +547,54 @@ class FileService:
             '.ply': 'ply'
         }
         return type_map.get(ext, 'unknown')
+
+    def _extract_printer_info(self, printer: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Extract manufacturer and printer model from printer configuration.
+
+        Args:
+            printer: Printer configuration dict with 'type' and 'name' fields
+
+        Returns:
+            Dict with 'manufacturer' and 'printer_model' keys
+        """
+        from src.models.printer import PrinterType
+
+        manufacturer = 'unknown'
+        printer_model = 'unknown'
+
+        # Extract manufacturer from printer type
+        printer_type = printer.get('type', 'unknown')
+        if printer_type == PrinterType.BAMBU_LAB.value or printer_type == 'bambu_lab':
+            manufacturer = 'bambu_lab'
+        elif printer_type == PrinterType.PRUSA_CORE.value or printer_type == 'prusa_core':
+            manufacturer = 'prusa_research'
+
+        # Extract model from printer name or configuration
+        printer_name = printer.get('name', '')
+
+        # Common Bambu Lab models
+        bambu_models = ['A1', 'A1 Mini', 'P1P', 'P1S', 'X1C', 'X1E']
+        for model in bambu_models:
+            if model.lower() in printer_name.lower():
+                printer_model = model
+                break
+
+        # Common Prusa models
+        prusa_models = ['Core One', 'MK4', 'MK3S', 'MK3', 'MINI', 'XL']
+        for model in prusa_models:
+            if model.lower() in printer_name.lower():
+                printer_model = model
+                break
+
+        # If no model matched, use the printer name as fallback
+        if printer_model == 'unknown' and printer_name:
+            printer_model = printer_name
+
+        return {
+            'manufacturer': manufacturer,
+            'printer_model': printer_model
+        }
     
     async def sync_printer_files(self, printer_id: str) -> Dict[str, Any]:
         """Synchronize files from a specific printer."""
