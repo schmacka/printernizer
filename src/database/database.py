@@ -1105,8 +1105,9 @@ class Database:
             return await self._execute_write(
                 """INSERT INTO library_files
                 (id, checksum, filename, display_name, library_path, file_size, file_type,
-                 sources, status, added_to_library, last_modified, search_index)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 sources, status, added_to_library, last_modified, search_index,
+                 is_duplicate, duplicate_of_checksum, duplicate_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     file_data['id'],
                     file_data['checksum'],
@@ -1119,7 +1120,10 @@ class Database:
                     file_data.get('status', 'available'),
                     file_data['added_to_library'],
                     file_data.get('last_modified'),
-                    file_data.get('search_index', '')
+                    file_data.get('search_index', ''),
+                    file_data.get('is_duplicate', 0),
+                    file_data.get('duplicate_of_checksum'),
+                    file_data.get('duplicate_count', 0)
                 )
             )
         except Exception as e:
@@ -1174,39 +1178,70 @@ class Database:
         try:
             filters = filters or {}
 
+            # Check if manufacturer/model filters require JOIN
+            needs_join = filters.get('manufacturer') or filters.get('printer_model')
+
             # Build WHERE clause
             where_clauses = []
             params = []
 
             if filters.get('source_type'):
-                where_clauses.append("sources LIKE ?")
+                where_clauses.append("lf.sources LIKE ?")
                 params.append(f'%"type": "{filters["source_type"]}"%')
 
             if filters.get('file_type'):
-                where_clauses.append("file_type = ?")
+                where_clauses.append("lf.file_type = ?")
                 params.append(filters['file_type'])
 
             if filters.get('status'):
-                where_clauses.append("status = ?")
+                where_clauses.append("lf.status = ?")
                 params.append(filters['status'])
 
             if filters.get('search'):
-                where_clauses.append("search_index LIKE ?")
+                where_clauses.append("lf.search_index LIKE ?")
                 params.append(f"%{filters['search'].lower()}%")
 
             if filters.get('has_thumbnail') is not None:
-                where_clauses.append("has_thumbnail = ?")
+                where_clauses.append("lf.has_thumbnail = ?")
                 params.append(1 if filters['has_thumbnail'] else 0)
 
             if filters.get('has_metadata') is not None:
-                where_clauses.append("last_analyzed IS NOT NULL" if filters['has_metadata'] else "last_analyzed IS NULL")
+                where_clauses.append("lf.last_analyzed IS NOT NULL" if filters['has_metadata'] else "lf.last_analyzed IS NULL")
 
-            # Build query
+            # New filters for manufacturer and printer_model
+            if filters.get('manufacturer'):
+                where_clauses.append("lfs.manufacturer = ?")
+                params.append(filters['manufacturer'])
+
+            if filters.get('printer_model'):
+                where_clauses.append("lfs.printer_model = ?")
+                params.append(filters['printer_model'])
+
+            # Filter for duplicates
+            if filters.get('show_duplicates') is False:
+                where_clauses.append("lf.is_duplicate = 0")
+
+            if filters.get('only_duplicates') is True:
+                where_clauses.append("lf.is_duplicate = 1")
+
+            # Build query based on whether JOIN is needed
             where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
 
-            # Get total count
-            count_query = f"SELECT COUNT(*) as total FROM library_files WHERE {where_clause}"
-            count_row = await self._fetch_one(count_query, params)
+            if needs_join:
+                # Query with JOIN to library_file_sources
+                count_query = f"""
+                    SELECT COUNT(DISTINCT lf.checksum) as total
+                    FROM library_files lf
+                    INNER JOIN library_file_sources lfs ON lf.checksum = lfs.file_checksum
+                    WHERE {where_clause}
+                """
+                count_params = params.copy()
+            else:
+                # Simple query without JOIN
+                count_query = f"SELECT COUNT(*) as total FROM library_files lf WHERE {where_clause}"
+                count_params = params.copy()
+
+            count_row = await self._fetch_one(count_query, count_params)
             total_items = count_row['total'] if count_row else 0
 
             # Calculate pagination
@@ -1214,13 +1249,26 @@ class Database:
             total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
 
             # Get files
-            order_by = "added_to_library DESC"  # Default sort
-            query = f"""
-                SELECT * FROM library_files
-                WHERE {where_clause}
-                ORDER BY {order_by}
-                LIMIT ? OFFSET ?
-            """
+            order_by = "lf.added_to_library DESC"  # Default sort
+
+            if needs_join:
+                # Query with JOIN (distinct to avoid duplicates)
+                query = f"""
+                    SELECT DISTINCT lf.* FROM library_files lf
+                    INNER JOIN library_file_sources lfs ON lf.checksum = lfs.file_checksum
+                    WHERE {where_clause}
+                    ORDER BY {order_by}
+                    LIMIT ? OFFSET ?
+                """
+            else:
+                # Simple query without JOIN
+                query = f"""
+                    SELECT lf.* FROM library_files lf
+                    WHERE {where_clause}
+                    ORDER BY {order_by}
+                    LIMIT ? OFFSET ?
+                """
+
             params.extend([limit, offset])
 
             rows = await self._fetch_all(query, params)
@@ -1245,8 +1293,8 @@ class Database:
             return await self._execute_write(
                 """INSERT OR IGNORE INTO library_file_sources
                 (file_checksum, source_type, source_id, source_name, original_path,
-                 original_filename, discovered_at, metadata)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                 original_filename, discovered_at, metadata, manufacturer, printer_model)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     source_data['file_checksum'],
                     source_data['source_type'],
@@ -1255,7 +1303,9 @@ class Database:
                     source_data.get('original_path'),
                     source_data.get('original_filename'),
                     source_data['discovered_at'],
-                    source_data.get('metadata')
+                    source_data.get('metadata'),
+                    source_data.get('manufacturer'),  # NEW
+                    source_data.get('printer_model')   # NEW
                 )
             )
         except Exception as e:

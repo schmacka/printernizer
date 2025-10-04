@@ -13,6 +13,10 @@ class LibraryManager {
             status: null,
             has_thumbnail: null,
             search: null,
+            manufacturer: null,
+            printer_model: null,
+            show_duplicates: true,
+            only_duplicates: false,
             sort_by: 'created_at',
             sort_order: 'desc'
         };
@@ -58,6 +62,8 @@ class LibraryManager {
         // Filter dropdowns
         const filterElements = [
             'filterSourceType',
+            'filterManufacturer',
+            'filterPrinterModel',
             'filterFileType',
             'filterStatus',
             'filterMetadata',
@@ -96,12 +102,16 @@ class LibraryManager {
      */
     applyFilters() {
         const sourceType = document.getElementById('filterSourceType')?.value;
+        const manufacturer = document.getElementById('filterManufacturer')?.value;
+        const printerModel = document.getElementById('filterPrinterModel')?.value;
         const fileType = document.getElementById('filterFileType')?.value;
         const status = document.getElementById('filterStatus')?.value;
         const metadata = document.getElementById('filterMetadata')?.value;
         const sortBy = document.getElementById('sortBy')?.value;
 
         this.filters.source_type = sourceType !== 'all' ? sourceType : null;
+        this.filters.manufacturer = manufacturer !== 'all' ? manufacturer : null;
+        this.filters.printer_model = printerModel !== 'all' ? printerModel : null;
         this.filters.file_type = fileType !== 'all' ? fileType : null;
         this.filters.status = status !== 'all' ? status : null;
 
@@ -222,16 +232,18 @@ class LibraryManager {
     createFileCard(file) {
         const sourceIcon = this.getSourceIcon(file.sources);
         const statusBadge = this.getStatusBadge(file.status);
+        const duplicateBadge = this.getDuplicateBadge(file);
         const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
         return `
-            <div class="library-file-card" data-checksum="${file.checksum}">
+            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${file.checksum}">
                 <div class="file-card-thumbnail">
                     ${thumbnailUrl
                         ? `<img src="${thumbnailUrl}" alt="${file.filename}" loading="lazy">`
                         : `<div class="thumbnail-placeholder">${this.getFileTypeIcon(file.file_type)}</div>`
                     }
                     ${statusBadge}
+                    ${duplicateBadge}
                 </div>
                 <div class="file-card-info">
                     <div class="file-card-name" title="${file.filename}">${file.filename}</div>
@@ -284,7 +296,7 @@ class LibraryManager {
     }
 
     /**
-     * Get source icon
+     * Get source icon with manufacturer info
      */
     getSourceIcon(sources) {
         const sourceArray = this.parseSources(sources);
@@ -292,11 +304,44 @@ class LibraryManager {
 
         const sourceTypes = sourceArray.map(s => s.type);
 
-        if (sourceTypes.includes('printer')) return '🖨️';
+        if (sourceTypes.includes('printer')) {
+            // Find printer source to get manufacturer info
+            const printerSource = sourceArray.find(s => s.type === 'printer');
+            if (printerSource) {
+                const manufacturer = printerSource.manufacturer;
+                const model = printerSource.printer_model || printerSource.printer_name;
+
+                // Format: "🖨️ Manufacturer Model"
+                if (manufacturer === 'bambu_lab') {
+                    return `🖨️ Bambu ${model}`;
+                } else if (manufacturer === 'prusa_research') {
+                    return `🖨️ Prusa ${model}`;
+                } else {
+                    return `🖨️ ${model || 'Drucker'}`;
+                }
+            }
+            return '🖨️';
+        }
+
         if (sourceTypes.includes('watch_folder')) return '📁';
         if (sourceTypes.includes('upload')) return '⬆️';
 
         return '📄';
+    }
+
+    /**
+     * Get duplicate badge
+     */
+    getDuplicateBadge(file) {
+        if (!file.is_duplicate) {
+            // Show count on original files if they have duplicates
+            if (file.duplicate_count && file.duplicate_count > 0) {
+                return `<span class="duplicate-badge has-duplicates" title="${file.duplicate_count} duplicate(s)">🔗 ${file.duplicate_count}</span>`;
+            }
+            return '';
+        }
+
+        return '<span class="duplicate-badge is-duplicate" title="Duplicate file">⚠️ Duplicate</span>';
     }
 
     /**
