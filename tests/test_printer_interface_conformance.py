@@ -4,7 +4,7 @@ import pytest
 
 from src.printers.base import PrinterInterface
 from src.printers.prusa import PrusaPrinter
-from src.printers.bambu_lab import BambuLabPrinter, BAMBU_AVAILABLE
+from src.printers.bambu_lab import BambuLabPrinter, BAMBU_API_AVAILABLE
 
 # NOTE: BambuLabPrinter requires external dependency; we conditionally include it.
 
@@ -34,7 +34,7 @@ async def test_prusa_printer_implements_interface(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_bambu_printer_implements_interface(monkeypatch):
-    if not BAMBU_AVAILABLE:
+    if not BAMBU_API_AVAILABLE:
         pytest.skip("bambulabs-api not installed; skipping BambuLabPrinter conformance test")
     printer = BambuLabPrinter(printer_id="bambu", name="Bambu", ip_address="127.0.0.1", access_code="x", serial_number="y")
     for name in REQUIRED_ASYNC_METHODS:

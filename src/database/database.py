@@ -292,14 +292,6 @@ class Database:
             logger.error("Database health check failed", error=str(e))
             return False
     
-    @asynccontextmanager
-    async def transaction(self):
-        """Database transaction context manager."""
-        if not self._connection:
-            raise RuntimeError("Database not initialized")
-        async with self._connection:
-            yield self._connection
-    
     # Printer CRUD Operations
     async def create_printer(self, printer_data: Dict[str, Any]) -> bool:
         """Create a new printer record."""
@@ -749,16 +741,6 @@ class Database:
         except Exception as e:
             logger.error("Failed to update file enhanced metadata", file_id=file_id, error=str(e))
             return False
-    
-    async def create_local_file(self, file_data: Dict[str, Any]) -> bool:
-        """Create a local file record specifically for watch folder files."""
-        local_file_data = {
-            **file_data,
-            'printer_id': 'local',
-            'source': 'local_watch',
-            'status': 'local'
-        }
-        return await self.create_file(local_file_data)
     
     async def list_local_files(self, watch_folder_path: Optional[str] = None) -> List[Dict[str, Any]]:
         """List local files from watch folders."""
@@ -1312,13 +1294,6 @@ class Database:
             logger.error("Failed to create library file source", error=str(e))
             return False
 
-    async def get_library_file_sources(self, checksum: str) -> List[Dict[str, Any]]:
-        """Get all sources for a library file."""
-        rows = await self._fetch_all(
-            "SELECT * FROM library_file_sources WHERE file_checksum = ?",
-            [checksum]
-        )
-        return [dict(row) for row in rows]
 
     async def delete_library_file_sources(self, checksum: str) -> bool:
         """Delete all sources for a library file."""
