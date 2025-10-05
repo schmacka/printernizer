@@ -3,6 +3,7 @@ Printer service for managing printer connections and status.
 Handles Bambu Lab and Prusa printer integrations with real-time monitoring.
 """
 import asyncio
+import warnings
 from typing import List, Dict, Any, Optional
 from uuid import uuid4, UUID
 from datetime import datetime
@@ -286,7 +287,24 @@ class PrinterService:
         return printers
         
     async def get_printers(self) -> List[Dict[str, Any]]:
-        """Get list of all configured printers as dictionaries (legacy method)."""
+        """
+        Get list of all configured printers as dictionaries (legacy method).
+
+        .. deprecated:: 1.3.1
+            This method is deprecated and unused. Use :meth:`list_printers` instead,
+            which returns properly typed Printer objects with full status information.
+            This method will be removed in version 2.0.0.
+
+        Returns:
+            List[Dict[str, Any]]: List of printer dictionaries
+        """
+        warnings.warn(
+            "PrinterService.get_printers() is deprecated and will be removed in v2.0.0. "
+            "Use PrinterService.list_printers() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         printers = []
         
         for printer_id, instance in self.printer_instances.items():

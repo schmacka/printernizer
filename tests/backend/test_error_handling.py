@@ -19,7 +19,7 @@ import tempfile
 import os
 import shutil
 from datetime import datetime, timezone
-from unittest.mock import patch, Mock, MagicMock, side_effect
+from unittest.mock import patch, Mock, MagicMock
 from contextlib import contextmanager
 import requests
 from decimal import Decimal, InvalidOperation
