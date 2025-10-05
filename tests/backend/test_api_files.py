@@ -16,7 +16,7 @@ class TestFileAPI:
     
     def test_get_files_unified_empty(self, api_client, temp_database, test_config):
         """Test GET /api/v1/files/unified with empty database"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value.execute.return_value.fetchall.return_value = []
             
             response = api_client.get(f"{test_config['api_base_url']}/files/unified")
@@ -31,7 +31,7 @@ class TestFileAPI:
     
     def test_get_files_unified_with_data(self, api_client, populated_database, test_config, sample_file_data):
         """Test GET /api/v1/files/unified with existing files"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/files/unified")
@@ -62,7 +62,7 @@ class TestFileAPI:
     
     def test_get_files_filter_by_printer(self, api_client, populated_database, test_config):
         """Test GET /api/v1/files/unified?printer_id=bambu_a1_001"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/files/unified?printer_id=bambu_a1_001")
@@ -74,7 +74,7 @@ class TestFileAPI:
     
     def test_get_files_filter_by_status(self, api_client, populated_database, test_config):
         """Test GET /api/v1/files/unified?status=available"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/files/unified?status=available")
@@ -86,7 +86,7 @@ class TestFileAPI:
     
     def test_get_files_filter_by_type(self, api_client, populated_database, test_config):
         """Test GET /api/v1/files/unified?file_type=.3mf"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/files/unified?file_type=.3mf")
@@ -100,7 +100,7 @@ class TestFileAPI:
         """Test POST /api/v1/files/{id}/download for Bambu Lab file"""
         file_id = 'file_001'
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             # Mock file download from Bambu Lab
@@ -129,7 +129,7 @@ class TestFileAPI:
         file_id = 'file_002'
         mock_file_content = b"STL file content for testing"
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             # Mock file download from Prusa
@@ -153,7 +153,7 @@ class TestFileAPI:
         """Test POST /api/v1/files/{id}/download for already downloaded file"""
         file_id = 'file_002'  # Already downloaded file from fixtures
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.post(
@@ -168,7 +168,7 @@ class TestFileAPI:
         """Test POST /api/v1/files/{id}/download when printer is offline"""
         file_id = 'file_001'
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             # Mock printer API to raise connection error
@@ -187,7 +187,7 @@ class TestFileAPI:
         """Test POST /api/v1/files/{id}/download with insufficient disk space"""
         file_id = 'file_001'
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
@@ -210,7 +210,7 @@ class TestFileAPI:
         file_id = 'file_001'
         large_file_content = b'x' * 1024000  # 1MB file
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             # Mock progressive download
@@ -241,7 +241,7 @@ class TestFileAPI:
         with open(local_file_path, 'w') as f:
             f.write('dummy content')
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             with patch('backend.files.get_local_file_path') as mock_path:
@@ -258,7 +258,7 @@ class TestFileAPI:
         """Test DELETE /api/v1/files/{id} for file that's only available on printer"""
         file_id = 'file_001'  # Available but not downloaded
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.delete(f"{test_config['api_base_url']}/files/{file_id}")
@@ -293,7 +293,7 @@ class TestFileAPI:
     
     def test_get_file_download_history(self, api_client, populated_database, test_config):
         """Test GET /api/v1/files/download-history"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = api_client.get(f"{test_config['api_base_url']}/files/download-history")
@@ -313,7 +313,7 @@ class TestFileAPI:
             'dry_run': False
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             with patch('backend.files.cleanup_old_files') as mock_cleanup:
@@ -473,7 +473,7 @@ class TestFileAPIPerformance:
         import time
         start_time = time.time()
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             response = api_client.get(f"{test_config['api_base_url']}/files/unified")
         
