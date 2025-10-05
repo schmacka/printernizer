@@ -68,7 +68,7 @@ from src.utils.middleware import (
 
 # Application version - SINGLE SOURCE OF TRUTH
 # Update this version number when releasing new versions
-APP_VERSION = "1.2.2"  # Bugfix: Library frontend uses CONFIG.API_BASE_URL for port 8000
+APP_VERSION = "1.3.0"  # Cleanup: Codebase consolidation, documentation, and standardization
 
 
 # Prometheus metrics - initialized once
