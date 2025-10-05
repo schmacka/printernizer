@@ -189,9 +189,33 @@ class FileService:
             # Fallback to database files
             return await self.database.list_files(printer_id=printer_id, source='printer')
         
-    async def download_file(self, printer_id: str, filename: str, 
+    async def download_file(self, printer_id: str, filename: str,
                            destination_path: Optional[str] = None) -> Dict[str, Any]:
-        """Download file from printer."""
+        """
+        Download file from printer.
+
+        ⭐ PRIMARY FILE DOWNLOAD METHOD - Always use this for file downloads.
+
+        This is the canonical implementation that provides:
+        - Progress tracking
+        - Automatic destination path creation
+        - Database updates
+        - File verification
+        - Error handling
+        - Event emission
+
+        Args:
+            printer_id: ID of the printer containing the file
+            filename: Name of the file to download
+            destination_path: Optional custom destination (auto-created if not provided)
+
+        Returns:
+            Dict with 'success', 'message', 'local_path', 'file_size'
+
+        Note:
+            Do NOT call printer.download_file() directly. Always use this method.
+            See docs/development/FILE_OPERATIONS_GUIDE.md for architecture details.
+        """
         try:
             if not self.printer_service:
                 raise ValueError("Printer service not available")

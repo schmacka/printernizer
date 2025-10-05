@@ -106,7 +106,25 @@ class PrinterInterface(ABC):
         
     @abstractmethod
     async def download_file(self, filename: str, local_path: str) -> bool:
-        """Download a file from the printer."""
+        """
+        Download a file from the printer.
+
+        ⚠️ IMPLEMENTATION DETAIL - Do not call directly!
+
+        This method implements the protocol-specific download logic.
+        Application code should use FileService.download_file() instead.
+
+        Args:
+            filename: Name of file on printer
+            local_path: Full path where file should be saved
+
+        Returns:
+            bool: True if download succeeded
+
+        Note:
+            This is called by PrinterService, not by application code.
+            See docs/development/FILE_OPERATIONS_GUIDE.md
+        """
         pass
         
     @abstractmethod
