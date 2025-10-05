@@ -91,371 +91,11 @@
         "access_level": "public"
       },
       {
-        "function": "get_analytics_summary",
-        "file": "src\\api\\routers\\analytics.py",
-        "line": 48,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_analytics_overview",
-        "file": "src\\api\\routers\\analytics.py",
-        "line": 84,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_camera_status",
-        "file": "src\\api\\routers\\camera.py",
-        "line": 24,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_camera_stream",
-        "file": "src\\api\\routers\\camera.py",
-        "line": 72,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "list_snapshots",
-        "file": "src\\api\\routers\\camera.py",
-        "line": 198,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "download_snapshot",
-        "file": "src\\api\\routers\\camera.py",
-        "line": 220,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "debug_printer_thumbnail",
-        "file": "src\\api\\routers\\debug.py",
-        "line": 16,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "debug_file",
-        "file": "src\\api\\routers\\debug.py",
-        "line": 78,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "report_errors",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 170,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "error_system_health",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 255,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_file_thumbnail",
-        "file": "src\\api\\routers\\files.py",
-        "line": 225,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_file_metadata",
-        "file": "src\\api\\routers\\files.py",
-        "line": 280,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_watch_folder_status",
-        "file": "src\\api\\routers\\files.py",
-        "line": 382,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "list_local_files",
-        "file": "src\\api\\routers\\files.py",
-        "line": 399,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.list_local_files",
         "file": "src\\database\\database.py",
         "line": 763,
         "call_count": 0,
         "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "check_printer_compatibility",
-        "file": "src\\api\\routers\\files.py",
-        "line": 764,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "readiness_check",
-        "file": "src\\api\\routers\\health.py",
-        "line": 162,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "liveness_check",
-        "file": "src\\api\\routers\\health.py",
-        "line": 171,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "preview_url",
-        "file": "src\\api\\routers\\idea_url.py",
-        "line": 43,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "import_idea_from_url",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 260,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_trending_models",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 342,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "refresh_trending_cache",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 395,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_library_service",
-        "file": "src\\api\\routers\\library.py",
-        "line": 82,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "reprocess_library_file",
-        "file": "src\\api\\routers\\library.py",
-        "line": 206,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "library_health_check",
-        "file": "src\\api\\routers\\library.py",
-        "line": 375,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_materials",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 64,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_material_stats",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 114,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_material_types",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 125,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_consumption_report",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 135,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "delete_material",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 319,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_consumption_history",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 329,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_printer_current_thumbnail",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 494,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_printer_configurations",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 141,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "add_or_update_printer",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 166,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_gcode_optimization_settings",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 274,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "update_gcode_optimization_settings",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 296,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "reload_configuration",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 322,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_trending_stats",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 112,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "refresh_trending",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 124,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_platform_trending",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 182,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_trending_categories",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 236,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "websocket_endpoint",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 90,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "websocket_endpoint_no_slash",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 96,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "broadcast_job_update",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 170,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "broadcast_system_event",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 179,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_connection_manager",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 189,
-        "call_count": 0,
-        "is_async": false,
         "access_level": "public"
       },
       {
@@ -504,30 +144,6 @@
         "line": 267,
         "call_count": 0,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "read_index",
-        "file": "src\\main.py",
-        "line": 333,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "read_debug",
-        "file": "src\\main.py",
-        "line": 338,
-        "call_count": 0,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "metrics",
-        "file": "src\\main.py",
-        "line": 344,
-        "call_count": 0,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -1693,25 +1309,9 @@
         "access_level": "public"
       },
       {
-        "function": "get_business_analytics",
-        "file": "src\\api\\routers\\analytics.py",
-        "line": 66,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "AnalyticsService.get_business_analytics",
         "file": "src\\services\\analytics_service.py",
         "line": 168,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "take_snapshot",
-        "file": "src\\api\\routers\\camera.py",
-        "line": 119,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1741,14 +1341,6 @@
         "access_level": "public"
       },
       {
-        "function": "get_thumbnail_processing_log",
-        "file": "src\\api\\routers\\debug.py",
-        "line": 98,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "FileService.get_thumbnail_processing_log",
         "file": "src\\services\\file_service.py",
         "line": 1001,
@@ -1757,33 +1349,9 @@
         "access_level": "public"
       },
       {
-        "function": "ErrorStoreService.store_errors",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 57,
-        "call_count": 1,
-        "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "sync_printer_files",
-        "file": "src\\api\\routers\\files.py",
-        "line": 208,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "FileService.sync_printer_files",
         "file": "src\\services\\file_service.py",
         "line": 599,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "add_watch_folder",
-        "file": "src\\api\\routers\\files.py",
-        "line": 454,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1797,25 +1365,9 @@
         "access_level": "public"
       },
       {
-        "function": "remove_watch_folder",
-        "file": "src\\api\\routers\\files.py",
-        "line": 492,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ConfigService.remove_watch_folder",
         "file": "src\\services\\config_service.py",
         "line": 613,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "update_watch_folder",
-        "file": "src\\api\\routers\\files.py",
-        "line": 522,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1829,25 +1381,9 @@
         "access_level": "public"
       },
       {
-        "function": "get_idea_statistics",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 301,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.get_idea_statistics",
         "file": "src\\database\\database.py",
         "line": 1055,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "list_library_files",
-        "file": "src\\api\\routers\\library.py",
-        "line": 91,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1861,25 +1397,9 @@
         "access_level": "public"
       },
       {
-        "function": "delete_library_file",
-        "file": "src\\api\\routers\\library.py",
-        "line": 268,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.delete_library_file",
         "file": "src\\database\\database.py",
         "line": 1163,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "export_inventory",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 153,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1893,25 +1413,9 @@
         "access_level": "public"
       },
       {
-        "function": "get_material",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 182,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "MaterialService.get_material",
         "file": "src\\services\\material_service.py",
         "line": 284,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "create_material",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 217,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1925,25 +1429,9 @@
         "access_level": "public"
       },
       {
-        "function": "update_material",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 250,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "MaterialService.update_material",
         "file": "src\\services\\material_service.py",
         "line": 184,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "record_consumption",
-        "file": "src\\api\\routers\\materials.py",
-        "line": 286,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1957,25 +1445,9 @@
         "access_level": "public"
       },
       {
-        "function": "update_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 201,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "PrinterService.update_printer",
         "file": "src\\services\\printer_service.py",
         "line": 723,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "delete_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 231,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -1989,25 +1461,9 @@
         "access_level": "public"
       },
       {
-        "function": "connect_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 254,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "PrinterService.connect_printer",
         "file": "src\\services\\printer_service.py",
         "line": 370,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "disconnect_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 278,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -2021,25 +1477,9 @@
         "access_level": "public"
       },
       {
-        "function": "pause_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 295,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "PrinterService.pause_printer",
         "file": "src\\services\\printer_service.py",
         "line": 789,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "resume_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 320,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -2053,25 +1493,9 @@
         "access_level": "public"
       },
       {
-        "function": "stop_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 345,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "PrinterService.stop_printer",
         "file": "src\\services\\printer_service.py",
         "line": 817,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "download_current_job_file",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 370,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -2085,25 +1509,9 @@
         "access_level": "public"
       },
       {
-        "function": "start_printer_monitoring",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 418,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "PrinterService.start_printer_monitoring",
         "file": "src\\services\\printer_service.py",
         "line": 831,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "stop_printer_monitoring",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 443,
         "call_count": 1,
         "is_async": true,
         "access_level": "public"
@@ -2117,27 +1525,11 @@
         "access_level": "public"
       },
       {
-        "function": "get_application_settings",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 97,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ConfigService.get_application_settings",
         "file": "src\\services\\config_service.py",
         "line": 454,
         "call_count": 1,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "update_application_settings",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 113,
-        "call_count": 1,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -2149,75 +1541,11 @@
         "access_level": "public"
       },
       {
-        "function": "validate_printer_connection",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 217,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ConfigService.validate_printer_connection",
         "file": "src\\services\\config_service.py",
         "line": 372,
         "call_count": 1,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "get_system_info",
-        "file": "src\\api\\routers\\system.py",
-        "line": 25,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "create_backup",
-        "file": "src\\api\\routers\\system.py",
-        "line": 41,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "ConnectionManager.send_to_printer_subscribers",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 55,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "ConnectionManager.subscribe_to_printer",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 74,
-        "call_count": 1,
-        "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "ConnectionManager.unsubscribe_from_printer",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 80,
-        "call_count": 1,
-        "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "handle_client_message",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 128,
-        "call_count": 1,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "broadcast_printer_status",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 161,
-        "call_count": 1,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -3599,14 +2927,6 @@
         "access_level": "public"
       },
       {
-        "function": "analyze_file",
-        "file": "src\\api\\routers\\files.py",
-        "line": 661,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ThreeMFAnalyzer.analyze_file",
         "file": "src\\services\\threemf_analyzer.py",
         "line": 22,
@@ -3647,43 +2967,11 @@
         "access_level": "public"
       },
       {
-        "function": "ErrorStoreService.ensure_log_directory",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 53,
-        "call_count": 2,
-        "is_async": false,
-        "access_level": "public"
-      },
-      {
         "function": "ErrorHandler.ensure_log_directory",
         "file": "src\\utils\\error_handling.py",
         "line": 49,
         "call_count": 2,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "ErrorStoreService.get_recent_errors",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 87,
-        "call_count": 2,
-        "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "get_recent_errors",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 220,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_file_statistics",
-        "file": "src\\api\\routers\\files.py",
-        "line": 124,
-        "call_count": 2,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -3703,14 +2991,6 @@
         "access_level": "public"
       },
       {
-        "function": "process_file_thumbnails",
-        "file": "src\\api\\routers\\files.py",
-        "line": 321,
-        "call_count": 3,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "FileService.process_file_thumbnails",
         "file": "src\\services\\file_service.py",
         "line": 803,
@@ -3719,41 +2999,9 @@
         "access_level": "public"
       },
       {
-        "function": "get_watch_folder_settings",
-        "file": "src\\api\\routers\\files.py",
-        "line": 363,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_watch_folder_settings",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 234,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ConfigService.get_watch_folder_settings",
         "file": "src\\services\\config_service.py",
         "line": 441,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_enhanced_metadata",
-        "file": "src\\api\\routers\\files.py",
-        "line": 603,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "health_check",
-        "file": "src\\api\\routers\\health.py",
-        "line": 38,
         "call_count": 2,
         "is_async": true,
         "access_level": "public"
@@ -3783,14 +3031,6 @@
         "access_level": "public"
       },
       {
-        "function": "validate_url",
-        "file": "src\\api\\routers\\idea_url.py",
-        "line": 20,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "UrlParserService.validate_url",
         "file": "src\\services\\url_parser_service.py",
         "line": 243,
@@ -3799,35 +3039,11 @@
         "access_level": "public"
       },
       {
-        "function": "get_supported_platforms",
-        "file": "src\\api\\routers\\idea_url.py",
-        "line": 77,
-        "call_count": 3,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_supported_platforms",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 91,
-        "call_count": 3,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "UrlParserService.get_supported_platforms",
         "file": "src\\services\\url_parser_service.py",
         "line": 256,
         "call_count": 3,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "delete_idea",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 193,
-        "call_count": 3,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -3842,14 +3058,6 @@
         "function": "IdeaService.delete_idea",
         "file": "src\\services\\idea_service.py",
         "line": 165,
-        "call_count": 3,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "update_idea_status",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 226,
         "call_count": 3,
         "is_async": true,
         "access_level": "public"
@@ -3871,14 +3079,6 @@
         "access_level": "public"
       },
       {
-        "function": "get_all_tags",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 287,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.get_all_tags",
         "file": "src\\database\\database.py",
         "line": 983,
@@ -3895,14 +3095,6 @@
         "access_level": "public"
       },
       {
-        "function": "search_ideas",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 315,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "IdeaService.search_ideas",
         "file": "src\\services\\idea_service.py",
         "line": 332,
@@ -3911,41 +3103,9 @@
         "access_level": "public"
       },
       {
-        "function": "save_trending_as_idea",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 368,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "save_trending_as_idea",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 157,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "IdeaService.save_trending_as_idea",
         "file": "src\\services\\idea_service.py",
         "line": 283,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "_transform_job_to_response",
-        "file": "src\\api\\routers\\jobs.py",
-        "line": 53,
-        "call_count": 2,
-        "is_async": false,
-        "access_level": "private"
-      },
-      {
-        "function": "delete_job",
-        "file": "src\\api\\routers\\jobs.py",
-        "line": 129,
         "call_count": 2,
         "is_async": true,
         "access_level": "public"
@@ -3967,14 +3127,6 @@
         "access_level": "public"
       },
       {
-        "function": "get_library_file",
-        "file": "src\\api\\routers\\library.py",
-        "line": 168,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.get_library_file",
         "file": "src\\database\\database.py",
         "line": 1133,
@@ -3983,26 +3135,10 @@
         "access_level": "public"
       },
       {
-        "function": "get_library_statistics",
-        "file": "src\\api\\routers\\library.py",
-        "line": 329,
-        "call_count": 3,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "LibraryService.get_library_statistics",
         "file": "src\\services\\library_service.py",
         "line": 560,
         "call_count": 3,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "create_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 146,
-        "call_count": 2,
         "is_async": true,
         "access_level": "public"
       },
@@ -4023,25 +3159,9 @@
         "access_level": "public"
       },
       {
-        "function": "download_printer_file",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 468,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "PrinterService.download_printer_file",
         "file": "src\\services\\printer_service.py",
         "line": 526,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "remove_printer",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 192,
         "call_count": 2,
         "is_async": true,
         "access_level": "public"
@@ -4052,14 +3172,6 @@
         "line": 338,
         "call_count": 2,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "cleanup_expired",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 225,
-        "call_count": 2,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -4077,22 +3189,6 @@
         "call_count": 2,
         "is_async": true,
         "access_level": "public"
-      },
-      {
-        "function": "ConnectionManager.broadcast",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 37,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "_handle_websocket_connection",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 101,
-        "call_count": 2,
-        "is_async": true,
-        "access_level": "private"
       },
       {
         "function": "Database._create_tables",
@@ -4777,35 +3873,11 @@
         "access_level": "private"
       },
       {
-        "function": "ErrorStoreService.get_error_statistics",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 111,
-        "call_count": 4,
-        "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "get_error_statistics",
-        "file": "src\\api\\routers\\errors.py",
-        "line": 238,
-        "call_count": 4,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ErrorHandler.get_error_statistics",
         "file": "src\\utils\\error_handling.py",
         "line": 164,
         "call_count": 4,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "get_file_by_id",
-        "file": "src\\api\\routers\\files.py",
-        "line": 143,
-        "call_count": 9,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -4821,14 +3893,6 @@
         "file": "src\\services\\library_service.py",
         "line": 437,
         "call_count": 9,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "reload_watch_folders",
-        "file": "src\\api\\routers\\files.py",
-        "line": 421,
-        "call_count": 5,
         "is_async": true,
         "access_level": "public"
       },
@@ -4849,35 +3913,11 @@
         "access_level": "public"
       },
       {
-        "function": "validate_watch_folder",
-        "file": "src\\api\\routers\\files.py",
-        "line": 437,
-        "call_count": 6,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "validate_watch_folder",
-        "file": "src\\api\\routers\\settings.py",
-        "line": 250,
-        "call_count": 6,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "ConfigService.validate_watch_folder",
         "file": "src\\services\\config_service.py",
         "line": 422,
         "call_count": 6,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "delete_file",
-        "file": "src\\api\\routers\\files.py",
-        "line": 574,
-        "call_count": 5,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -4893,14 +3933,6 @@
         "file": "src\\services\\library_service.py",
         "line": 518,
         "call_count": 5,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "create_idea",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 71,
-        "call_count": 7,
         "is_async": true,
         "access_level": "public"
       },
@@ -4921,14 +3953,6 @@
         "access_level": "public"
       },
       {
-        "function": "list_ideas",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 99,
-        "call_count": 4,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.list_ideas",
         "file": "src\\database\\database.py",
         "line": 862,
@@ -4941,14 +3965,6 @@
         "file": "src\\services\\idea_service.py",
         "line": 88,
         "call_count": 4,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_idea",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 131,
-        "call_count": 7,
         "is_async": true,
         "access_level": "public"
       },
@@ -4969,14 +3985,6 @@
         "access_level": "public"
       },
       {
-        "function": "update_idea",
-        "file": "src\\api\\routers\\ideas.py",
-        "line": 156,
-        "call_count": 5,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.update_idea",
         "file": "src\\database\\database.py",
         "line": 902,
@@ -4989,14 +3997,6 @@
         "file": "src\\services\\idea_service.py",
         "line": 134,
         "call_count": 5,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "list_jobs",
-        "file": "src\\api\\routers\\jobs.py",
-        "line": 78,
-        "call_count": 9,
         "is_async": true,
         "access_level": "public"
       },
@@ -5017,14 +4017,6 @@
         "access_level": "public"
       },
       {
-        "function": "get_job",
-        "file": "src\\api\\routers\\jobs.py",
-        "line": 105,
-        "call_count": 7,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.get_job",
         "file": "src\\database\\database.py",
         "line": 384,
@@ -5041,22 +4033,6 @@
         "access_level": "public"
       },
       {
-        "function": "_printer_to_response",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 70,
-        "call_count": 4,
-        "is_async": false,
-        "access_level": "private"
-      },
-      {
-        "function": "list_printers",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 130,
-        "call_count": 6,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "Database.list_printers",
         "file": "src\\database\\database.py",
         "line": 334,
@@ -5068,14 +4044,6 @@
         "function": "PrinterService.list_printers",
         "file": "src\\services\\printer_service.py",
         "line": 254,
-        "call_count": 6,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_printer",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 177,
         "call_count": 6,
         "is_async": true,
         "access_level": "public"
@@ -5105,14 +4073,6 @@
         "access_level": "public"
       },
       {
-        "function": "get_printer_files",
-        "file": "src\\api\\routers\\printers.py",
-        "line": 398,
-        "call_count": 5,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "FileService.get_printer_files",
         "file": "src\\services\\file_service.py",
         "line": 154,
@@ -5125,14 +4085,6 @@
         "file": "src\\services\\printer_service.py",
         "line": 502,
         "call_count": 5,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "get_trending",
-        "file": "src\\api\\routers\\trending.py",
-        "line": 52,
-        "call_count": 6,
         "is_async": true,
         "access_level": "public"
       },
@@ -5579,14 +4531,6 @@
         "access_level": "public"
       },
       {
-        "function": "download_file",
-        "file": "src\\api\\routers\\files.py",
-        "line": 167,
-        "call_count": 17,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "BambuLabPrinter.download_file",
         "file": "src\\printers\\bambu_lab.py",
         "line": 1299,
@@ -5635,14 +4579,6 @@
         "access_level": "public"
       },
       {
-        "function": "ConnectionManager.connect",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 25,
-        "call_count": 47,
-        "is_async": true,
-        "access_level": "public"
-      },
-      {
         "function": "BambuLabPrinter.connect",
         "file": "src\\printers\\bambu_lab.py",
         "line": 98,
@@ -5672,14 +4608,6 @@
         "line": 69,
         "call_count": 23,
         "is_async": false,
-        "access_level": "public"
-      },
-      {
-        "function": "list_files",
-        "file": "src\\api\\routers\\files.py",
-        "line": 61,
-        "call_count": 23,
-        "is_async": true,
         "access_level": "public"
       },
       {
@@ -5728,14 +4656,6 @@
         "line": 449,
         "call_count": 23,
         "is_async": true,
-        "access_level": "public"
-      },
-      {
-        "function": "ConnectionManager.disconnect",
-        "file": "src\\api\\routers\\websocket.py",
-        "line": 30,
-        "call_count": 15,
-        "is_async": false,
         "access_level": "public"
       },
       {
@@ -6296,9 +5216,9 @@
       "line": 182,
       "used_by_tests": [
         "scripts\\test_bambu_ftp_direct.py:test_bambu_ftp",
-        "scripts\\working_bambu_ftp.py:test_working_ftp",
         "scripts\\debug_bambu_ftp.py:test_direct_ftp",
-        "scripts\\debug_bambu_ftp_v2.py:test_alternative_ftp"
+        "scripts\\debug_bambu_ftp_v2.py:test_alternative_ftp",
+        "scripts\\working_bambu_ftp.py:test_working_ftp"
       ],
       "recommendation": "Consider moving to test utilities"
     },
@@ -6316,11 +5236,11 @@
       "file": "tests\\conftest.py",
       "line": 380,
       "used_by_tests": [
-        "tests\\backend\\test_api_jobs.py:TestJobBusinessLogic.test_job_timezone_handling",
-        "tests\\backend\\test_api_files.py:TestFileBusinessLogic.test_file_download_path_organization",
+        "tests\\backend\\test_api_printers.py:TestPrinterBusinessLogic.test_printer_timezone_handling",
         "tests\\backend\\test_database.py:TestGermanBusinessLogic.test_european_timezone_handling",
         "tests\\backend\\test_websocket.py:TestWebSocketGermanBusinessIntegration.test_german_timezone_in_websocket_messages",
-        "tests\\backend\\test_api_printers.py:TestPrinterBusinessLogic.test_printer_timezone_handling"
+        "tests\\backend\\test_api_files.py:TestFileBusinessLogic.test_file_download_path_organization",
+        "tests\\backend\\test_api_jobs.py:TestJobBusinessLogic.test_job_timezone_handling"
       ],
       "recommendation": "Consider moving to test utilities"
     },
@@ -6347,8 +5267,8 @@
       "file": "src\\services\\job_service.py",
       "line": 25,
       "used_by_tests": [
-        "tests\\backend\\test_job_null_fix.py:TestNullJobIDFix.test_job_service_error_logging",
-        "tests\\backend\\test_job_validation.py:TestJobIDValidation.test_get_jobs_skips_invalid_jobs"
+        "tests\\backend\\test_job_validation.py:TestJobIDValidation.test_get_jobs_skips_invalid_jobs",
+        "tests\\backend\\test_job_null_fix.py:TestNullJobIDFix.test_job_service_error_logging"
       ],
       "recommendation": "Consider moving to test utilities"
     },
@@ -6387,9 +5307,9 @@
       "file": "src\\utils\\gcode_analyzer.py",
       "line": 178,
       "used_by_tests": [
-        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_success",
         "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_not_found",
-        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_disabled"
+        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_disabled",
+        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_success"
       ],
       "recommendation": "Consider moving to test utilities"
     },
@@ -6407,8 +5327,8 @@
       "file": "tests\\fixtures\\ideas_fixtures.py",
       "line": 115,
       "used_by_tests": [
-        "tests\\test_ideas_service.py:TestIdeaService.test_get_trending",
-        "tests\\test_ideas_service.py:TestIdeaService.test_cache_trending_success"
+        "tests\\test_ideas_service.py:TestIdeaService.test_cache_trending_success",
+        "tests\\test_ideas_service.py:TestIdeaService.test_get_trending"
       ],
       "recommendation": "Consider moving to test utilities"
     },
@@ -6435,8 +5355,8 @@
       "file": "src\\models\\idea.py",
       "line": 175,
       "used_by_tests": [
-        "tests\\test_ideas_service.py:TestTrendingItemModel.test_is_expired_true",
-        "tests\\test_ideas_service.py:TestTrendingItemModel.test_is_expired_false"
+        "tests\\test_ideas_service.py:TestTrendingItemModel.test_is_expired_false",
+        "tests\\test_ideas_service.py:TestTrendingItemModel.test_is_expired_true"
       ],
       "recommendation": "Consider moving to test utilities"
     }

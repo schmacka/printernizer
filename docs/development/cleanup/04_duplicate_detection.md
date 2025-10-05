@@ -9,7 +9,7 @@
 - **Identical Signature Groups**: 59
 - **Structural Duplicates**: 9
 - **Single-Use Functions**: 56
-- **Potentially Unused Functions**: 168
+- **Potentially Unused Functions**: 120
 
 ## 🔴 Exact Name Duplicates (High Priority)
 
@@ -743,43 +743,43 @@ Functions that appear to have no callers in the codebase.
 | `test_alternative_ftp` | scripts\debug_bambu_ftp_v2.py | 12 | No | - |
 | `download_target_file` | scripts\download_target_file.py | 21 | No | - |
 | `test_working_ftp` | scripts\working_bambu_ftp.py | 212 | No | - |
-| `get_analytics_summary` | src\api\routers\analytics.py | 48 | Yes | router.get('/summary', response_model=AnalyticsResponse) |
-| `get_analytics_overview` | src\api\routers\analytics.py | 84 | Yes | router.get('/overview', response_model=OverviewResponse) |
-| `get_camera_status` | src\api\routers\camera.py | 24 | Yes | router.get('/{printer_id}/camera/status', response_model=CameraStatus) |
-| `get_camera_stream` | src\api\routers\camera.py | 72 | Yes | router.get('/{printer_id}/camera/stream') |
-| `list_snapshots` | src\api\routers\camera.py | 198 | Yes | router.get('/{printer_id}/snapshots', response_model=List[SnapshotResponse]) |
-| `download_snapshot` | src\api\routers\camera.py | 220 | Yes | router.get('/snapshots/{snapshot_id}/download') |
-| `debug_printer_thumbnail` | src\api\routers\debug.py | 16 | Yes | router.get('/printers/{printer_id}/thumbnail', tags=['Debug'], summary='Debug current printer thumbnail linkage') |
-| `debug_file` | src\api\routers\debug.py | 78 | Yes | router.get('/files/{file_id}', tags=['Debug'], summary='Debug file record & thumbnail flags') |
-| `report_errors` | src\api\routers\errors.py | 170 | Yes | router.post('/report') |
-| `error_system_health` | src\api\routers\errors.py | 255 | Yes | router.get('/health') |
-| `get_file_thumbnail` | src\api\routers\files.py | 225 | Yes | router.get('/{file_id}/thumbnail') |
-| `get_file_metadata` | src\api\routers\files.py | 280 | Yes | router.get('/{file_id}/metadata') |
-| `get_watch_folder_status` | src\api\routers\files.py | 382 | Yes | router.get('/watch-folders/status') |
-| `list_local_files` | src\api\routers\files.py | 399 | Yes | router.get('/local') |
-| `check_printer_compatibility` | src\api\routers\files.py | 764 | Yes | router.get('/{file_id}/compatibility/{printer_id}') |
-| `readiness_check` | src\api\routers\health.py | 162 | Yes | router.get('/readiness') |
-| `liveness_check` | src\api\routers\health.py | 171 | Yes | router.get('/liveness') |
-| `preview_url` | src\api\routers\idea_url.py | 43 | Yes | router.post('/preview', response_model=Dict[str, Any]) |
-| `import_idea_from_url` | src\api\routers\ideas.py | 260 | Yes | router.post('/import', response_model=Dict[str, str]) |
-| `get_trending_models` | src\api\routers\ideas.py | 342 | Yes | router.get('/trending/{platform}', response_model=List[Dict[str, Any]]) |
-| `refresh_trending_cache` | src\api\routers\ideas.py | 395 | Yes | router.post('/trending/refresh', response_model=Dict[str, str]) |
-| `get_library_service` | src\api\routers\library.py | 82 | Yes | - |
-| `reprocess_library_file` | src\api\routers\library.py | 206 | Yes | router.post('/files/{checksum}/reprocess', response_model=ReprocessResponse) |
-| `library_health_check` | src\api\routers\library.py | 375 | Yes | router.get('/health') |
-| `get_materials` | src\api\routers\materials.py | 64 | Yes | router.get('/', response_model=List[MaterialResponse]) |
-| `get_material_stats` | src\api\routers\materials.py | 114 | Yes | router.get('/stats', response_model=MaterialStats) |
-| `get_material_types` | src\api\routers\materials.py | 125 | Yes | router.get('/types') |
-| `get_consumption_report` | src\api\routers\materials.py | 135 | Yes | router.get('/report', response_model=MaterialReport) |
-| `delete_material` | src\api\routers\materials.py | 319 | Yes | router.delete('/{material_id}', status_code=204) |
-| `get_consumption_history` | src\api\routers\materials.py | 329 | Yes | router.get('/consumption/history') |
-| `get_printer_current_thumbnail` | src\api\routers\printers.py | 494 | Yes | router.get('/{printer_id}/thumbnail') |
-| `get_printer_configurations` | src\api\routers\settings.py | 141 | Yes | router.get('/printers') |
-| `add_or_update_printer` | src\api\routers\settings.py | 166 | Yes | router.post('/printers/{printer_id}') |
-| `get_gcode_optimization_settings` | src\api\routers\settings.py | 274 | Yes | router.get('/gcode-optimization') |
-| `update_gcode_optimization_settings` | src\api\routers\settings.py | 296 | Yes | router.put('/gcode-optimization') |
-| `reload_configuration` | src\api\routers\settings.py | 322 | Yes | router.post('/reload') |
-| `get_trending_stats` | src\api\routers\trending.py | 112 | Yes | router.get('/stats', response_model=TrendingStats) |
-| `refresh_trending` | src\api\routers\trending.py | 124 | Yes | router.post('/refresh', status_code=202) |
-| `get_platform_trending` | src\api\routers\trending.py | 182 | Yes | router.get('/{platform}') |
+| `Database.transaction` | src\database\database.py | 296 | Yes | asynccontextmanager |
+| `Database.create_local_file` | src\database\database.py | 753 | Yes | - |
+| `Database.list_local_files` | src\database\database.py | 763 | Yes | - |
+| `Database.get_library_file_sources` | src\database\database.py | 1315 | Yes | - |
+| `lifespan` | src\main.py | 88 | Yes | asynccontextmanager |
+| `create_application` | src\main.py | 267 | No | - |
+| `printernizer_exception_handler` | src\main.py | 350 | Yes | app.exception_handler(PrinternizerException) |
+| `validation_exception_handler` | src\main.py | 365 | Yes | app.exception_handler(RequestValidationError) |
+| `general_exception_handler` | src\main.py | 379 | Yes | app.exception_handler(Exception) |
+| `setup_signal_handlers` | src\main.py | 395 | No | - |
+| `signal_handler` | src\main.py | 397 | No | - |
+| `Job.convert_progress_to_int` | src\models\job.py | 45 | No | field_validator('progress', mode='before') |
+| `MaterialCreate.validate_remaining` | src\models\material.py | 116 | No | field_validator('remaining_weight') |
+| `WatchFolder.get_display_name` | src\models\watch_folder.py | 106 | No | - |
+| `WatchFolder.is_accessible` | src\models\watch_folder.py | 115 | No | - |
+| `BambuLabPrinter.rank` | src\printers\bambu_lab.py | 1510 | No | - |
+| `BasePrinter.remove_status_callback` | src\printers\base.py | 248 | No | - |
+| `BasePrinter.get_connection_info` | src\printers\base.py | 261 | No | - |
+| `BasePrinter.get_monitoring_metrics` | src\printers\base.py | 272 | No | - |
+| `AnalyticsService.get_dashboard_stats` | src\services\analytics_service.py | 20 | Yes | - |
+| `AnalyticsService.get_printer_usage` | src\services\analytics_service.py | 33 | Yes | - |
+| `AnalyticsService.get_material_consumption` | src\services\analytics_service.py | 38 | Yes | - |
+| `AnalyticsService.get_business_report` | src\services\analytics_service.py | 47 | Yes | - |
+| `AnalyticsService.export_data` | src\services\analytics_service.py | 116 | Yes | - |
+| `BambuFTPService.file_exists` | src\services\bambu_ftp_service.py | 368 | Yes | - |
+| `create_bambu_ftp_service` | src\services\bambu_ftp_service.py | 433 | Yes | - |
+| `BambuParser.get_largest_thumbnail` | src\services\bambu_parser.py | 832 | No | - |
+| `ConfigService.get_business_settings` | src\services\config_service.py | 384 | No | - |
+| `EventService.unsubscribe` | src\services\event_service.py | 89 | No | - |
+| `EventService.set_services` | src\services\event_service.py | 476 | No | - |
+| `EventService.force_discovery` | src\services\event_service.py | 493 | Yes | - |
+| `EventService.reset_monitoring_state` | src\services\event_service.py | 543 | Yes | - |
+| `FileService.get_download_status` | src\services\file_service.py | 367 | Yes | - |
+| `FileService.cleanup_download_status` | src\services\file_service.py | 782 | Yes | - |
+| `PrintFileHandler.on_created` | src\services\file_watcher_service.py | 92 | No | - |
+| `PrintFileHandler.on_modified` | src\services\file_watcher_service.py | 99 | No | - |
+| `PrintFileHandler.on_deleted` | src\services\file_watcher_service.py | 106 | No | - |
+| `PrintFileHandler.on_moved` | src\services\file_watcher_service.py | 112 | No | - |
+| `JobService.update_job_status` | src\services\job_service.py | 287 | Yes | - |
 

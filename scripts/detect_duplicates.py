@@ -301,7 +301,23 @@ class CodeSimilarityAnalyzer:
 
         # Check for common decorator patterns
         decorators = ' '.join(func.get('decorators', []))
-        if any(pattern in decorators for pattern in ['@app.', '@router.', '@get', '@post', '@put', '@delete', '@patch', '@click']):
+
+        # FastAPI/API endpoints
+        api_patterns = [
+            '@app.', '@router.',
+            '@get', '@post', '@put', '@delete', '@patch',
+            '.get(', '.post(', '.put(', '.delete(', '.patch(',
+            'websocket'
+        ]
+        if any(pattern in decorators.lower() for pattern in api_patterns):
+            return True
+
+        # CLI commands
+        if '@click' in decorators:
+            return True
+
+        # API routers - also check file path
+        if 'api/routers' in func.get('file', '') or 'api\\routers' in func.get('file', ''):
             return True
 
         return False

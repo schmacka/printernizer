@@ -5,9 +5,9 @@
 ## Executive Summary
 
 - **Dead Code Chains**: 0
-- **Unused Functions**: 186
-- **Single-Use Functions**: 262
-- **Low-Use Functions** (2-3 calls): 142
+- **Unused Functions**: 138
+- **Single-Use Functions**: 226
+- **Low-Use Functions** (2-3 calls): 113
 - **Wrapper Functions**: 17
 - **Legacy/Deprecated**: 1
 - **Test-Only Functions**: 15
@@ -25,7 +25,7 @@ No dead code chains detected.
 
 ### Unused Functions
 
-Total: 186
+Total: 138
 
 | Function | File | Line | Access |
 |----------|------|------|--------|
@@ -40,19 +40,19 @@ Total: 186
 | `test_alternative_ftp` | scripts\debug_bambu_ftp_v2.py | 12 | public |
 | `download_target_file` | scripts\download_target_file.py | 21 | public |
 | `test_working_ftp` | scripts\working_bambu_ftp.py | 212 | public |
-| `get_analytics_summary` | src\api\routers\analytics.py | 48 | public |
-| `get_analytics_overview` | src\api\routers\analytics.py | 84 | public |
-| `get_camera_status` | src\api\routers\camera.py | 24 | public |
-| `get_camera_stream` | src\api\routers\camera.py | 72 | public |
-| `list_snapshots` | src\api\routers\camera.py | 198 | public |
-| `download_snapshot` | src\api\routers\camera.py | 220 | public |
-| `debug_printer_thumbnail` | src\api\routers\debug.py | 16 | public |
-| `debug_file` | src\api\routers\debug.py | 78 | public |
-| `report_errors` | src\api\routers\errors.py | 170 | public |
+| `Database.list_local_files` | src\database\database.py | 763 | public |
+| `Database.transaction` | src\database\database.py | 296 | public |
+| `Database.create_local_file` | src\database\database.py | 753 | public |
+| `Database.get_library_file_sources` | src\database\database.py | 1315 | public |
+| `lifespan` | src\main.py | 88 | public |
+| `_on_printer_status_update` | src\main.py | 144 | private |
+| `create_application` | src\main.py | 267 | public |
+| `printernizer_exception_handler` | src\main.py | 350 | public |
+| `validation_exception_handler` | src\main.py | 365 | public |
 
 ### Single-Use Functions
 
-Total: 262
+Total: 226
 
 Functions called exactly once - candidates for inlining.
 
@@ -76,25 +76,25 @@ Functions called exactly once - candidates for inlining.
 
 ### Low-Use Functions (2-3 calls)
 
-Total: 142
+Total: 113
 
 | Function | File | Line | Calls |
 |----------|------|------|-------|
 | `analyze_file` | scripts\analyze_codebase.py | 145 | 2 |
-| `analyze_file` | src\api\routers\files.py | 661 | 2 |
 | `ThreeMFAnalyzer.analyze_file` | src\services\threemf_analyzer.py | 22 | 2 |
 | `BambuDownloadManager._print_summary` | scripts\download_bambu_files.py | 309 | 2 |
 | `ErrorAnalysisAgent.analyze_root_cause` | scripts\error_analysis_agent.py | 108 | 2 |
 | `ErrorAnalysisAgent.generate_report` | scripts\error_analysis_agent.py | 182 | 2 |
 | `MaterialService.generate_report` | src\services\material_service.py | 402 | 2 |
-| `ErrorStoreService.ensure_log_directory` | src\api\routers\errors.py | 53 | 2 |
 | `ErrorHandler.ensure_log_directory` | src\utils\error_handling.py | 49 | 2 |
-| `ErrorStoreService.get_recent_errors` | src\api\routers\errors.py | 87 | 2 |
-| `get_recent_errors` | src\api\routers\errors.py | 220 | 2 |
-| `get_file_statistics` | src\api\routers\files.py | 124 | 2 |
 | `Database.get_file_statistics` | src\database\database.py | 790 | 2 |
 | `FileService.get_file_statistics` | src\services\file_service.py | 458 | 2 |
-| `process_file_thumbnails` | src\api\routers\files.py | 321 | 3 |
+| `FileService.process_file_thumbnails` | src\services\file_service.py | 803 | 3 |
+| `ConfigService.get_watch_folder_settings` | src\services\config_service.py | 441 | 2 |
+| `Database.health_check` | src\database\database.py | 282 | 2 |
+| `BasePrinter.health_check` | src\printers\base.py | 253 | 2 |
+| `PrinterService.health_check` | src\services\printer_service.py | 623 | 2 |
+| `UrlParserService.validate_url` | src\services\url_parser_service.py | 243 | 2 |
 
 ## 🔄 Wrapper Functions
 
@@ -271,9 +271,9 @@ Total: 0
 
 | Category | Count | Percentage |
 |----------|-------|------------|
-| Unused | 186 | 25.3% |
-| Single Use | 262 | 35.6% |
-| Low Use | 142 | 19.3% |
-| Moderate Use | 105 | 14.3% |
-| High Use | 41 | 5.6% |
+| Unused | 138 | 23.0% |
+| Single Use | 226 | 37.6% |
+| Low Use | 113 | 18.8% |
+| Moderate Use | 87 | 14.5% |
+| High Use | 37 | 6.2% |
 

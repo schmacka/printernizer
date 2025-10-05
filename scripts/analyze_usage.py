@@ -338,7 +338,7 @@ class UsageAnalyzer:
     def _should_skip_usage_analysis(self, func_info: Dict) -> bool:
         """Determine if function should be skipped in usage analysis"""
         # Skip test files
-        if 'test_' in func_info['file'] or '/tests/' in func_info['file']:
+        if 'test_' in func_info['file'] or '/tests/' in func_info['file'] or '\\tests\\' in func_info['file']:
             return True
 
         # Skip dunder methods
@@ -351,6 +351,21 @@ class UsageAnalyzer:
 
         # Skip likely entry points
         if func_info['name'] in ['main', 'run', 'start', 'execute']:
+            return True
+
+        # Skip API endpoints (FastAPI decorators)
+        decorators = ' '.join(func_info.get('decorators', []))
+        api_patterns = [
+            '@app.', '@router.',
+            '@get', '@post', '@put', '@delete', '@patch',
+            '.get(', '.post(', '.put(', '.delete(', '.patch(',
+            'websocket'
+        ]
+        if any(pattern in decorators.lower() for pattern in api_patterns):
+            return True
+
+        # Skip functions in API router files
+        if 'api/routers' in func_info['file'] or 'api\\routers' in func_info['file']:
             return True
 
         return False
