@@ -68,7 +68,7 @@ from src.utils.middleware import (
 
 # Application version - SINGLE SOURCE OF TRUTH
 # Update this version number when releasing new versions
-APP_VERSION = "1.3.0"  # Cleanup: Codebase consolidation, documentation, and standardization
+APP_VERSION = "1.3.1"  # Cleanup: Legacy method deprecation (PrinterService.get_printers)
 
 
 # Prometheus metrics - initialized once
