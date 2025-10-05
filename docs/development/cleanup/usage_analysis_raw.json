@@ -1,0 +1,6444 @@
+{
+  "dead_chains": [],
+  "usage_frequency": {
+    "unused": [
+      {
+        "function": "demo_optimization",
+        "file": "demo_gcode_optimization.py",
+        "line": 74,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FunctionAnalyzer.visit_Import",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 31,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FunctionAnalyzer.visit_ImportFrom",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 42,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FunctionAnalyzer.visit_ClassDef",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 55,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FunctionAnalyzer.visit_AsyncFunctionDef",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 117,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FunctionAnalyzer.visit_Call",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 121,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "setup_example_env",
+        "file": "scripts\\bambu_credentials.py",
+        "line": 103,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "test_direct_ftp",
+        "file": "scripts\\debug_bambu_ftp.py",
+        "line": 12,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "test_alternative_ftp",
+        "file": "scripts\\debug_bambu_ftp_v2.py",
+        "line": 12,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "download_target_file",
+        "file": "scripts\\download_target_file.py",
+        "line": 21,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "test_working_ftp",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 212,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_analytics_summary",
+        "file": "src\\api\\routers\\analytics.py",
+        "line": 48,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_analytics_overview",
+        "file": "src\\api\\routers\\analytics.py",
+        "line": 84,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_camera_status",
+        "file": "src\\api\\routers\\camera.py",
+        "line": 24,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_camera_stream",
+        "file": "src\\api\\routers\\camera.py",
+        "line": 72,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "list_snapshots",
+        "file": "src\\api\\routers\\camera.py",
+        "line": 198,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "download_snapshot",
+        "file": "src\\api\\routers\\camera.py",
+        "line": 220,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "debug_printer_thumbnail",
+        "file": "src\\api\\routers\\debug.py",
+        "line": 16,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "debug_file",
+        "file": "src\\api\\routers\\debug.py",
+        "line": 78,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "report_errors",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 170,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "error_system_health",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 255,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_file_thumbnail",
+        "file": "src\\api\\routers\\files.py",
+        "line": 225,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_file_metadata",
+        "file": "src\\api\\routers\\files.py",
+        "line": 280,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_watch_folder_status",
+        "file": "src\\api\\routers\\files.py",
+        "line": 382,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "list_local_files",
+        "file": "src\\api\\routers\\files.py",
+        "line": 399,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.list_local_files",
+        "file": "src\\database\\database.py",
+        "line": 763,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "check_printer_compatibility",
+        "file": "src\\api\\routers\\files.py",
+        "line": 764,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "readiness_check",
+        "file": "src\\api\\routers\\health.py",
+        "line": 162,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "liveness_check",
+        "file": "src\\api\\routers\\health.py",
+        "line": 171,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "preview_url",
+        "file": "src\\api\\routers\\idea_url.py",
+        "line": 43,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "import_idea_from_url",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 260,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_trending_models",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 342,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "refresh_trending_cache",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 395,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_library_service",
+        "file": "src\\api\\routers\\library.py",
+        "line": 82,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "reprocess_library_file",
+        "file": "src\\api\\routers\\library.py",
+        "line": 206,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "library_health_check",
+        "file": "src\\api\\routers\\library.py",
+        "line": 375,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_materials",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 64,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_material_stats",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 114,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_material_types",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 125,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_consumption_report",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 135,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "delete_material",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 319,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_consumption_history",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 329,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_printer_current_thumbnail",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 494,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_printer_configurations",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 141,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "add_or_update_printer",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 166,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_gcode_optimization_settings",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 274,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "update_gcode_optimization_settings",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 296,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "reload_configuration",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 322,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_trending_stats",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 112,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "refresh_trending",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 124,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_platform_trending",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 182,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_trending_categories",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 236,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "websocket_endpoint",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 90,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "websocket_endpoint_no_slash",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 96,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "broadcast_job_update",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 170,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "broadcast_system_event",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 179,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_connection_manager",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 189,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.transaction",
+        "file": "src\\database\\database.py",
+        "line": 296,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_local_file",
+        "file": "src\\database\\database.py",
+        "line": 753,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_library_file_sources",
+        "file": "src\\database\\database.py",
+        "line": 1315,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "lifespan",
+        "file": "src\\main.py",
+        "line": 88,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "_on_printer_status_update",
+        "file": "src\\main.py",
+        "line": 144,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "create_application",
+        "file": "src\\main.py",
+        "line": 267,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "read_index",
+        "file": "src\\main.py",
+        "line": 333,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "read_debug",
+        "file": "src\\main.py",
+        "line": 338,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "metrics",
+        "file": "src\\main.py",
+        "line": 344,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "printernizer_exception_handler",
+        "file": "src\\main.py",
+        "line": 350,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "validation_exception_handler",
+        "file": "src\\main.py",
+        "line": 365,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "general_exception_handler",
+        "file": "src\\main.py",
+        "line": 379,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "setup_signal_handlers",
+        "file": "src\\main.py",
+        "line": 395,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "signal_handler",
+        "file": "src\\main.py",
+        "line": 397,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Job.convert_progress_to_int",
+        "file": "src\\models\\job.py",
+        "line": 45,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialCreate.validate_remaining",
+        "file": "src\\models\\material.py",
+        "line": 116,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolder.get_display_name",
+        "file": "src\\models\\watch_folder.py",
+        "line": 106,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolder.is_accessible",
+        "file": "src\\models\\watch_folder.py",
+        "line": 115,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter._on_connect",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 74,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._on_message",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 85,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._on_disconnect",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 94,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._on_bambu_status_update",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 202,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._on_bambu_file_list_update",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 207,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._download_via_ftp",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1386,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter.rank",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1510,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BasePrinter.remove_status_callback",
+        "file": "src\\printers\\base.py",
+        "line": 248,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BasePrinter.get_connection_info",
+        "file": "src\\printers\\base.py",
+        "line": 261,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BasePrinter.get_monitoring_metrics",
+        "file": "src\\printers\\base.py",
+        "line": 272,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.get_dashboard_stats",
+        "file": "src\\services\\analytics_service.py",
+        "line": 20,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.get_printer_usage",
+        "file": "src\\services\\analytics_service.py",
+        "line": 33,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.get_material_consumption",
+        "file": "src\\services\\analytics_service.py",
+        "line": 38,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.get_business_report",
+        "file": "src\\services\\analytics_service.py",
+        "line": 47,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.export_data",
+        "file": "src\\services\\analytics_service.py",
+        "line": 116,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTPService._sync_connect",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 124,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService._sync_list",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 212,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService._sync_download",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 320,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService.file_exists",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 368,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "create_bambu_ftp_service",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 433,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuParser.get_largest_thumbnail",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 832,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Settings.normalize_downloads_path",
+        "file": "src\\services\\config_service.py",
+        "line": 124,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Settings.normalize_library_path",
+        "file": "src\\services\\config_service.py",
+        "line": 159,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.get_business_settings",
+        "file": "src\\services\\config_service.py",
+        "line": 384,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "EventService.unsubscribe",
+        "file": "src\\services\\event_service.py",
+        "line": 89,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "EventService.set_services",
+        "file": "src\\services\\event_service.py",
+        "line": 476,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "EventService.force_discovery",
+        "file": "src\\services\\event_service.py",
+        "line": 493,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "EventService.reset_monitoring_state",
+        "file": "src\\services\\event_service.py",
+        "line": 543,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_download_status",
+        "file": "src\\services\\file_service.py",
+        "line": 367,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.cleanup_download_status",
+        "file": "src\\services\\file_service.py",
+        "line": 782,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrintFileHandler.on_created",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 92,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrintFileHandler.on_modified",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 99,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrintFileHandler.on_deleted",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 106,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrintFileHandler.on_moved",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 112,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.update_job_status",
+        "file": "src\\services\\job_service.py",
+        "line": 287,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_business_jobs",
+        "file": "src\\services\\job_service.py",
+        "line": 426,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_private_jobs",
+        "file": "src\\services\\job_service.py",
+        "line": 430,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.calculate_material_costs",
+        "file": "src\\services\\job_service.py",
+        "line": 434,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_printer_jobs",
+        "file": "src\\services\\job_service.py",
+        "line": 467,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.update_job_progress",
+        "file": "src\\services\\job_service.py",
+        "line": 471,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService._calculate_checksum_sync",
+        "file": "src\\services\\library_service.py",
+        "line": 106,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "MaterialService.get_materials_by_type",
+        "file": "src\\services\\material_service.py",
+        "line": 292,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.get_materials_by_printer",
+        "file": "src\\services\\material_service.py",
+        "line": 296,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.get_low_stock_materials",
+        "file": "src\\services\\material_service.py",
+        "line": 300,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MigrationService.get_migration_status",
+        "file": "src\\services\\migration_service.py",
+        "line": 152,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MigrationService.force_run_migration",
+        "file": "src\\services\\migration_service.py",
+        "line": 177,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MonitoringService.get_monitoring_status",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 317,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PreviewRenderService._render_file",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 152,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PreviewRenderService.clear_cache",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 499,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.clear_cache",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 287,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PreviewRenderService.update_config",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 551,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.get_thumbnail",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 161,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.cache_multiple_thumbnails",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 181,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.get_cache_statistics",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 233,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService._fetch",
+        "file": "src\\services\\trending_service.py",
+        "line": 243,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "WatchFolderDbService.get_watch_folder_by_id",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 68,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.delete_watch_folder",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 173,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.update_folder_statistics",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 230,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.validate_and_update_folder",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 253,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinternizerSettings.validate_secret_key",
+        "file": "src\\utils\\config.py",
+        "line": 90,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinternizerSettings.validate_library_path",
+        "file": "src\\utils\\config.py",
+        "line": 105,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "reload_settings",
+        "file": "src\\utils\\config.py",
+        "line": 165,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_database",
+        "file": "src\\utils\\dependencies.py",
+        "line": 19,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_config_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 24,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_event_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 29,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_printer_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 34,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_job_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 39,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_file_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 47,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_analytics_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 52,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_idea_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 59,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_trending_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 66,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_thumbnail_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 71,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_url_parser_service",
+        "file": "src\\utils\\dependencies.py",
+        "line": 76,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_exceptions",
+        "file": "src\\utils\\error_handling.py",
+        "line": 233,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "decorator",
+        "file": "src\\utils\\error_handling.py",
+        "line": 248,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sync_wrapper",
+        "file": "src\\utils\\error_handling.py",
+        "line": 250,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "async_wrapper",
+        "file": "src\\utils\\error_handling.py",
+        "line": 270,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorReportingMixin.report_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 297,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_database_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 316,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_api_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 326,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_printer_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 336,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_file_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 346,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_validation_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 356,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "RequestTimingMiddleware.dispatch",
+        "file": "src\\utils\\middleware.py",
+        "line": 17,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "SecurityHeadersMiddleware.dispatch",
+        "file": "src\\utils\\middleware.py",
+        "line": 46,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "GermanComplianceMiddleware.dispatch",
+        "file": "src\\utils\\middleware.py",
+        "line": 79,
+        "call_count": 0,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "temp_database",
+        "file": "tests\\conftest.py",
+        "line": 20,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "db_connection",
+        "file": "tests\\conftest.py",
+        "line": 41,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sample_printer_data",
+        "file": "tests\\conftest.py",
+        "line": 50,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sample_job_data",
+        "file": "tests\\conftest.py",
+        "line": 84,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sample_file_data",
+        "file": "tests\\conftest.py",
+        "line": 126,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "populated_database",
+        "file": "tests\\conftest.py",
+        "line": 158,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "mock_bambu_api",
+        "file": "tests\\conftest.py",
+        "line": 192,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "mock_prusa_api",
+        "file": "tests\\conftest.py",
+        "line": 234,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "mock_websocket",
+        "file": "tests\\conftest.py",
+        "line": 274,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "german_business_config",
+        "file": "tests\\conftest.py",
+        "line": 294,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sample_cost_calculations",
+        "file": "tests\\conftest.py",
+        "line": 311,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "temp_download_directory",
+        "file": "tests\\conftest.py",
+        "line": 330,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sample_3mf_file",
+        "file": "tests\\conftest.py",
+        "line": 339,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "test_utils",
+        "file": "tests\\conftest.py",
+        "line": 376,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TestUtils.generate_test_file_id",
+        "file": "tests\\conftest.py",
+        "line": 403,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "event_loop",
+        "file": "tests\\conftest.py",
+        "line": 416,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "api_client",
+        "file": "tests\\conftest.py",
+        "line": 428,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "network_error_scenarios",
+        "file": "tests\\conftest.py",
+        "line": 444,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "performance_test_data",
+        "file": "tests\\conftest.py",
+        "line": 461,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "test_config",
+        "file": "tests\\conftest.py",
+        "line": 476,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeasTestFixtures.get_sample_tags",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 153,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeasTestFixtures.get_sample_categories",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 162,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "create_idea_with_tags",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 171,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "create_business_idea",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 182,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "create_external_idea",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 197,
+        "call_count": 0,
+        "is_async": false,
+        "access_level": "public"
+      }
+    ],
+    "single_use": [
+      {
+        "function": "create_sample_gcode",
+        "file": "demo_gcode_optimization.py",
+        "line": 18,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "analyze_gcode_file_lines",
+        "file": "demo_gcode_optimization.py",
+        "line": 161,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FunctionAnalyzer.visit_FunctionDef",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 62,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "find_python_files",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 172,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "build_dependency_graph",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 186,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "find_entry_points",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 203,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "generate_function_inventory_report",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 247,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "generate_dependency_report",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 305,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "generate_entry_points_report",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 323,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuCredentials.get_printer_credentials",
+        "file": "scripts\\bambu_credentials.py",
+        "line": 21,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuCredentials._validate_access_code",
+        "file": "scripts\\bambu_credentials.py",
+        "line": 66,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuCredentials._is_development_environment",
+        "file": "scripts\\bambu_credentials.py",
+        "line": 74,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuDownloadManager.download_from_bambulab_printers",
+        "file": "scripts\\download_bambu_files.py",
+        "line": 75,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuDownloadManager._process_single_printer",
+        "file": "scripts\\download_bambu_files.py",
+        "line": 132,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuDownloadManager._interactive_file_selection",
+        "file": "scripts\\download_bambu_files.py",
+        "line": 230,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuDownloadManager._sanitize_name",
+        "file": "scripts\\download_bambu_files.py",
+        "line": 275,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuDownloadManager._generate_summary",
+        "file": "scripts\\download_bambu_files.py",
+        "line": 285,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorAnalysisAgent.load_log",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 50,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorAnalysisAgent.parse_errors",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 60,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorAnalysisAgent._print_console_report",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 202,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorAnalysisAgent._generate_json_report",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 288,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorAnalysisAgent._generate_markdown_report",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 310,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorAnalysisAgent.apply_fixes",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 352,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "test_download_specific_file",
+        "file": "scripts\\simple_bambu_test.py",
+        "line": 18,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "verify_download",
+        "file": "scripts\\verify_bambu_download.py",
+        "line": 39,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_business_analytics",
+        "file": "src\\api\\routers\\analytics.py",
+        "line": 66,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.get_business_analytics",
+        "file": "src\\services\\analytics_service.py",
+        "line": 168,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "take_snapshot",
+        "file": "src\\api\\routers\\camera.py",
+        "line": 119,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.take_snapshot",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1746,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.take_snapshot",
+        "file": "src\\printers\\base.py",
+        "line": 138,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.take_snapshot",
+        "file": "src\\printers\\prusa.py",
+        "line": 780,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_thumbnail_processing_log",
+        "file": "src\\api\\routers\\debug.py",
+        "line": 98,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_thumbnail_processing_log",
+        "file": "src\\services\\file_service.py",
+        "line": 1001,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorStoreService.store_errors",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 57,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "sync_printer_files",
+        "file": "src\\api\\routers\\files.py",
+        "line": 208,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.sync_printer_files",
+        "file": "src\\services\\file_service.py",
+        "line": 599,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "add_watch_folder",
+        "file": "src\\api\\routers\\files.py",
+        "line": 454,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.add_watch_folder",
+        "file": "src\\services\\config_service.py",
+        "line": 579,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "remove_watch_folder",
+        "file": "src\\api\\routers\\files.py",
+        "line": 492,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.remove_watch_folder",
+        "file": "src\\services\\config_service.py",
+        "line": 613,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "update_watch_folder",
+        "file": "src\\api\\routers\\files.py",
+        "line": 522,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.update_watch_folder",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 125,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_idea_statistics",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 301,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_idea_statistics",
+        "file": "src\\database\\database.py",
+        "line": 1055,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "list_library_files",
+        "file": "src\\api\\routers\\library.py",
+        "line": 91,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.list_library_files",
+        "file": "src\\database\\database.py",
+        "line": 1170,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "delete_library_file",
+        "file": "src\\api\\routers\\library.py",
+        "line": 268,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.delete_library_file",
+        "file": "src\\database\\database.py",
+        "line": 1163,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "export_inventory",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 153,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.export_inventory",
+        "file": "src\\services\\material_service.py",
+        "line": 513,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_material",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 182,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.get_material",
+        "file": "src\\services\\material_service.py",
+        "line": 284,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "create_material",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 217,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.create_material",
+        "file": "src\\services\\material_service.py",
+        "line": 139,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "update_material",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 250,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.update_material",
+        "file": "src\\services\\material_service.py",
+        "line": 184,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "record_consumption",
+        "file": "src\\api\\routers\\materials.py",
+        "line": 286,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.record_consumption",
+        "file": "src\\services\\material_service.py",
+        "line": 224,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "update_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 201,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.update_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 723,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "delete_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 231,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.delete_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 775,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "connect_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 254,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.connect_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 370,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "disconnect_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 278,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.disconnect_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 391,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "pause_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 295,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.pause_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 789,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "resume_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 320,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.resume_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 803,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "stop_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 345,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.stop_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 817,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "download_current_job_file",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 370,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.download_current_job_file",
+        "file": "src\\services\\printer_service.py",
+        "line": 552,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "start_printer_monitoring",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 418,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.start_printer_monitoring",
+        "file": "src\\services\\printer_service.py",
+        "line": 831,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "stop_printer_monitoring",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 443,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.stop_printer_monitoring",
+        "file": "src\\services\\printer_service.py",
+        "line": 849,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_application_settings",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 97,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.get_application_settings",
+        "file": "src\\services\\config_service.py",
+        "line": 454,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "update_application_settings",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 113,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.update_application_settings",
+        "file": "src\\services\\config_service.py",
+        "line": 490,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "validate_printer_connection",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 217,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.validate_printer_connection",
+        "file": "src\\services\\config_service.py",
+        "line": 372,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_system_info",
+        "file": "src\\api\\routers\\system.py",
+        "line": 25,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "create_backup",
+        "file": "src\\api\\routers\\system.py",
+        "line": 41,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConnectionManager.send_to_printer_subscribers",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 55,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConnectionManager.subscribe_to_printer",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 74,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConnectionManager.unsubscribe_from_printer",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 80,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "handle_client_message",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 128,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "broadcast_printer_status",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 161,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_job_statistics",
+        "file": "src\\database\\database.py",
+        "line": 455,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_job_statistics",
+        "file": "src\\services\\job_service.py",
+        "line": 339,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.update_file_enhanced_metadata",
+        "file": "src\\database\\database.py",
+        "line": 681,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.update_file_enhanced_metadata",
+        "file": "src\\database\\database.py",
+        "line": 1339,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.delete_local_file",
+        "file": "src\\database\\database.py",
+        "line": 782,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.remove_idea_tags",
+        "file": "src\\database\\database.py",
+        "line": 958,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.upsert_trending",
+        "file": "src\\database\\database.py",
+        "line": 996,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.clean_expired_trending",
+        "file": "src\\database\\database.py",
+        "line": 1044,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_library_file",
+        "file": "src\\database\\database.py",
+        "line": 1102,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_library_file_by_checksum",
+        "file": "src\\database\\database.py",
+        "line": 1141,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_library_file_source",
+        "file": "src\\database\\database.py",
+        "line": 1290,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.delete_library_file_sources",
+        "file": "src\\database\\database.py",
+        "line": 1323,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_library_stats",
+        "file": "src\\database\\database.py",
+        "line": 1330,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database._run_migrations",
+        "file": "src\\database\\database.py",
+        "line": 1401,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "shutdown_with_timeout",
+        "file": "src\\main.py",
+        "line": 181,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Idea.get_formatted_time",
+        "file": "src\\models\\idea.py",
+        "line": 110,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter._connect_bambu_api",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 133,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._connect_mqtt",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 165,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._get_status_bambu_api",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 283,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._get_status_mqtt",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 571,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._map_bambu_status",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 700,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._map_job_status",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 791,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PrusaPrinter._map_job_status",
+        "file": "src\\printers\\prusa.py",
+        "line": 299,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._list_files_bambu_api",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 859,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._discover_files_via_ftp",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 946,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._discover_files_via_mqtt_dump",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1020,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._list_files_mqtt",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1088,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._list_files_mqtt_from_bambu_api",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1170,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._list_files_direct_ftp",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1220,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._download_file_direct_ftp",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1255,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._download_file_mqtt",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1379,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._safe_list",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1445,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter._download_via_http",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1554,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter.pause_print",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1642,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.pause_print",
+        "file": "src\\printers\\base.py",
+        "line": 113,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.pause_print",
+        "file": "src\\printers\\prusa.py",
+        "line": 696,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.resume_print",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1665,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.resume_print",
+        "file": "src\\printers\\base.py",
+        "line": 118,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.resume_print",
+        "file": "src\\printers\\prusa.py",
+        "line": 720,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.stop_print",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1688,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.stop_print",
+        "file": "src\\printers\\base.py",
+        "line": 123,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.stop_print",
+        "file": "src\\printers\\prusa.py",
+        "line": 744,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterFile._guess_file_type",
+        "file": "src\\printers\\base.py",
+        "line": 42,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BasePrinter._monitor_loop",
+        "file": "src\\printers\\base.py",
+        "line": 203,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BasePrinter.add_status_callback",
+        "file": "src\\printers\\base.py",
+        "line": 244,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter._map_prusa_status",
+        "file": "src\\printers\\prusa.py",
+        "line": 238,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "AnalyticsService.get_summary",
+        "file": "src\\services\\analytics_service.py",
+        "line": 128,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService.get_dashboard_overview",
+        "file": "src\\services\\analytics_service.py",
+        "line": 223,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "AnalyticsService._get_job_statistics",
+        "file": "src\\services\\analytics_service.py",
+        "line": 260,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "AnalyticsService._get_file_statistics",
+        "file": "src\\services\\analytics_service.py",
+        "line": 282,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "AnalyticsService._get_printer_statistics",
+        "file": "src\\services\\analytics_service.py",
+        "line": 310,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPFile._determine_file_type",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 41,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService._create_ssl_context",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 102,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService._connect_ftp",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 110,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService._parse_ftp_line",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 247,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTPService.get_file_info",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 389,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuParser._parse_gcode_file",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 141,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._parse_3mf_file",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 176,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._extract_gcode_thumbnails",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 255,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._extract_gcode_metadata",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 314,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._extract_advanced_metadata",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 375,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._convert_metadata_value",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 387,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._calculate_derived_metrics",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 438,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._calculate_difficulty_level",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 561,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._extract_3mf_metadata",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 574,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._parse_bgcode_file",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 606,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._parse_stl_file",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 720,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._extract_png_dimensions",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 763,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._parse_thumbnail_dimensions",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 775,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._parse_time_duration",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 785,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser._is_valid_base64",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 820,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuParser.get_thumbnail_by_size",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 841,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Settings.get_cors_origins",
+        "file": "src\\services\\config_service.py",
+        "line": 115,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService._load_from_environment",
+        "file": "src\\services\\config_service.py",
+        "line": 234,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ConfigService._create_default_config",
+        "file": "src\\services\\config_service.py",
+        "line": 276,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ConfigService.get_printers",
+        "file": "src\\services\\config_service.py",
+        "line": 307,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.get_printers",
+        "file": "src\\services\\printer_service.py",
+        "line": 288,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.get_active_printers",
+        "file": "src\\services\\config_service.py",
+        "line": 315,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.reload_config",
+        "file": "src\\services\\config_service.py",
+        "line": 393,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.get_watch_folders",
+        "file": "src\\services\\config_service.py",
+        "line": 407,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.is_watch_folders_enabled",
+        "file": "src\\services\\config_service.py",
+        "line": 412,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.is_recursive_watching_enabled",
+        "file": "src\\services\\config_service.py",
+        "line": 417,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService._get_cors_origins_list",
+        "file": "src\\services\\config_service.py",
+        "line": 484,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ConfigService._persist_settings_to_env",
+        "file": "src\\services\\config_service.py",
+        "line": 533,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "EventService._printer_monitoring_task",
+        "file": "src\\services\\event_service.py",
+        "line": 111,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "EventService._job_status_task",
+        "file": "src\\services\\event_service.py",
+        "line": 222,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "EventService._file_discovery_task",
+        "file": "src\\services\\event_service.py",
+        "line": 333,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileService.scan_local_files",
+        "file": "src\\services\\file_service.py",
+        "line": 417,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService._extract_printer_info",
+        "file": "src\\services\\file_service.py",
+        "line": 551,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "FileService._log_thumbnail_processing",
+        "file": "src\\services\\file_service.py",
+        "line": 982,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "FileService.extract_enhanced_metadata",
+        "file": "src\\services\\file_service.py",
+        "line": 1007,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileWatcherService._add_watch_folder",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 241,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._initial_scan",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 280,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._scan_folder",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 294,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._handle_file_created",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 403,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._handle_file_modified",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 407,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._handle_file_deleted",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 429,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._handle_file_moved",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 442,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "IdeaService.import_from_url",
+        "file": "src\\services\\idea_service.py",
+        "line": 205,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.cache_trending",
+        "file": "src\\services\\idea_service.py",
+        "line": 242,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_active_jobs",
+        "file": "src\\services\\job_service.py",
+        "line": 193,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService._resolve_filename_conflict",
+        "file": "src\\services\\library_service.py",
+        "line": 169,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "LibraryService._check_duplicate",
+        "file": "src\\services\\library_service.py",
+        "line": 202,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MaterialService._load_materials",
+        "file": "src\\services\\material_service.py",
+        "line": 108,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MaterialService._row_to_material",
+        "file": "src\\services\\material_service.py",
+        "line": 119,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "MaterialService.get_all_materials",
+        "file": "src\\services\\material_service.py",
+        "line": 288,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService._calculate_consumption_period",
+        "file": "src\\services\\material_service.py",
+        "line": 386,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MaterialService.cleanup",
+        "file": "src\\services\\material_service.py",
+        "line": 539,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.cleanup",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 315,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.cleanup",
+        "file": "src\\services\\trending_service.py",
+        "line": 652,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MigrationService.run_migrations",
+        "file": "src\\services\\migration_service.py",
+        "line": 25,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MigrationService._ensure_migrations_table",
+        "file": "src\\services\\migration_service.py",
+        "line": 60,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._error_monitoring_loop",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 51,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._health_check_loop",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 61,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._cleanup_old_logs_loop",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 71,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._check_error_rates",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 81,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._check_error_patterns",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 120,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._perform_health_checks",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 146,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._store_alert",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 272,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._cleanup_old_logs",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 291,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PreviewRenderService.get_or_generate_preview",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 86,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PreviewRenderService._render_stl",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 181,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PreviewRenderService._render_3mf",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 264,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PreviewRenderService._render_mesh_common",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 298,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PreviewRenderService._render_gcode_toolpath",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 372,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PreviewRenderService._get_cache_key",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 479,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._load_printers",
+        "file": "src\\services\\printer_service.py",
+        "line": 42,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._sync_database_printers",
+        "file": "src\\services\\printer_service.py",
+        "line": 93,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._handle_status_update",
+        "file": "src\\services\\printer_service.py",
+        "line": 116,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._is_print_file",
+        "file": "src\\services\\printer_service.py",
+        "line": 165,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._attempt_download_current_job",
+        "file": "src\\services\\printer_service.py",
+        "line": 172,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._attempt",
+        "file": "src\\services\\printer_service.py",
+        "line": 178,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._store_status_update",
+        "file": "src\\services\\printer_service.py",
+        "line": 245,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService.get_printer_status",
+        "file": "src\\services\\printer_service.py",
+        "line": 337,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService._connect_and_monitor_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 404,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService.shutdown",
+        "file": "src\\services\\printer_service.py",
+        "line": 653,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThreeMFAnalyzer._analyze_model_geometry",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 73,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThreeMFAnalyzer._analyze_print_settings",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 122,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThreeMFAnalyzer._analyze_material_usage",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 177,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThreeMFAnalyzer._analyze_compatibility",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 230,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThreeMFAnalyzer._calculate_costs",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 264,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThreeMFAnalyzer._assess_quality",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 321,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThreeMFAnalyzer._safe_extract",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 392,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ThumbnailService._process_and_save_image",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 110,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThumbnailService.download_single",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 187,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService._retry_with_backoff",
+        "file": "src\\services\\trending_service.py",
+        "line": 95,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._close_session",
+        "file": "src\\services\\trending_service.py",
+        "line": 187,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._start_refresh_task",
+        "file": "src\\services\\trending_service.py",
+        "line": 197,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._refresh_loop",
+        "file": "src\\services\\trending_service.py",
+        "line": 202,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._needs_refresh",
+        "file": "src\\services\\trending_service.py",
+        "line": 219,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService.save_as_idea",
+        "file": "src\\services\\trending_service.py",
+        "line": 548,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.delete_watch_folder_by_path",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 194,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.get_active_folder_paths",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 215,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.migrate_env_folders",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 277,
+        "call_count": 1,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorHandler._generate_error_id",
+        "file": "src\\utils\\error_handling.py",
+        "line": 109,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorHandler._get_log_level",
+        "file": "src\\utils\\error_handling.py",
+        "line": 113,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorHandler._generate_user_message",
+        "file": "src\\utils\\error_handling.py",
+        "line": 123,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorHandler._log_to_file",
+        "file": "src\\utils\\error_handling.py",
+        "line": 140,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorHandler._handle_critical_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 148,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorHandler._empty_stats",
+        "file": "src\\utils\\error_handling.py",
+        "line": 189,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorHandler._calculate_statistics",
+        "file": "src\\utils\\error_handling.py",
+        "line": 200,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "setup_logging",
+        "file": "src\\utils\\logging_config.py",
+        "line": 12,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TestUtils.calculate_vat",
+        "file": "tests\\conftest.py",
+        "line": 393,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TestUtils.format_currency",
+        "file": "tests\\conftest.py",
+        "line": 398,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeasTestFixtures.get_sample_ideas",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 68,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Milestone12TestRunner.print_header",
+        "file": "tests\\run_milestone_1_2_tests.py",
+        "line": 47,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Milestone12TestRunner.check_dependencies",
+        "file": "tests\\run_milestone_1_2_tests.py",
+        "line": 61,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Milestone12TestRunner.print_summary",
+        "file": "tests\\run_milestone_1_2_tests.py",
+        "line": 171,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Milestone12TestRunner.run_tests",
+        "file": "tests\\run_milestone_1_2_tests.py",
+        "line": 200,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "check_file_exists",
+        "file": "verify_phase2_integration.py",
+        "line": 11,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "check_file_contains",
+        "file": "verify_phase2_integration.py",
+        "line": 21,
+        "call_count": 1,
+        "is_async": false,
+        "access_level": "public"
+      }
+    ],
+    "low_use": [
+      {
+        "function": "analyze_file",
+        "file": "scripts\\analyze_codebase.py",
+        "line": 145,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "analyze_file",
+        "file": "src\\api\\routers\\files.py",
+        "line": 661,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThreeMFAnalyzer.analyze_file",
+        "file": "src\\services\\threemf_analyzer.py",
+        "line": 22,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuDownloadManager._print_summary",
+        "file": "scripts\\download_bambu_files.py",
+        "line": 309,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorAnalysisAgent.analyze_root_cause",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 108,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorAnalysisAgent.generate_report",
+        "file": "scripts\\error_analysis_agent.py",
+        "line": 182,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.generate_report",
+        "file": "src\\services\\material_service.py",
+        "line": 402,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorStoreService.ensure_log_directory",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 53,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorHandler.ensure_log_directory",
+        "file": "src\\utils\\error_handling.py",
+        "line": 49,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorStoreService.get_recent_errors",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 87,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_recent_errors",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 220,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_file_statistics",
+        "file": "src\\api\\routers\\files.py",
+        "line": 124,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_file_statistics",
+        "file": "src\\database\\database.py",
+        "line": 790,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_file_statistics",
+        "file": "src\\services\\file_service.py",
+        "line": 458,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "process_file_thumbnails",
+        "file": "src\\api\\routers\\files.py",
+        "line": 321,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.process_file_thumbnails",
+        "file": "src\\services\\file_service.py",
+        "line": 803,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_watch_folder_settings",
+        "file": "src\\api\\routers\\files.py",
+        "line": 363,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_watch_folder_settings",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 234,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.get_watch_folder_settings",
+        "file": "src\\services\\config_service.py",
+        "line": 441,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_enhanced_metadata",
+        "file": "src\\api\\routers\\files.py",
+        "line": 603,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "health_check",
+        "file": "src\\api\\routers\\health.py",
+        "line": 38,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.health_check",
+        "file": "src\\database\\database.py",
+        "line": 282,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BasePrinter.health_check",
+        "file": "src\\printers\\base.py",
+        "line": 253,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.health_check",
+        "file": "src\\services\\printer_service.py",
+        "line": 623,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "validate_url",
+        "file": "src\\api\\routers\\idea_url.py",
+        "line": 20,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.validate_url",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 243,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_supported_platforms",
+        "file": "src\\api\\routers\\idea_url.py",
+        "line": 77,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_supported_platforms",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 91,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.get_supported_platforms",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 256,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "delete_idea",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 193,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.delete_idea",
+        "file": "src\\database\\database.py",
+        "line": 926,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.delete_idea",
+        "file": "src\\services\\idea_service.py",
+        "line": 165,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "update_idea_status",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 226,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.update_idea_status",
+        "file": "src\\database\\database.py",
+        "line": 937,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.update_idea_status",
+        "file": "src\\services\\idea_service.py",
+        "line": 177,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_all_tags",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 287,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_all_tags",
+        "file": "src\\database\\database.py",
+        "line": 983,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.get_all_tags",
+        "file": "src\\services\\idea_service.py",
+        "line": 189,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "search_ideas",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 315,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.search_ideas",
+        "file": "src\\services\\idea_service.py",
+        "line": 332,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "save_trending_as_idea",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 368,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "save_trending_as_idea",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 157,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.save_trending_as_idea",
+        "file": "src\\services\\idea_service.py",
+        "line": 283,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "_transform_job_to_response",
+        "file": "src\\api\\routers\\jobs.py",
+        "line": 53,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "delete_job",
+        "file": "src\\api\\routers\\jobs.py",
+        "line": 129,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.delete_job",
+        "file": "src\\database\\database.py",
+        "line": 545,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.delete_job",
+        "file": "src\\services\\job_service.py",
+        "line": 167,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_library_file",
+        "file": "src\\api\\routers\\library.py",
+        "line": 168,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_library_file",
+        "file": "src\\database\\database.py",
+        "line": 1133,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_library_statistics",
+        "file": "src\\api\\routers\\library.py",
+        "line": 329,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.get_library_statistics",
+        "file": "src\\services\\library_service.py",
+        "line": 560,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "create_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 146,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_printer",
+        "file": "src\\database\\database.py",
+        "line": 304,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.create_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 671,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "download_printer_file",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 468,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.download_printer_file",
+        "file": "src\\services\\printer_service.py",
+        "line": 526,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "remove_printer",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 192,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.remove_printer",
+        "file": "src\\services\\config_service.py",
+        "line": 338,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "cleanup_expired",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 225,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.cleanup_expired",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 210,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.cleanup_expired",
+        "file": "src\\services\\trending_service.py",
+        "line": 524,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConnectionManager.broadcast",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 37,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "_handle_websocket_connection",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 101,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "Database._create_tables",
+        "file": "src\\database\\database.py",
+        "line": 46,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MaterialService._create_tables",
+        "file": "src\\services\\material_service.py",
+        "line": 56,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._create_tables",
+        "file": "src\\services\\trending_service.py",
+        "line": 65,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "Database.update_job",
+        "file": "src\\database\\database.py",
+        "line": 519,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_file",
+        "file": "src\\database\\database.py",
+        "line": 557,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.add_idea_tags",
+        "file": "src\\database\\database.py",
+        "line": 945,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_idea_tags",
+        "file": "src\\database\\database.py",
+        "line": 971,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingItem.is_expired",
+        "file": "src\\models\\idea.py",
+        "line": 175,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolder.from_db_row",
+        "file": "src\\models\\watch_folder.py",
+        "line": 87,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.get_job_info",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 750,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.get_job_info",
+        "file": "src\\printers\\base.py",
+        "line": 98,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.get_job_info",
+        "file": "src\\printers\\prusa.py",
+        "line": 253,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter._download_file_bambu_api",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1318,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuLabPrinter.has_camera",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1711,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.has_camera",
+        "file": "src\\printers\\base.py",
+        "line": 128,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.has_camera",
+        "file": "src\\printers\\prusa.py",
+        "line": 768,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.get_camera_stream_url",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1725,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.get_camera_stream_url",
+        "file": "src\\printers\\base.py",
+        "line": 133,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.get_camera_stream_url",
+        "file": "src\\printers\\prusa.py",
+        "line": 774,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BasePrinter.start_monitoring",
+        "file": "src\\printers\\base.py",
+        "line": 168,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MonitoringService.start_monitoring",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 40,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.start_monitoring",
+        "file": "src\\services\\printer_service.py",
+        "line": 430,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BasePrinter.stop_monitoring",
+        "file": "src\\printers\\base.py",
+        "line": 185,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.stop_monitoring",
+        "file": "src\\services\\printer_service.py",
+        "line": 475,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.extract_files_from_structure",
+        "file": "src\\printers\\prusa.py",
+        "line": 339,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.extract_raw_files_from_structure",
+        "file": "src\\printers\\prusa.py",
+        "line": 421,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter._find_file_by_display_name",
+        "file": "src\\printers\\prusa.py",
+        "line": 577,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrusaPrinter.download_thumbnail",
+        "file": "src\\printers\\prusa.py",
+        "line": 628,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService.download_thumbnail",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 66,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTPService.ftp_connection",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 154,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuParser.parse_file",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 86,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuParser._calculate_complexity_score",
+        "file": "src\\services\\bambu_parser.py",
+        "line": 511,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterConfig._validate_config",
+        "file": "src\\services\\config_service.py",
+        "line": 37,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ConfigService._load_printer_configs",
+        "file": "src\\services\\config_service.py",
+        "line": 205,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ConfigService.add_printer",
+        "file": "src\\services\\config_service.py",
+        "line": 322,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService._save_config",
+        "file": "src\\services\\config_service.py",
+        "line": 347,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "EventService.subscribe",
+        "file": "src\\services\\event_service.py",
+        "line": 83,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_watch_status",
+        "file": "src\\services\\file_service.py",
+        "line": 435,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileWatcherService.get_watch_status",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 511,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService._get_file_type",
+        "file": "src\\services\\file_service.py",
+        "line": 538,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "FileService.discover_printer_files",
+        "file": "src\\services\\file_service.py",
+        "line": 648,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrintFileHandler._debounce_event",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 80,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._process_discovered_file",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 310,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "FileWatcherService._find_watch_folder_for_file",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 388,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "IdeaService._extract_url_metadata",
+        "file": "src\\services\\idea_service.py",
+        "line": 233,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "IdeaService.cleanup_expired_trending",
+        "file": "src\\services\\idea_service.py",
+        "line": 320,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_jobs",
+        "file": "src\\services\\job_service.py",
+        "line": 25,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.add_file_source",
+        "file": "src\\services\\library_service.py",
+        "line": 470,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService._extract_metadata_async",
+        "file": "src\\services\\library_service.py",
+        "line": 569,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MigrationService._get_completed_migrations",
+        "file": "src\\services\\migration_service.py",
+        "line": 81,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MigrationService._get_migration_files",
+        "file": "src\\services\\migration_service.py",
+        "line": 102,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "MigrationService._run_migration_file",
+        "file": "src\\services\\migration_service.py",
+        "line": 118,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._check_database_health",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 173,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._check_file_system_health",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 207,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "MonitoringService._trigger_alert",
+        "file": "src\\services\\monitoring_service.py",
+        "line": 238,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService._create_printer_instance",
+        "file": "src\\services\\printer_service.py",
+        "line": 70,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PrinterService.get_printer_driver",
+        "file": "src\\services\\printer_service.py",
+        "line": 333,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ThumbnailService._get_session",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 37,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._get_session",
+        "file": "src\\services\\trending_service.py",
+        "line": 150,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "UrlParserService._get_session",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 22,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "ThumbnailService._get_cache_path",
+        "file": "src\\services\\thumbnail_service.py",
+        "line": 47,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._fetch_url",
+        "file": "src\\services\\trending_service.py",
+        "line": 239,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService.fetch_makerworld_trending",
+        "file": "src\\services\\trending_service.py",
+        "line": 285,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.fetch_printables_trending",
+        "file": "src\\services\\trending_service.py",
+        "line": 330,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService._extract_id_from_url",
+        "file": "src\\services\\trending_service.py",
+        "line": 376,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService._parse_count",
+        "file": "src\\services\\trending_service.py",
+        "line": 389,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "TrendingService.save_trending_items",
+        "file": "src\\services\\trending_service.py",
+        "line": 409,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.refresh_all_platforms",
+        "file": "src\\services\\trending_service.py",
+        "line": 494,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.fetch_page_title",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 89,
+        "call_count": 3,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService._clean_title",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 110,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "UrlParserService.extract_creator_from_title",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 129,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.get_platform_info",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 198,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.create_watch_folder",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 25,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.get_all_watch_folders",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 104,
+        "call_count": 2,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "GcodeAnalyzer.analyze_gcode_file",
+        "file": "src\\utils\\gcode_analyzer.py",
+        "line": 178,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeasTestFixtures.get_sample_trending_items",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 115,
+        "call_count": 2,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "run_frontend_tests",
+        "file": "tests\\run_essential_tests.py",
+        "line": 131,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Milestone12TestRunner.run_frontend_tests",
+        "file": "tests\\run_milestone_1_2_tests.py",
+        "line": 134,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Milestone12TestRunner.run_backend_tests",
+        "file": "tests\\run_milestone_1_2_tests.py",
+        "line": 87,
+        "call_count": 3,
+        "is_async": false,
+        "access_level": "public"
+      }
+    ],
+    "moderate_use": [
+      {
+        "function": "get_bambu_credentials",
+        "file": "scripts\\bambu_credentials.py",
+        "line": 87,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTP.login",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 42,
+        "call_count": 5,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTP.cwd",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 60,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTP.quit",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 182,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTP._send_command",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 193,
+        "call_count": 5,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "BambuFTP._read_response",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 199,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "ErrorStoreService.get_error_statistics",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 111,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_error_statistics",
+        "file": "src\\api\\routers\\errors.py",
+        "line": 238,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorHandler.get_error_statistics",
+        "file": "src\\utils\\error_handling.py",
+        "line": 164,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_file_by_id",
+        "file": "src\\api\\routers\\files.py",
+        "line": 143,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_file_by_id",
+        "file": "src\\services\\file_service.py",
+        "line": 688,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.get_file_by_id",
+        "file": "src\\services\\library_service.py",
+        "line": 437,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "reload_watch_folders",
+        "file": "src\\api\\routers\\files.py",
+        "line": 421,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.reload_watch_folders",
+        "file": "src\\services\\file_service.py",
+        "line": 446,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileWatcherService.reload_watch_folders",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 520,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "validate_watch_folder",
+        "file": "src\\api\\routers\\files.py",
+        "line": 437,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "validate_watch_folder",
+        "file": "src\\api\\routers\\settings.py",
+        "line": 250,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.validate_watch_folder",
+        "file": "src\\services\\config_service.py",
+        "line": 422,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "delete_file",
+        "file": "src\\api\\routers\\files.py",
+        "line": 574,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.delete_file",
+        "file": "src\\services\\file_service.py",
+        "line": 732,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.delete_file",
+        "file": "src\\services\\library_service.py",
+        "line": 518,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "create_idea",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 71,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_idea",
+        "file": "src\\database\\database.py",
+        "line": 823,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.create_idea",
+        "file": "src\\services\\idea_service.py",
+        "line": 24,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "list_ideas",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 99,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.list_ideas",
+        "file": "src\\database\\database.py",
+        "line": 862,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.list_ideas",
+        "file": "src\\services\\idea_service.py",
+        "line": 88,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_idea",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 131,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_idea",
+        "file": "src\\database\\database.py",
+        "line": 853,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.get_idea",
+        "file": "src\\services\\idea_service.py",
+        "line": 63,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "update_idea",
+        "file": "src\\api\\routers\\ideas.py",
+        "line": 156,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.update_idea",
+        "file": "src\\database\\database.py",
+        "line": 902,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.update_idea",
+        "file": "src\\services\\idea_service.py",
+        "line": 134,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "list_jobs",
+        "file": "src\\api\\routers\\jobs.py",
+        "line": 78,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.list_jobs",
+        "file": "src\\database\\database.py",
+        "line": 396,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.list_jobs",
+        "file": "src\\services\\job_service.py",
+        "line": 80,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_job",
+        "file": "src\\api\\routers\\jobs.py",
+        "line": 105,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_job",
+        "file": "src\\database\\database.py",
+        "line": 384,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_job",
+        "file": "src\\services\\job_service.py",
+        "line": 142,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "_printer_to_response",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 70,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "list_printers",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 130,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.list_printers",
+        "file": "src\\database\\database.py",
+        "line": 334,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.list_printers",
+        "file": "src\\services\\printer_service.py",
+        "line": 254,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_printer",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 177,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_printer",
+        "file": "src\\database\\database.py",
+        "line": 325,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService.get_printer",
+        "file": "src\\services\\config_service.py",
+        "line": 311,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.get_printer",
+        "file": "src\\services\\printer_service.py",
+        "line": 305,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_printer_files",
+        "file": "src\\api\\routers\\printers.py",
+        "line": 398,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_printer_files",
+        "file": "src\\services\\file_service.py",
+        "line": 154,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.get_printer_files",
+        "file": "src\\services\\printer_service.py",
+        "line": 502,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_trending",
+        "file": "src\\api\\routers\\trending.py",
+        "line": 52,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_trending",
+        "file": "src\\database\\database.py",
+        "line": 1023,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "IdeaService.get_trending",
+        "file": "src\\services\\idea_service.py",
+        "line": 272,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.get_trending",
+        "file": "src\\services\\trending_service.py",
+        "line": 466,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.initialize",
+        "file": "src\\database\\database.py",
+        "line": 31,
+        "call_count": 8,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.initialize",
+        "file": "src\\services\\library_service.py",
+        "line": 52,
+        "call_count": 8,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.initialize",
+        "file": "src\\services\\material_service.py",
+        "line": 46,
+        "call_count": 8,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterService.initialize",
+        "file": "src\\services\\printer_service.py",
+        "line": 35,
+        "call_count": 8,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.initialize",
+        "file": "src\\services\\trending_service.py",
+        "line": 55,
+        "call_count": 8,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database._fetch_one",
+        "file": "src\\database\\database.py",
+        "line": 235,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "Database._fetch_all",
+        "file": "src\\database\\database.py",
+        "line": 249,
+        "call_count": 8,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "Database.update_printer_status",
+        "file": "src\\database\\database.py",
+        "line": 347,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.create_job",
+        "file": "src\\database\\database.py",
+        "line": 361,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.create_job",
+        "file": "src\\services\\job_service.py",
+        "line": 230,
+        "call_count": 9,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_jobs_by_date_range",
+        "file": "src\\database\\database.py",
+        "line": 435,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "JobService.get_jobs_by_date_range",
+        "file": "src\\services\\job_service.py",
+        "line": 391,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.update_file",
+        "file": "src\\database\\database.py",
+        "line": 654,
+        "call_count": 6,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.update_library_file",
+        "file": "src\\database\\database.py",
+        "line": 1149,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Idea.to_dict",
+        "file": "src\\models\\idea.py",
+        "line": 49,
+        "call_count": 9,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingItem.to_dict",
+        "file": "src\\models\\idea.py",
+        "line": 138,
+        "call_count": 9,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolder.to_dict",
+        "file": "src\\models\\watch_folder.py",
+        "line": 47,
+        "call_count": 9,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTPFile.to_dict",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 64,
+        "call_count": 9,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterConfig.to_dict",
+        "file": "src\\services\\config_service.py",
+        "line": 62,
+        "call_count": 9,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Idea.validate",
+        "file": "src\\models\\idea.py",
+        "line": 98,
+        "call_count": 5,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter._get_file_type_from_name",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1285,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "PrusaPrinter.get_files",
+        "file": "src\\printers\\prusa.py",
+        "line": 399,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_files",
+        "file": "src\\services\\file_service.py",
+        "line": 43,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTPService.test_connection",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 410,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConfigService._ensure_env_migration",
+        "file": "src\\services\\config_service.py",
+        "line": 635,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "EventService.stop",
+        "file": "src\\services\\event_service.py",
+        "line": 63,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileWatcherService.stop",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 203,
+        "call_count": 5,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.get_local_files",
+        "file": "src\\services\\file_service.py",
+        "line": 406,
+        "call_count": 7,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileWatcherService.get_local_files",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 491,
+        "call_count": 7,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.find_file_by_name",
+        "file": "src\\services\\file_service.py",
+        "line": 709,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrintFileHandler.should_process_file",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 61,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "FileWatcherService._emit_file_event",
+        "file": "src\\services\\file_watcher_service.py",
+        "line": 469,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "IdeaService.get_statistics",
+        "file": "src\\services\\idea_service.py",
+        "line": 197,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "MaterialService.get_statistics",
+        "file": "src\\services\\material_service.py",
+        "line": 304,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PreviewRenderService.get_statistics",
+        "file": "src\\services\\preview_render_service.py",
+        "line": 537,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingService.get_statistics",
+        "file": "src\\services\\trending_service.py",
+        "line": 595,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.calculate_checksum",
+        "file": "src\\services\\library_service.py",
+        "line": 89,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.get_library_path_for_file",
+        "file": "src\\services\\library_service.py",
+        "line": 134,
+        "call_count": 5,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.get_file_by_checksum",
+        "file": "src\\services\\library_service.py",
+        "line": 425,
+        "call_count": 10,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.reprocess_file",
+        "file": "src\\services\\library_service.py",
+        "line": 625,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.detect_platform",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 38,
+        "call_count": 7,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.extract_model_id",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 55,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.parse_url",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 144,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolderDbService.get_watch_folder_by_path",
+        "file": "src\\services\\watch_folder_db_service.py",
+        "line": 86,
+        "call_count": 4,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "get_settings",
+        "file": "src\\utils\\config.py",
+        "line": 157,
+        "call_count": 9,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ErrorHandler.handle_error",
+        "file": "src\\utils\\error_handling.py",
+        "line": 53,
+        "call_count": 8,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "GcodeAnalyzer._is_likely_print_move",
+        "file": "src\\utils\\gcode_analyzer.py",
+        "line": 109,
+        "call_count": 4,
+        "is_async": false,
+        "access_level": "private"
+      },
+      {
+        "function": "GcodeAnalyzer.get_optimized_gcode_lines",
+        "file": "src\\utils\\gcode_analyzer.py",
+        "line": 153,
+        "call_count": 5,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "get_logger",
+        "file": "src\\utils\\logging_config.py",
+        "line": 66,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TestUtils.berlin_timestamp",
+        "file": "tests\\conftest.py",
+        "line": 380,
+        "call_count": 5,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "create_sample_trending_item",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 37,
+        "call_count": 6,
+        "is_async": false,
+        "access_level": "public"
+      }
+    ],
+    "high_use": [
+      {
+        "function": "BambuFTP.download_file",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 127,
+        "call_count": 17,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "download_file",
+        "file": "src\\api\\routers\\files.py",
+        "line": 167,
+        "call_count": 17,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.download_file",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 1299,
+        "call_count": 17,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.download_file",
+        "file": "src\\printers\\base.py",
+        "line": 108,
+        "call_count": 17,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.download_file",
+        "file": "src\\printers\\prusa.py",
+        "line": 477,
+        "call_count": 17,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTPService.download_file",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 296,
+        "call_count": 17,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "FileService.download_file",
+        "file": "src\\services\\file_service.py",
+        "line": 192,
+        "call_count": 17,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTP.connect",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 21,
+        "call_count": 47,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "ConnectionManager.connect",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 25,
+        "call_count": 47,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.connect",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 98,
+        "call_count": 47,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.connect",
+        "file": "src\\printers\\base.py",
+        "line": 83,
+        "call_count": 47,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.connect",
+        "file": "src\\printers\\prusa.py",
+        "line": 32,
+        "call_count": 47,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTP.list_files",
+        "file": "scripts\\working_bambu_ftp.py",
+        "line": 69,
+        "call_count": 23,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "list_files",
+        "file": "src\\api\\routers\\files.py",
+        "line": 61,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.list_files",
+        "file": "src\\database\\database.py",
+        "line": 613,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.list_files",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 840,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.list_files",
+        "file": "src\\printers\\base.py",
+        "line": 103,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.list_files",
+        "file": "src\\printers\\prusa.py",
+        "line": 316,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuFTPService.list_files",
+        "file": "src\\services\\bambu_ftp_service.py",
+        "line": 194,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.list_files",
+        "file": "src\\services\\library_service.py",
+        "line": 449,
+        "call_count": 23,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "ConnectionManager.disconnect",
+        "file": "src\\api\\routers\\websocket.py",
+        "line": 30,
+        "call_count": 15,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.disconnect",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 236,
+        "call_count": 15,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.disconnect",
+        "file": "src\\printers\\base.py",
+        "line": 88,
+        "call_count": 15,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.disconnect",
+        "file": "src\\printers\\prusa.py",
+        "line": 115,
+        "call_count": 15,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database._execute_write",
+        "file": "src\\database\\database.py",
+        "line": 197,
+        "call_count": 21,
+        "is_async": true,
+        "access_level": "private"
+      },
+      {
+        "function": "Database.close",
+        "file": "src\\database\\database.py",
+        "line": 263,
+        "call_count": 38,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "UrlParserService.close",
+        "file": "src\\services\\url_parser_service.py",
+        "line": 32,
+        "call_count": 38,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.get_connection",
+        "file": "src\\database\\database.py",
+        "line": 269,
+        "call_count": 20,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "Database.connection",
+        "file": "src\\database\\database.py",
+        "line": 276,
+        "call_count": 15,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "Idea.from_dict",
+        "file": "src\\models\\idea.py",
+        "line": 74,
+        "call_count": 18,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "TrendingItem.from_dict",
+        "file": "src\\models\\idea.py",
+        "line": 157,
+        "call_count": 18,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "WatchFolder.from_dict",
+        "file": "src\\models\\watch_folder.py",
+        "line": 67,
+        "call_count": 18,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterConfig.from_dict",
+        "file": "src\\services\\config_service.py",
+        "line": 49,
+        "call_count": 18,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "BambuLabPrinter.get_status",
+        "file": "src\\printers\\bambu_lab.py",
+        "line": 262,
+        "call_count": 11,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrinterInterface.get_status",
+        "file": "src\\printers\\base.py",
+        "line": 93,
+        "call_count": 11,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "PrusaPrinter.get_status",
+        "file": "src\\printers\\prusa.py",
+        "line": 133,
+        "call_count": 11,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "EventService.get_status",
+        "file": "src\\services\\event_service.py",
+        "line": 452,
+        "call_count": 11,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "EventService.emit_event",
+        "file": "src\\services\\event_service.py",
+        "line": 95,
+        "call_count": 22,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "LibraryService.add_file_to_library",
+        "file": "src\\services\\library_service.py",
+        "line": 215,
+        "call_count": 11,
+        "is_async": true,
+        "access_level": "public"
+      },
+      {
+        "function": "GcodeAnalyzer.find_print_start_line",
+        "file": "src\\utils\\gcode_analyzer.py",
+        "line": 45,
+        "call_count": 11,
+        "is_async": false,
+        "access_level": "public"
+      },
+      {
+        "function": "create_sample_idea",
+        "file": "tests\\fixtures\\ideas_fixtures.py",
+        "line": 9,
+        "call_count": 15,
+        "is_async": false,
+        "access_level": "public"
+      }
+    ]
+  },
+  "wrappers": [
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 31,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 43,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 55,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 67,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 79,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 91,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 103,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__init__",
+      "file": "src\\utils\\exceptions.py",
+      "line": 115,
+      "wraps": "__init__",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "mock_send",
+      "file": "tests\\backend\\test_integration.py",
+      "line": 274,
+      "wraps": "append",
+      "type": "async",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "mock_send",
+      "file": "tests\\backend\\test_integration.py",
+      "line": 305,
+      "wraps": "append",
+      "type": "async",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "mock_send",
+      "file": "tests\\backend\\test_integration.py",
+      "line": 336,
+      "wraps": "append",
+      "type": "async",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "mock_disconnect",
+      "file": "tests\\backend\\test_integration.py",
+      "line": 514,
+      "wraps": "append",
+      "type": "async",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "complex_query",
+      "file": "tests\\backend\\test_performance.py",
+      "line": 172,
+      "wraps": "fetchall",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "query_without_index",
+      "file": "tests\\backend\\test_performance.py",
+      "line": 283,
+      "wraps": "fetchall",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "serialize_response",
+      "file": "tests\\backend\\test_performance.py",
+      "line": 411,
+      "wraps": "dumps",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "__call__",
+      "file": "tests\\conftest.py",
+      "line": 285,
+      "wraps": "__call__",
+      "type": "async",
+      "recommendation": "Consider inlining or documenting purpose"
+    },
+    {
+      "wrapper": "classify_customer",
+      "file": "tests\\test_working_core.py",
+      "line": 130,
+      "wraps": "any",
+      "type": "sync",
+      "recommendation": "Consider inlining or documenting purpose"
+    }
+  ],
+  "legacy_functions": [
+    {
+      "function": "PrinterService.get_printers",
+      "file": "src\\services\\printer_service.py",
+      "line": 288,
+      "markers": [
+        "legacy"
+      ],
+      "docstring_snippet": "get list of all configured printers as dictionaries (legacy method).",
+      "severity": "medium"
+    }
+  ],
+  "dynamic_calls": [
+    {
+      "file": "scripts\\test_complete_bambu_ftp.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            202,
+            209,
+            210,
+            248
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "scripts\\verify_bambu_download.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            108,
+            109,
+            124,
+            126,
+            128
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\api\\routers\\debug.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            27,
+            33,
+            83,
+            109
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\api\\routers\\health.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            52,
+            53,
+            54,
+            55,
+            136
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\api\\routers\\printers.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            114,
+            115,
+            116,
+            118,
+            119
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\api\\routers\\trending.py",
+      "patterns": [
+        {
+          "pattern": "locals()",
+          "lines": [
+            143
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\printers\\bambu_lab.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            329,
+            368,
+            369,
+            457,
+            458
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\services\\config_service.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            461,
+            481,
+            510
+          ]
+        },
+        {
+          "pattern": "setattr",
+          "lines": [
+            513
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\services\\library_service.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            38,
+            39,
+            40,
+            41,
+            42
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\services\\material_service.py",
+      "patterns": [
+        {
+          "pattern": "setattr",
+          "lines": [
+            198
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\services\\printer_service.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            105,
+            107,
+            108,
+            109,
+            277
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\services\\thumbnail_service.py",
+      "patterns": [
+        {
+          "pattern": "locals()",
+          "lines": [
+            157
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\utils\\error_handling.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            90
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "src\\utils\\logging_config.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            19,
+            40
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "tests\\run_milestone_1_2_tests.py",
+      "patterns": [
+        {
+          "pattern": "__import__",
+          "lines": [
+            75
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    },
+    {
+      "file": "tests\\test_printer_interface_conformance.py",
+      "patterns": [
+        {
+          "pattern": "getattr",
+          "lines": [
+            22,
+            32,
+            42
+          ]
+        }
+      ],
+      "note": "May contain dynamic function calls not detected by static analysis"
+    }
+  ],
+  "api_endpoints": {
+    "http": [],
+    "websocket": []
+  },
+  "test_only_functions": [
+    {
+      "function": "BambuFTP.quit",
+      "file": "scripts\\working_bambu_ftp.py",
+      "line": 182,
+      "used_by_tests": [
+        "scripts\\test_bambu_ftp_direct.py:test_bambu_ftp",
+        "scripts\\working_bambu_ftp.py:test_working_ftp",
+        "scripts\\debug_bambu_ftp.py:test_direct_ftp",
+        "scripts\\debug_bambu_ftp_v2.py:test_alternative_ftp"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "BambuFTPService.get_file_info",
+      "file": "src\\services\\bambu_ftp_service.py",
+      "line": 389,
+      "used_by_tests": [
+        "scripts\\test_complete_bambu_ftp.py:BambuFTPTester._test_ftp_service"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "TestUtils.berlin_timestamp",
+      "file": "tests\\conftest.py",
+      "line": 380,
+      "used_by_tests": [
+        "tests\\backend\\test_api_jobs.py:TestJobBusinessLogic.test_job_timezone_handling",
+        "tests\\backend\\test_api_files.py:TestFileBusinessLogic.test_file_download_path_organization",
+        "tests\\backend\\test_database.py:TestGermanBusinessLogic.test_european_timezone_handling",
+        "tests\\backend\\test_websocket.py:TestWebSocketGermanBusinessIntegration.test_german_timezone_in_websocket_messages",
+        "tests\\backend\\test_api_printers.py:TestPrinterBusinessLogic.test_printer_timezone_handling"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "TestUtils.calculate_vat",
+      "file": "tests\\conftest.py",
+      "line": 393,
+      "used_by_tests": [
+        "tests\\backend\\test_api_printers.py:TestPrinterBusinessLogic.test_printer_cost_calculations_euro"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "TestUtils.format_currency",
+      "file": "tests\\conftest.py",
+      "line": 398,
+      "used_by_tests": [
+        "tests\\backend\\test_integration.py:TestGermanBusinessLogic.test_currency_formatting"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "JobService.get_jobs",
+      "file": "src\\services\\job_service.py",
+      "line": 25,
+      "used_by_tests": [
+        "tests\\backend\\test_job_null_fix.py:TestNullJobIDFix.test_job_service_error_logging",
+        "tests\\backend\\test_job_validation.py:TestJobIDValidation.test_get_jobs_skips_invalid_jobs"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "BambuLabPrinter.get_job_info",
+      "file": "src\\printers\\bambu_lab.py",
+      "line": 750,
+      "used_by_tests": [
+        "tests\\test_essential_printer_api.py:TestEssentialPrinterAPIEndpoints.test_job_sync_history_integration",
+        "tests\\test_essential_printer_api.py:TestEssentialPrinterAPIEndpoints.test_current_job_real_time_progress"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "PrinterInterface.get_job_info",
+      "file": "src\\printers\\base.py",
+      "line": 98,
+      "used_by_tests": [
+        "tests\\test_essential_printer_api.py:TestEssentialPrinterAPIEndpoints.test_job_sync_history_integration",
+        "tests\\test_essential_printer_api.py:TestEssentialPrinterAPIEndpoints.test_current_job_real_time_progress"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "PrusaPrinter.get_job_info",
+      "file": "src\\printers\\prusa.py",
+      "line": 253,
+      "used_by_tests": [
+        "tests\\test_essential_printer_api.py:TestEssentialPrinterAPIEndpoints.test_job_sync_history_integration",
+        "tests\\test_essential_printer_api.py:TestEssentialPrinterAPIEndpoints.test_current_job_real_time_progress"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "GcodeAnalyzer.analyze_gcode_file",
+      "file": "src\\utils\\gcode_analyzer.py",
+      "line": 178,
+      "used_by_tests": [
+        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_success",
+        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_not_found",
+        "tests\\test_gcode_analyzer.py:TestGcodeAnalyzer.test_analyze_gcode_file_disabled"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "IdeasTestFixtures.get_sample_ideas",
+      "file": "tests\\fixtures\\ideas_fixtures.py",
+      "line": 68,
+      "used_by_tests": [
+        "tests\\test_ideas_service.py:TestIdeaService.test_list_ideas_with_filters"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "IdeasTestFixtures.get_sample_trending_items",
+      "file": "tests\\fixtures\\ideas_fixtures.py",
+      "line": 115,
+      "used_by_tests": [
+        "tests\\test_ideas_service.py:TestIdeaService.test_get_trending",
+        "tests\\test_ideas_service.py:TestIdeaService.test_cache_trending_success"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "IdeaService.cache_trending",
+      "file": "src\\services\\idea_service.py",
+      "line": 242,
+      "used_by_tests": [
+        "tests\\test_ideas_service.py:TestIdeaService.test_cache_trending_success"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "Idea.get_formatted_time",
+      "file": "src\\models\\idea.py",
+      "line": 110,
+      "used_by_tests": [
+        "tests\\test_ideas_service.py:TestIdeaModel.test_get_formatted_time"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    },
+    {
+      "function": "TrendingItem.is_expired",
+      "file": "src\\models\\idea.py",
+      "line": 175,
+      "used_by_tests": [
+        "tests\\test_ideas_service.py:TestTrendingItemModel.test_is_expired_true",
+        "tests\\test_ideas_service.py:TestTrendingItemModel.test_is_expired_false"
+      ],
+      "recommendation": "Consider moving to test utilities"
+    }
+  ]
+}
