@@ -82,6 +82,9 @@ Thumbs.db
 *.db-wal
 *.sqlite
 *.sqlite3
+data/*.db*
+data/*.backup*
+*.backup-*
 
 # Log files
 *.log
