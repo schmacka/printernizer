@@ -1470,31 +1470,42 @@ class FileManager {
      * Remove a watch folder
      */
     async removeWatchFolder(folderPath) {
+        console.log('[removeWatchFolder] Called with folderPath:', folderPath);
+
         const confirmed = confirm(`Möchten Sie das Verzeichnis "${folderPath}" wirklich aus der Überwachung entfernen?`);
-        if (!confirmed) return;
+        if (!confirmed) {
+            console.log('[removeWatchFolder] User cancelled');
+            return;
+        }
 
         try {
+            console.log('[removeWatchFolder] Calling API to remove folder');
             showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
 
             const response = await api.removeWatchFolder(folderPath);
+            console.log('[removeWatchFolder] API response:', response);
 
             if (response.status === 'removed') {
                 showToast('success', 'Erfolgreich entfernt', `Verzeichnis "${folderPath}" wurde entfernt und zugehörige Dateien werden aktualisiert`);
 
                 // Reload watch folders and discovered files
                 try {
+                    console.log('[removeWatchFolder] Reloading UI components');
                     await this.loadWatchFolders();
                     await this.loadDiscoveredFiles();
                     // Also reload the main file list to remove files from removed folder
                     await this.loadFiles(1);
+                    console.log('[removeWatchFolder] UI reload completed');
                 } catch (reloadError) {
                     console.warn('Error reloading after folder removal:', reloadError);
                     showToast('warning', 'Hinweis', 'Verzeichnis wurde entfernt, aber Anzeige konnte nicht aktualisiert werden. Bitte Seite neu laden.');
                 }
+            } else {
+                console.warn('[removeWatchFolder] Unexpected response status:', response.status);
             }
 
         } catch (error) {
-            console.error('Failed to remove watch folder:', error);
+            console.error('[removeWatchFolder] Failed to remove watch folder:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Entfernen des Verzeichnisses';
             showToast('error', 'Fehler beim Entfernen', message);
         }
