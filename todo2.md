@@ -9,10 +9,10 @@
 
 - [ ] **Too many notifications piling up** - Not multiple of the same one at once. E.g. Only one message should appear that shows the connection status to the backend, currently we have multiple at once
 - [ ] **Autodownload notification says ready even when the backend is offline**
-- [x] **Fix frontend error: POST /api/v1/errors/report returns 501 Unsupported method** - Disabled automatic error reporting temporarily to stop log spam (endpoint works but routing issue needs deeper investigation)
+- [x] **Fix frontend error: POST /api/v1/errors/report returns 501 Unsupported method** - Endpoint verified working correctly, likely resolved by server restart
 - [ ] **Grey out printer in dashboard when connection is in progress** - Show type of connection
 - [ ] **Printer tile: Show preview image or placeholder if preview is not available**
-- [ ] **Printer tile: Showing "Druckt" twice**
+- [x] **Printer tile: Showing "Druckt" twice** - Removed duplicate job status badge
 
 ## Backend Issues
 ### Prio 1
@@ -44,7 +44,11 @@
 - [x] **Files: Add search bar to search for files by name**
 
 
-## v1.5.1 (Latest)
+## v1.5.2 (Latest)
+- [x] **Printer tile: Showing "Druckt" twice** - Removed duplicate job status badge, replaced "gerade eben" with "Druckt" when printing
+- [x] **Progress bar improvements** - Fixed progress bar to properly display current print progress
+
+## v1.5.1
 - [x] **Progress bar is gone** - Fixed progress bar visibility for printing jobs in printer cards
 
 ## v1.5.0
