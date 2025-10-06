@@ -1,21 +1,12 @@
 
 # Issues to work on
 
-## Major Features (v1.2.0+)
-- [ ] **[METADATA-001] Enhanced 3D Model Metadata Display** 📋
-  - See detailed specification: `docs/features/ENHANCED_3D_MODEL_METADATA.md`
-  - **Phase 1**: Backend metadata extraction enhancements
-  - **Phase 2**: Frontend display improvements 
-  - **Phase 3**: Advanced analysis and recommendations
-  - Related tasks:
-    - [ ] Files: Layer count and other statistics of the file
-    - [ ] Printer tile: Layer count and other statistics of currently printed object
+## Library
+- [ ] **Tags** Ad custom tags to files
 
 ## Frontend Issues
-- [ ] **Files: Add search bar to search for files by name**
-- [x] **Files: 762 files in the statistics menu. Is that correct?**
 - [ ] **Debug page: show the information in Anwendungsprotokolle with multiple columns instead of these blocks**
-- [x] **Debug page: System-Status nicht verfügbar - Die Gesundheitsinformationen konnten nicht abgerufen werden**
+
 - [ ] **Too many notifications piling up** - Not multiple of the same one at once. E.g. Only one message should appear that shows the connection status to the backend, currently we have multiple at once
 - [ ] **Autodownload notification says ready even when the backend is offline**
 - [ ] **Fix frontend error: POST /api/v1/errors/report returns 501 Unsupported method**
@@ -29,6 +20,9 @@
 - [ ] **Printer tile: Showing "Druckt" twice**
 
 ## Backend Issues
+### Prio 1
+- [x] **Metadata and Thumbnail** for STL, gcode, bgcode files - Implemented in feature/stl-gcode-bgcode-metadata
+### Prio 2
 - [ ] **Cleanup .env or .env.sample** - Which of these values are actually used?
 - [ ] **Watchdog Observer Thread Failure** - Windows threading compatibility fix (currently running in degraded fallback polling mode)
 - [ ] **Bambu FTP Connection Timeouts** - Initial connection attempts fail (retry mechanism works but slow)
@@ -38,8 +32,8 @@
 - [ ] **Is the feature that identifies warmup procedure of the printers enabled?**
 
 ## Ideas for Later
+- [ ] **feature:Open in Slicer** open file in Slicer (Multple slicers possible)
 - [ ] **Job History**
-- [ ] **Auto Download System verification**
 - [ ] **Timelapse cleaner**
 - [ ] **Connect with porcus3d.de for print jobs**
 - [ ] **Favorites from Makerworld and Printables**
@@ -48,6 +42,12 @@
 ---
 
 # Completed (v1.1.0 - v1.1.7)
+
+## to be sorted
+- [x] **Files: 762 files in the statistics menu. Is that correct?**
+- [x] **Debug page: System-Status nicht verfügbar - Die Gesundheitsinformationen konnten nicht abgerufen werden**
+- [x] **Files: Add search bar to search for files by name**
+
 
 ## v1.1.9 (Latest)
 - [x] **Debug page: System-Status nicht verfügbar - Die Gesundheitsinformationen konnten nicht abgerufen werden** - Fixed hardcoded API URLs and service status display
