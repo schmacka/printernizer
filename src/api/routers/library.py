@@ -637,3 +637,110 @@ async def get_library_file_metadata(
                     checksum=checksum[:16],
                     error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to retrieve metadata: {str(e)}")
+
+
+@router.post("/reanalyze-all")
+async def bulk_reanalyze_library(
+    file_type: Optional[str] = Query(None, description="Filter by file type (.3mf, .gcode)"),
+    limit: Optional[int] = Query(None, ge=1, le=1000, description="Limit number of files to reanalyze"),
+    library_service = Depends(get_library_service)
+):
+    """
+    Bulk re-analyze all library files to extract metadata.
+
+    This endpoint triggers metadata re-extraction for multiple files at once.
+    Useful for updating metadata after system upgrades or fixing extraction issues.
+
+    **Parameters:**
+    - `file_type`: Only reanalyze specific file types (e.g., ".3mf", ".gcode")
+    - `limit`: Maximum number of files to process (default: all files)
+
+    **Process:**
+    1. Query library files matching criteria
+    2. Schedule metadata extraction for each file
+    3. Return count of files scheduled for processing
+
+    **Note:**
+    - This operation runs asynchronously in the background
+    - Files are processed one at a time to avoid overloading the system
+    - Check individual file status to see when extraction completes
+
+    **Returns:**
+    - `success`: Whether operation started successfully
+    - `files_scheduled`: Number of files scheduled for re-analysis
+    - `file_types_included`: List of file types being processed
+    - `message`: Status message
+
+    **Example:**
+    ```
+    POST /library/reanalyze-all?file_type=.3mf&limit=100
+    ```
+    """
+    try:
+        logger.info("Starting bulk re-analysis", file_type=file_type, limit=limit)
+
+        # Build filters for files to reanalyze
+        filters = {}
+        if file_type:
+            filters['file_type'] = file_type
+
+        # Get files to reanalyze
+        result = await library_service.list_files(
+            filters=filters,
+            page=1,
+            limit=limit or 10000  # Default to processing up to 10000 files
+        )
+
+        files = result.get('files', [])
+        files_to_process = []
+        file_types_set = set()
+
+        # Filter to only files that can have metadata extracted
+        for file in files:
+            ft = file.get('file_type', '').lower()
+            if ft in ['.3mf', '.gcode', '.bgcode']:
+                files_to_process.append(file)
+                file_types_set.add(ft)
+
+        logger.info("Files found for re-analysis",
+                   total_files=len(files),
+                   processable_files=len(files_to_process),
+                   file_types=list(file_types_set))
+
+        if not files_to_process:
+            return {
+                'success': True,
+                'files_scheduled': 0,
+                'file_types_included': [],
+                'message': 'No files found matching criteria or no files support metadata extraction'
+            }
+
+        # Schedule re-analysis for each file
+        scheduled_count = 0
+        for file in files_to_process:
+            try:
+                success = await library_service.reprocess_file(file['checksum'])
+                if success:
+                    scheduled_count += 1
+            except Exception as e:
+                logger.warning("Failed to schedule reprocessing",
+                             checksum=file['checksum'][:16],
+                             error=str(e))
+
+        logger.info("Bulk re-analysis scheduled",
+                   files_scheduled=scheduled_count,
+                   file_types=list(file_types_set))
+
+        return {
+            'success': True,
+            'files_scheduled': scheduled_count,
+            'file_types_included': list(file_types_set),
+            'message': f'Scheduled {scheduled_count} files for metadata re-extraction. Processing will happen in the background.'
+        }
+
+    except Exception as e:
+        logger.error("Bulk re-analysis failed", error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start bulk re-analysis: {str(e)}"
+        )

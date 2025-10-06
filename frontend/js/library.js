@@ -744,6 +744,83 @@ class LibraryManager {
     }
 
     /**
+     * Bulk re-analyze all library files
+     */
+    async bulkReanalyze() {
+        try {
+            console.log('[bulkReanalyze] Starting bulk re-analysis');
+
+            // Ask for confirmation
+            const confirmed = confirm(
+                'Alle 3MF und G-Code Dateien in der Library neu analysieren?\n\n' +
+                'Dies kann einige Minuten dauern, je nach Anzahl der Dateien.\n' +
+                'Die Analyse läuft im Hintergrund.'
+            );
+
+            if (!confirmed) {
+                console.log('[bulkReanalyze] User cancelled');
+                return;
+            }
+
+            // Show loading state on button
+            const btn = document.getElementById('bulkReanalyzeBtn');
+            const originalHTML = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-small"></span> Analysiere...';
+            }
+
+            showToast('info', 'Analyse gestartet', 'Alle Dateien werden neu analysiert. Dies kann einige Minuten dauern.');
+
+            // Call bulk re-analysis API
+            const response = await fetch(`${CONFIG.API_BASE_URL}/library/reanalyze-all`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Bulk re-analysis failed with status ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('[bulkReanalyze] Result:', result);
+
+            // Reset button
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+
+            // Show result
+            showToast(
+                'success',
+                'Analyse gestartet',
+                `${result.files_scheduled} Dateien werden im Hintergrund analysiert.\n` +
+                `Dateitypen: ${result.file_types_included.join(', ')}`
+            );
+
+            // Show progress info
+            showToast(
+                'info',
+                'Hinweis',
+                'Die Analyse läuft im Hintergrund. Aktualisieren Sie die Seite nach einigen Minuten, ' +
+                'um die neuen Metadaten zu sehen.'
+            );
+
+        } catch (error) {
+            console.error('[bulkReanalyze] Failed:', error);
+
+            // Reset button
+            const btn = document.getElementById('bulkReanalyzeBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="btn-icon">🔬</span> Alle neu analysieren';
+            }
+
+            showToast('error', 'Fehler', 'Fehler beim Starten der Bulk-Analyse: ' + error.message);
+        }
+    }
+
+    /**
      * Delete file from library
      */
     async deleteFile(checksum) {
