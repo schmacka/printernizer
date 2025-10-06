@@ -1433,16 +1433,24 @@ class FileManager {
 
             if (response.status === 'added') {
                 showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde hinzugefügt`);
-                
-                // Close modal and refresh
-                closeModal('addWatchFolderModal');
-                this.loadWatchFolders();
-                
+
                 // Reset form
                 folderPathInput.value = '';
                 const validationResult = document.getElementById('folderValidationResult');
                 if (validationResult) {
                     validationResult.style.display = 'none';
+                }
+
+                // Close modal first to give immediate feedback
+                closeModal('addWatchFolderModal');
+
+                // Reload watch folders and discovered files (in background, don't block on errors)
+                try {
+                    await this.loadWatchFolders();
+                    await this.loadDiscoveredFiles();
+                } catch (reloadError) {
+                    console.warn('Error reloading after folder addition:', reloadError);
+                    // Don't show error to user - folder was added successfully
                 }
             }
 
@@ -1450,6 +1458,7 @@ class FileManager {
             console.error('Failed to add watch folder:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Hinzufügen des Verzeichnisses';
             showToast('error', 'Fehler', message);
+            // Don't close modal on error so user can see the error and try again
         } finally {
             // Re-enable submit button
             submitButton.disabled = false;
