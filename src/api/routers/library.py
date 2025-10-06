@@ -78,6 +78,27 @@ class DeleteResponse(BaseModel):
     message: str
 
 
+class LibraryMetadataResponse(BaseModel):
+    """Enhanced metadata response for library files."""
+    # Physical properties
+    physical_properties: Optional[Dict[str, Any]] = None
+    # Print settings
+    print_settings: Optional[Dict[str, Any]] = None
+    # Material requirements
+    material_requirements: Optional[Dict[str, Any]] = None
+    # Cost analysis
+    cost_analysis: Optional[Dict[str, Any]] = None
+    # Quality metrics
+    quality_metrics: Optional[Dict[str, Any]] = None
+    # Compatibility
+    compatibility: Optional[Dict[str, Any]] = None
+    # Thumbnail information
+    thumbnail: Optional[Dict[str, Any]] = None
+    # Metadata status
+    has_metadata: bool = False
+    last_analyzed: Optional[str] = None
+
+
 # Dependency to get library service
 async def get_library_service():
     """Get library service from application state."""
@@ -425,3 +446,194 @@ async def library_health_check(library_service = Depends(get_library_service)):
             'library_path': str(library_service.library_path) if library_service else None,
             'message': f'Health check failed: {str(e)}'
         }
+
+
+@router.get("/files/{checksum}/metadata", response_model=LibraryMetadataResponse)
+async def get_library_file_metadata(
+    checksum: str = PathParam(..., description="File checksum (SHA-256)"),
+    force_refresh: bool = Query(False, description="Force re-extraction of metadata"),
+    library_service = Depends(get_library_service)
+):
+    """
+    Get comprehensive metadata for a library file.
+
+    This endpoint provides detailed information extracted from the file including:
+    - **Physical properties**: Dimensions, volume, object count
+    - **Print settings**: Layer height, nozzle settings, infill, supports
+    - **Material requirements**: Filament weight, length, types, colors
+    - **Cost analysis**: Material and energy costs
+    - **Quality metrics**: Complexity score, difficulty level, success probability
+    - **Compatibility**: Compatible printers, slicer information
+    - **Thumbnail**: Embedded thumbnail image data
+
+    **Parameters:**
+    - `checksum`: File checksum (SHA-256 hash)
+    - `force_refresh`: Force re-extraction of metadata (default: false)
+
+    **Returns:**
+    - Structured metadata organized by category
+    - Empty categories if metadata not available for that aspect
+
+    **File Type Support:**
+    - **3MF files**: Full metadata extraction
+    - **G-code files**: Full metadata extraction
+    - **STL files**: Limited or no metadata
+    - **Other formats**: No metadata extraction
+
+    **Status Codes:**
+    - `200`: Metadata retrieved successfully
+    - `404`: File not found
+    - `500`: Error retrieving metadata
+    """
+    try:
+        logger.info("Getting library file metadata", checksum=checksum[:16], force_refresh=force_refresh)
+
+        # Get file record
+        file_record = await library_service.get_file_by_checksum(checksum)
+        if not file_record:
+            raise HTTPException(status_code=404, detail=f"File not found with checksum {checksum[:16]}")
+
+        # Force re-extraction if requested
+        if force_refresh:
+            logger.info("Forcing metadata re-extraction", checksum=checksum[:16])
+            await library_service.reprocess_file(checksum)
+            # Wait a moment for processing to start
+            import asyncio
+            await asyncio.sleep(0.5)
+            # Get updated record
+            file_record = await library_service.get_file_by_checksum(checksum)
+
+        # Build structured metadata response
+        response = {
+            'has_metadata': file_record.get('last_analyzed') is not None,
+            'last_analyzed': file_record.get('last_analyzed')
+        }
+
+        # Physical properties
+        physical_props = {}
+        if file_record.get('model_width'):
+            physical_props['width_mm'] = file_record['model_width']
+        if file_record.get('model_depth'):
+            physical_props['depth_mm'] = file_record['model_depth']
+        if file_record.get('model_height'):
+            physical_props['height_mm'] = file_record['model_height']
+        if file_record.get('model_volume'):
+            physical_props['volume_cm3'] = file_record['model_volume']
+        if file_record.get('surface_area'):
+            physical_props['surface_area_cm2'] = file_record['surface_area']
+        if file_record.get('object_count'):
+            physical_props['object_count'] = file_record['object_count']
+        if physical_props:
+            response['physical_properties'] = physical_props
+
+        # Print settings
+        print_settings = {}
+        if file_record.get('layer_height'):
+            print_settings['layer_height_mm'] = file_record['layer_height']
+        if file_record.get('first_layer_height'):
+            print_settings['first_layer_height_mm'] = file_record['first_layer_height']
+        if file_record.get('nozzle_diameter'):
+            print_settings['nozzle_diameter_mm'] = file_record['nozzle_diameter']
+        if file_record.get('wall_count'):
+            print_settings['wall_count'] = file_record['wall_count']
+        if file_record.get('infill_density'):
+            print_settings['infill_density_percent'] = file_record['infill_density']
+        if file_record.get('infill_pattern'):
+            print_settings['infill_pattern'] = file_record['infill_pattern']
+        if file_record.get('support_used') is not None:
+            print_settings['supports_used'] = bool(file_record['support_used'])
+        if file_record.get('nozzle_temperature'):
+            print_settings['nozzle_temperature_c'] = file_record['nozzle_temperature']
+        if file_record.get('bed_temperature'):
+            print_settings['bed_temperature_c'] = file_record['bed_temperature']
+        if file_record.get('print_speed'):
+            print_settings['print_speed_mm_s'] = file_record['print_speed']
+        if file_record.get('total_layer_count'):
+            print_settings['layer_count'] = file_record['total_layer_count']
+        if print_settings:
+            response['print_settings'] = print_settings
+
+        # Material requirements
+        material_reqs = {}
+        if file_record.get('total_filament_weight'):
+            material_reqs['filament_weight_g'] = file_record['total_filament_weight']
+        if file_record.get('filament_length'):
+            material_reqs['filament_length_m'] = file_record['filament_length']
+        if file_record.get('material_types'):
+            import json
+            try:
+                material_reqs['material_types'] = json.loads(file_record['material_types'])
+            except:
+                material_reqs['material_types'] = [file_record['material_types']]
+        if file_record.get('multi_material'):
+            material_reqs['multi_material'] = bool(file_record['multi_material'])
+        if material_reqs:
+            response['material_requirements'] = material_reqs
+
+        # Cost analysis
+        cost_analysis = {}
+        if file_record.get('material_cost'):
+            cost_analysis['material_cost'] = file_record['material_cost']
+        if file_record.get('energy_cost'):
+            cost_analysis['energy_cost'] = file_record['energy_cost']
+        if file_record.get('total_cost'):
+            cost_analysis['total_cost'] = file_record['total_cost']
+        if cost_analysis:
+            response['cost_analysis'] = cost_analysis
+
+        # Quality metrics
+        quality_metrics = {}
+        if file_record.get('complexity_score'):
+            quality_metrics['complexity_score'] = file_record['complexity_score']
+        if file_record.get('difficulty_level'):
+            quality_metrics['difficulty_level'] = file_record['difficulty_level']
+        if file_record.get('success_probability'):
+            quality_metrics['success_probability'] = file_record['success_probability']
+        if file_record.get('overhang_percentage'):
+            quality_metrics['overhang_percentage'] = file_record['overhang_percentage']
+        if quality_metrics:
+            response['quality_metrics'] = quality_metrics
+
+        # Compatibility
+        compatibility = {}
+        if file_record.get('compatible_printers'):
+            import json
+            try:
+                compatibility['compatible_printers'] = json.loads(file_record['compatible_printers'])
+            except:
+                compatibility['compatible_printers'] = [file_record['compatible_printers']]
+        if file_record.get('slicer_name'):
+            compatibility['slicer_name'] = file_record['slicer_name']
+        if file_record.get('slicer_version'):
+            compatibility['slicer_version'] = file_record['slicer_version']
+        if file_record.get('profile_name'):
+            compatibility['profile_name'] = file_record['profile_name']
+        if file_record.get('bed_type'):
+            compatibility['bed_type'] = file_record['bed_type']
+        if compatibility:
+            response['compatibility'] = compatibility
+
+        # Thumbnail
+        if file_record.get('has_thumbnail'):
+            thumbnail = {
+                'has_thumbnail': True,
+                'width': file_record.get('thumbnail_width'),
+                'height': file_record.get('thumbnail_height'),
+                'format': file_record.get('thumbnail_format', 'png'),
+                'data': file_record.get('thumbnail_data')  # Base64 encoded
+            }
+            response['thumbnail'] = thumbnail
+
+        logger.info("Metadata retrieved successfully",
+                   checksum=checksum[:16],
+                   has_metadata=response['has_metadata'])
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get library file metadata",
+                    checksum=checksum[:16],
+                    error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve metadata: {str(e)}")

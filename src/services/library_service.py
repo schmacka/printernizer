@@ -15,6 +15,8 @@ import json
 
 import structlog
 
+from src.services.bambu_parser import BambuParser
+
 logger = structlog.get_logger()
 
 
@@ -44,6 +46,9 @@ class LibraryService:
 
         # Processing state
         self._processing_files = set()  # Track files currently being processed
+
+        # Initialize metadata extraction parser
+        self.bambu_parser = BambuParser()
 
         logger.info("Library service initialized",
                    library_path=str(self.library_path),
@@ -566,6 +571,111 @@ class LibraryService:
         """
         return await self.database.get_library_stats()
 
+    def _map_parser_metadata_to_db(self, parser_metadata: Dict[str, Any], parser_thumbnails: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Map BambuParser output to database fields.
+
+        Args:
+            parser_metadata: Metadata extracted by BambuParser
+            parser_thumbnails: Thumbnails extracted by BambuParser
+
+        Returns:
+            Dictionary with database field names and values
+        """
+        db_fields = {}
+
+        # Physical properties
+        if 'model_width' in parser_metadata:
+            db_fields['model_width'] = float(parser_metadata['model_width'])
+        if 'model_depth' in parser_metadata:
+            db_fields['model_depth'] = float(parser_metadata['model_depth'])
+        if 'model_height' in parser_metadata:
+            db_fields['model_height'] = float(parser_metadata['model_height'])
+        if 'max_z_height' in parser_metadata:
+            db_fields['model_height'] = float(parser_metadata['max_z_height'])
+
+        # Print settings
+        if 'layer_height' in parser_metadata:
+            db_fields['layer_height'] = float(parser_metadata['layer_height'])
+        if 'first_layer_height' in parser_metadata:
+            db_fields['first_layer_height'] = float(parser_metadata['first_layer_height'])
+        if 'nozzle_diameter' in parser_metadata:
+            db_fields['nozzle_diameter'] = float(parser_metadata['nozzle_diameter'])
+        if 'wall_loops' in parser_metadata:
+            db_fields['wall_count'] = int(parser_metadata['wall_loops'])
+        if 'fill_density' in parser_metadata or 'infill_density' in parser_metadata:
+            density = parser_metadata.get('fill_density') or parser_metadata.get('infill_density')
+            db_fields['infill_density'] = float(density)
+        if 'sparse_infill_pattern' in parser_metadata:
+            db_fields['infill_pattern'] = parser_metadata['sparse_infill_pattern']
+        if 'support_used' in parser_metadata:
+            support = parser_metadata['support_used']
+            db_fields['support_used'] = 1 if str(support).lower() in ['true', '1', 'yes'] else 0
+        if 'nozzle_temperature_initial_layer' in parser_metadata or 'nozzle_temperature' in parser_metadata:
+            temp = parser_metadata.get('nozzle_temperature_initial_layer') or parser_metadata.get('nozzle_temperature')
+            db_fields['nozzle_temperature'] = int(temp)
+        if 'bed_temperature_initial_layer' in parser_metadata or 'bed_temperature' in parser_metadata:
+            temp = parser_metadata.get('bed_temperature_initial_layer') or parser_metadata.get('bed_temperature')
+            db_fields['bed_temperature'] = int(temp)
+        if 'outer_wall_speed' in parser_metadata or 'print_speed' in parser_metadata:
+            speed = parser_metadata.get('outer_wall_speed') or parser_metadata.get('print_speed')
+            db_fields['print_speed'] = float(speed)
+        if 'total_layer_count' in parser_metadata:
+            db_fields['total_layer_count'] = int(parser_metadata['total_layer_count'])
+
+        # Material requirements
+        if 'filament_used [g]' in parser_metadata or 'total_filament_weight' in parser_metadata:
+            weight = parser_metadata.get('filament_used [g]') or parser_metadata.get('total_filament_weight')
+            # Handle comma-separated values (e.g., "15.5,0.0")
+            if isinstance(weight, str) and ',' in weight:
+                weight = sum(float(x) for x in weight.split(',') if x)
+            db_fields['total_filament_weight'] = float(weight)
+        if 'total_filament_length' in parser_metadata or 'total filament used [mm]' in parser_metadata:
+            length = parser_metadata.get('total_filament_length') or parser_metadata.get('total filament used [mm]')
+            if isinstance(length, str) and ',' in length:
+                length = sum(float(x) for x in length.split(',') if x)
+            db_fields['filament_length'] = float(length) / 1000  # Convert mm to meters
+        if 'filament_type' in parser_metadata:
+            # Store as JSON array
+            types = parser_metadata['filament_type']
+            if isinstance(types, str):
+                types = [t.strip() for t in types.split(';') if t.strip()]
+            db_fields['material_types'] = json.dumps(types)
+        if 'filament_ids' in parser_metadata:
+            # Extract colors from filament IDs if available
+            ids = parser_metadata['filament_ids']
+            if isinstance(ids, str):
+                ids = [i.strip() for i in ids.split(';') if i.strip()]
+            # For now, just store the IDs - color extraction would need mapping
+            # db_fields['filament_colors'] = json.dumps(ids)
+
+        # Compatibility
+        if 'compatible_printers' in parser_metadata:
+            db_fields['compatible_printers'] = json.dumps(parser_metadata['compatible_printers'].split(';'))
+        if 'generator' in parser_metadata:
+            # Parse slicer name and version from generator string
+            # e.g., "BambuStudio 1.9.0" or "PrusaSlicer 2.6.0"
+            generator = parser_metadata['generator']
+            parts = generator.split()
+            if len(parts) >= 1:
+                db_fields['slicer_name'] = parts[0]
+            if len(parts) >= 2:
+                db_fields['slicer_version'] = parts[1]
+        if 'curr_bed_type' in parser_metadata:
+            db_fields['bed_type'] = parser_metadata['curr_bed_type']
+
+        # Thumbnails
+        if parser_thumbnails and len(parser_thumbnails) > 0:
+            # Use the largest thumbnail
+            largest_thumb = max(parser_thumbnails, key=lambda t: t['width'] * t['height'])
+            db_fields['has_thumbnail'] = 1
+            db_fields['thumbnail_data'] = largest_thumb['data']
+            db_fields['thumbnail_width'] = largest_thumb['width']
+            db_fields['thumbnail_height'] = largest_thumb['height']
+            db_fields['thumbnail_format'] = largest_thumb['format']
+
+        return db_fields
+
     async def _extract_metadata_async(self, file_id: str, checksum: str):
         """
         Asynchronously extract metadata from file.
@@ -594,23 +704,58 @@ class LibraryService:
                 return
 
             library_path = self.library_path / file_record['library_path']
+            file_type = file_record.get('file_type', '').lower()
 
-            # Use existing metadata extraction service
-            # This will be integrated with BambuParser and ThreeMFAnalyzer
-            # For now, just mark as ready
+            logger.info("Metadata extraction started",
+                       checksum=checksum[:16],
+                       file_type=file_type,
+                       path=str(library_path))
 
-            logger.info("Metadata extraction started", checksum=checksum[:16])
+            # Extract metadata using BambuParser for supported file types
+            metadata_fields = {}
 
-            # TODO: Call metadata extraction service here
-            # await self.metadata_service.extract_metadata(library_path, file_id)
+            if file_type in ['.3mf', '.gcode', '.bgcode']:
+                try:
+                    # Parse file for metadata and thumbnails
+                    parse_result = await self.bambu_parser.parse_file(str(library_path))
 
-            # Update status to ready
-            await self.database.update_library_file(checksum, {
+                    if parse_result['success']:
+                        # Map parser output to database fields
+                        metadata_fields = self._map_parser_metadata_to_db(
+                            parse_result.get('metadata', {}),
+                            parse_result.get('thumbnails', [])
+                        )
+
+                        logger.info("Metadata extracted successfully",
+                                   checksum=checksum[:16],
+                                   fields_extracted=len(metadata_fields),
+                                   has_thumbnail=metadata_fields.get('has_thumbnail', 0) == 1)
+                    else:
+                        logger.warning("Metadata extraction failed",
+                                     checksum=checksum[:16],
+                                     error=parse_result.get('error'))
+
+                except Exception as e:
+                    logger.error("Error during metadata extraction",
+                               checksum=checksum[:16],
+                               error=str(e))
+            else:
+                logger.info("File type does not support metadata extraction",
+                           checksum=checksum[:16],
+                           file_type=file_type)
+
+            # Update database with extracted metadata and mark as ready
+            update_fields = {
+                **metadata_fields,
                 'status': 'ready',
                 'last_analyzed': datetime.now().isoformat()
-            })
+            }
 
-            logger.info("Metadata extraction completed", checksum=checksum[:16])
+            await self.database.update_library_file(checksum, update_fields)
+
+            logger.info("Metadata extraction completed",
+                       checksum=checksum[:16],
+                       metadata_count=len(metadata_fields))
 
         except Exception as e:
             logger.error("Metadata extraction failed", checksum=checksum[:16], error=str(e))
