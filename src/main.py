@@ -64,11 +64,12 @@ from src.utils.middleware import (
     GermanComplianceMiddleware,
     SecurityHeadersMiddleware
 )
+from src.utils.version import get_version
 
 
-# Application version - SINGLE SOURCE OF TRUTH
-# Update this version number when releasing new versions
-APP_VERSION = "1.4.0"  # Priority 2 Code Quality: Dead code removal, test fixes
+# Application version - Automatically extracted from git tags
+# Fallback version used when git is unavailable
+APP_VERSION = get_version(fallback="1.4.2")
 
 
 # Prometheus metrics - initialized once
