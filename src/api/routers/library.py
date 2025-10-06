@@ -153,6 +153,8 @@ async def list_library_files(
     printer_model: Optional[str] = Query(None, description="Filter by printer model (A1, Core One, etc.)"),
     show_duplicates: Optional[bool] = Query(True, description="Show duplicate files (default: true)"),
     only_duplicates: Optional[bool] = Query(False, description="Show only duplicate files (default: false)"),
+    sort_by: Optional[str] = Query('created_at', description="Sort by field (created_at, filename, file_size, last_modified)"),
+    sort_order: Optional[str] = Query('desc', description="Sort order (asc, desc)"),
     library_service = Depends(get_library_service)
 ):
     """
@@ -173,7 +175,8 @@ async def list_library_files(
     - `limit`: Items per page (default 50, max 200)
 
     **Sorting:**
-    - Files are sorted by date added (newest first)
+    - `sort_by`: Sort by field (created_at, filename, file_size, last_modified) - default: created_at
+    - `sort_order`: Sort order (asc, desc) - default: desc
 
     **Returns:**
     - `files`: Array of file objects
@@ -202,6 +205,10 @@ async def list_library_files(
             filters['show_duplicates'] = show_duplicates
         if only_duplicates is not None:
             filters['only_duplicates'] = only_duplicates
+        if sort_by:
+            filters['sort_by'] = sort_by
+        if sort_order:
+            filters['sort_order'] = sort_order
 
         # Get files from library service
         files, pagination = await library_service.list_files(filters, page, limit)

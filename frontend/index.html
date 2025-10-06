@@ -445,13 +445,15 @@
                 </div>
                 <div class="filter-group">
                     <label for="sortBy">Sortierung:</label>
-                    <select id="sortBy" class="filter-select" onchange="applyLibraryFilters()">
-                        <option value="added_desc">Neueste zuerst</option>
-                        <option value="added_asc">Älteste zuerst</option>
-                        <option value="name_asc">Name (A-Z)</option>
-                        <option value="name_desc">Name (Z-A)</option>
-                        <option value="size_desc">Größe (groß→klein)</option>
-                        <option value="size_asc">Größe (klein→groß)</option>
+                    <select id="sortBy" class="filter-select">
+                        <option value="created_at:desc">Neueste zuerst</option>
+                        <option value="created_at:asc">Älteste zuerst</option>
+                        <option value="filename:asc">Name (A-Z)</option>
+                        <option value="filename:desc">Name (Z-A)</option>
+                        <option value="file_size:desc">Größe (groß→klein)</option>
+                        <option value="file_size:asc">Größe (klein→groß)</option>
+                        <option value="last_modified:desc">Zuletzt geändert (neu→alt)</option>
+                        <option value="last_modified:asc">Zuletzt geändert (alt→neu)</option>
                     </select>
                 </div>
             </div>
@@ -466,35 +468,6 @@
                 </div>
             </div>
 
-            <!-- Pagination -->
-            <div class="pagination-container" id="libraryPagination" style="display: none;">
-                <div class="pagination-info">
-                    <span id="paginationInfo">Seite 1 von 1</span>
-                </div>
-                <div class="pagination-controls">
-                    <button class="btn btn-sm" id="btnFirstPage" onclick="goToLibraryPage(1)" disabled>
-                        ⏮️ Erste
-                    </button>
-                    <button class="btn btn-sm" id="btnPrevPage" onclick="previousLibraryPage()" disabled>
-                        ◀️ Zurück
-                    </button>
-                    <span class="page-numbers" id="pageNumbers"></span>
-                    <button class="btn btn-sm" id="btnNextPage" onclick="nextLibraryPage()">
-                        Weiter ▶️
-                    </button>
-                    <button class="btn btn-sm" id="btnLastPage" onclick="goToLibraryPage('last')">
-                        Letzte ⏭️
-                    </button>
-                </div>
-                <div class="pagination-size">
-                    <label for="pageSize">Pro Seite:</label>
-                    <select id="pageSize" class="filter-select" onchange="changePageSize()">
-                        <option value="20">20</option>
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                    </select>
-                </div>
-            </div>
         </div>
 
         <!-- File Detail Modal -->

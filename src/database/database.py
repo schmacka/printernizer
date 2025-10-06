@@ -1230,8 +1230,26 @@ class Database:
             offset = (page - 1) * limit
             total_pages = (total_items + limit - 1) // limit if limit > 0 else 1
 
-            # Get files
-            order_by = "lf.added_to_library DESC"  # Default sort
+            # Build ORDER BY clause
+            sort_by = filters.get('sort_by', 'created_at')
+            sort_order = filters.get('sort_order', 'desc').upper()
+
+            # Map frontend field names to database columns
+            sort_field_map = {
+                'created_at': 'lf.added_to_library',
+                'filename': 'lf.filename',
+                'file_size': 'lf.file_size',
+                'last_modified': 'lf.last_modified'
+            }
+
+            # Get the database column name (default to added_to_library if invalid)
+            db_field = sort_field_map.get(sort_by, 'lf.added_to_library')
+
+            # Validate sort order
+            if sort_order not in ['ASC', 'DESC']:
+                sort_order = 'DESC'
+
+            order_by = f"{db_field} {sort_order}"
 
             if needs_join:
                 # Query with JOIN (distinct to avoid duplicates)
@@ -1260,7 +1278,11 @@ class Database:
                 'page': page,
                 'limit': limit,
                 'total_items': total_items,
-                'total_pages': total_pages
+                'total_pages': total_pages,
+                'page_size': limit,
+                'current_page': page,
+                'has_previous': page > 1,
+                'has_next': page < total_pages
             }
 
             return files, pagination

@@ -402,7 +402,46 @@ class LibraryManager {
         }
 
         if (pageInfo) {
-            pageInfo.textContent = `Seite ${pagination.current_page} von ${pagination.total_pages}`;
+            // Generate page number buttons
+            const currentPage = pagination.current_page;
+            const totalPages = pagination.total_pages;
+
+            // Calculate which pages to show
+            const maxPageButtons = 7; // Show max 7 page buttons
+            let startPage = Math.max(1, currentPage - Math.floor(maxPageButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+
+            // Adjust if we're near the end
+            if (endPage - startPage < maxPageButtons - 1) {
+                startPage = Math.max(1, endPage - maxPageButtons + 1);
+            }
+
+            let pageHTML = '';
+
+            // First page (if not in range)
+            if (startPage > 1) {
+                pageHTML += `<button class="page-number-btn" onclick="libraryManager.goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    pageHTML += `<span class="page-ellipsis">...</span>`;
+                }
+            }
+
+            // Page number buttons
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === currentPage;
+                pageHTML += `<button class="page-number-btn ${isActive ? 'active' : ''}"
+                             onclick="libraryManager.goToPage(${i})">${i}</button>`;
+            }
+
+            // Last page (if not in range)
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageHTML += `<span class="page-ellipsis">...</span>`;
+                }
+                pageHTML += `<button class="page-number-btn" onclick="libraryManager.goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            pageInfo.innerHTML = pageHTML;
         }
     }
 
