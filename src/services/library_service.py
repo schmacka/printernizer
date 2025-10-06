@@ -16,6 +16,9 @@ import json
 import structlog
 
 from src.services.bambu_parser import BambuParser
+from src.services.stl_analyzer import STLAnalyzer
+from src.services.preview_render_service import PreviewRenderService
+import base64
 
 logger = structlog.get_logger()
 
@@ -47,8 +50,13 @@ class LibraryService:
         # Processing state
         self._processing_files = set()  # Track files currently being processed
 
-        # Initialize metadata extraction parser
+        # Initialize metadata extraction parsers
         self.bambu_parser = BambuParser()
+        self.stl_analyzer = STLAnalyzer()
+
+        # Initialize preview rendering service for thumbnail generation
+        cache_dir = self.library_path / '.metadata' / 'preview-cache'
+        self.preview_service = PreviewRenderService(cache_dir=str(cache_dir))
 
         logger.info("Library service initialized",
                    library_path=str(self.library_path),
@@ -676,6 +684,49 @@ class LibraryService:
 
         return db_fields
 
+    def _map_stl_metadata_to_db(self, stl_metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Map STL analyzer output to database fields.
+
+        Args:
+            stl_metadata: Metadata extracted by STLAnalyzer
+
+        Returns:
+            Dictionary with database field names and values
+        """
+        db_fields = {}
+
+        # Extract physical properties from STL analysis
+        physical = stl_metadata.get('physical_properties', {})
+        geometry = stl_metadata.get('geometry_info', {})
+        quality = stl_metadata.get('quality_metrics', {})
+
+        # Physical dimensions
+        if 'model_width' in physical:
+            db_fields['model_width'] = physical['model_width']
+        if 'model_depth' in physical:
+            db_fields['model_depth'] = physical['model_depth']
+        if 'model_height' in physical:
+            db_fields['model_height'] = physical['model_height']
+        if 'model_volume' in physical:
+            db_fields['model_volume'] = physical['model_volume']
+        if 'surface_area' in physical:
+            db_fields['surface_area'] = physical['surface_area']
+
+        # Quality metrics
+        if 'complexity_score' in quality:
+            db_fields['complexity_score'] = quality['complexity_score']
+        if 'difficulty_level' in quality:
+            db_fields['difficulty_level'] = quality['difficulty_level']
+
+        # Note: STL files don't have print settings or material info
+        # Those would come from the slicer profile used later
+
+        logger.debug("Mapped STL metadata to database fields",
+                    fields_count=len(db_fields))
+
+        return db_fields
+
     async def _extract_metadata_async(self, file_id: str, checksum: str):
         """
         Asynchronously extract metadata from file.
@@ -711,10 +762,10 @@ class LibraryService:
                        file_type=file_type,
                        path=str(library_path))
 
-            # Extract metadata using BambuParser for supported file types
+            # Extract metadata using appropriate parser for file type
             metadata_fields = {}
 
-            if file_type in ['.3mf', '.gcode', '.bgcode']:
+            if file_type in ['.3mf', '.gcode', '.bgcode', '.stl']:
                 try:
                     # Parse file for metadata and thumbnails
                     parse_result = await self.bambu_parser.parse_file(str(library_path))
@@ -726,14 +777,74 @@ class LibraryService:
                             parse_result.get('thumbnails', [])
                         )
 
-                        logger.info("Metadata extracted successfully",
+                        logger.info("Metadata extracted from file parser",
                                    checksum=checksum[:16],
                                    fields_extracted=len(metadata_fields),
                                    has_thumbnail=metadata_fields.get('has_thumbnail', 0) == 1)
                     else:
-                        logger.warning("Metadata extraction failed",
+                        logger.warning("File parser extraction failed",
                                      checksum=checksum[:16],
                                      error=parse_result.get('error'))
+
+                    # For STL files, also extract geometric metadata using STL analyzer
+                    if file_type == '.stl':
+                        try:
+                            stl_result = await self.stl_analyzer.analyze_file(library_path)
+
+                            if stl_result['success']:
+                                # Extract and merge STL-specific metadata
+                                stl_fields = self._map_stl_metadata_to_db(stl_result)
+                                metadata_fields.update(stl_fields)
+
+                                logger.info("STL geometric metadata extracted",
+                                           checksum=checksum[:16],
+                                           stl_fields_added=len(stl_fields))
+                            else:
+                                logger.warning("STL analysis failed",
+                                             checksum=checksum[:16],
+                                             error=stl_result.get('error'))
+                        except Exception as e:
+                            logger.error("Error during STL analysis",
+                                       checksum=checksum[:16],
+                                       error=str(e))
+
+                    # Generate thumbnail if file needs it (STL, gcode without embedded thumbnails)
+                    if parse_result.get('needs_generation', False) and not metadata_fields.get('has_thumbnail'):
+                        try:
+                            logger.info("Generating preview thumbnail",
+                                      checksum=checksum[:16],
+                                      file_type=file_type)
+
+                            # Remove leading dot from file_type for preview service
+                            file_type_clean = file_type.lstrip('.')
+
+                            # Generate thumbnail (512x512 for library preview)
+                            thumbnail_bytes = await self.preview_service.get_or_generate_preview(
+                                str(library_path),
+                                file_type_clean,
+                                size=(512, 512)
+                            )
+
+                            if thumbnail_bytes:
+                                # Convert to base64 for database storage
+                                thumbnail_b64 = base64.b64encode(thumbnail_bytes).decode('utf-8')
+                                metadata_fields['has_thumbnail'] = 1
+                                metadata_fields['thumbnail_data'] = thumbnail_b64
+                                metadata_fields['thumbnail_width'] = 512
+                                metadata_fields['thumbnail_height'] = 512
+                                metadata_fields['thumbnail_format'] = 'png'
+
+                                logger.info("Preview thumbnail generated successfully",
+                                          checksum=checksum[:16],
+                                          size_bytes=len(thumbnail_bytes))
+                            else:
+                                logger.warning("Preview thumbnail generation returned no data",
+                                             checksum=checksum[:16])
+
+                        except Exception as e:
+                            logger.error("Error generating preview thumbnail",
+                                       checksum=checksum[:16],
+                                       error=str(e))
 
                 except Exception as e:
                     logger.error("Error during metadata extraction",
