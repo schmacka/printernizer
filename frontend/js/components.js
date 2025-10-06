@@ -97,13 +97,18 @@ class PrinterCard {
      * Render last communication info
      */
     renderLastCommunication() {
+        // Show "Druckt" when printer is actively printing
+        if (this.printer.status === 'printing') {
+            return '<span class="text-success printer-printing-status">🖨️ Druckt</span>';
+        }
+
         if (!this.printer.last_seen) {
             return '<span class="text-muted">Nie verbunden</span>';
         }
 
         const timeSinceLastComm = Date.now() - new Date(this.printer.last_seen).getTime();
         const isRecent = timeSinceLastComm < 60000; // Less than 1 minute
-        
+
         return `
             <span class="last-communication ${isRecent ? 'text-success' : 'text-warning'}" title="Letzte Kommunikation">
                 ${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_seen)}
@@ -179,27 +184,25 @@ class PrinterCard {
 
         // Handle case where current_job is a string (job name) rather than an object
         const jobName = typeof this.printer.current_job === 'string' ? this.printer.current_job : this.printer.current_job.name;
-        const jobStatus = this.printer.status === 'printing' ? 'printing' : 'idle';
-        const statusConfig = getStatusConfig('job', jobStatus);
+
+        // Get progress from printer object (backend sends it at top level)
+        const progress = this.printer.progress !== undefined && this.printer.progress !== null ? this.printer.progress : 0;
 
         return `
             <div class="current-job" data-job-name="${escapeHtml(jobName)}">
                 ${this.renderJobThumbnail()}
                 <div class="job-name">${escapeHtml(jobName)}</div>
-                <div class="job-status">
-                    <span class="status-badge ${statusConfig.class}">${statusConfig.icon} ${statusConfig.label}</span>
-                </div>
 
-                ${this.printer.status === 'printing' || this.printer.progress !== undefined ? `
+                ${this.printer.status === 'printing' ? `
                     <div class="job-progress">
                         <div class="progress-info">
-                            <span class="progress-percentage">${formatPercentage(this.printer.progress || 0)}</span>
+                            <span class="progress-percentage">${formatPercentage(progress)}</span>
                             <span class="progress-time estimated-time">
                                 ${this.printer.remaining_time_minutes ? `Noch ${formatDuration(this.printer.remaining_time_minutes * 60)}` : ''}
                             </span>
                         </div>
                         <div class="progress">
-                            <div class="progress-bar" style="width: ${this.printer.progress || 0}%"></div>
+                            <div class="progress-bar" style="width: ${progress}%"></div>
                         </div>
                     </div>
                 ` : ''}
@@ -471,12 +474,21 @@ class PrinterCard {
      * Update last communication display
      */
     updateLastCommunication() {
-        const commElement = this.element.querySelector('.last-communication');
-        if (!commElement || !this.printer.last_communication) return;
-        
+        const commElement = this.element.querySelector('.last-communication, .printer-printing-status');
+        if (!commElement) return;
+
+        // Show "Druckt" when printer is actively printing
+        if (this.printer.status === 'printing') {
+            commElement.className = 'text-success printer-printing-status';
+            commElement.innerHTML = '🖨️ Druckt';
+            return;
+        }
+
+        if (!this.printer.last_communication) return;
+
         const timeSinceLastComm = Date.now() - new Date(this.printer.last_communication).getTime();
         const isRecent = timeSinceLastComm < 60000;
-        
+
         commElement.className = `last-communication ${isRecent ? 'text-success' : 'text-warning'}`;
         commElement.innerHTML = `${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_communication)}`;
     }
