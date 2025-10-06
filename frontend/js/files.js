@@ -1474,17 +1474,29 @@ class FileManager {
         if (!confirmed) return;
 
         try {
+            showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
+
             const response = await api.removeWatchFolder(folderPath);
 
             if (response.status === 'removed') {
-                showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde entfernt`);
-                this.loadWatchFolders();
+                showToast('success', 'Erfolgreich entfernt', `Verzeichnis "${folderPath}" wurde entfernt und zugehörige Dateien werden aktualisiert`);
+
+                // Reload watch folders and discovered files
+                try {
+                    await this.loadWatchFolders();
+                    await this.loadDiscoveredFiles();
+                    // Also reload the main file list to remove files from removed folder
+                    await this.loadFiles(1);
+                } catch (reloadError) {
+                    console.warn('Error reloading after folder removal:', reloadError);
+                    showToast('warning', 'Hinweis', 'Verzeichnis wurde entfernt, aber Anzeige konnte nicht aktualisiert werden. Bitte Seite neu laden.');
+                }
             }
 
         } catch (error) {
             console.error('Failed to remove watch folder:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Entfernen des Verzeichnisses';
-            showToast('error', 'Fehler', message);
+            showToast('error', 'Fehler beim Entfernen', message);
         }
     }
 }

@@ -313,7 +313,7 @@ class SettingsManager {
                         <div class="watch-folder-item">
                             <span class="folder-icon">📂</span>
                             <span class="folder-path">${folder}</span>
-                            <button class="btn btn-small btn-danger" onclick="removeWatchFolder('${folder}')">
+                            <button class="btn btn-small btn-danger" onclick="removeWatchFolderFromSettings('${folder}')">
                                 <span class="btn-icon">🗑️</span>
                             </button>
                         </div>
@@ -429,22 +429,22 @@ async function addWatchFolder() {
     }
 }
 
-async function removeWatchFolder(folderPath) {
+async function removeWatchFolderFromSettings(folderPath) {
     const confirmed = confirm(`Verzeichnis "${folderPath}" aus der Überwachung entfernen?`);
     if (!confirmed) return;
 
     try {
         showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
-        
+
         // Remove watch folder
         const result = await api.removeWatchFolder(folderPath);
-        
-        showToast('success', 'Erfolgreich entfernt', 
+
+        showToast('success', 'Erfolgreich entfernt',
                  `Verzeichnis "${folderPath}" wird nicht mehr überwacht`);
-        
+
         // Reload watch folder settings to reflect changes
         await settingsManager.loadWatchFolderSettings();
-        
+
     } catch (error) {
         window.ErrorHandler?.handleSettingsError(error, { operation: 'remove_watch_folder', path: folderPath });
         if (error instanceof ApiError) {
