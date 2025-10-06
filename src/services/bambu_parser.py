@@ -574,19 +574,19 @@ class BambuParser:
     def _extract_3mf_metadata(self, xml_content: str) -> Dict[str, Any]:
         """Extract metadata from 3MF XML files."""
         metadata = {}
-        
+
         try:
             root = ET.fromstring(xml_content)
-            
+
             # Look for metadata elements
             for elem in root.iter():
                 if 'metadata' in elem.tag.lower():
                     name = elem.get('name', '')
                     value = elem.text or elem.get('value', '')
-                    
+
                     if name and value:
                         # Convert known numeric fields
-                        if name.lower() in ['layer_height', 'layer_count', 'print_time', 
+                        if name.lower() in ['layer_height', 'layer_count', 'print_time',
                                           'nozzle_temperature', 'bed_temperature']:
                             try:
                                 if '.' in value:
@@ -597,11 +597,78 @@ class BambuParser:
                                 metadata[name.lower()] = value
                         else:
                             metadata[name.lower()] = value
-                            
+
+            # Extract model dimensions from vertices (bounding box calculation)
+            # 3MF files contain vertices in the <mesh> elements
+            try:
+                dimensions = self._extract_3mf_dimensions(root)
+                if dimensions:
+                    metadata.update(dimensions)
+            except Exception as e:
+                logger.debug("Could not extract dimensions from 3MF model", error=str(e))
+
         except ET.ParseError as e:
             logger.warning("Failed to parse 3MF XML metadata", error=str(e))
-        
+
         return metadata
+
+    def _extract_3mf_dimensions(self, root_element) -> Dict[str, Any]:
+        """Extract physical dimensions from 3MF model by calculating bounding box."""
+        dimensions = {}
+
+        # Find all vertices in the model
+        # 3MF uses namespace, need to handle it
+        namespaces = {
+            '3mf': 'http://schemas.microsoft.com/3dmanufacturing/core/2015/02',
+            'model': 'http://schemas.microsoft.com/3dmanufacturing/core/2015/02'
+        }
+
+        # Try to find vertices without namespace first (some slicers don't use it)
+        vertices = []
+
+        # Search for <vertex> elements
+        for vertex in root_element.findall('.//*'):
+            if vertex.tag.endswith('vertex'):
+                try:
+                    x = float(vertex.get('x', 0))
+                    y = float(vertex.get('y', 0))
+                    z = float(vertex.get('z', 0))
+                    vertices.append((x, y, z))
+                except (ValueError, TypeError):
+                    continue
+
+        # Calculate bounding box if we found vertices
+        if vertices:
+            min_x = min(v[0] for v in vertices)
+            max_x = max(v[0] for v in vertices)
+            min_y = min(v[1] for v in vertices)
+            max_y = max(v[1] for v in vertices)
+            min_z = min(v[2] for v in vertices)
+            max_z = max(v[2] for v in vertices)
+
+            # Calculate dimensions in mm
+            dimensions['model_width'] = round(max_x - min_x, 2)
+            dimensions['model_depth'] = round(max_y - min_y, 2)
+            dimensions['model_height'] = round(max_z - min_z, 2)
+
+            # Calculate volume (simple bounding box volume, not actual mesh volume)
+            volume_mm3 = (max_x - min_x) * (max_y - min_y) * (max_z - min_z)
+            dimensions['model_volume'] = round(volume_mm3 / 1000, 2)  # Convert to cm³
+
+            # Calculate approximate surface area (bounding box surface area)
+            width = max_x - min_x
+            depth = max_y - min_y
+            height = max_z - min_z
+            surface_area_mm2 = 2 * (width * depth + width * height + depth * height)
+            dimensions['surface_area'] = round(surface_area_mm2 / 100, 2)  # Convert to cm²
+
+            logger.debug("Extracted 3MF dimensions",
+                        width=dimensions['model_width'],
+                        depth=dimensions['model_depth'],
+                        height=dimensions['model_height'],
+                        vertices=len(vertices))
+
+        return dimensions
     
     async def _parse_bgcode_file(self, file_path: Path) -> Dict[str, Any]:
         """Parse Binary G-code file for thumbnails and metadata.
