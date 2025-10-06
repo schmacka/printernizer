@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Query, Path as PathParam, Depends
 from pydantic import BaseModel, Field
 import structlog
+import asyncio
 
 logger = structlog.get_logger()
 
@@ -685,13 +686,12 @@ async def bulk_reanalyze_library(
             filters['file_type'] = file_type
 
         # Get files to reanalyze
-        result = await library_service.list_files(
+        files, pagination = await library_service.list_files(
             filters=filters,
             page=1,
             limit=limit or 10000  # Default to processing up to 10000 files
         )
 
-        files = result.get('files', [])
         files_to_process = []
         file_types_set = set()
 
@@ -715,17 +715,22 @@ async def bulk_reanalyze_library(
                 'message': 'No files found matching criteria or no files support metadata extraction'
             }
 
-        # Schedule re-analysis for each file
+        # Schedule re-analysis for each file (fire and forget - don't await)
         scheduled_count = 0
+        tasks = []
         for file in files_to_process:
             try:
-                success = await library_service.reprocess_file(file['checksum'])
-                if success:
-                    scheduled_count += 1
+                # Create task without awaiting to schedule all files quickly
+                task = library_service.reprocess_file(file['checksum'])
+                tasks.append(task)
             except Exception as e:
-                logger.warning("Failed to schedule reprocessing",
+                logger.warning("Failed to create reprocessing task",
                              checksum=file['checksum'][:16],
                              error=str(e))
+
+        # Await all scheduling tasks in parallel
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        scheduled_count = sum(1 for r in results if r is True)
 
         logger.info("Bulk re-analysis scheduled",
                    files_scheduled=scheduled_count,
