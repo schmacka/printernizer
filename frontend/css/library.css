@@ -6,37 +6,41 @@
 /* ============ Statistics Cards ============ */
 .library-stats-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-6, 1.5rem);
+    margin-bottom: var(--spacing-8, 2rem);
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 12px;
+    background: var(--white, white);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: var(--radius-lg, 12px);
+    padding: var(--spacing-6, 1.5rem) var(--spacing-4, 1rem);
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
 }
 
 .stat-value {
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #667eea);
+    line-height: 1;
+    margin-bottom: var(--spacing-2, 0.5rem);
 }
 
 .stat-label {
-    font-size: 0.875rem;
-    opacity: 0.9;
+    font-size: var(--font-size-sm, 0.875rem);
+    font-weight: 600;
+    color: var(--gray-600, #4b5563);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-2, 0.5rem);
 }
 
 /* ============ Filter Bar ============ */

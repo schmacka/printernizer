@@ -351,23 +351,52 @@ class FileWatcherService:
             # Add to library if library service is available and enabled
             if self.library_service and self.library_service.enabled:
                 try:
-                    source_info = {
-                        'type': 'watch_folder',
-                        'folder_path': watch_folder_path,
-                        'relative_path': str(relative_path),
-                        'discovered_at': datetime.now().isoformat()
-                    }
+                    # Calculate checksum to check for duplicates
+                    checksum = await self.library_service.calculate_checksum(path)
 
-                    # Add file to library (will copy to library folder)
-                    await self.library_service.add_file_to_library(
-                        source_path=path,
-                        source_info=source_info,
-                        copy_file=True  # Copy, don't move (preserve original)
-                    )
+                    # Check if file already exists in library (by checksum)
+                    existing_file = await self.library_service.get_file_by_checksum(checksum)
 
-                    logger.info("Added watch folder file to library",
-                               filename=path.name,
-                               watch_folder=watch_folder_path)
+                    if existing_file:
+                        # File already in library - skip copy but add watch folder as additional source
+                        logger.info("File already in library, skipping copy",
+                                   filename=path.name,
+                                   checksum=checksum[:16],
+                                   existing_filename=existing_file.get('filename'))
+
+                        # Add watch folder as additional source
+                        source_info = {
+                            'type': 'watch_folder',
+                            'folder_path': watch_folder_path,
+                            'relative_path': str(relative_path),
+                            'discovered_at': datetime.now().isoformat()
+                        }
+
+                        await self.library_service.add_file_source(checksum, source_info)
+
+                        logger.debug("Added watch folder as additional source",
+                                    filename=path.name,
+                                    checksum=checksum[:16])
+                    else:
+                        # New file - copy to library
+                        source_info = {
+                            'type': 'watch_folder',
+                            'folder_path': watch_folder_path,
+                            'relative_path': str(relative_path),
+                            'discovered_at': datetime.now().isoformat()
+                        }
+
+                        # Add file to library (will copy to library folder)
+                        await self.library_service.add_file_to_library(
+                            source_path=path,
+                            source_info=source_info,
+                            copy_file=True  # Copy, don't move (preserve original)
+                        )
+
+                        logger.info("Added new watch folder file to library",
+                                   filename=path.name,
+                                   checksum=checksum[:16],
+                                   watch_folder=watch_folder_path)
 
                 except Exception as e:
                     logger.error("Failed to add file to library",

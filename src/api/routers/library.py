@@ -29,14 +29,44 @@ class LibraryFileResponse(BaseModel):
     added_to_library: str
     last_modified: Optional[str]
     last_accessed: Optional[str]
+    last_analyzed: Optional[str] = None
     has_thumbnail: bool = False
 
     # Enhanced metadata (optional)
     model_width: Optional[float] = None
     model_depth: Optional[float] = None
     model_height: Optional[float] = None
+    model_volume: Optional[float] = None
+    surface_area: Optional[float] = None
+    object_count: Optional[int] = None
+    layer_height: Optional[float] = None
+    first_layer_height: Optional[float] = None
+    nozzle_diameter: Optional[float] = None
+    wall_count: Optional[int] = None
+    wall_thickness: Optional[float] = None
+    infill_density: Optional[float] = None
+    infill_pattern: Optional[str] = None
+    support_used: Optional[bool] = None
+    nozzle_temperature: Optional[int] = None
+    bed_temperature: Optional[int] = None
+    print_speed: Optional[float] = None
+    total_layer_count: Optional[int] = None
     total_filament_weight: Optional[float] = None
+    filament_length: Optional[float] = None
+    filament_colors: Optional[str] = None
+    material_types: Optional[str] = None
     material_cost: Optional[float] = None
+    energy_cost: Optional[float] = None
+    total_cost: Optional[float] = None
+    complexity_score: Optional[int] = None
+    difficulty_level: Optional[str] = None
+    success_probability: Optional[float] = None
+    overhang_percentage: Optional[float] = None
+    compatible_printers: Optional[str] = None
+    slicer_name: Optional[str] = None
+    slicer_version: Optional[str] = None
+    profile_name: Optional[str] = None
+    bed_type: Optional[str] = None
 
     # Source information
     sources: Optional[str] = None  # JSON string
@@ -638,6 +668,79 @@ async def get_library_file_metadata(
                     checksum=checksum[:16],
                     error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to retrieve metadata: {str(e)}")
+
+
+@router.get("/files/{checksum}/thumbnail")
+async def get_library_file_thumbnail(
+    checksum: str = PathParam(..., description="File checksum (SHA-256)"),
+    library_service = Depends(get_library_service)
+):
+    """
+    Get thumbnail image for a library file.
+
+    Returns the embedded or generated thumbnail as a PNG image.
+
+    **Parameters:**
+    - `checksum`: File checksum (SHA-256 hash)
+
+    **Returns:**
+    - PNG image data (binary)
+    - Content-Type: image/png
+
+    **Status Codes:**
+    - `200`: Thumbnail returned successfully
+    - `404`: File not found or no thumbnail available
+    - `500`: Error retrieving thumbnail
+    """
+    from fastapi.responses import Response
+    import base64
+
+    try:
+        # Get file record
+        file_record = await library_service.get_file_by_checksum(checksum)
+        if not file_record:
+            raise HTTPException(status_code=404, detail=f"File not found with checksum {checksum[:16]}")
+
+        # Check if thumbnail exists
+        if not file_record.get('has_thumbnail') or not file_record.get('thumbnail_data'):
+            raise HTTPException(
+                status_code=404,
+                detail="No thumbnail available for this file"
+            )
+
+        # Decode base64 thumbnail data
+        try:
+            thumbnail_base64 = file_record['thumbnail_data']
+            # Remove data URL prefix if present
+            if ',' in thumbnail_base64:
+                thumbnail_base64 = thumbnail_base64.split(',', 1)[1]
+
+            thumbnail_bytes = base64.b64decode(thumbnail_base64)
+
+            return Response(
+                content=thumbnail_bytes,
+                media_type="image/png",
+                headers={
+                    "Cache-Control": "public, max-age=3600",
+                    "Content-Disposition": f"inline; filename=\"{checksum[:16]}_thumbnail.png\""
+                }
+            )
+        except Exception as e:
+            logger.error("Failed to decode thumbnail data",
+                        checksum=checksum[:16],
+                        error=str(e))
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to decode thumbnail data"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get library file thumbnail",
+                    checksum=checksum[:16],
+                    error=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve thumbnail: {str(e)}")
 
 
 @router.post("/reanalyze-all")
