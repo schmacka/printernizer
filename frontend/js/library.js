@@ -691,23 +691,55 @@ class LibraryManager {
      */
     async reprocessFile(checksum) {
         try {
+            console.log('[reprocessFile] Starting re-analysis', checksum.substring(0, 16));
+
+            // Show loading state on button
+            const btn = document.getElementById('reprocessFileBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-small"></span> Analysiere...';
+            }
+
+            // Call the reprocess API endpoint
             const response = await fetch(`${CONFIG.API_BASE_URL}/library/files/${checksum}/reprocess`, {
                 method: 'POST'
             });
 
-            if (!response.ok) throw new Error('Reprocessing failed');
+            if (!response.ok) {
+                throw new Error(`Reprocessing failed with status ${response.status}`);
+            }
 
             const result = await response.json();
+            console.log('[reprocessFile] Reprocess triggered', result);
 
-            this.showSuccess('Datei wird neu analysiert...');
-            this.closeFileDetailModal();
+            showToast('success', 'Analyse gestartet', 'Datei wird neu analysiert. Dies kann einige Sekunden dauern.');
 
-            // Reload after short delay to see updated metadata
-            setTimeout(() => this.loadFiles(), 2000);
+            // Wait a bit for metadata extraction to complete
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Reload file details to show updated metadata
+            console.log('[reprocessFile] Reloading file details');
+            await this.showFileDetail({ checksum });
+
+            // Reset button state
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Neu analysieren';
+            }
+
+            showToast('success', 'Analyse abgeschlossen', 'Metadaten wurden aktualisiert');
 
         } catch (error) {
-            console.error('Failed to reprocess file:', error);
-            this.showError('Fehler beim Neu-Analysieren der Datei');
+            console.error('[reprocessFile] Failed to reprocess file:', error);
+
+            // Reset button state
+            const btn = document.getElementById('reprocessFileBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Neu analysieren';
+            }
+
+            showToast('error', 'Fehler', 'Fehler beim Neu-Analysieren der Datei: ' + error.message);
         }
     }
 
