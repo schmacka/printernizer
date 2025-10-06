@@ -190,16 +190,16 @@ class PrinterCard {
                     <span class="status-badge ${statusConfig.class}">${statusConfig.icon} ${statusConfig.label}</span>
                 </div>
 
-                ${this.printer.progress !== undefined ? `
+                ${this.printer.status === 'printing' || this.printer.progress !== undefined ? `
                     <div class="job-progress">
                         <div class="progress-info">
-                            <span class="progress-percentage">${formatPercentage(this.printer.progress)}</span>
+                            <span class="progress-percentage">${formatPercentage(this.printer.progress || 0)}</span>
                             <span class="progress-time estimated-time">
                                 ${this.printer.remaining_time_minutes ? `Noch ${formatDuration(this.printer.remaining_time_minutes * 60)}` : ''}
                             </span>
                         </div>
                         <div class="progress">
-                            <div class="progress-bar" style="width: ${this.printer.progress}%"></div>
+                            <div class="progress-bar" style="width: ${this.printer.progress || 0}%"></div>
                         </div>
                     </div>
                 ` : ''}

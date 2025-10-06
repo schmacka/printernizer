@@ -25,7 +25,7 @@ const CONFIG = {
     
     // Application Settings
     APP_NAME: 'Printernizer',
-    APP_VERSION: '1.0.1',
+    APP_VERSION: '1.5.1',
     LANGUAGE: 'de',
     TIMEZONE: 'Europe/Berlin',
     CURRENCY: 'EUR',
