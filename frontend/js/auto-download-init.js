@@ -47,14 +47,30 @@ class AutoDownloadSystemInitializer {
 
             console.log('✅ Auto-Download System initialization complete');
 
-            // Show success notification
+            // Show success notification only if backend is healthy
             setTimeout(() => {
-                showToast('success', 'System Ready', 'Auto-Download System is now active and monitoring printers');
-            }, 1000);
+                // Check if backend is healthy before showing ready notification
+                const backendHealthy = window.printernizer?.backendHealthy !== false;
+
+                if (backendHealthy) {
+                    showToast('success', 'System Ready', 'Auto-Download System is now active and monitoring printers', CONFIG.TOAST_DURATION, {
+                        uniqueKey: CONFIG.NOTIFICATION_KEYS.AUTO_DOWNLOAD_READY,
+                        deduplicateMode: 'update'
+                    });
+                } else {
+                    showToast('warning', 'System Offline', 'Auto-Download System wird gestartet, sobald Backend verfügbar ist', CONFIG.TOAST_DURATION, {
+                        uniqueKey: CONFIG.NOTIFICATION_KEYS.AUTO_DOWNLOAD_OFFLINE,
+                        deduplicateMode: 'update'
+                    });
+                }
+            }, 1500); // Slightly delayed to allow backend health check to complete
 
         } catch (error) {
             console.error('❌ Failed to initialize Auto-Download System:', error);
-            showToast('error', 'Initialization Failed', 'Auto-Download System could not be started');
+            showToast('error', 'Initialization Failed', 'Auto-Download System could not be started', CONFIG.TOAST_DURATION, {
+                uniqueKey: CONFIG.NOTIFICATION_KEYS.AUTO_DOWNLOAD_ERROR,
+                deduplicateMode: 'update'
+            });
             throw error;
         }
     }

@@ -25,7 +25,7 @@ const CONFIG = {
     
     // Application Settings
     APP_NAME: 'Printernizer',
-    APP_VERSION: '1.5.1',
+    APP_VERSION: '1.5.4',
     LANGUAGE: 'de',
     TIMEZONE: 'Europe/Berlin',
     CURRENCY: 'EUR',
@@ -316,6 +316,31 @@ const CONFIG = {
         CONNECTING: 'Verbinde...',
         DOWNLOADING: 'Lade herunter...',
         UPDATING: 'Aktualisiere...'
+    },
+
+    // Notification Unique Keys for Deduplication
+    NOTIFICATION_KEYS: {
+        // Connection Status
+        WS_CONNECTED: 'connection:websocket:connected',
+        WS_DISCONNECTED: 'connection:websocket:disconnected',
+        WS_RECONNECTING: 'connection:websocket:reconnecting',
+        BACKEND_CONNECTED: 'connection:backend:connected',
+        BACKEND_OFFLINE: 'connection:backend:offline',
+        BACKEND_ERROR: 'connection:backend:error',
+
+        // Auto-Download System
+        AUTO_DOWNLOAD_READY: 'system:autodownload:ready',
+        AUTO_DOWNLOAD_ERROR: 'system:autodownload:error',
+        AUTO_DOWNLOAD_OFFLINE: 'system:autodownload:offline',
+
+        // System Status
+        SYSTEM_HEALTHY: 'system:health:ok',
+        SYSTEM_WARNING: 'system:health:warning',
+        SYSTEM_ERROR: 'system:health:error',
+
+        // Welcome/Initialization
+        APP_WELCOME: 'app:welcome',
+        APP_INITIALIZED: 'app:initialized'
     }
 };
 

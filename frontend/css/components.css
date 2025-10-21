@@ -471,6 +471,24 @@
     border-left: 4px solid var(--info-color);
 }
 
+/* Toast update animation */
+.toast-updated {
+    animation: pulseUpdate 0.3s ease;
+}
+
+@keyframes pulseUpdate {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: var(--shadow-xl);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
 /* Pagination */
 .pagination {
     display: flex;

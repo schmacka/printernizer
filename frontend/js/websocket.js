@@ -344,13 +344,21 @@ class PrinternizerWebSocketHandler {
             this.handleSystemAlert(data);
         });
 
-        // Connection events
+        // Connection events with deduplication
         this.ws.on('connected', () => {
-            showToast('success', 'Verbindung hergestellt', 'WebSocket-Verbindung ist aktiv');
+            showToast('success', 'Verbindung hergestellt', 'WebSocket-Verbindung ist aktiv', CONFIG.TOAST_DURATION, {
+                uniqueKey: CONFIG.NOTIFICATION_KEYS.WS_CONNECTED,
+                deduplicateMode: 'update',
+                cooldown: 5000 // 5 seconds cooldown
+            });
         });
 
         this.ws.on('disconnected', () => {
-            showToast('warning', 'Verbindung getrennt', 'Live-Updates sind nicht verfügbar');
+            showToast('warning', 'Verbindung getrennt', 'Live-Updates sind nicht verfügbar', CONFIG.TOAST_DURATION, {
+                uniqueKey: CONFIG.NOTIFICATION_KEYS.WS_DISCONNECTED,
+                deduplicateMode: 'update',
+                cooldown: 5000 // 5 seconds cooldown
+            });
         });
     }
 
