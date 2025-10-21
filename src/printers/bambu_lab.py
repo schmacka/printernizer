@@ -4,6 +4,7 @@ Handles communication with Bambu Lab A1 printers using bambulabs_api library.
 """
 import asyncio
 import json
+import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import structlog
@@ -102,19 +103,12 @@ class BambuLabPrinter(BasePrinter):
             return True
 
         try:
-            # Initialize direct FTP service if enabled
+            # Initialize direct FTP service if enabled (lazy initialization - test on first use)
             if self.use_direct_ftp:
                 try:
                     self.ftp_service = BambuFTPService(self.ip_address, self.access_code)
-                    # Test FTP connection
-                    success, message = await self.ftp_service.test_connection()
-                    if success:
-                        logger.info("Direct FTP service initialized successfully",
-                                   printer_id=self.printer_id, message=message)
-                    else:
-                        logger.warning("Direct FTP test failed, will use fallback",
-                                     printer_id=self.printer_id, message=message)
-                        self.ftp_service = None
+                    logger.info("Direct FTP service created (will test on first use)",
+                               printer_id=self.printer_id)
                 except Exception as e:
                     logger.warning("Failed to initialize direct FTP service",
                                  printer_id=self.printer_id, error=str(e))
@@ -132,71 +126,123 @@ class BambuLabPrinter(BasePrinter):
 
     async def _connect_bambu_api(self) -> bool:
         """Connect using bambulabs_api library."""
+        start_time = time.time()
         logger.info("Connecting to Bambu Lab printer via bambulabs_api",
                    printer_id=self.printer_id, ip=self.ip_address)
 
-        # Create bambulabs_api client
-        self.bambu_client = BambuClient(
-            ip_address=self.ip_address,
-            access_code=self.access_code,
-            serial=self.serial_number
-        )
+        try:
+            # Create bambulabs_api client
+            self.bambu_client = BambuClient(
+                ip_address=self.ip_address,
+                access_code=self.access_code,
+                serial=self.serial_number
+            )
 
-        # Set up event callbacks for real-time updates
-        self.bambu_client.on_printer_status = self._on_bambu_status_update
-        self.bambu_client.on_file_list = self._on_bambu_file_list_update
+            # Set up event callbacks for real-time updates
+            self.bambu_client.on_printer_status = self._on_bambu_status_update
+            self.bambu_client.on_file_list = self._on_bambu_file_list_update
 
-        # Connect to printer (synchronous method)
-        self.bambu_client.connect()
+            # Connect to printer (synchronous method) - wrap in executor to prevent blocking
+            connect_start = time.time()
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self.bambu_client.connect)
+            connect_duration = time.time() - connect_start
+            logger.info("[TIMING] Bambu API client connect completed",
+                       printer_id=self.printer_id,
+                       duration_seconds=round(connect_duration, 2))
 
-        # Request initial status and file information
-        if hasattr(self.bambu_client, 'request_status'):
-            self.bambu_client.request_status()
-            
-        # Try to request file listing if supported
-        if hasattr(self.bambu_client, 'request_file_list'):
-            self.bambu_client.request_file_list()
+            # Request initial status and file information
+            if hasattr(self.bambu_client, 'request_status'):
+                self.bambu_client.request_status()
 
-        self.is_connected = True
-        logger.info("Successfully connected to Bambu Lab printer via bambulabs_api",
-                   printer_id=self.printer_id)
-        return True
+            # Try to request file listing if supported
+            if hasattr(self.bambu_client, 'request_file_list'):
+                self.bambu_client.request_file_list()
+
+            self.is_connected = True
+
+            total_duration = time.time() - start_time
+            logger.info("[TIMING] Bambu API connection successful",
+                       printer_id=self.printer_id,
+                       total_duration_seconds=round(total_duration, 2),
+                       status="success")
+            return True
+
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.error("[TIMING] Bambu API connection failed",
+                        printer_id=self.printer_id,
+                        duration_seconds=round(duration, 2),
+                        status="failure",
+                        error=str(e))
+            raise
 
     async def _connect_mqtt(self) -> bool:
         """Connect using direct MQTT (fallback)."""
+        start_time = time.time()
         logger.info("Connecting to Bambu Lab printer via direct MQTT",
                    printer_id=self.printer_id, ip=self.ip_address)
 
-        # Create MQTT client
-        self.client = mqtt.Client()
-        self.client.username_pw_set("bblp", self.access_code)
+        try:
+            # Create MQTT client
+            self.client = mqtt.Client()
+            self.client.username_pw_set("bblp", self.access_code)
 
-        # Setup SSL context
-        context = ssl.create_default_context()
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        self.client.tls_set_context(context)
+            # Setup SSL context
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            self.client.tls_set_context(context)
 
-        # Set callbacks
-        self.client.on_connect = self._on_connect
-        self.client.on_message = self._on_message
-        self.client.on_disconnect = self._on_disconnect
+            # Set callbacks
+            self.client.on_connect = self._on_connect
+            self.client.on_message = self._on_message
+            self.client.on_disconnect = self._on_disconnect
 
-        # Connect to MQTT broker
-        result = self.client.connect(self.ip_address, self.mqtt_port, 60)
-        if result != 0:
-            raise ConnectionError(f"MQTT connect failed with code {result}")
+            # Connect to MQTT broker (synchronous) - wrap in executor to prevent blocking
+            connect_start = time.time()
+            loop = asyncio.get_event_loop()
 
-        # Start MQTT loop in background
-        self.client.loop_start()
+            def _mqtt_connect():
+                result = self.client.connect(self.ip_address, self.mqtt_port, 60)
+                if result != 0:
+                    raise ConnectionError(f"MQTT connect failed with code {result}")
+                return result
 
-        # Wait for connection to be established
-        await asyncio.sleep(3)
+            await loop.run_in_executor(None, _mqtt_connect)
+            connect_duration = time.time() - connect_start
+            logger.info("[TIMING] MQTT broker connect completed",
+                       printer_id=self.printer_id,
+                       duration_seconds=round(connect_duration, 2))
 
-        self.is_connected = True
-        logger.info("Successfully connected to Bambu Lab printer via direct MQTT",
-                   printer_id=self.printer_id)
-        return True
+            # Start MQTT loop in background
+            self.client.loop_start()
+
+            # Wait for connection to be established
+            sleep_start = time.time()
+            await asyncio.sleep(3)
+            sleep_duration = time.time() - sleep_start
+            logger.debug("[TIMING] MQTT connection establishment wait",
+                        printer_id=self.printer_id,
+                        duration_seconds=round(sleep_duration, 2))
+
+            self.is_connected = True
+
+            total_duration = time.time() - start_time
+            logger.info("[TIMING] MQTT connection successful",
+                       printer_id=self.printer_id,
+                       total_duration_seconds=round(total_duration, 2),
+                       status="success")
+            return True
+
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.error("[TIMING] MQTT connection failed",
+                        printer_id=self.printer_id,
+                        duration_seconds=round(duration, 2),
+                        status="failure",
+                        error=str(e))
+            raise
 
     # Callback methods for bambulabs_api events
     async def _on_bambu_status_update(self, status: Dict[str, Any]):

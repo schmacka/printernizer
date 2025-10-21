@@ -17,6 +17,7 @@ import ftplib
 import ssl
 import socket
 import asyncio
+import time
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime
@@ -118,6 +119,7 @@ class BambuFTPService:
             ConnectionError: If connection fails
             PermissionError: If authentication fails
         """
+        start_time = time.time()
         ssl_context = self._create_ssl_context()
 
         # Run FTP operations in thread pool since ftplib is synchronous
@@ -148,7 +150,22 @@ class BambuFTPService:
                 raise ConnectionError(f"Unexpected FTP error: {e}")
 
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _sync_connect)
+        try:
+            result = await loop.run_in_executor(None, _sync_connect)
+            duration = time.time() - start_time
+            logger.info("[TIMING] FTP connection successful",
+                       ip=self.ip_address,
+                       duration_seconds=round(duration, 2),
+                       status="success")
+            return result
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.warning("[TIMING] FTP connection failed",
+                          ip=self.ip_address,
+                          duration_seconds=round(duration, 2),
+                          status="failure",
+                          error=str(e))
+            raise
 
     @asynccontextmanager
     async def ftp_connection(self):
@@ -414,19 +431,43 @@ class BambuFTPService:
         Returns:
             Tuple of (success: bool, message: str)
         """
+        start_time = time.time()
         try:
             async with self.ftp_connection() as ftp:
                 # Simple test - get current directory
                 loop = asyncio.get_event_loop()
                 current_dir = await loop.run_in_executor(None, ftp.pwd)
 
+                duration = time.time() - start_time
+                logger.info("[TIMING] FTP test connection successful",
+                           ip=self.ip_address,
+                           duration_seconds=round(duration, 2),
+                           status="success")
                 return True, f"Connection successful. Current directory: {current_dir}"
 
         except ConnectionError as e:
+            duration = time.time() - start_time
+            logger.warning("[TIMING] FTP test connection failed",
+                          ip=self.ip_address,
+                          duration_seconds=round(duration, 2),
+                          status="failure",
+                          error_type="ConnectionError")
             return False, f"Connection failed: {e}"
         except PermissionError as e:
+            duration = time.time() - start_time
+            logger.warning("[TIMING] FTP test connection failed",
+                          ip=self.ip_address,
+                          duration_seconds=round(duration, 2),
+                          status="failure",
+                          error_type="PermissionError")
             return False, f"Authentication failed: {e}"
         except Exception as e:
+            duration = time.time() - start_time
+            logger.warning("[TIMING] FTP test connection failed",
+                          ip=self.ip_address,
+                          duration_seconds=round(duration, 2),
+                          status="failure",
+                          error_type=type(e).__name__)
             return False, f"Unexpected error: {e}"
 
 

@@ -3,6 +3,7 @@ Printer service for managing printer connections and status.
 Handles Bambu Lab and Prusa printer integrations with real-time monitoring.
 """
 import asyncio
+import time
 import warnings
 from typing import List, Dict, Any, Optional
 from uuid import uuid4, UUID
@@ -421,10 +422,21 @@ class PrinterService:
             
     async def _connect_and_monitor_printer(self, printer_id: str, instance: BasePrinter):
         """Connect to printer and start monitoring (background task helper)."""
+        start_time = time.time()
         try:
+            # Emit connection starting event
+            await self.event_service.emit_event("printer_connection_progress", {
+                "printer_id": printer_id,
+                "status": "connecting",
+                "message": "Initiating connection..."
+            })
+
             if not instance.is_connected:
                 logger.info("Connecting to printer", printer_id=printer_id)
+                connect_start = time.time()
                 connected = await instance.connect()
+                connect_duration = time.time() - connect_start
+
                 if connected:
                     # Update last_seen timestamp when connection succeeds
                     from datetime import datetime
@@ -433,17 +445,57 @@ class PrinterService:
                         "online",
                         datetime.now()
                     )
-                    logger.info("Printer connected successfully", printer_id=printer_id)
+                    logger.info("[TIMING] Printer connection successful",
+                               printer_id=printer_id,
+                               duration_seconds=round(connect_duration, 2))
+
+                    # Emit connection success event
+                    await self.event_service.emit_event("printer_connection_progress", {
+                        "printer_id": printer_id,
+                        "status": "connected",
+                        "message": f"Connected in {round(connect_duration, 1)}s",
+                        "duration_seconds": round(connect_duration, 2)
+                    })
                 else:
-                    logger.warning("Printer connection failed", printer_id=printer_id)
+                    logger.warning("[TIMING] Printer connection failed",
+                                  printer_id=printer_id,
+                                  duration_seconds=round(connect_duration, 2))
+
+                    # Emit connection failure event
+                    await self.event_service.emit_event("printer_connection_progress", {
+                        "printer_id": printer_id,
+                        "status": "failed",
+                        "message": "Connection failed"
+                    })
                     return
 
             await instance.start_monitoring()
-            logger.info("Printer monitoring started", printer_id=printer_id)
+            total_duration = time.time() - start_time
+            logger.info("[TIMING] Printer monitoring started",
+                       printer_id=printer_id,
+                       total_duration_seconds=round(total_duration, 2))
+
+            # Emit monitoring started event
+            await self.event_service.emit_event("printer_connection_progress", {
+                "printer_id": printer_id,
+                "status": "monitoring",
+                "message": "Monitoring active"
+            })
 
         except Exception as e:
-            logger.error("Failed to connect and monitor printer",
-                        printer_id=printer_id, error=str(e), exc_info=True)
+            duration = time.time() - start_time
+            logger.error("[TIMING] Failed to connect and monitor printer",
+                        printer_id=printer_id,
+                        duration_seconds=round(duration, 2),
+                        error=str(e),
+                        exc_info=True)
+
+            # Emit error event
+            await self.event_service.emit_event("printer_connection_progress", {
+                "printer_id": printer_id,
+                "status": "error",
+                "message": f"Error: {str(e)}"
+            })
 
     async def start_monitoring(self, printer_id: Optional[str] = None) -> bool:
         """Start printer monitoring for all or specific printer."""
