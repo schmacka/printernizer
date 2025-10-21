@@ -367,33 +367,148 @@ function setLoadingState(element, loading = true) {
 }
 
 /**
- * Show toast notification
+ * Active toasts tracking for deduplication
  */
-function showToast(type, title, message, duration = CONFIG.TOAST_DURATION) {
+const activeToasts = new Map();
+
+/**
+ * Show toast notification with deduplication support
+ * @param {string} type - Toast type: 'success', 'error', 'warning', 'info'
+ * @param {string} title - Toast title
+ * @param {string} message - Toast message
+ * @param {number} duration - Auto-dismiss duration in ms (0 = no auto-dismiss)
+ * @param {object} options - Additional options
+ * @param {string} options.uniqueKey - Unique key for deduplication (defaults to type+title)
+ * @param {string} options.deduplicateMode - 'allow', 'prevent', 'update' (default: 'update')
+ * @param {number} options.cooldown - Minimum time between same notification (ms)
+ */
+function showToast(type, title, message, duration = CONFIG.TOAST_DURATION, options = {}) {
+    const {
+        uniqueKey = `${type}:${title}`,
+        deduplicateMode = 'update',
+        cooldown = 0
+    } = options;
+
+    // Check if toast with same key already exists
+    const existingToast = activeToasts.get(uniqueKey);
+
+    if (existingToast) {
+        const timeSinceCreated = Date.now() - existingToast.timestamp;
+
+        // Apply cooldown check
+        if (cooldown > 0 && timeSinceCreated < cooldown) {
+            return existingToast.element;
+        }
+
+        // Handle deduplication modes
+        if (deduplicateMode === 'prevent') {
+            // Don't create new toast, return existing
+            return existingToast.element;
+        } else if (deduplicateMode === 'update') {
+            // Update existing toast content
+            updateToast(existingToast.element, type, title, message);
+
+            // Reset auto-dismiss timer
+            if (existingToast.timeoutId) {
+                clearTimeout(existingToast.timeoutId);
+            }
+
+            if (duration > 0) {
+                const timeoutId = setTimeout(() => {
+                    removeToast(existingToast.element, uniqueKey);
+                }, duration);
+                existingToast.timeoutId = timeoutId;
+            }
+
+            // Update timestamp
+            existingToast.timestamp = Date.now();
+
+            return existingToast.element;
+        }
+        // deduplicateMode === 'allow' - create new toast (fall through)
+    }
+
     const toastContainer = getOrCreateToastContainer();
-    
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    toast.dataset.uniqueKey = uniqueKey;
     toast.innerHTML = `
         <div class="toast-header">
-            <h4 class="toast-title">${title}</h4>
-            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            <h4 class="toast-title">${escapeHtml(title)}</h4>
+            <button class="toast-close">&times;</button>
         </div>
-        <div class="toast-body">${message}</div>
+        <div class="toast-body">${escapeHtml(message)}</div>
     `;
-    
+
+    // Add close button handler
+    const closeButton = toast.querySelector('.toast-close');
+    closeButton.addEventListener('click', () => {
+        removeToast(toast, uniqueKey);
+    });
+
     toastContainer.appendChild(toast);
-    
+
+    // Track active toast
+    const toastData = {
+        element: toast,
+        timestamp: Date.now(),
+        timeoutId: null
+    };
+
     // Auto-remove after duration
     if (duration > 0) {
-        setTimeout(() => {
-            if (toast.parentElement) {
-                toast.remove();
-            }
+        const timeoutId = setTimeout(() => {
+            removeToast(toast, uniqueKey);
         }, duration);
+        toastData.timeoutId = timeoutId;
     }
-    
+
+    activeToasts.set(uniqueKey, toastData);
+
     return toast;
+}
+
+/**
+ * Update existing toast content
+ */
+function updateToast(toast, type, title, message) {
+    // Update toast type class
+    toast.className = `toast toast-${type}`;
+
+    // Update title
+    const titleElement = toast.querySelector('.toast-title');
+    if (titleElement) {
+        titleElement.textContent = title;
+    }
+
+    // Update message
+    const bodyElement = toast.querySelector('.toast-body');
+    if (bodyElement) {
+        bodyElement.textContent = message;
+    }
+
+    // Add flash animation to indicate update
+    toast.classList.add('toast-updated');
+    setTimeout(() => {
+        toast.classList.remove('toast-updated');
+    }, 300);
+}
+
+/**
+ * Remove toast and clean up tracking
+ */
+function removeToast(toast, uniqueKey) {
+    if (toast.parentElement) {
+        toast.remove();
+    }
+
+    // Clean up tracking
+    const toastData = activeToasts.get(uniqueKey);
+    if (toastData?.timeoutId) {
+        clearTimeout(toastData.timeoutId);
+    }
+    activeToasts.delete(uniqueKey);
 }
 
 /**

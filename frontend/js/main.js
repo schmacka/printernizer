@@ -163,15 +163,28 @@ class PrinternizerApp {
         try {
             const health = await api.getHealth();
             console.log('System health check:', health);
-            
+
             if (health.status === 'healthy') {
                 console.log('System is healthy');
+                // Store backend status globally for other components
+                window.printernizer = window.printernizer || {};
+                window.printernizer.backendHealthy = true;
             } else {
-                showToast('warning', 'System-Warnung', 'System ist möglicherweise nicht voll funktionsfähig');
+                window.printernizer = window.printernizer || {};
+                window.printernizer.backendHealthy = false;
+                showToast('warning', 'System-Warnung', 'System ist möglicherweise nicht voll funktionsfähig', CONFIG.TOAST_DURATION, {
+                    uniqueKey: CONFIG.NOTIFICATION_KEYS.SYSTEM_WARNING,
+                    deduplicateMode: 'update'
+                });
             }
         } catch (error) {
             console.error('Health check failed:', error);
-            showToast('error', 'Verbindungsfehler', 'Backend-Server ist nicht erreichbar');
+            window.printernizer = window.printernizer || {};
+            window.printernizer.backendHealthy = false;
+            showToast('error', 'Verbindungsfehler', 'Backend-Server ist nicht erreichbar', CONFIG.TOAST_DURATION, {
+                uniqueKey: CONFIG.NOTIFICATION_KEYS.BACKEND_OFFLINE,
+                deduplicateMode: 'update'
+            });
         }
     }
 
@@ -298,7 +311,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show welcome message
     setTimeout(() => {
-        showToast('info', 'Willkommen', 'Printernizer wurde erfolgreich geladen');
+        showToast('info', 'Willkommen', 'Printernizer wurde erfolgreich geladen', CONFIG.TOAST_DURATION, {
+            uniqueKey: CONFIG.NOTIFICATION_KEYS.APP_WELCOME,
+            deduplicateMode: 'prevent' // Don't show duplicate welcome messages
+        });
     }, 1000);
 });
 
