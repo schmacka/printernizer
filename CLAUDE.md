@@ -111,9 +111,9 @@ Printernizer supports **three independent deployment methods**. Each method uses
   - `README.md` - Docker deployment guide
 
 ### 3. Home Assistant Add-on
-- **Location**: `homeassistant/` directory
+- **Location**: `printernizer/` directory (Add-on name)
 - **Use Case**: Home Assistant users, 24/7 integration
-- **Setup**: Install via HA Add-on Store
+- **Setup**: Install via HA Add-on Store (repository.json)
 - **Configuration**: HA UI (`options.json`)
 - **Data Storage**: `/data/printernizer/` (HA persistent storage)
 - **Files**:
@@ -124,6 +124,7 @@ Printernizer supports **three independent deployment methods**. Each method uses
   - `README.md` - Add-on store description
   - `DOCS.md` - Detailed user documentation
   - `CHANGELOG.md` - Add-on version history
+- **Repository**: `repository.json` in root for HA Add-on Store discovery
 
 ### Deployment Mode Detection
 

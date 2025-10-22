@@ -84,7 +84,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 3. **Home Assistant Add-on** - Integrated with Home Assistant
    - Best for: Home Assistant users, 24/7 operation
    - Setup time: 10 minutes
-   - [Add-on Guide](homeassistant/README.md)
+   - [Add-on Guide](printernizer/README.md)
 
 ## ✅ Current Status: **PRODUCTION READY v2.0.0**
 
@@ -194,7 +194,7 @@ Install as a Home Assistant Add-on for seamless integration:
 - Multi-architecture support (RPi, x86_64, etc.)
 - Ingress support for secure access
 
-For detailed instructions, see [homeassistant/README.md](homeassistant/README.md)
+For detailed instructions, see [printernizer/README.md](printernizer/README.md)
 
 ## 📋 Prerequisites
 
