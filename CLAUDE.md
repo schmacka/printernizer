@@ -87,15 +87,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Local file management with status tracking
 - Flexible file organization and management
 
+## Deployment Architecture
+
+Printernizer supports **three independent deployment methods**. Each method uses the same core codebase but has deployment-specific configurations:
+
+### 1. Python Standalone
+- **Location**: Root directory (`run.sh`, `run.bat`)
+- **Use Case**: Development, testing, local installation
+- **Setup**: Direct Python execution
+- **Configuration**: `.env` file
+- **Data Storage**: Local directories (`data/`, `printer-files/`)
+
+### 2. Docker Standalone
+- **Location**: `docker/` directory
+- **Use Case**: Production servers, NAS systems
+- **Setup**: `docker-compose up -d`
+- **Configuration**: Environment variables in `docker-compose.yml`
+- **Data Storage**: Docker volumes (persistent)
+- **Files**:
+  - `Dockerfile` - Multi-stage build with Python 3.11
+  - `docker-compose.yml` - Full orchestration
+  - `entrypoint.sh` - Container initialization
+  - `README.md` - Docker deployment guide
+
+### 3. Home Assistant Add-on
+- **Location**: `homeassistant/` directory
+- **Use Case**: Home Assistant users, 24/7 integration
+- **Setup**: Install via HA Add-on Store
+- **Configuration**: HA UI (`options.json`)
+- **Data Storage**: `/data/printernizer/` (HA persistent storage)
+- **Files**:
+  - `Dockerfile` - Alpine-based with `ARG BUILD_FROM`
+  - `config.yaml` - Add-on metadata and schema
+  - `build.yaml` - Multi-architecture builds
+  - `run.sh` - HA-specific startup with bashio
+  - `README.md` - Add-on store description
+  - `DOCS.md` - Detailed user documentation
+  - `CHANGELOG.md` - Add-on version history
+
+### Deployment Mode Detection
+
+The application automatically detects deployment mode via environment variables:
+- `DEPLOYMENT_MODE=standalone` - Default Python mode
+- `DEPLOYMENT_MODE=docker` - Docker standalone
+- `DEPLOYMENT_MODE=homeassistant` - HA Add-on mode
+- `HA_INGRESS=true` - Enables Ingress security (HA only)
+
+### Shared Codebase
+
+**IMPORTANT**: All three deployment methods share:
+- `src/` - Application code (unchanged for all modes)
+- `frontend/` - Web interface (unchanged for all modes)
+- `requirements.txt` - Python dependencies
+- Core business logic and features
+
+**Deployment-specific**:
+- Startup scripts (`run.sh` vs `entrypoint.sh` vs HA `run.sh`)
+- Configuration parsing (`.env` vs env vars vs `options.json`)
+- Path mapping (local vs volumes vs `/data`)
+- Security (direct vs Docker vs Ingress)
+
 ## Future Enhancements
-- **Home Assistant addon container** for smart home integration
+- **MQTT discovery** for Home Assistant sensors (printer status, job completion)
+- **HA automations** integration with triggers and actions
+- **Kubernetes deployment** for enterprise scale-out
 - **Desktop GUI application** as alternative to web interface
 - **Advanced 3D preview capabilities** with multiple rendering options
 
 ## Development Notes
-- This project is in the specification phase - no code has been implemented yet
-- All architecture decisions should align with the core requirements in project.md
 - Focus on enterprise features while maintaining simplicity
 - Consider standard business practices and configurable accounting requirements
-- remember to increase version number accordingly when branches get integrated in to master
-- always create a new branch when you develop a new feature or major bugfix.
+- **Remember to increase version number** accordingly when branches get integrated into master
+- **Always create a new branch** when you develop a new feature or major bugfix
+- **Keep deployment methods independent** - changes should not break any deployment option
+- **Test all three deployment methods** before merging to master
