@@ -52,7 +52,7 @@ COPY frontend/ /app/frontend/
 COPY database_schema.sql /app/
 
 # Copy Home Assistant specific files
-COPY homeassistant/run.sh /usr/bin/
+COPY run.sh /usr/bin/
 RUN chmod +x /usr/bin/run.sh
 
 # Create necessary directories
