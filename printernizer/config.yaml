@@ -59,7 +59,9 @@ schema:
       enabled: bool?
 
 # Image configuration
-image: ghcr.io/schmacka/printernizer-{arch}
+#image: ghcr.io/schmacka/printernizer-{arch}
+# Note: No pre-built image - HA will build locally from Dockerfile
+
 
 # Advanced options
 advanced: false
