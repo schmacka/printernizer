@@ -68,12 +68,25 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - **GDPR compliance** - Data privacy and retention controls
 
 ### 🚀 Deployment Options
-- **Python development** - Direct installation for development and testing
-- **CI/CD integration** - Automated testing and deployment workflows
-- **Docker support** - Containerization (planned for future release)
-- **Kubernetes deployment** - Production orchestration (planned for future release)
 
-## ✅ Current Status: **PRODUCTION READY v1.1.0**
+**Choose the deployment method that fits your needs:**
+
+1. **Python Standalone** - Direct Python installation
+   - Best for: Development, testing, local installation
+   - Setup time: 5 minutes
+   - [Quick Start](#option-1-python-development-setup)
+
+2. **Docker Standalone** - Containerized deployment
+   - Best for: Production servers, NAS systems
+   - Setup time: 5 minutes
+   - [Docker Guide](docker/README.md)
+
+3. **Home Assistant Add-on** - Integrated with Home Assistant
+   - Best for: Home Assistant users, 24/7 operation
+   - Setup time: 10 minutes
+   - [Add-on Guide](printernizer/README.md)
+
+## ✅ Current Status: **PRODUCTION READY v2.0.0**
 
 **Core functionality implemented and tested:**
 - ✅ Complete backend with FastAPI + async SQLite
@@ -84,15 +97,19 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - ✅ 3D preview system (STL, 3MF, GCODE, BGCODE rendering)
 - ✅ System optimization (error handling, monitoring, health checks)
 - ✅ Business analytics and reporting features
+- ✅ **Docker containerization** (standalone & Home Assistant)
+- ✅ **Multi-architecture support** (x86_64, ARM64, ARMv7)
 
 **Coming Soon:**
-- 🔄 Docker containerization (on hold)
-- 🔄 Advanced deployment options (planned)
+- 🔄 Kubernetes orchestration (planned)
+- 🔄 Advanced HA integration (MQTT discovery, sensors, automations)
 - 🔄 Watch folders and automation (planned)
 
 ## 🚀 Quick Start
 
-### Option 1: Python Development Setup (Recommended)
+Choose your preferred deployment method below.
+
+### Option 1: Python Standalone (Development)
 
 ```bash
 # 1. Create virtual environment (optional but recommended)
@@ -127,30 +144,57 @@ python -m http.server 3000
 # API Docs: http://localhost:8000/docs
 ```
 
-### Option 2: Direct Backend Only
+### Option 2: Docker Standalone (Production)
 
-If you only need the API backend:
+Run Printernizer in a Docker container for production deployments:
 
 ```bash
-# Install dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
+# From project root
+cd docker
+docker-compose up -d
 
-# Start just the backend (from project root)
-# Windows: run.bat
-# Linux/Mac: ./run.sh
-# Or manually from root:
-cd src
-python main.py
-
-# Access API directly
-# API: http://localhost:8000/api/v1
+# Access the application
+# Web Interface: http://localhost:8000
 # API Documentation: http://localhost:8000/docs
-# WebSocket: ws://localhost:8000/ws
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
 ```
 
-### Option 3: Production Deployment
+**Features:**
+- Persistent data storage via Docker volumes
+- Automatic restarts
+- Resource isolation
+- Easy backup and migration
+- Production-ready configuration
 
-Docker and Kubernetes deployment options are planned for future releases. For now, use systemd or similar process managers for production deployments of the Python application.
+For detailed instructions, see [docker/README.md](docker/README.md)
+
+### Option 3: Home Assistant Add-on (24/7 Integration)
+
+Install as a Home Assistant Add-on for seamless integration:
+
+**Via Repository:**
+1. In Home Assistant: **Settings → Add-ons → Add-on Store**
+2. Click **⋮** menu → **Repositories**
+3. Add: `https://github.com/schmacka/printernizer`
+4. Find **Printernizer** in store and click **Install**
+5. Configure your printers in the **Configuration** tab
+6. Click **Start** and enable **Start on boot**
+7. Access via **Open Web UI**
+
+**Features:**
+- Integrated with Home Assistant UI
+- Automatic updates
+- Configuration via HA interface
+- Persistent storage in `/data`
+- Multi-architecture support (RPi, x86_64, etc.)
+- Ingress support for secure access
+
+For detailed instructions, see [printernizer/README.md](printernizer/README.md)
 
 ## 📋 Prerequisites
 

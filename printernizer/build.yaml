@@ -1,0 +1,11 @@
+# Printernizer - Multi-Architecture Build Configuration
+# For Home Assistant Add-on builds across different platforms
+
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base:latest
+  amd64: ghcr.io/home-assistant/amd64-base:latest
+  armv7: ghcr.io/home-assistant/armv7-base:latest
+  armhf: ghcr.io/home-assistant/armhf-base:latest
+
+args:
+  PRINTERNIZER_VERSION: "2.0.0"

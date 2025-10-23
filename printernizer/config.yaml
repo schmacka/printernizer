@@ -1,0 +1,91 @@
+name: Printernizer
+version: "2.0.0"
+slug: printernizer
+description: Professional 3D Printer Management for Bambu Lab A1 and Prusa Core One
+url: https://github.com/schmacka/printernizer
+arch:
+  - aarch64
+  - amd64
+  - armv7
+  - armhf
+init: false
+startup: services
+boot: auto
+panel_icon: mdi:printer-3d
+panel_title: Printernizer
+hassio_api: true
+hassio_role: default
+homeassistant_api: false
+
+# Ingress configuration
+ingress: true
+ingress_port: 8000
+ingress_entry: /
+
+# Optional external port access (disabled by default for security)
+# Users can enable this in the Network section if needed
+ports:
+  8000/tcp: null
+
+# Port description for Network section
+ports_description:
+  8000/tcp: Web interface (optional - use Ingress instead)
+
+# WebUI configuration
+webui: "[PROTO:ssl]://[HOST]:[PORT:8000]"
+
+# Options and schema
+options:
+  log_level: info
+  timezone: Europe/Berlin
+  enable_3d_preview: true
+  enable_websockets: true
+  enable_business_reports: true
+  printers: []
+
+schema:
+  log_level: list(debug|info|warning|error)?
+  timezone: str?
+  enable_3d_preview: bool?
+  enable_websockets: bool?
+  enable_business_reports: bool?
+  printers:
+    - name: str
+      type: list(bambu_lab|prusa)
+      ip_address: str
+      access_code: str?
+      serial_number: str?
+      api_key: str?
+      enabled: bool?
+
+# Image configuration
+image: ghcr.io/schmacka/printernizer-{arch}
+
+# Advanced options
+advanced: false
+
+# Map directories for persistence
+map:
+  - data:rw
+
+# Host network access for printer connectivity
+host_network: false
+network_mode: bridge
+
+# Services required
+services:
+  - mqtt:want
+
+# Backup configuration
+backup: hot
+backup_exclude:
+  - "*.log"
+  - "temp/*"
+  - "*.tmp"
+
+# Supported architectures with base images
+build_from:
+  aarch64: ghcr.io/home-assistant/aarch64-base:latest
+  amd64: ghcr.io/home-assistant/amd64-base:latest
+  armv7: ghcr.io/home-assistant/armv7-base:latest
+  armhf: ghcr.io/home-assistant/armhf-base:latest

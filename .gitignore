@@ -140,11 +140,14 @@ scratch*.md
 scratchpad*.md
 *notes*.md
 
-# Docker (Docker support removed for now)
+# Docker (Updated for multi-deployment support)
 .dockerignore
 docker-compose.override.yml
-docker-compose.*.yml
-Dockerfile*
+
+# Allow Dockerfiles in docker/ and printernizer/ (HA add-on) directories
+!docker/Dockerfile
+!printernizer/Dockerfile
+!docker/docker-compose.yml
 
 # Monitoring
 prometheus_data/

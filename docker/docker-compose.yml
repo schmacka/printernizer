@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  printernizer:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: printernizer:latest
+    container_name: printernizer
+    restart: unless-stopped
+
+    # Environment configuration
+    environment:
+      # Application settings
+      - ENVIRONMENT=production
+      - DEPLOYMENT_MODE=docker
+      - DEBUG=false
+      - LOG_LEVEL=info
+
+      # Server configuration
+      - HOST=0.0.0.0
+      - PORT=8000
+
+      # German business settings
+      - TIMEZONE=Europe/Berlin
+      - CURRENCY=EUR
+      - VAT_RATE=0.19
+      - BUSINESS_LOCATION=Kornwestheim, Deutschland
+
+      # Database
+      - DATABASE_PATH=/app/data/printernizer.db
+
+      # CORS (add your domains)
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
+
+      # Printer settings
+      - PRINTER_POLLING_INTERVAL=30
+      - MAX_CONCURRENT_DOWNLOADS=5
+
+      # WebSocket support
+      - ENABLE_WEBSOCKETS=true
+
+      # Feature flags
+      - ENABLE_3D_PREVIEW=true
+      - ENABLE_ANALYTICS_EXPORT=true
+      - ENABLE_BUSINESS_REPORTS=true
+
+    # Port mapping
+    ports:
+      - "8000:8000"
+
+    # Volume mapping for persistent data
+    volumes:
+      # Database and application data
+      - printernizer-data:/app/data
+      # Downloaded printer files
+      - printernizer-printer-files:/app/printer-files
+      # Application logs
+      - printernizer-logs:/app/logs
+      # Database backups
+      - printernizer-backups:/app/backups
+      # Preview cache
+      - printernizer-cache:/app/data/preview-cache
+
+    # Network configuration
+    networks:
+      - printernizer-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource limits (optional, adjust as needed)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 512M
+
+# Named volumes for data persistence
+volumes:
+  printernizer-data:
+    driver: local
+  printernizer-printer-files:
+    driver: local
+  printernizer-logs:
+    driver: local
+  printernizer-backups:
+    driver: local
+  printernizer-cache:
+    driver: local
+
+# Network configuration
+networks:
+  printernizer-network:
+    driver: bridge

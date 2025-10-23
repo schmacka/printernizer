@@ -1,6 +1,6 @@
 #!/bin/bash
-# Printernizer Production Entrypoint Script
-# Enhanced for Milestone 1.2: Printer API Integration
+# Printernizer - Docker Standalone Entrypoint
+# Handles initialization and startup for containerized deployment
 
 set -e
 
@@ -11,41 +11,28 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🖨️  Starting Printernizer - Professional 3D Print Management${NC}"
-echo -e "${BLUE}📅 $(date) - Milestone 1.2: Printer API Integration${NC}"
+echo -e "${BLUE}=====================================${NC}"
+echo -e "${BLUE}🖨️  Printernizer Docker Deployment${NC}"
+echo -e "${BLUE}=====================================${NC}"
+echo -e "${BLUE}📅 $(date)${NC}"
+echo ""
 
 # Environment validation
 echo -e "${YELLOW}⚙️  Validating environment...${NC}"
 
-# Required environment variables
-REQUIRED_VARS=(
-    "ENVIRONMENT"
-    "TZ"
-)
-
-for var in "${REQUIRED_VARS[@]}"; do
-    if [ -z "${!var}" ]; then
-        echo -e "${RED}❌ Missing required environment variable: $var${NC}"
-        exit 1
-    fi
-done
-
 # Set timezone
-echo -e "${BLUE}🕐 Setting timezone to $TZ${NC}"
-export TZ
+TIMEZONE=${TZ:-Europe/Berlin}
+echo -e "${BLUE}🕐 Timezone: $TIMEZONE${NC}"
+export TZ=$TIMEZONE
 
-# Create necessary directories
-echo -e "${YELLOW}📁 Creating application directories...${NC}"
+# Create necessary directories with proper permissions
+echo -e "${YELLOW}📁 Setting up directories...${NC}"
 mkdir -p /app/data
 mkdir -p /app/logs
 mkdir -p /app/backups
-mkdir -p /app/uploads
 mkdir -p /app/printer-files
 mkdir -p /app/temp
-
-# Set proper permissions
-chown -R appuser:appuser /app/data /app/logs /app/backups /app/uploads /app/printer-files /app/temp
-chmod -R 755 /app/data /app/logs /app/backups /app/uploads /app/printer-files /app/temp
+mkdir -p /app/data/preview-cache
 
 # Database initialization
 DATABASE_PATH=${DATABASE_PATH:-/app/data/printernizer.db}
@@ -55,81 +42,67 @@ if [ ! -f "$DATABASE_PATH" ]; then
         sqlite3 "$DATABASE_PATH" < /app/database_schema.sql
         echo -e "${GREEN}✅ Database initialized successfully${NC}"
     else
-        echo -e "${RED}❌ Database schema file not found${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠️  Database schema file not found, will be created by application${NC}"
     fi
 else
     echo -e "${GREEN}✅ Database already exists${NC}"
 fi
 
-# Printer connectivity pre-checks
-echo -e "${YELLOW}🔌 Running printer connectivity pre-checks...${NC}"
-
-# Check if network connectivity is available
-if ping -c 1 8.8.8.8 &> /dev/null; then
+# Network connectivity check
+echo -e "${YELLOW}🔌 Checking network connectivity...${NC}"
+if ping -c 1 -W 2 8.8.8.8 &> /dev/null; then
     echo -e "${GREEN}✅ Network connectivity: OK${NC}"
 else
     echo -e "${YELLOW}⚠️  Limited network connectivity detected${NC}"
+    echo -e "${YELLOW}   Printer connections may fail if network is unavailable${NC}"
 fi
 
 # Performance optimization for production
 if [ "$ENVIRONMENT" = "production" ]; then
     echo -e "${YELLOW}🚀 Applying production optimizations...${NC}"
-    
-    # Set Python optimizations
     export PYTHONOPTIMIZE=1
     export PYTHONDONTWRITEBYTECODE=1
-    
-    # Set worker count based on CPU cores (for WebSocket, use 1 worker)
-    WORKERS=${WORKERS:-1}
-    echo -e "${BLUE}👥 Using $WORKERS worker process(es)${NC}"
+    echo -e "${GREEN}✅ Production optimizations enabled${NC}"
 fi
 
-# Health check setup
-echo -e "${YELLOW}🏥 Setting up health monitoring...${NC}"
-
-# Background health check function
-health_monitor() {
-    while true; do
-        sleep 30
-        if ! curl -sf http://localhost:8000/api/v1/health > /dev/null 2>&1; then
-            echo -e "${RED}⚠️  Health check failed at $(date)${NC}" >> /app/logs/health.log
-        fi
-    done
-}
-
-# Start health monitoring in background if in production
-if [ "$ENVIRONMENT" = "production" ]; then
-    health_monitor &
-    HEALTH_PID=$!
-    echo -e "${BLUE}📊 Health monitoring started (PID: $HEALTH_PID)${NC}"
-fi
+# Display configuration
+echo ""
+echo -e "${BLUE}📋 Configuration Summary:${NC}"
+echo -e "   • Environment: ${ENVIRONMENT:-development}"
+echo -e "   • Deployment Mode: ${DEPLOYMENT_MODE:-docker}"
+echo -e "   • Timezone: $TIMEZONE"
+echo -e "   • Database: $DATABASE_PATH"
+echo -e "   • Port: ${PORT:-8000}"
+echo -e "   • Log Level: ${LOG_LEVEL:-info}"
+echo -e "   • 3D Preview: ${ENABLE_3D_PREVIEW:-true}"
+echo -e "   • WebSockets: ${ENABLE_WEBSOCKETS:-true}"
+echo ""
 
 # Graceful shutdown handler
 cleanup() {
+    echo ""
     echo -e "${YELLOW}🛑 Graceful shutdown initiated...${NC}"
-    
-    if [ -n "$HEALTH_PID" ]; then
-        echo -e "${BLUE}⏹️  Stopping health monitor...${NC}"
-        kill "$HEALTH_PID" 2>/dev/null || true
-    fi
-    
-    echo -e "${GREEN}✅ Cleanup completed${NC}"
+    echo -e "${BLUE}   Stopping services...${NC}"
+
+    # Allow time for graceful shutdown
+    sleep 2
+
+    echo -e "${GREEN}✅ Shutdown completed${NC}"
     exit 0
 }
 
-# Setup signal handlers
-trap cleanup SIGTERM SIGINT
+# Setup signal handlers for graceful shutdown
+trap cleanup SIGTERM SIGINT SIGQUIT
 
-# Log startup information
-echo -e "${GREEN}🎉 Printernizer startup completed successfully!${NC}"
-echo -e "${BLUE}📋 Configuration:${NC}"
-echo -e "   • Environment: $ENVIRONMENT"
-echo -e "   • Timezone: $TZ"
-echo -e "   • Database: $DATABASE_PATH"
-echo -e "   • Workers: ${WORKERS:-1}"
-echo -e "   • Port: ${PORT:-8000}"
+# Final startup message
+echo -e "${GREEN}=====================================${NC}"
+echo -e "${GREEN}🎉 Startup completed successfully!${NC}"
+echo -e "${GREEN}=====================================${NC}"
+echo ""
+echo -e "${BLUE}🚀 Starting Printernizer application server...${NC}"
+echo -e "${BLUE}📊 Access the web interface at: http://localhost:${PORT:-8000}${NC}"
+echo -e "${BLUE}📚 API documentation at: http://localhost:${PORT:-8000}/docs${NC}"
+echo ""
 
-# Start the application
-echo -e "${GREEN}🚀 Starting Printernizer application server...${NC}"
+# Execute the main command
 exec "$@"
