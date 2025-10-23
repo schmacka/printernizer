@@ -2,6 +2,19 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.2] - 2025-10-23
+
+### Fixed
+- **Critical build fix**: Replaced symlinks with actual file copies in add-on directory
+- Resolved Docker build error "too many links" during Home Assistant installation
+- Windows Git symlink compatibility issue resolved by copying files directly
+
+### Technical Details
+- Removed invalid text-based symlink files (src, frontend, requirements.txt, database_schema.sql)
+- Copied actual source files into printernizer/ directory for proper Docker build context
+- All files now accessible during Home Assistant add-on build process
+- No changes to application functionality - deployment fix only
+
 ## [2.0.0] - 2025-10-22
 
 ### Added

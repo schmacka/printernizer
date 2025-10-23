@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printernizer Debug</title>
+    
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png">
+</head>
+<body class="debug-page">
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="/static/images/logo.png" alt="Printernizer Logo" class="nav-logo">
+                <h1 class="nav-title">Printernizer <span class="debug-badge">DEBUG</span></h1>
+            </div>
+            
+            <div class="nav-controls">
+                <button class="btn btn-primary" onclick="refreshDebugInfo()" title="Debug-Daten aktualisieren">
+                    <span class="btn-icon">🔄</span>
+                    Aktualisieren
+                </button>
+                <a href="/" class="btn btn-secondary">
+                    <span class="btn-icon">🏠</span>
+                    Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content debug-content">
+        <div class="container">
+            <div class="debug-header">
+                <h2>Debug-Konsole</h2>
+                <p class="debug-description">
+                    System-Diagnose und Entwicklungstools für Printernizer
+                </p>
+            </div>
+
+            <!-- Debug Grid -->
+            <div class="debug-grid">
+                <!-- System Logs -->
+                <div class="debug-card">
+                    <div class="card-header">
+                        <h3>
+                            <span class="card-icon">📋</span>
+                            System-Protokolle
+                        </h3>
+                        <div class="card-controls">
+                            <select id="logLevelFilter" onchange="debugManager.filterAndDisplayLogs()">
+                                <option value="">Alle Level</option>
+                                <option value="debug">Debug</option>
+                                <option value="info">Info</option>
+                                <option value="warning">Warning</option>
+                                <option value="error">Error</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                            <button class="btn btn-sm" onclick="clearLogs()">Leeren</button>
+                            <button class="btn btn-sm btn-secondary" onclick="downloadLogs()">Download</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="logViewer" class="log-viewer">
+                            <div class="loading-spinner">Lade Protokolle...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics -->
+                <div class="debug-card">
+                    <div class="card-header">
+                        <h3>
+                            <span class="card-icon">📊</span>
+                            Performance-Metriken
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="performanceMetrics" class="performance-metrics">
+                            <div class="loading-spinner">Lade Metriken...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thumbnail Processing Log -->
+                <div class="debug-card">
+                    <div class="card-header">
+                        <h3>
+                            <span class="card-icon">📷</span>
+                            Thumbnail-Verarbeitung
+                        </h3>
+                        <div class="card-controls">
+                            <button class="btn btn-sm" onclick="refreshThumbnailLog()">Aktualisieren</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="thumbnailLogViewer" class="thumbnail-log-viewer">
+                            <div class="loading-spinner">Lade Thumbnail-Protokoll...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner-large"></div>
+            <p>Verarbeitung läuft...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/debug.js"></script>
+    
+    <script>
+        // Initialize debug page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            debugManager.init();
+        });
+    </script>
+
+    <style>
+        .debug-page {
+            background: var(--gray-50);
+        }
+        
+        .debug-badge {
+            background: var(--warning-color);
+            color: white;
+            padding: var(--spacing-1) var(--spacing-2);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: 600;
+            margin-left: var(--spacing-2);
+        }
+        
+        .debug-content {
+            padding-top: calc(var(--navbar-height) + var(--spacing-4));
+        }
+        
+        .debug-header {
+            text-align: center;
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .debug-header h2 {
+            color: var(--gray-800);
+            font-size: var(--font-size-3xl);
+            font-weight: 700;
+            margin-bottom: var(--spacing-2);
+        }
+        
+        .debug-description {
+            color: var(--gray-600);
+            font-size: var(--font-size-lg);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: var(--spacing-6);
+            margin-bottom: var(--spacing-8);
+        }
+        
+        .debug-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-4);
+            border-bottom: 1px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+        
+        .card-header h3 {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-2);
+            margin: 0;
+            color: var(--gray-800);
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+        }
+        
+        .card-icon {
+            font-size: var(--font-size-xl);
+        }
+        
+        .card-controls {
+            display: flex;
+            gap: var(--spacing-2);
+            align-items: center;
+        }
+        
+        .card-controls select {
+            padding: var(--spacing-1) var(--spacing-2);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-sm);
+        }
+        
+        .card-body {
+            padding: var(--spacing-4);
+        }
+        
+        .log-viewer,
+        .thumbnail-log-viewer {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-md);
+            background: var(--gray-50);
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            padding: var(--spacing-8);
+            color: var(--gray-500);
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-4);
+        }
+        
+        .metric-item {
+            text-align: center;
+            padding: var(--spacing-3);
+            background: var(--gray-50);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .metric-label {
+            display: block;
+            font-size: var(--font-size-sm);
+            color: var(--gray-600);
+            margin-bottom: var(--spacing-1);
+        }
+        
+        .metric-value {
+            font-size: var(--font-size-xl);
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .debug-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                gap: var(--spacing-2);
+                align-items: stretch;
+            }
+            
+            .card-controls {
+                justify-content: center;
+            }
+        }
+
+        .app-footer {
+            background: var(--gray-800);
+            color: var(--gray-300);
+            padding: var(--spacing-4);
+            text-align: center;
+            margin-top: var(--spacing-8);
+            font-size: var(--font-size-sm);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+    </style>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span class="footer-text">Printernizer v<span id="appVersion">...</span></span>
+        </div>
+    </footer>
+</body>
+</html>
