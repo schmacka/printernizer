@@ -224,6 +224,28 @@ Printernizer is dual-licensed:
 
 See [LICENSE](https://github.com/schmacka/printernizer/blob/master/LICENSE) for details.
 
+## Developer Notes
+
+### File Synchronization
+
+This add-on directory contains copies of files from the main repository:
+- `requirements.txt` - Python dependencies
+- `database_schema.sql` - Database schema
+- `src/` - Application source code
+- `frontend/` - Web interface files
+
+**Important:** These files are copied (not symlinked) because Docker build contexts cannot follow symlinks outside the build directory. When making changes to the main codebase, run the sync script to update the add-on:
+
+```bash
+./scripts/sync-addon.sh
+```
+
+This ensures the Home Assistant add-on stays in sync with the main repository.
+
+### Why Not Symlinks?
+
+Home Assistant builds add-ons with a build context limited to the add-on directory. Docker cannot follow symlinks that point outside this context, resulting in "too many links" errors. The sync script maintains a single source of truth while allowing successful Docker builds.
+
 ---
 
 **Printernizer** - Making 3D printing fleet management simple and efficient

@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printernizer - 3D-Drucker Verwaltung</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/enhanced-metadata.css">
+    <link rel="stylesheet" href="css/library.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="assets/logo.png" alt="Printernizer" class="logo">
+                <span class="brand-text">Printernizer</span>
+            </div>
+            <div class="nav-menu" role="navigation" aria-label="Hauptnavigation">
+                <a href="#dashboard" class="nav-link active" data-page="dashboard" 
+                   role="button" aria-current="page" aria-describedby="nav-dashboard-desc">
+                    <span class="nav-icon" aria-hidden="true">📊</span>
+                    Dashboard
+                </a>
+                <a href="#printers" class="nav-link" data-page="printers" 
+                   role="button" aria-describedby="nav-printers-desc">
+                    <span class="nav-icon" aria-hidden="true">🖨️</span>
+                    Drucker
+                </a>
+                <a href="#jobs" class="nav-link" data-page="jobs" 
+                   role="button" aria-describedby="nav-jobs-desc">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span>
+                    Aufträge
+                </a>
+                <a href="#files" class="nav-link" data-page="files"
+                   role="button" aria-describedby="nav-files-desc">
+                    <span class="nav-icon" aria-hidden="true">📁</span>
+                    Dateien
+                </a>
+                <a href="#library" class="nav-link" data-page="library"
+                   role="button" aria-describedby="nav-library-desc">
+                    <span class="nav-icon" aria-hidden="true">🗄️</span>
+                    Bibliothek
+                </a>
+                <a href="#ideas" class="nav-link" data-page="ideas"
+                   role="button" aria-describedby="nav-ideas-desc">
+                    <span class="nav-icon" aria-hidden="true">💡</span>
+                    Ideen
+                </a>
+                <a href="#settings" class="nav-link" data-page="settings"
+                   role="button" aria-describedby="nav-settings-desc">
+                    <span class="nav-icon" aria-hidden="true">⚙️</span>
+                    Einstellungen
+                </a>
+                <a href="#debug" class="nav-link" data-page="debug" 
+                   role="button" aria-describedby="nav-debug-desc">
+                    <span class="nav-icon" aria-hidden="true">🐛</span>
+                    Debug
+                </a>
+            </div>
+            <!-- Screen reader descriptions -->
+            <div class="sr-only">
+                <div id="nav-dashboard-desc">Übersichtsseite mit Druckerstatus und aktuellen Aufträgen</div>
+                <div id="nav-printers-desc">Verwaltung und Konfiguration der 3D-Drucker</div>
+                <div id="nav-jobs-desc">Übersicht und Verwaltung der Druckaufträge</div>
+                <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
+                <div id="nav-library-desc">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
+                <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
+                <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
+                <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
+            </div>
+            <div class="nav-status">
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-dot disconnected"></div>
+                    <span class="status-text">Verbindung...</span>
+                </div>
+                <div class="support-button">
+                    <a href="https://buymeacoffee.com/porcus3d" target="_blank" class="btn btn-support"
+                       title="Unterstütze die Entwicklung">
+                        ☕ Support
+                    </a>
+                </div>
+                <div class="system-time" id="systemTime"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page active">
+            <div class="page-header">
+                <h1>Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshDashboard()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Overview Cards -->
+            <div class="overview-cards">
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Drucker Status</h3>
+                        <span class="card-icon">🖨️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="printerCount">-</div>
+                        <div class="stat-label">Drucker Online</div>
+                        <div class="stat-detail" id="printerDetail">Lade...</div>
+                    </div>
+                </div>
+
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Aktive Aufträge</h3>
+                        <span class="card-icon">⚙️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="activeJobsCount">-</div>
+                        <div class="stat-label">Druckaufträge</div>
+                        <div class="stat-detail" id="jobsDetail">Lade...</div>
+                    </div>
+                </div>
+
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Dateien</h3>
+                        <span class="card-icon">📁</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="filesCount">-</div>
+                        <div class="stat-label">Verfügbare Dateien</div>
+                        <div class="stat-detail" id="filesDetail">Lade...</div>
+                    </div>
+                </div>
+
+                <div class="card overview-card">
+                    <div class="card-header">
+                        <h3>Heute</h3>
+                        <span class="card-icon">📈</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-number" id="todayJobsCount">-</div>
+                        <div class="stat-label">Aufträge heute</div>
+                        <div class="stat-detail" id="todayDetail">Lade...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Printer Status Cards -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Drucker Status</h2>
+                    <button class="btn btn-primary" onclick="showAddPrinter()">
+                        <span class="btn-icon">➕</span>
+                        Drucker hinzufügen
+                    </button>
+                </div>
+                <div class="printer-grid" id="printerGrid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Drucker...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Jobs -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Aktuelle Aufträge</h2>
+                    <a href="#jobs" class="btn btn-secondary" onclick="showPage('jobs')">
+                        Alle anzeigen
+                    </a>
+                </div>
+                <div class="jobs-preview" id="recentJobs">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Aufträge...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Printed Files -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Kürzlich gedruckte Dateien</h2>
+                    <a href="#files" class="btn btn-secondary" onclick="showPage('files')">
+                        Alle anzeigen
+                    </a>
+                </div>
+                <div class="printed-files-preview" id="recentPrintedFiles">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade gedruckte Dateien...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Printers Page -->
+        <div id="printers" class="page">
+            <div class="page-header">
+                <h1>Drucker Verwaltung</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="showAddPrinter()">
+                        <span class="btn-icon">➕</span>
+                        Drucker hinzufügen
+                    </button>
+                </div>
+            </div>
+
+            <div class="printers-container">
+                <div class="printers-list" id="printersList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Drucker...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jobs Page -->
+        <div id="jobs" class="page">
+            <div class="page-header">
+                <h1>Druckaufträge</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="jobStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="printing">Druckt</option>
+                            <option value="queued">Warteschlange</option>
+                            <option value="completed">Abgeschlossen</option>
+                            <option value="failed">Fehlgeschlagen</option>
+                            <option value="cancelled">Abgebrochen</option>
+                        </select>
+                        <select id="jobPrinterFilter" class="filter-select">
+                            <option value="">Alle Drucker</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshJobs()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <div class="jobs-container">
+                <div class="jobs-list" id="jobsList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Aufträge...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files Page -->
+        <div id="files" class="page">
+            <div class="page-header">
+                <h1>Drucker-Dateien</h1>
+                <div class="header-actions">
+                    <div class="search-controls">
+                        <div class="search-input-wrapper">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="fileSearchInput" class="search-input"
+                                   placeholder="Nach Dateinamen suchen..."
+                                   autocomplete="off"
+                                   aria-label="Nach Dateinamen suchen">
+                            <button class="search-clear-btn" id="fileSearchClear"
+                                    onclick="clearFileSearch()"
+                                    style="display: none;"
+                                    aria-label="Suche löschen">✕</button>
+                        </div>
+                    </div>
+                    <div class="filter-controls">
+                        <select id="fileStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="available">📁 Verfügbar</option>
+                            <option value="downloaded">✓ Heruntergeladen</option>
+                            <option value="local">💾 Lokal</option>
+                        </select>
+                        <select id="filePrinterFilter" class="filter-select">
+                            <option value="">Alle Drucker</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshFiles()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <div class="files-stats" id="filesStats">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Dateien-Statistiken...</p>
+                </div>
+            </div>
+
+            <!-- Watch Folders Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>Überwachte Verzeichnisse</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="refreshWatchFolders()">
+                            <span class="btn-icon">🔄</span>
+                            Aktualisieren
+                        </button>
+                        <button class="btn btn-primary" onclick="showAddWatchFolderDialog()">
+                            <span class="btn-icon">📂</span>
+                            Verzeichnis hinzufügen
+                        </button>
+                    </div>
+                </div>
+                <div class="watch-folders-container" id="watchFoldersContainer">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade überwachte Verzeichnisse...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discovered Files Section -->
+            <div class="discovered-files-section">
+                <div class="section-header">
+                    <h2>
+                        <span class="section-icon">📁</span>
+                        Entdeckte Dateien
+                    </h2>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="loadDiscoveredFiles()">
+                            <span class="btn-icon">🔄</span>
+                            Aktualisieren
+                        </button>
+                    </div>
+                </div>
+                <div class="discovered-files-container" id="discoveredFilesContainer">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade entdeckte Dateien...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="files-container">
+                <div class="files-list" id="filesList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Dateien...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library Page -->
+        <div id="library" class="page">
+            <div class="page-header">
+                <h1>🗄️ Bibliothek</h1>
+                <div class="header-subtitle">Zentrale Dateiverwaltung mit Metadaten und Quellenverfolgung</div>
+                <div class="header-actions">
+                    <div class="search-controls">
+                        <div class="search-input-wrapper">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="librarySearchInput" class="search-input"
+                                   placeholder="Nach Dateinamen suchen..."
+                                   autocomplete="off"
+                                   aria-label="Suche in Bibliothek">
+                            <button class="search-clear-btn" id="librarySearchClear"
+                                    onclick="clearLibrarySearch()"
+                                    style="display: none;"
+                                    aria-label="Suche löschen">✕</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshLibrary()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Library Statistics -->
+            <div class="library-stats-container" id="libraryStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalFiles">--</div>
+                    <div class="stat-label">Dateien</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalSize">--</div>
+                    <div class="stat-label">Gesamt</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statWithThumbnails">--</div>
+                    <div class="stat-label">Mit Vorschau</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statAnalyzed">--</div>
+                    <div class="stat-label">Analysiert</div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label for="filterSourceType">Quelle:</label>
+                    <select id="filterSourceType" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle</option>
+                        <option value="printer">🖨️ Drucker</option>
+                        <option value="watch_folder">📁 Überwacht</option>
+                        <option value="upload">⬆️ Hochgeladen</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterFileType">Typ:</label>
+                    <select id="filterFileType" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle Dateitypen</option>
+                        <option value=".3mf">.3MF</option>
+                        <option value=".stl">.STL</option>
+                        <option value=".gcode">.GCODE</option>
+                        <option value=".obj">.OBJ</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterStatus">Status:</label>
+                    <select id="filterStatus" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle Status</option>
+                        <option value="available">✅ Verfügbar</option>
+                        <option value="processing">⏳ Verarbeitung</option>
+                        <option value="ready">✓ Bereit</option>
+                        <option value="error">❌ Fehler</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterMetadata">Metadaten:</label>
+                    <select id="filterMetadata" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">Alle</option>
+                        <option value="has_thumbnail">🖼️ Mit Vorschau</option>
+                        <option value="has_metadata">📊 Mit Metadaten</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sortBy">Sortierung:</label>
+                    <select id="sortBy" class="filter-select">
+                        <option value="created_at:desc">Neueste zuerst</option>
+                        <option value="created_at:asc">Älteste zuerst</option>
+                        <option value="filename:asc">Name (A-Z)</option>
+                        <option value="filename:desc">Name (Z-A)</option>
+                        <option value="file_size:desc">Größe (groß→klein)</option>
+                        <option value="file_size:asc">Größe (klein→groß)</option>
+                        <option value="last_modified:desc">Zuletzt geändert (neu→alt)</option>
+                        <option value="last_modified:asc">Zuletzt geändert (alt→neu)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Library Files Grid -->
+            <div class="library-container">
+                <div class="library-files-grid" id="libraryFilesGrid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Bibliothek...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="pagination-container">
+                <div class="page-size-selector">
+                    <label for="pageSizeSelect">Dateien pro Seite:</label>
+                    <select id="pageSizeSelect">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                    </select>
+                </div>
+
+                <div class="pagination-info">
+                    <span id="paginationInfo">0-0 von 0</span>
+                </div>
+
+                <div class="pagination-controls">
+                    <button id="prevPageBtn" disabled>
+                        ← Vorherige
+                    </button>
+                    <span id="currentPageInfo">Seite 1 von 1</span>
+                    <button id="nextPageBtn" disabled>
+                        Nächste →
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- File Detail Modal -->
+        <div id="fileDetailModal" class="modal">
+            <div class="modal-content">
+                <button id="closeFileDetailModal" class="modal-close">✕</button>
+                <div id="fileDetailContent">
+                    <div class="loading">Lädt...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ideas Page -->
+        <div id="ideas" class="page">
+            <div class="page-header">
+                <h1>Ideen</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="ideaStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="idea">💡 Idee</option>
+                            <option value="planned">📅 Geplant</option>
+                            <option value="printing">🖨️ Wird gedruckt</option>
+                            <option value="completed">✅ Abgeschlossen</option>
+                            <option value="archived">📦 Archiviert</option>
+                        </select>
+                        <select id="ideaTypeFilter" class="filter-select">
+                            <option value="">Alle Typen</option>
+                            <option value="business">🏢 Geschäftlich</option>
+                            <option value="personal">👤 Privat</option>
+                        </select>
+                        <select id="ideaSourceFilter" class="filter-select">
+                            <option value="">Alle Quellen</option>
+                            <option value="manual">✍️ Manuell</option>
+                            <option value="makerworld">🌍 Makerworld</option>
+                            <option value="printables">🔧 Printables</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="refreshIdeas()">
+                            <span class="btn-icon">🔄</span>
+                            Aktualisieren
+                        </button>
+                        <button class="btn btn-secondary" onclick="showImportDialog()">
+                            <span class="btn-icon">🔗</span>
+                            Aus URL importieren
+                        </button>
+                        <button class="btn btn-primary" onclick="showAddIdeaDialog()">
+                            <span class="btn-icon">➕</span>
+                            Neue Idee
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ideas Navigation Tabs -->
+            <div class="ideas-nav-tabs">
+                <button class="tab-button active" data-tab="my-ideas" onclick="showIdeasTab('my-ideas')">
+                    <span class="tab-icon">💡</span>
+                    Meine Ideen
+                </button>
+                <button class="tab-button" data-tab="bookmarks" onclick="showIdeasTab('bookmarks')">
+                    <span class="tab-icon">🔖</span>
+                    Lesezeichen
+                </button>
+                <button class="tab-button" data-tab="trending" onclick="showIdeasTab('trending')">
+                    <span class="tab-icon">📈</span>
+                    Trending
+                </button>
+            </div>
+
+            <!-- Ideas Statistics -->
+            <div class="ideas-stats" id="ideasStats">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Ideen-Statistiken...</p>
+                </div>
+            </div>
+
+            <!-- My Ideas Tab -->
+            <div id="my-ideas-tab" class="ideas-tab-content active">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon">💡</span>
+                            Meine Ideen
+                        </h2>
+                        <div class="ideas-view-controls">
+                            <button class="btn btn-small" onclick="setIdeasView('grid')" id="gridViewBtn">
+                                <span class="btn-icon">⊞</span>
+                                Raster
+                            </button>
+                            <button class="btn btn-small" onclick="setIdeasView('list')" id="listViewBtn">
+                                <span class="btn-icon">☰</span>
+                                Liste
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ideas-container" id="myIdeasContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Lade Ideen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bookmarks Tab -->
+            <div id="bookmarks-tab" class="ideas-tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon">🔖</span>
+                            Lesezeichen
+                        </h2>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="showImportDialog('bookmarks')">
+                                <span class="btn-icon">🔗</span>
+                                Aus URL importieren
+                            </button>
+                        </div>
+                    </div>
+                    <div class="platform-filter">
+                        <button class="platform-btn active" data-platform="all" onclick="filterBookmarksByPlatform('all')">
+                            Alle
+                        </button>
+                        <button class="platform-btn" data-platform="makerworld" onclick="filterBookmarksByPlatform('makerworld')">
+                            Makerworld
+                        </button>
+                        <button class="platform-btn" data-platform="printables" onclick="filterBookmarksByPlatform('printables')">
+                            Printables
+                        </button>
+                    </div>
+                    <div class="bookmarks-container" id="bookmarksContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Lade Lesezeichen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trending Tab -->
+            <div id="trending-tab" class="ideas-tab-content">
+                <div class="section">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon">📈</span>
+                            Trending Modelle
+                        </h2>
+                        <div class="header-actions">
+                            <div class="trending-platform-filter">
+                                <button class="platform-btn active" data-platform="all" onclick="filterTrendingByPlatform('all')">
+                                    Alle
+                                </button>
+                                <button class="platform-btn" data-platform="makerworld" onclick="filterTrendingByPlatform('makerworld')">
+                                    Makerworld
+                                </button>
+                                <button class="platform-btn" data-platform="printables" onclick="filterTrendingByPlatform('printables')">
+                                    Printables
+                                </button>
+                            </div>
+                            <button class="btn btn-secondary" onclick="refreshTrending()">
+                                <span class="btn-icon">🔄</span>
+                                Aktualisieren
+                            </button>
+                        </div>
+                    </div>
+                    <div class="trending-container" id="trendingContainer">
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Lade Trending-Modelle...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings" class="page">
+            <div class="page-header">
+                <h1>Einstellungen</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="loadSettings()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <span class="btn-icon">💾</span>
+                        Speichern
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-container">
+                <div class="settings-grid">
+                    <!-- Application Settings -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Allgemeine Einstellungen</h3>
+                            <span class="card-icon">⚙️</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="applicationSettingsForm" class="settings-form">
+                                <div class="form-group">
+                                    <label for="logLevel">Log-Level</label>
+                                    <select id="logLevel" name="log_level" class="form-control">
+                                        <option value="DEBUG">Debug</option>
+                                        <option value="INFO">Info</option>
+                                        <option value="WARNING">Warning</option>
+                                        <option value="ERROR">Error</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="monitoringInterval">Überwachungsintervall (Sekunden)</label>
+                                    <input type="number" id="monitoringInterval" name="monitoring_interval" 
+                                           class="form-control" min="5" max="300" step="5">
+                                    <small class="form-text text-muted">Intervall für Druckerstatusabfragen (5-300 Sekunden)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="connectionTimeout">Verbindungs-Timeout (Sekunden)</label>
+                                    <input type="number" id="connectionTimeout" name="connection_timeout" 
+                                           class="form-control" min="5" max="60" step="1">
+                                    <small class="form-text text-muted">Maximale Wartezeit für Verbindungen (5-60 Sekunden)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="downloadsPath">Download-Verzeichnis</label>
+                                    <input type="text" id="downloadsPath" name="downloads_path" class="form-control" placeholder="z.B. C:\Downloads\Printernizer">
+                                    <small class="form-text text-muted">Verzeichnis für heruntergeladene Dateien</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="maxFileSize">Max. Dateigröße (MB)</label>
+                                    <input type="number" id="maxFileSize" name="max_file_size" 
+                                           class="form-control" min="1" max="1000" step="1">
+                                    <small class="form-text text-muted">Maximale Größe für Datei-Downloads (1-1000 MB)</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="vatRate">MwSt.-Satz (%)</label>
+                                    <input type="number" id="vatRate" name="vat_rate" 
+                                           class="form-control" min="0" max="50" step="0.1">
+                                    <small class="form-text text-muted">Mehrwertsteuersatz für Kostenberechnungen</small>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Library System Settings -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Bibliothek-Einstellungen</h3>
+                            <span class="card-icon">🗄️</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="librarySettingsForm" class="settings-form">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryEnabled" name="library_enabled">
+                                        <span class="checkbox-custom"></span>
+                                        Bibliothek-System aktivieren
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Automatische Dateiverwaltung mit Deduplizierung und Metadaten
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="libraryPath">Bibliothek-Pfad</label>
+                                    <input type="text" id="libraryPath" name="library_path"
+                                           class="form-control"
+                                           placeholder="z.B. C:\3DLibrary oder ./data/library">
+                                    <small class="form-text text-muted">
+                                        Verzeichnis für die zentrale Datei-Bibliothek (absolut oder relativ)
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryAutoOrganize" name="library_auto_organize">
+                                        <span class="checkbox-custom"></span>
+                                        Automatische Organisation
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Dateien aus überwachten Ordnern und Downloads automatisch zur Bibliothek hinzufügen
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryAutoExtractMetadata" name="library_auto_extract_metadata">
+                                        <span class="checkbox-custom"></span>
+                                        Automatische Metadaten-Extraktion
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Druckeinstellungen und Modell-Informationen automatisch aus Dateien auslesen
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="libraryAutoDeduplicate" name="library_auto_deduplicate">
+                                        <span class="checkbox-custom"></span>
+                                        Automatische Deduplizierung
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Doppelte Dateien anhand ihres Inhalts erkennen und zusammenführen
+                                    </small>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <strong>ℹ️ Hinweis:</strong> Nach Änderung des Bibliothek-Pfads ist ein Neustart erforderlich.
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- System Information -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>System-Informationen</h3>
+                            <span class="card-icon">📊</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="system-info" id="systemInfo">
+                                <div class="loading-placeholder">
+                                    <div class="spinner"></div>
+                                    <p>Lade System-Informationen...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Support Development -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Entwicklung unterstützen</h3>
+                            <span class="card-icon">☕</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="support-section">
+                                <p>
+                                    <strong>Printernizer</strong> ist ein Open-Source-Projekt, das mit Leidenschaft entwickelt wird.
+                                    Wenn dir diese Software hilft, deine 3D-Drucker zu verwalten, würde ich mich über deine Unterstützung freuen!
+                                </p>
+                                <div class="support-actions">
+                                    <a href="https://buymeacoffee.com/porcus3d" target="_blank" class="btn btn-support btn-lg">
+                                        ☕ Einen Kaffee spendieren
+                                    </a>
+                                    <div class="support-info">
+                                        <p class="text-muted">
+                                            Deine Unterstützung hilft dabei, neue Features zu entwickeln und die Software zu verbessern.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watch Folders -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Überwachte Verzeichnisse</h3>
+                            <span class="card-icon">📂</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="watchFolderSettingsForm" class="settings-form">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="watchFoldersEnabled" name="enabled">
+                                        <span class="checkbox-custom"></span>
+                                        Verzeichnisüberwachung aktiviert
+                                    </label>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="watchFoldersRecursive" name="recursive">
+                                        <span class="checkbox-custom"></span>
+                                        Rekursive Überwachung (Unterverzeichnisse)
+                                    </label>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="watchFolders">Überwachte Verzeichnisse</label>
+                                    <div id="watchFoldersList" class="watch-folders-list">
+                                        <!-- Dynamic content -->
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Page -->
+        <div id="debug" class="page">
+            <div class="page-header">
+                <h1>Debug & Systemprotokoll</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshDebugInfo()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearLogs()">
+                        <span class="btn-icon">🗑️</span>
+                        Logs löschen
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadLogs()">
+                        <span class="btn-icon">💾</span>
+                        Logs herunterladen
+                    </button>
+                </div>
+            </div>
+
+            <div class="debug-container">
+                <!-- System Health -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>System-Status</h3>
+                        <span class="card-icon">❤️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="health-info" id="healthInfo">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade System-Status...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Logs -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>Anwendungsprotokolle</h3>
+                        <span class="card-icon">📝</span>
+                        <div class="log-controls">
+                            <select id="logLevelFilter" class="filter-select">
+                                <option value="">Alle Level</option>
+                                <option value="ERROR">Nur Fehler</option>
+                                <option value="WARNING">Warnungen +</option>
+                                <option value="INFO">Info +</option>
+                                <option value="DEBUG">Debug</option>
+                            </select>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoRefreshLogs" checked>
+                                <span class="checkbox-custom"></span>
+                                Auto-Aktualisierung
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-viewer" id="logViewer">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Protokolle...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Performance Metrics -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>Performance-Metriken</h3>
+                        <span class="card-icon">📈</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="metrics-grid" id="performanceMetrics">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Metriken...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thumbnail Processing Log -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>Thumbnail Processing Log</h3>
+                        <span class="card-icon">🖼️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="debug-controls">
+                            <button onclick="debugManager.refreshThumbnailLog()" class="btn btn-sm">
+                                🔄 Aktualisieren
+                            </button>
+                            <select id="thumbnailLogLimit" onchange="debugManager.refreshThumbnailLog()">
+                                <option value="10">10 Einträge</option>
+                                <option value="20" selected>20 Einträge</option>
+                                <option value="50">50 Einträge</option>
+                            </select>
+                        </div>
+                        <div id="thumbnailProcessingLog">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Thumbnail-Verarbeitung...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Endpoints Test -->
+                <div class="card debug-section">
+                    <div class="card-header">
+                        <h3>API-Endpoints Test</h3>
+                        <span class="card-icon">🔌</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="api-test-grid" id="apiTests">
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade API-Tests...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <!-- Add Printer Modal -->
+    <div id="addPrinterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Drucker hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('addPrinterModal')">&times;</button>
+            </div>
+            <form id="addPrinterForm" class="modal-body">
+                <div class="form-group">
+                    <label for="printerType">Drucker Typ</label>
+                    <select id="printerType" name="printerType" class="form-control" required>
+                        <option value="">Typ auswählen</option>
+                        <option value="bambu_lab">Bambu Lab A1</option>
+                        <option value="prusa_core">Prusa Core One</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="ipaKeyGroup" style="display: none;">
+                    <label for="ipaKey">PrusaLink API Key</label>
+                    <input type="text" id="ipaKey" name="ipaKey" class="form-control"
+                           data-validate="api-key"
+                           placeholder="PrusaLink API Key" 
+                           minlength="8" maxlength="128">
+                    <small class="form-text text-muted">API Key von PrusaLink (Drucker Web-Interface → Settings → API)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="printerName">Name</label>
+                    <input type="text" id="printerName" name="printerName" class="form-control" required 
+                           data-validate="printer-name"
+                           placeholder="Mein Drucker" 
+                           minlength="3" maxlength="50">
+                    <small class="form-text text-muted">3-50 Zeichen (Buchstaben, Zahlen, Leerzeichen)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="printerIP">IP-Adresse</label>
+                    <input type="text" id="printerIP" name="printerIP" class="form-control" required 
+                           data-validate="ip"
+                           placeholder="192.168.1.100" 
+                           pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}">
+                    <small class="form-text text-muted">Format: xxx.xxx.xxx.xxx</small>
+                </div>
+                
+                <div id="bambuFields" class="printer-specific-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="accessCode">Access Code</label>
+                        <input type="text" id="accessCode" name="accessCode" class="form-control"
+                               data-validate="access-code"
+                               placeholder="12345678" 
+                               pattern="\d{8}" 
+                               maxlength="8">
+                        <small class="form-text text-muted">Genau 8 Ziffern (vom Drucker-Display)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="serialNumber">Seriennummer</label>
+                        <input type="text" id="serialNumber" name="serialNumber" class="form-control"
+                               data-validate="serial-number"
+                               placeholder="03919C431601127" 
+                               pattern="[A-Z0-9]{8,20}" 
+                               maxlength="20">
+                        <small class="form-text text-muted">8-20 Zeichen (vom Drucker-Gehäuse oder Einstellungen)</small>
+                    </div>
+                </div>
+                
+                <div id="prusaFields" class="printer-specific-fields" style="display: none;">
+                    <!-- Prusa-specific fields would go here if needed -->
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="printerActive" name="printerActive" checked>
+                        <span class="checkbox-custom"></span>
+                        Drucker aktivieren
+                    </label>
+                    <small class="form-text text-muted">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addPrinterModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="addPrinterForm" class="btn btn-primary">
+                    <span class="btn-icon">➕</span>
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Printer Modal -->
+    <div id="editPrinterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Drucker bearbeiten</h3>
+                <button class="modal-close" onclick="closeModal('editPrinterModal')">&times;</button>
+            </div>
+            <form id="editPrinterForm" class="modal-body">
+                <input type="hidden" id="editPrinterId" name="printerId">
+                
+                <div class="form-group">
+                    <label for="editPrinterType">Drucker Typ</label>
+                    <select id="editPrinterType" name="printerType" class="form-control" required>
+                        <option value="">Typ auswählen</option>
+                        <option value="bambu_lab">Bambu Lab A1</option>
+                        <option value="prusa_core">Prusa Core One</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="editIpaKeyGroup" style="display: none;">
+                    <label for="editIpaKey">PrusaLink API Key</label>
+                    <input type="text" id="editIpaKey" name="ipaKey" class="form-control"
+                           data-validate="api-key"
+                           placeholder="PrusaLink API Key" 
+                           minlength="8" maxlength="128">
+                    <small class="form-text text-muted">API Key von PrusaLink (Drucker Web-Interface → Settings → API)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPrinterName">Name</label>
+                    <input type="text" id="editPrinterName" name="printerName" class="form-control" required 
+                           data-validate="printer-name"
+                           placeholder="Mein Drucker" 
+                           minlength="3" maxlength="50">
+                    <small class="form-text text-muted">3-50 Zeichen (Buchstaben, Zahlen, Leerzeichen)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPrinterIP">IP-Adresse</label>
+                    <input type="text" id="editPrinterIP" name="printerIP" class="form-control" required 
+                           data-validate="ip"
+                           placeholder="192.168.1.100" 
+                           pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}">
+                    <small class="form-text text-muted">Format: xxx.xxx.xxx.xxx</small>
+                </div>
+                
+                <div id="editBambuFields" class="printer-specific-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="editAccessCode">Access Code</label>
+                        <input type="text" id="editAccessCode" name="accessCode" class="form-control"
+                               data-validate="access-code"
+                               placeholder="12345678" 
+                               pattern="\d{8}" 
+                               maxlength="8">
+                        <small class="form-text text-muted">Genau 8 Ziffern (vom Drucker-Display)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="editSerialNumber">Seriennummer</label>
+                        <input type="text" id="editSerialNumber" name="serialNumber" class="form-control"
+                               data-validate="serial-number"
+                               placeholder="03919C431601127" 
+                               pattern="[A-Z0-9]{8,20}" 
+                               maxlength="20">
+                        <small class="form-text text-muted">8-20 Zeichen (vom Drucker-Gehäuse oder Einstellungen)</small>
+                    </div>
+                </div>
+                
+                <div id="editPrusaFields" class="printer-specific-fields" style="display: none;">
+                    <!-- Prusa-specific fields would go here if needed -->
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="editPrinterActive" name="printerActive" checked>
+                        <span class="checkbox-custom"></span>
+                        Drucker aktivieren
+                    </label>
+                    <small class="form-text text-muted">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editPrinterModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="editPrinterForm" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Details Modal -->
+    <div id="jobDetailsModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Auftrag Details</h3>
+                <button class="modal-close" onclick="closeModal('jobDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="jobDetailsContent">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div id="filePreviewModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Datei Vorschau</h3>
+                <button class="modal-close" onclick="closeModal('filePreviewModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="filePreviewContent">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Vorschau...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Watch Folder Modal -->
+    <div id="addWatchFolderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Überwachtes Verzeichnis hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('addWatchFolderModal')">&times;</button>
+            </div>
+            <form id="addWatchFolderForm" class="modal-body">
+                <div class="form-group">
+                    <label for="watchFolderPath">Verzeichnispfad</label>
+                    <input type="text" id="watchFolderPath" name="folderPath" class="form-control" required 
+                           placeholder="C:\Benutzer\Ihr Name\3D-Modelle"
+                           data-validate="folder-path">
+                    <small class="form-text text-muted">
+                        Absoluter Pfad zum Verzeichnis, das überwacht werden soll.<br>
+                        Unterstützte Dateitypen: .stl, .3mf, .gcode, .obj, .ply
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <div class="validation-result" id="folderValidationResult" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary" onclick="validateWatchFolderPath()">
+                        <span class="btn-icon">✓</span>
+                        Pfad validieren
+                    </button>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addWatchFolderModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="addWatchFolderForm" class="btn btn-primary" id="addWatchFolderSubmit">
+                    <span class="btn-icon">📂</span>
+                    Hinzufügen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Idea Modal -->
+    <div id="addIdeaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Neue Idee hinzufügen</h3>
+                <button class="modal-close" onclick="closeModal('addIdeaModal')">&times;</button>
+            </div>
+            <form id="addIdeaForm" class="modal-body">
+                <div class="form-group">
+                    <label for="ideaTitle">Titel <span class="required">*</span></label>
+                    <input type="text" id="ideaTitle" name="title" class="form-control" required
+                           placeholder="Meine neue Druckidee"
+                           minlength="1" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="ideaDescription">Beschreibung</label>
+                    <textarea id="ideaDescription" name="description" class="form-control"
+                              placeholder="Detaillierte Beschreibung der Idee..."
+                              maxlength="2000" rows="4"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ideaCategory">Kategorie</label>
+                        <input type="text" id="ideaCategory" name="category" class="form-control"
+                               placeholder="z.B. Geschenk, Prototyp, Dekoration"
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ideaPriority">Priorität</label>
+                        <select id="ideaPriority" name="priority" class="form-control">
+                            <option value="1">1 - Niedrig</option>
+                            <option value="2">2 - Gering</option>
+                            <option value="3" selected>3 - Mittel</option>
+                            <option value="4">4 - Hoch</option>
+                            <option value="5">5 - Sehr hoch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ideaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
+                        <input type="number" id="ideaEstimatedTime" name="estimated_print_time"
+                               class="form-control" min="0" placeholder="120">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ideaPlannedDate">Geplantes Datum</label>
+                        <input type="date" id="ideaPlannedDate" name="planned_date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ideaMaterialNotes">Material-Notizen</label>
+                    <textarea id="ideaMaterialNotes" name="material_notes" class="form-control"
+                              placeholder="PLA Rot, 0.2mm Schichthöhe..."
+                              maxlength="500" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="ideaTags">Tags (durch Komma getrennt)</label>
+                    <input type="text" id="ideaTags" name="tags" class="form-control"
+                           placeholder="geschenk, weihnachten, personalisiert">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="ideaIsBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Geschäftlicher Auftrag
+                    </label>
+                </div>
+
+                <div class="form-group" id="customerInfoGroup" style="display: none;">
+                    <label for="ideaCustomerInfo">Kunden-Informationen</label>
+                    <textarea id="ideaCustomerInfo" name="customer_info" class="form-control"
+                              placeholder="Kundenname, Kontakt, spezielle Anforderungen..."
+                              maxlength="500" rows="2"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addIdeaModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="addIdeaForm" class="btn btn-primary">
+                    <span class="btn-icon">💡</span>
+                    Idee speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Idea Modal -->
+    <div id="editIdeaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Idee bearbeiten</h3>
+                <button class="modal-close" onclick="closeModal('editIdeaModal')">&times;</button>
+            </div>
+            <form id="editIdeaForm" class="modal-body">
+                <input type="hidden" id="editIdeaId" name="ideaId">
+
+                <div class="form-group">
+                    <label for="editIdeaTitle">Titel <span class="required">*</span></label>
+                    <input type="text" id="editIdeaTitle" name="title" class="form-control" required
+                           minlength="1" maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="editIdeaDescription">Beschreibung</label>
+                    <textarea id="editIdeaDescription" name="description" class="form-control"
+                              maxlength="2000" rows="4"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editIdeaCategory">Kategorie</label>
+                        <input type="text" id="editIdeaCategory" name="category" class="form-control"
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editIdeaPriority">Priorität</label>
+                        <select id="editIdeaPriority" name="priority" class="form-control">
+                            <option value="1">1 - Niedrig</option>
+                            <option value="2">2 - Gering</option>
+                            <option value="3">3 - Mittel</option>
+                            <option value="4">4 - Hoch</option>
+                            <option value="5">5 - Sehr hoch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editIdeaStatus">Status</label>
+                        <select id="editIdeaStatus" name="status" class="form-control">
+                            <option value="idea">💡 Idee</option>
+                            <option value="planned">📅 Geplant</option>
+                            <option value="printing">🖨️ Wird gedruckt</option>
+                            <option value="completed">✅ Abgeschlossen</option>
+                            <option value="archived">📦 Archiviert</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editIdeaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
+                        <input type="number" id="editIdeaEstimatedTime" name="estimated_print_time"
+                               class="form-control" min="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editIdeaPlannedDate">Geplantes Datum</label>
+                        <input type="date" id="editIdeaPlannedDate" name="planned_date" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editIdeaCompletedDate">Abgeschlossen am</label>
+                        <input type="date" id="editIdeaCompletedDate" name="completed_date" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="editIdeaMaterialNotes">Material-Notizen</label>
+                    <textarea id="editIdeaMaterialNotes" name="material_notes" class="form-control"
+                              maxlength="500" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editIdeaTags">Tags (durch Komma getrennt)</label>
+                    <input type="text" id="editIdeaTags" name="tags" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="editIdeaIsBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Geschäftlicher Auftrag
+                    </label>
+                </div>
+
+                <div class="form-group" id="editCustomerInfoGroup" style="display: none;">
+                    <label for="editIdeaCustomerInfo">Kunden-Informationen</label>
+                    <textarea id="editIdeaCustomerInfo" name="customer_info" class="form-control"
+                              maxlength="500" rows="2"></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editIdeaModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="editIdeaForm" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Änderungen speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import from URL Modal -->
+    <div id="importIdeaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Modell aus URL importieren</h3>
+                <button class="modal-close" onclick="closeModal('importIdeaModal')">&times;</button>
+            </div>
+            <form id="importIdeaForm" class="modal-body">
+                <div class="form-group">
+                    <label for="importUrl">URL</label>
+                    <input type="url" id="importUrl" name="url" class="form-control" required
+                           placeholder="https://makerworld.com/models/123456 oder https://www.printables.com/model/123456">
+                    <small class="form-text text-muted">
+                        Unterstützte Plattformen: Makerworld, Printables, Thingiverse, MyMiniFactory, Cults3D
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary" onclick="previewImportUrl()">
+                        <span class="btn-icon">👁️</span>
+                        URL-Vorschau laden
+                    </button>
+                </div>
+
+                <div id="urlPreview" class="url-preview" style="display: none;">
+                    <div class="preview-content">
+                        <div class="preview-thumbnail">
+                            <img id="previewImage" src="" alt="Modell-Vorschau">
+                        </div>
+                        <div class="preview-info">
+                            <h4 id="previewTitle">Modell-Titel</h4>
+                            <p id="previewDescription">Beschreibung...</p>
+                            <div class="preview-meta">
+                                <span id="previewCreator">Ersteller: </span>
+                                <span id="previewPlatform">Plattform: </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="importCategory">Kategorie</label>
+                        <input type="text" id="importCategory" name="category" class="form-control"
+                               placeholder="z.B. Dekoration, Werkzeug"
+                               maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="importPriority">Priorität</label>
+                        <select id="importPriority" name="priority" class="form-control">
+                            <option value="1">1 - Niedrig</option>
+                            <option value="2">2 - Gering</option>
+                            <option value="3" selected>3 - Mittel</option>
+                            <option value="4">4 - Hoch</option>
+                            <option value="5">5 - Sehr hoch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="importTags">Tags (durch Komma getrennt)</label>
+                    <input type="text" id="importTags" name="tags" class="form-control"
+                           placeholder="makerworld, dekoration, miniatur">
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="importIsBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Geschäftlicher Auftrag
+                    </label>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('importIdeaModal')">
+                    Abbrechen
+                </button>
+                <button type="submit" form="importIdeaForm" class="btn btn-primary">
+                    <span class="btn-icon">🔗</span>
+                    Importieren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Idea Details Modal -->
+    <div id="ideaDetailsModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Idee Details</h3>
+                <button class="modal-close" onclick="closeModal('ideaDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="ideaDetailsContent">
+                <div class="loading-placeholder">
+                    <div class="spinner"></div>
+                    <p>Lade Details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/error-handler.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/milestone-1-2-functions.js"></script>
+    <script src="js/printer-form.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/printers.js"></script>
+    <script src="js/jobs.js"></script>
+    <script src="js/enhanced-metadata.js"></script>
+    <script src="js/files.js"></script>
+    <script src="js/ideas.js"></script>
+    <script src="js/settings.js?v=1.1"></script>
+    <script src="js/debug.js?v=1.1"></script>
+
+    <!-- Auto-Download System -->
+    <script src="js/download-logger.js"></script>
+    <script src="js/download-queue.js"></script>
+    <script src="js/thumbnail-queue.js"></script>
+    <script src="js/auto-download-manager.js"></script>
+    <script src="js/auto-download-ui.js"></script>
+    <script src="js/download-debug.js"></script>
+    <script src="js/auto-download-init.js"></script>
+    <script src="js/library.js"></script>
+
+    <script src="js/main.js?v=1.1"></script>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span class="footer-text">Printernizer v<span id="appVersion">...</span></span>
+        </div>
+    </footer>
+</body>
+</html>
