@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="printerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 3D Printer Base -->
+  <rect x="10" y="60" width="80" height="30" rx="3" fill="url(#printerGradient)"/>
+  
+  <!-- Print Bed -->
+  <rect x="15" y="55" width="70" height="8" rx="2" fill="#e0e0e0" stroke="#666" stroke-width="1"/>
+  
+  <!-- Z-axis Rails -->
+  <rect x="15" y="20" width="4" height="40" rx="2" fill="#555"/>
+  <rect x="81" y="20" width="4" height="40" rx="2" fill="#555"/>
+  
+  <!-- Top Frame -->
+  <rect x="15" y="20" width="70" height="4" rx="2" fill="#555"/>
+  
+  <!-- Extruder -->
+  <circle cx="50" cy="45" r="6" fill="#ff6b6b"/>
+  <rect x="47" y="35" width="6" height="15" rx="1" fill="#666"/>
+  
+  <!-- Print Object -->
+  <polygon points="35,50 50,40 65,50 50,55" fill="#4ecdc4" opacity="0.8"/>
+  
+  <!-- Status LED -->
+  <circle cx="85" cy="65" r="3" fill="#00ff00"/>
+  
+  <!-- Brand Text -->
+  <text x="50" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white">3D</text>
+</svg>
