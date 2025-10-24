@@ -2,6 +2,18 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.10] - 2025-10-24
+
+### Fixed
+- **Critical Ingress routing fix**: Added route handler for double-slash (`//`) path
+- Fixed 404 error when accessing add-on via Home Assistant Ingress
+- Home Assistant Ingress was forwarding requests to `//` instead of `/`
+
+### Technical Details
+- Added `@app.get("//")` route handler to serve frontend for double-slash requests
+- This is a known Home Assistant Ingress behavior where trailing slashes in ingress paths result in double slashes
+- No changes to application functionality - routing fix only
+
 ## [2.0.9] - 2025-10-24
 
 ### Improved
