@@ -2,6 +2,32 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.11] - 2025-10-24
+
+### Fixed
+- **Critical Ingress routing fix**: Added `root_path` configuration to FastAPI for proper Home Assistant Ingress support
+- Fixed "Not Found" (404) error when accessing add-on via Home Assistant Ingress
+- FastAPI now correctly handles proxied requests from HA Ingress with proper path resolution
+
+### Added
+- **Enhanced diagnostics**: Request logging middleware to capture all incoming requests
+- Frontend path validation with detailed logging for troubleshooting
+- Fallback error handler when frontend files are missing
+- Request headers logging including X-Ingress-Path for debugging
+
+### Technical Details
+- Added `root_path` parameter to FastAPI application for Ingress path awareness
+- Implemented comprehensive request/response logging middleware
+- Added frontend existence checks with file count logging
+- Improved error messages with client IP and path information
+- Enhanced troubleshooting capabilities for Ingress-related issues
+
+### Root Cause Analysis
+- Home Assistant Ingress proxies requests without proper path prefix communication
+- FastAPI requires `root_path` configuration to handle proxied requests correctly
+- Without `root_path`, FastAPI generates incorrect URLs and routing fails
+- Solution: Configure `root_path=""` when HA_INGRESS=true to enable proper routing
+
 ## [2.0.10] - 2025-10-24
 
 ### Fixed

@@ -291,17 +291,26 @@ async def lifespan(app: FastAPI):
 
 def create_application() -> FastAPI:
     """Create FastAPI application with production configuration."""
-    
+
     # Initialize settings to get configuration
     from src.services.config_service import Settings
     settings = Settings()
-    
+
+    # Configure root_path for Home Assistant Ingress
+    # HA Ingress uses X-Ingress-Path header to communicate the base path
+    root_path = ""
+    if os.getenv("HA_INGRESS") == "true":
+        # Home Assistant Ingress uses empty root_path but sends X-Ingress-Path header
+        # FastAPI will automatically handle this with root_path=""
+        root_path = os.getenv("INGRESS_PATH", "")
+
     app = FastAPI(
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
         version=APP_VERSION,
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
+        root_path=root_path,
         lifespan=lifespan
     )
     
@@ -354,6 +363,28 @@ def create_application() -> FastAPI:
 
             return await call_next(request)
 
+    # Add request logging middleware for debugging Ingress issues
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        """Log all incoming requests for debugging."""
+        logger = structlog.get_logger()
+        logger.info("Incoming request",
+                   method=request.method,
+                   path=request.url.path,
+                   query=str(request.query_params),
+                   client=request.client.host if request.client else None,
+                   user_agent=request.headers.get("user-agent"),
+                   x_ingress_path=request.headers.get("x-ingress-path"))
+
+        response = await call_next(request)
+
+        logger.info("Request completed",
+                   method=request.method,
+                   path=request.url.path,
+                   status=response.status_code)
+
+        return response
+
     # Security and compliance middleware
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(GermanComplianceMiddleware)
@@ -379,21 +410,43 @@ def create_application() -> FastAPI:
     
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
-    if frontend_path.exists():
-        logger = structlog.get_logger()
+    logger = structlog.get_logger()
+
+    # Check if frontend exists
+    frontend_exists = frontend_path.exists()
+    logger.info("Frontend path check",
+                path=str(frontend_path),
+                exists=frontend_exists,
+                absolute=str(frontend_path.absolute()))
+
+    if frontend_exists:
+        # List contents for debugging
+        try:
+            files = list(frontend_path.glob("*"))
+            logger.info(f"Frontend directory contains {len(files)} files")
+        except Exception as e:
+            logger.warning("Could not list frontend files", error=str(e))
+
         logger.info("Mounting frontend static files", path=str(frontend_path))
         app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
 
         @app.get("/")
-        async def read_index():
+        async def read_index(request: Request):
             from fastapi.responses import FileResponse
+            logger.info("Serving index.html",
+                       path=request.url.path,
+                       client=request.client.host if request.client else None,
+                       headers=dict(request.headers))
             return FileResponse(str(frontend_path / "index.html"))
 
         # Handle Home Assistant Ingress double-slash issue
         # HA Ingress sometimes forwards requests as // instead of /
         @app.get("//")
-        async def read_index_double_slash():
+        async def read_index_double_slash(request: Request):
             from fastapi.responses import FileResponse
+            logger.info("Serving index.html (double-slash)",
+                       path=request.url.path,
+                       client=request.client.host if request.client else None)
             return FileResponse(str(frontend_path / "index.html"))
 
         @app.get("/debug")
@@ -402,6 +455,24 @@ def create_application() -> FastAPI:
             return FileResponse(str(frontend_path / "debug.html"))
 
         logger.info("✓ Frontend routes configured successfully")
+    else:
+        logger.error("❌ Frontend directory not found!",
+                    path=str(frontend_path),
+                    absolute=str(frontend_path.absolute()))
+
+        # Add fallback route to help diagnose the issue
+        @app.get("/")
+        async def root_fallback(request: Request):
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": "FRONTEND_NOT_FOUND",
+                    "message": "Frontend files are missing",
+                    "details": f"Frontend path does not exist: {frontend_path}",
+                    "path": str(request.url.path),
+                    "client": request.client.host if request.client else None
+                }
+            )
     
     # Prometheus metrics endpoint
     @app.get("/metrics")
