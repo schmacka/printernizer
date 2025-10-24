@@ -389,6 +389,13 @@ def create_application() -> FastAPI:
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "index.html"))
 
+        # Handle Home Assistant Ingress double-slash issue
+        # HA Ingress sometimes forwards requests as // instead of /
+        @app.get("//")
+        async def read_index_double_slash():
+            from fastapi.responses import FileResponse
+            return FileResponse(str(frontend_path / "index.html"))
+
         @app.get("/debug")
         async def read_debug():
             from fastapi.responses import FileResponse
