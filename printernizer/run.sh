@@ -5,7 +5,7 @@
 set -e
 
 # Colors for output
-bashio::log.info "Starting Printernizer Home Assistant Add-on v2.0.7..."
+bashio::log.info "Starting Printernizer Home Assistant Add-on v2.0.8..."
 
 # Read configuration from Home Assistant options
 CONFIG_PATH="/data/options.json"

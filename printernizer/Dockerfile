@@ -52,8 +52,8 @@ COPY frontend/ /app/frontend/
 COPY database_schema.sql /app/
 
 # Copy Home Assistant specific files
-COPY run.sh /usr/bin/
-RUN chmod +x /usr/bin/run.sh
+COPY run.sh /
+RUN chmod +x /run.sh
 
 # Create necessary directories
 RUN mkdir -p /data \
@@ -71,7 +71,8 @@ EXPOSE 8000
 LABEL io.hass.name="Printernizer" \
       io.hass.description="Professional 3D Printer Management System" \
       io.hass.type="addon" \
-      io.hass.version="2.0.7" \
+      io.hass.version="2.0.8" \
       io.hass.arch="aarch64|amd64|armv7|armhf"
 
-# Note: Do not override ENTRYPOINT - let HA base image init system handle startup
+# Start the add-on service
+CMD ["/run.sh"]

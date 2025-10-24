@@ -2,6 +2,18 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.8] - 2025-10-24
+
+### Fixed
+- **Critical startup fix**: Added missing CMD directive to Dockerfile to start the application
+- Fixed 502 Bad Gateway error when accessing add-on via Home Assistant Ingress
+- Moved run.sh to standard location (/) for proper execution by s6-overlay init system
+
+### Technical Details
+- Added `CMD ["/run.sh"]` to Dockerfile to ensure application starts correctly
+- Relocated run.sh from /usr/bin/ to / (root) following HA add-on best practices
+- No changes to application functionality - deployment fix only
+
 ## [2.0.2] - 2025-10-23
 
 ### Fixed
