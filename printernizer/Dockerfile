@@ -41,7 +41,7 @@ WORKDIR /app
 COPY requirements.txt /app/
 
 # Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Remove build dependencies to reduce image size
 RUN apk del .build-deps
@@ -71,7 +71,7 @@ EXPOSE 8000
 LABEL io.hass.name="Printernizer" \
       io.hass.description="Professional 3D Printer Management System" \
       io.hass.type="addon" \
-      io.hass.version="2.0.5" \
+      io.hass.version="2.0.6" \
       io.hass.arch="aarch64|amd64|armv7|armhf"
 
 # Set entrypoint
