@@ -5,7 +5,7 @@
 set -e
 
 # Colors for output
-bashio::log.info "Starting Printernizer Home Assistant Add-on v2.0.7..."
+bashio::log.info "Starting Printernizer Home Assistant Add-on v2.0.9..."
 
 # Read configuration from Home Assistant options
 CONFIG_PATH="/data/options.json"
@@ -128,7 +128,7 @@ fi
 
 # Display startup information
 bashio::log.info "======================================"
-bashio::log.info "Printernizer Add-on started!"
+bashio::log.info "Printernizer Add-on Configuration Complete"
 bashio::log.info "======================================"
 bashio::log.info "Access via Home Assistant Ingress or:"
 bashio::log.info "  Web Interface: http://[host]:8000"
@@ -137,5 +137,6 @@ bashio::log.info "======================================"
 
 # Start the application
 bashio::log.info "Starting Printernizer application server..."
+bashio::log.info "This may take a moment while services initialize..."
 cd /app
 exec python3 src/main.py
