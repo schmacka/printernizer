@@ -91,41 +91,57 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     logger = structlog.get_logger()
+    logger.info("=" * 60)
     logger.info("Starting Printernizer application", version=APP_VERSION)
-    
+    logger.info("=" * 60)
+
     # Initialize database
+    logger.info("Initializing database...")
     database = Database()
     await database.initialize()
     app.state.database = database
-    
+    logger.info("✓ Database initialized successfully")
+
     # Run database migrations
+    logger.info("Running database migrations...")
     migration_service = MigrationService(database)
     await migration_service.run_migrations()
     app.state.migration_service = migration_service
+    logger.info("✓ Database migrations completed")
     
     # Initialize services
+    logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
+    logger.info("✓ Core services initialized")
 
     # Initialize Library service (before file_watcher so it can use it)
+    logger.info("Initializing library service...")
     from src.services.library_service import LibraryService
     library_service = LibraryService(database, config_service, event_service)
     await library_service.initialize()
+    logger.info("✓ Library service initialized")
 
     # Initialize file watcher service with library integration
+    logger.info("Initializing file watcher service...")
     file_watcher_service = FileWatcherService(config_service, event_service, library_service)
+    logger.info("✓ File watcher service initialized")
 
     # Initialize file service with file watcher, printer service, config service, and library
+    logger.info("Initializing file service...")
     file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
+    logger.info("✓ File service initialized")
 
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
 
     # Initialize Ideas-related services
+    logger.info("Initializing ideas and trending services...")
     thumbnail_service = ThumbnailService(event_service)
     url_parser_service = UrlParserService()
     trending_service = TrendingService(database, event_service)
+    logger.info("✓ Ideas services initialized")
 
     app.state.config_service = config_service
     app.state.event_service = event_service
@@ -136,10 +152,12 @@ async def lifespan(app: FastAPI):
     app.state.url_parser_service = url_parser_service
     app.state.trending_service = trending_service
     app.state.library_service = library_service
-    
+
     # Initialize and start background services
+    logger.info("Starting background services...")
     await event_service.start()
     await printer_service.initialize()
+    logger.info("✓ Background services started")
 
     # Subscribe WebSocket broadcast for individual printer status updates (includes thumbnails)
     async def _on_printer_status_update(data):
@@ -155,23 +173,29 @@ async def lifespan(app: FastAPI):
     event_service.subscribe("printer_status_update", _on_printer_status_update)
 
     # Initialize Ideas-related services
+    logger.info("Starting trending service...")
     await trending_service.initialize()
-    
+    logger.info("✓ Trending service started")
+
     # Start printer monitoring
+    logger.info("Starting printer monitoring...")
     try:
         await printer_service.start_monitoring()
-        logger.info("Printer monitoring started successfully")
+        logger.info("✓ Printer monitoring started successfully")
     except Exception as e:
-        logger.warning("Failed to start printer monitoring", error=str(e))
-    
+        logger.warning("⚠ Failed to start printer monitoring", error=str(e))
+
     # Start file watcher service
+    logger.info("Starting file watcher...")
     try:
         await file_watcher_service.start()
-        logger.info("File watcher service started successfully")
+        logger.info("✓ File watcher service started successfully")
     except Exception as e:
-        logger.warning("Failed to start file watcher service", error=str(e))
-    
-    logger.info("Printernizer startup complete")
+        logger.warning("⚠ Failed to start file watcher service", error=str(e))
+
+    logger.info("=" * 60)
+    logger.info("✓ PRINTERNIZER BACKEND READY")
+    logger.info("=" * 60)
     
     yield
     
@@ -356,17 +380,21 @@ def create_application() -> FastAPI:
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
     if frontend_path.exists():
+        logger = structlog.get_logger()
+        logger.info("Mounting frontend static files", path=str(frontend_path))
         app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
-        
+
         @app.get("/")
         async def read_index():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "index.html"))
-        
+
         @app.get("/debug")
         async def read_debug():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "debug.html"))
+
+        logger.info("✓ Frontend routes configured successfully")
     
     # Prometheus metrics endpoint
     @app.get("/metrics")
@@ -438,10 +466,13 @@ app = create_application()
 if __name__ == "__main__":
     # Production server configuration
     setup_signal_handlers()
-    
+
+    port = int(os.getenv("PORT", 8000))
+    host = "0.0.0.0"
+
     config = {
-        "host": "0.0.0.0",
-        "port": int(os.getenv("PORT", 8000)),
+        "host": host,
+        "port": port,
         "workers": 1,  # Force single worker to avoid database initialization conflicts
         "log_level": os.getenv("LOG_LEVEL", "info"),
         "access_log": True,
@@ -449,12 +480,23 @@ if __name__ == "__main__":
         "server_header": False,
         "date_header": False
     }
-    
+
     if os.getenv("ENVIRONMENT") == "development":
         config.update({
             "reload": True,
             "reload_dirs": ["src"],
             "workers": 1
         })
-    
+
+    # Log server startup
+    logger = structlog.get_logger()
+    logger.info("=" * 60)
+    logger.info("STARTING UVICORN SERVER")
+    logger.info(f"Listening on: http://{host}:{port}")
+    logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'production')}")
+    logger.info(f"Deployment Mode: {os.getenv('DEPLOYMENT_MODE', 'standalone')}")
+    if os.getenv("HA_INGRESS") == "true":
+        logger.info("Home Assistant Ingress: ENABLED")
+    logger.info("=" * 60)
+
     uvicorn.run("src.main:app", **config)
