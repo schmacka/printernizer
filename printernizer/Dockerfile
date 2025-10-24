@@ -71,8 +71,7 @@ EXPOSE 8000
 LABEL io.hass.name="Printernizer" \
       io.hass.description="Professional 3D Printer Management System" \
       io.hass.type="addon" \
-      io.hass.version="2.0.6" \
+      io.hass.version="2.0.7" \
       io.hass.arch="aarch64|amd64|armv7|armhf"
 
-# Set entrypoint
-ENTRYPOINT ["/usr/bin/run.sh"]
+# Note: Do not override ENTRYPOINT - let HA base image init system handle startup
