@@ -357,12 +357,18 @@ def create_application() -> FastAPI:
     frontend_path = Path(__file__).parent.parent / "frontend"
     if frontend_path.exists():
         app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
-        
+
         @app.get("/")
         async def read_index():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "index.html"))
-        
+
+        # Home Assistant Ingress compatibility: handle double-slash path
+        @app.get("//")
+        async def read_index_double_slash():
+            from fastapi.responses import FileResponse
+            return FileResponse(str(frontend_path / "index.html"))
+
         @app.get("/debug")
         async def read_debug():
             from fastapi.responses import FileResponse
