@@ -12,8 +12,9 @@ const getApiBaseUrl = () => {
 
     // If accessed through HA Ingress (no port in URL) or on port 8123, use relative paths
     // This allows HA to proxy requests correctly through Ingress
+    // NOTE: Must use relative path WITHOUT leading slash so it resolves relative to Ingress base path
     if (!port || port === '8123') {
-        return '/api/v1';
+        return 'api/v1';
     }
 
     // Direct access mode: use explicit port 8000
@@ -25,10 +26,15 @@ const getWebSocketUrl = () => {
     const port = window.location.port;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-    // If accessed through HA Ingress (no port in URL) or on port 8123, use relative WebSocket path
-    // HA Ingress supports WebSocket proxying
+    // If accessed through HA Ingress (no port in URL) or on port 8123, construct WebSocket URL
+    // that preserves the Ingress path prefix
     if (!port || port === '8123') {
-        return `${protocol}//${host}/ws`;
+        // Get current page URL and convert to WebSocket protocol
+        // This preserves the /api/hassio_ingress/<token>/ path prefix
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const currentUrl = window.location.href.split('#')[0]; // Remove hash fragment
+        const wsBaseUrl = currentUrl.replace(/^http/, 'ws').replace(/\/$/, ''); // Replace protocol and remove trailing slash
+        return `${wsBaseUrl}/ws`;
     }
 
     // Direct access mode: use explicit port 8000

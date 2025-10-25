@@ -4,17 +4,40 @@
  */
 
 // Dynamic API URL detection for network access
+// Supports both Home Assistant Ingress (relative paths) and direct access (port 8000)
 const getApiBaseUrl = () => {
     const host = window.location.hostname;
+    const port = window.location.port;
     const protocol = window.location.protocol;
-    // Use same host as frontend, but port 8000 for API
+
+    // If accessed through HA Ingress (no port in URL) or on port 8123, use relative paths
+    // This allows HA to proxy requests correctly through Ingress
+    // NOTE: Must use relative path WITHOUT leading slash so it resolves relative to Ingress base path
+    if (!port || port === '8123') {
+        return 'api/v1';
+    }
+
+    // Direct access mode: use explicit port 8000
     return `${protocol}//${host}:8000/api/v1`;
 };
 
 const getWebSocketUrl = () => {
     const host = window.location.hostname;
+    const port = window.location.port;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use same host as frontend, but port 8000 for WebSocket
+
+    // If accessed through HA Ingress (no port in URL) or on port 8123, construct WebSocket URL
+    // that preserves the Ingress path prefix
+    if (!port || port === '8123') {
+        // Get current page URL and convert to WebSocket protocol
+        // This preserves the /api/hassio_ingress/<token>/ path prefix
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const currentUrl = window.location.href.split('#')[0]; // Remove hash fragment
+        const wsBaseUrl = currentUrl.replace(/^http/, 'ws').replace(/\/$/, ''); // Replace protocol and remove trailing slash
+        return `${wsBaseUrl}/ws`;
+    }
+
+    // Direct access mode: use explicit port 8000
     return `${protocol}//${host}:8000/ws`;
 };
 
