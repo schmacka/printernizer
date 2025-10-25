@@ -356,14 +356,17 @@ def create_application() -> FastAPI:
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
     if frontend_path.exists():
-        app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
+        logger = structlog.get_logger()
+        logger.info("Mounting frontend static files", path=str(frontend_path))
 
+        # Serve specific HTML files first
         @app.get("/")
         async def read_index():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "index.html"))
 
-        # Home Assistant Ingress compatibility: handle double-slash path
+        # Handle Home Assistant Ingress double-slash issue
+        # HA Ingress sometimes forwards requests as // instead of /
         @app.get("//")
         async def read_index_double_slash():
             from fastapi.responses import FileResponse
@@ -373,6 +376,13 @@ def create_application() -> FastAPI:
         async def read_debug():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "debug.html"))
+
+        # Mount static files at root for proper resource loading
+        # This must be done AFTER all API routes and specific routes are registered
+        # so that API routes take precedence
+        app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
+
+        logger.info("✓ Frontend routes configured successfully")
     
     # Prometheus metrics endpoint
     @app.get("/metrics")
