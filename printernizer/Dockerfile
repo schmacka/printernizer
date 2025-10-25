@@ -18,6 +18,7 @@ ENV LANG=C.UTF-8 \
 RUN apk add --no-cache \
     python3 \
     py3-pip \
+    py3-brotli \
     sqlite \
     curl \
     jq \
@@ -71,7 +72,7 @@ EXPOSE 8000
 LABEL io.hass.name="Printernizer" \
       io.hass.description="Professional 3D Printer Management System" \
       io.hass.type="addon" \
-      io.hass.version="2.0.10" \
+      io.hass.version="2.0.11" \
       io.hass.arch="aarch64|amd64|armv7|armhf"
 
 # Start the add-on service
