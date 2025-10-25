@@ -382,8 +382,8 @@ def create_application() -> FastAPI:
     if frontend_path.exists():
         logger = structlog.get_logger()
         logger.info("Mounting frontend static files", path=str(frontend_path))
-        app.mount("/static", StaticFiles(directory=str(frontend_path)), name="static")
 
+        # Serve specific HTML files first
         @app.get("/")
         async def read_index():
             from fastapi.responses import FileResponse
@@ -400,6 +400,11 @@ def create_application() -> FastAPI:
         async def read_debug():
             from fastapi.responses import FileResponse
             return FileResponse(str(frontend_path / "debug.html"))
+
+        # Mount static files at root for proper resource loading
+        # This must be done AFTER all API routes and specific routes are registered
+        # so that API routes take precedence
+        app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 
         logger.info("✓ Frontend routes configured successfully")
     

@@ -2,6 +2,25 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.12] - 2025-10-25
+
+### Fixed
+- **Frontend static file serving**: Fixed frontend not displaying correctly via Home Assistant Ingress
+- Static files now mounted at root path instead of `/static` for proper resource loading
+- Browser can now correctly load CSS, JavaScript, and assets from relative paths
+- API routes preserved through proper registration order
+
+### Technical Details
+- Changed static file mount from `/static` to `/` with `html=True` parameter
+- Ensures API routes registered with `/api/v1` prefix take precedence
+- Frontend resources (css/, js/, assets/) now accessible from root paths
+- Maintains Home Assistant Ingress double-slash handling compatibility
+
+## [2.0.11] - 2025-10-24
+
+### Fixed
+- Minor improvements to Ingress compatibility
+
 ## [2.0.10] - 2025-10-24
 
 ### Fixed
