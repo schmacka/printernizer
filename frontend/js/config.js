@@ -26,9 +26,13 @@ const getWebSocketUrl = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
     // If accessed through HA Ingress (no port in URL) or on port 8123, use relative WebSocket path
-    // HA Ingress supports WebSocket proxying
+    // HA Ingress supports WebSocket proxying - must use relative path to get proxied correctly
     if (!port || port === '8123') {
-        return `${protocol}//${host}/ws`;
+        // Use relative WebSocket path so HA Ingress can proxy it correctly
+        // The path will be relative to the current location, including any ingress prefix
+        const basePath = window.location.pathname.split('/').slice(0, -1).join('/');
+        const wsPath = basePath ? `${basePath}/ws` : '/ws';
+        return `${protocol}//${host}${window.location.port ? ':' + window.location.port : ''}${wsPath}`;
     }
 
     // Direct access mode: use explicit port 8000
