@@ -6,12 +6,17 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 
 ### Fixed
 - **Frontend static file serving**: Fixed frontend not displaying correctly via Home Assistant Ingress
+- **API and WebSocket connectivity**: Fixed frontend unable to connect to backend via Ingress
 - Static files now mounted at root path instead of `/static` for proper resource loading
+- API base URL uses relative path without leading slash for correct Ingress proxying
+- WebSocket URL preserves Ingress path prefix for proper WebSocket proxying
 - Browser can now correctly load CSS, JavaScript, and assets from relative paths
 - API routes preserved through proper registration order
 
 ### Technical Details
 - Changed static file mount from `/static` to `/` with `html=True` parameter
+- Changed API base URL from `/api/v1` to `api/v1` (relative path)
+- WebSocket URL now constructed from current page URL preserving Ingress path
 - Ensures API routes registered with `/api/v1` prefix take precedence
 - Frontend resources (css/, js/, assets/) now accessible from root paths
 - Maintains Home Assistant Ingress double-slash handling compatibility
