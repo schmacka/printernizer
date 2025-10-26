@@ -13,6 +13,7 @@ CONFIG_PATH="/data/options.json"
 # Parse options with jq and bashio
 LOG_LEVEL=$(bashio::config 'log_level' 'info')
 TIMEZONE=$(bashio::config 'timezone' 'Europe/Berlin')
+LIBRARY_FOLDER=$(bashio::config 'library_folder' '/data/printernizer/library')
 ENABLE_3D_PREVIEW=$(bashio::config 'enable_3d_preview' 'true')
 ENABLE_WEBSOCKETS=$(bashio::config 'enable_websockets' 'true')
 ENABLE_BUSINESS_REPORTS=$(bashio::config 'enable_business_reports' 'true')
@@ -20,6 +21,7 @@ ENABLE_BUSINESS_REPORTS=$(bashio::config 'enable_business_reports' 'true')
 bashio::log.info "Configuration loaded from Home Assistant"
 bashio::log.info "  • Log Level: ${LOG_LEVEL}"
 bashio::log.info "  • Timezone: ${TIMEZONE}"
+bashio::log.info "  • Library Folder: ${LIBRARY_FOLDER}"
 bashio::log.info "  • 3D Preview: ${ENABLE_3D_PREVIEW}"
 bashio::log.info "  • WebSockets: ${ENABLE_WEBSOCKETS}"
 bashio::log.info "  • Business Reports: ${ENABLE_BUSINESS_REPORTS}"
@@ -31,6 +33,7 @@ bashio::log.info "Timezone set to ${TZ}"
 # Create necessary directories
 bashio::log.info "Setting up directories..."
 mkdir -p /data/printernizer
+mkdir -p "${LIBRARY_FOLDER}"
 mkdir -p /data/printernizer/printer-files
 mkdir -p /data/printernizer/preview-cache
 mkdir -p /data/printernizer/backups
@@ -60,6 +63,7 @@ TZ=${TIMEZONE}
 DATABASE_PATH=/data/printernizer/printernizer.db
 
 # File paths (persistent storage in /data)
+LIBRARY_PATH=${LIBRARY_FOLDER}
 UPLOAD_PATH=/data/printernizer/printer-files
 BACKUP_PATH=/data/printernizer/backups
 CACHE_PATH=/data/printernizer/preview-cache

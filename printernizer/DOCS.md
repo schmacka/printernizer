@@ -69,6 +69,7 @@ The Configuration tab contains all add-on settings in YAML format.
 ```yaml
 log_level: info
 timezone: Europe/Berlin
+library_folder: /data/printernizer/library
 enable_3d_preview: true
 enable_websockets: true
 enable_business_reports: true
@@ -83,6 +84,16 @@ enable_business_reports: true
 - Sets timezone for all timestamps
 - Use IANA timezone format (e.g., `America/New_York`, `Asia/Tokyo`)
 - Affects business reports and job timestamps
+
+**library_folder** (optional, default: `/data/printernizer/library`)
+- Path where downloaded 3D model files are stored
+- Must be an absolute path
+- Automatically created if it doesn't exist
+- Examples:
+  - `/data/printernizer/library` (default)
+  - `/share/3d-models` (shared with other add-ons)
+  - `/mnt/usb-drive/library` (external storage)
+- **Note:** Ensure the path is accessible and has sufficient storage space
 
 **enable_3d_preview** (optional, default: `true`)
 - Enables automatic 3D preview generation for STL, 3MF, and G-code files
@@ -406,7 +417,10 @@ All persistent data stored in `/data/printernizer/`:
 ```
 /data/printernizer/
 ├── printernizer.db          # SQLite database (jobs, printers, settings)
-├── printer-files/           # Downloaded printer files
+├── library/                 # Downloaded 3D model files (configurable)
+│   ├── models/             # Organized 3D models
+│   └── metadata/           # File metadata and checksums
+├── printer-files/           # Temporary printer files
 │   ├── bambu-lab-a1-1/     # Organized by printer
 │   └── prusa-core-one-1/
 ├── preview-cache/           # 3D preview thumbnails
@@ -414,6 +428,8 @@ All persistent data stored in `/data/printernizer/`:
 │   └── metadata/
 └── backups/                 # Automatic database backups
 ```
+
+**Note:** The library folder location is configurable via `library_folder` setting. By default it's `/data/printernizer/library`, but you can change it to any accessible path (e.g., external storage, shared folders).
 
 ### Backup and Restore
 

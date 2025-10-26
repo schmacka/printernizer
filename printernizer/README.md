@@ -83,6 +83,7 @@ printers:
 |--------|------|---------|-------------|
 | `log_level` | list | `info` | Logging level: debug, info, warning, error |
 | `timezone` | string | `Europe/Berlin` | Your timezone for timestamps |
+| `library_folder` | string | `/data/printernizer/library` | Path where 3D model files are stored |
 | `enable_3d_preview` | bool | `true` | Enable 3D file preview generation |
 | `enable_websockets` | bool | `true` | Enable real-time WebSocket updates |
 | `enable_business_reports` | bool | `true` | Enable business analytics features |
@@ -188,6 +189,7 @@ All data is stored in Home Assistant's add-on data directory:
 ```
 /data/printernizer/
 ├── printernizer.db          # SQLite database
+├── library/                 # 3D model files (configurable via library_folder)
 ├── printer-files/           # Downloaded files
 ├── preview-cache/           # 3D preview thumbnails
 └── backups/                 # Database backups
