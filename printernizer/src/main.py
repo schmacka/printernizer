@@ -305,28 +305,35 @@ def create_application() -> FastAPI:
     # Home Assistant Ingress security middleware (only active when HA_INGRESS=true)
     if os.getenv("HA_INGRESS") == "true":
         logger = structlog.get_logger()
-        logger.info("Home Assistant Ingress mode enabled - restricting access to 172.30.32.2")
+        logger.info("Home Assistant Ingress mode enabled - restricting access to HA internal network (172.30.32.0/24)")
 
         @app.middleware("http")
         async def ingress_security_middleware(request: Request, call_next):
-            """Restrict access to Home Assistant Ingress IP only."""
+            """Restrict access to Home Assistant Ingress network only."""
             client_ip = request.client.host if request.client else None
-            allowed_ip = "172.30.32.2"
 
-            # Allow health checks from localhost
+            # Allow health checks from localhost (internal container checks)
             if request.url.path == "/api/v1/health" and client_ip in ["127.0.0.1", "localhost"]:
                 return await call_next(request)
 
-            # Enforce Ingress security for all other requests
-            if client_ip != allowed_ip:
-                return JSONResponse(
-                    status_code=403,
-                    content={
-                        "error": "FORBIDDEN",
-                        "message": "Access denied - Use Home Assistant Ingress",
-                        "details": "Direct access is not allowed. Access via Home Assistant UI."
-                    }
-                )
+            # Allow entire HA internal network (172.30.32.0/24)
+            # This includes:
+            # - 172.30.32.1: HA Ingress proxy/gateway
+            # - 172.30.32.2: Add-on backend container
+            # - Other HA internal services
+            if client_ip and client_ip.startswith("172.30.32."):
+                return await call_next(request)
+
+            # Reject all other IPs
+            logger.warning("Ingress security: Blocked external access", client_ip=client_ip, path=request.url.path)
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": "FORBIDDEN",
+                    "message": "Access denied - Use Home Assistant Ingress",
+                    "details": "Direct access is not allowed. Access via Home Assistant UI."
+                }
+            )
 
             return await call_next(request)
 
