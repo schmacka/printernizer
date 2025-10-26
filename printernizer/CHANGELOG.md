@@ -2,6 +2,18 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.13] - 2025-10-26
+
+### Fixed
+- **WebSocket URL construction**: Fixed WebSocket connection URL construction for Home Assistant Ingress
+- WebSocket now correctly connects through Ingress proxy with proper URL handling
+- Resolved connection issues when accessing add-on via Home Assistant UI
+
+### Technical Details
+- Improved WebSocket URL generation to handle Ingress path routing
+- Ensures real-time updates work correctly in Ingress mode
+- No changes to standalone deployment modes
+
 ## [2.0.12] - 2025-10-25
 
 ### Fixed
