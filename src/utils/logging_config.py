@@ -3,15 +3,25 @@ Logging configuration for Printernizer.
 Structured logging setup with German timezone support.
 """
 import logging
+import os
 import sys
 from typing import Any
 import structlog
 from pathlib import Path
 
 
-def setup_logging(log_level: str = "INFO", log_file: str = None):
-    """Set up structured logging for Printernizer."""
-    
+def setup_logging(log_level: str = None, log_file: str = None):
+    """Set up structured logging for Printernizer.
+
+    Args:
+        log_level: Log level (debug, info, warning, error). If None, reads from LOG_LEVEL env var.
+        log_file: Optional path to log file.
+    """
+
+    # Read from environment variable if not provided
+    if log_level is None:
+        log_level = os.getenv("LOG_LEVEL", "INFO")
+
     # Configure standard library logging
     logging.basicConfig(
         format="%(message)s",
