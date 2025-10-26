@@ -2,6 +2,11 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.18] - 2025-10-26
+
+### Changed
+- Version bump for maintenance release
+
 ## [2.0.17] - 2025-10-26
 
 ### Fixed
