@@ -2,6 +2,19 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.16] - 2025-10-26
+
+### Fixed
+- **Ideas API connection**: Fixed ideas.js module using hardcoded API URL that broke Home Assistant Ingress mode
+- Ideas/bookmarks/trending features now properly connect through Ingress proxy
+- Ideas module now uses centralized API configuration like all other modules
+
+### Technical Details
+- Replaced hardcoded port 8000 URL with CONFIG.API_BASE_URL
+- Ensures proper relative path handling in HA Ingress mode
+- Maintains compatibility with standalone and Docker deployments
+- Completes the frontend connection fix for all frontend modules
+
 ## [2.0.15] - 2025-10-26
 
 ### Changed
