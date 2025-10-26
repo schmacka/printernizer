@@ -2,6 +2,29 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.17] - 2025-10-26
+
+### Fixed
+- **Critical Frontend Connection Fix**: Completely rewrote API path detection to properly support Home Assistant Ingress
+- Frontend now correctly preserves Ingress base path when making API requests
+- Fixed API URL construction to use relative paths including Ingress prefix (e.g., `/api/hassio_ingress/<uuid>/api/v1`)
+- All frontend modules now connect properly through HA proxy
+
+### Added
+- **Comprehensive Debug Logging**: Added debug mode for troubleshooting connection issues
+  - Enable with `?debug=true` in URL or `localStorage.setItem('printernizer_debug', 'true')` in console
+  - Access debug info via `window.PrinternizerDebug.getConfig()` in browser console
+  - Logs show detected paths, base URLs, and deployment mode
+
+### Technical Details
+- **Root Cause**: Previous implementation used absolute paths (`/api/v1`) which bypassed HA Ingress proxy
+- **Solution**: Now extracts base path from `window.location.pathname` to preserve Ingress prefix
+- **Path Detection**:
+  - HA Ingress: `/api/hassio_ingress/<uuid>/` → API at `/api/hassio_ingress/<uuid>/api/v1`
+  - Direct access: Port 8000 → API at `http://host:8000/api/v1`
+- **WebSocket**: Updated to use same path detection logic for consistency
+- **Debug utilities**: Browser console tools for configuration inspection
+
 ## [2.0.16] - 2025-10-26
 
 ### Fixed
