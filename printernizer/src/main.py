@@ -305,35 +305,24 @@ def create_application() -> FastAPI:
     # Home Assistant Ingress security middleware (only active when HA_INGRESS=true)
     if os.getenv("HA_INGRESS") == "true":
         logger = structlog.get_logger()
-        logger.info("Home Assistant Ingress mode enabled - restricting access to HA internal network (172.30.32.0/24)")
+        logger.info("Home Assistant Ingress mode enabled - trusting HA authentication")
 
         @app.middleware("http")
         async def ingress_security_middleware(request: Request, call_next):
-            """Restrict access to Home Assistant Ingress network only."""
+            """Log requests in HA Ingress mode but allow all (HA handles auth)."""
             client_ip = request.client.host if request.client else None
 
-            # Allow health checks from localhost (internal container checks)
-            if request.url.path == "/api/v1/health" and client_ip in ["127.0.0.1", "localhost"]:
-                return await call_next(request)
-
-            # Allow entire HA internal network (172.30.32.0/24)
-            # This includes:
-            # - 172.30.32.1: HA Ingress proxy/gateway
-            # - 172.30.32.2: Add-on backend container
-            # - Other HA internal services
-            if client_ip and client_ip.startswith("172.30.32."):
-                return await call_next(request)
-
-            # Reject all other IPs
-            logger.warning("Ingress security: Blocked external access", client_ip=client_ip, path=request.url.path)
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "error": "FORBIDDEN",
-                    "message": "Access denied - Use Home Assistant Ingress",
-                    "details": "Direct access is not allowed. Access via Home Assistant UI."
-                }
-            )
+            # In HA Ingress mode, Home Assistant already handles authentication
+            # and security before forwarding requests to the add-on.
+            # We trust HA's authentication and don't need additional IP restrictions.
+            # Just log the request for debugging purposes.
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    "HA Ingress request",
+                    client_ip=client_ip,
+                    path=request.url.path,
+                    method=request.method
+                )
 
             return await call_next(request)
 
