@@ -2,6 +2,24 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.19] - 2025-10-26
+
+### Fixed
+- **Critical Ingress Security Fix**: Removed overly restrictive IP check that was blocking frontend connections
+- Frontend can now connect to backend when accessed through Home Assistant Ingress
+- Ingress middleware now trusts HA's built-in authentication instead of doing redundant IP filtering
+
+### Changed
+- Simplified Ingress security model to trust Home Assistant's authentication layer
+- Removed 172.30.32.0/24 IP restriction that was incompatible with HA Ingress proxy architecture
+- Added debug logging for Ingress requests (when debug level enabled)
+
+### Technical Details
+- **Root Cause**: Previous IP restriction (172.30.32.0/24) blocked legitimate Ingress-proxied requests
+- **Solution**: Home Assistant Ingress already handles authentication and security before forwarding to add-on
+- No additional IP filtering needed - HA's Ingress provides sufficient security
+- This completes the frontend connection fixes from 2.0.16-2.0.17
+
 ## [2.0.18] - 2025-10-26
 
 ### Changed
