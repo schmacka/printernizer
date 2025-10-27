@@ -2,6 +2,25 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.20] - 2025-10-27
+
+### Fixed
+- **Critical Frontend Connection Fix**: Corrected API URL construction for Home Assistant Ingress mode
+- Frontend now uses simple relative paths (`/api/v1`) instead of preserving Ingress prefix
+- WebSocket connections also fixed to use simple relative paths
+- Frontend can now successfully connect to backend when accessed through HA Ingress
+
+### Technical Details
+- **Root Cause**: Previous fix (2.0.17) incorrectly preserved the Ingress path prefix in API calls
+  - Frontend was building: `/api/hassio_ingress/<uuid>/api/v1/...`
+  - But HA Ingress automatically strips `/api/hassio_ingress/<uuid>/` before forwarding
+  - Backend was receiving broken paths and returning 404 errors
+- **Solution**: Use simple relative paths (`/api/v1` and `/ws`) in Ingress mode
+  - HA Ingress handles the proxy prefix stripping automatically
+  - No need to preserve or reconstruct the Ingress path in frontend code
+- **Impact**: All API calls and WebSocket connections now work correctly through HA Ingress
+- This completes the frontend connection fixes from 2.0.17-2.0.19
+
 ## [2.0.19] - 2025-10-26
 
 ### Fixed

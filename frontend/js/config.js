@@ -22,27 +22,16 @@ const getApiBaseUrl = () => {
     debugLog('Detecting API Base URL', { host, port, protocol, pathname, href });
 
     // If accessed through HA Ingress (no port in URL) or on port 8123, use relative paths
-    // This allows HA to proxy requests correctly through Ingress
+    // Home Assistant Ingress automatically strips the /api/hassio_ingress/<uuid>/ prefix
+    // before forwarding to the container, so we should use simple relative paths
     if (!port || port === '8123') {
-        // Extract base path from current location
-        // For HA Ingress URLs like /api/hassio_ingress/<uuid>/index.html
-        // we need to preserve the base path /api/hassio_ingress/<uuid>/
-        const pathParts = pathname.split('/').filter(p => p);
+        const apiUrl = '/api/v1';
 
-        // Remove the last part if it's a file (has extension)
-        if (pathParts.length > 0 && pathParts[pathParts.length - 1].includes('.')) {
-            pathParts.pop();
-        }
-
-        // Build base path
-        const basePath = pathParts.length > 0 ? '/' + pathParts.join('/') : '';
-        const apiUrl = basePath ? `${basePath}/api/v1` : '/api/v1';
-
-        debugLog('HA Ingress mode detected', {
-            basePath,
+        debugLog('HA Ingress mode detected - using simple relative path', {
             apiUrl,
-            pathParts,
-            reason: !port ? 'no port' : 'port 8123'
+            pathname,
+            reason: !port ? 'no port' : 'port 8123',
+            note: 'HA Ingress strips proxy prefix automatically'
         });
 
         return apiUrl;
@@ -63,25 +52,17 @@ const getWebSocketUrl = () => {
     debugLog('Detecting WebSocket URL', { host, port, protocol, pathname });
 
     // If accessed through HA Ingress (no port in URL) or on port 8123, use relative WebSocket path
-    // HA Ingress supports WebSocket proxying - must use relative path to get proxied correctly
+    // Home Assistant Ingress automatically strips the /api/hassio_ingress/<uuid>/ prefix
+    // before forwarding WebSocket connections to the container
     if (!port || port === '8123') {
-        // Extract base path from current location
-        const pathParts = pathname.split('/').filter(p => p);
-
-        // Remove the last part if it's a file
-        if (pathParts.length > 0 && pathParts[pathParts.length - 1].includes('.')) {
-            pathParts.pop();
-        }
-
-        const basePath = pathParts.length > 0 ? '/' + pathParts.join('/') : '';
-        const wsPath = basePath ? `${basePath}/ws` : '/ws';
+        const wsPath = '/ws';
         const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${wsPath}`;
 
-        debugLog('HA Ingress WebSocket mode', {
-            basePath,
+        debugLog('HA Ingress WebSocket mode - using simple relative path', {
             wsPath,
             wsUrl,
-            pathParts
+            pathname,
+            note: 'HA Ingress strips proxy prefix automatically'
         });
 
         return wsUrl;
