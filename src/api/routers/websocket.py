@@ -86,15 +86,9 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-@router.websocket("/")
+@router.websocket("")
 async def websocket_endpoint(websocket: WebSocket):
     """Main WebSocket endpoint for real-time updates."""
-    event_service = websocket.app.state.event_service
-    await _handle_websocket_connection(websocket, event_service)
-
-@router.websocket("")
-async def websocket_endpoint_no_slash(websocket: WebSocket):
-    """Main WebSocket endpoint for real-time updates (without trailing slash)."""
     event_service = websocket.app.state.event_service
     await _handle_websocket_connection(websocket, event_service)
 

@@ -278,6 +278,7 @@ def create_application() -> FastAPI:
         version=APP_VERSION,
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
+        redirect_slashes=False,  # Disable automatic trailing slash redirects to prevent conflicts with StaticFiles
         lifespan=lifespan
     )
     
