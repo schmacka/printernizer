@@ -224,7 +224,7 @@ const CONFIG = {
         WATCH_FOLDER_SETTINGS: 'settings/watch-folders',
         
         // Printers
-    PRINTERS: '/printers/',
+    PRINTERS: '/printers',
     PRINTER_DETAIL: (id) => `/printers/${id}`,
         
         // Jobs
@@ -233,7 +233,7 @@ const CONFIG = {
         JOB_CANCEL: (id) => `/jobs/${id}/cancel`,
         
         // Files
-        FILES: '/files/',
+        FILES: '/files',
         FILE_DETAIL: (id) => `/files/${id}`,
         FILE_DOWNLOAD: (id) => `/files/${id}/download`,
         FILE_DOWNLOAD_STATUS: (id) => `/files/${id}/download/status`,
