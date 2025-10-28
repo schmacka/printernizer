@@ -210,7 +210,17 @@ The application automatically detects deployment mode via environment variables:
 ## Development Notes
 - Focus on enterprise features while maintaining simplicity
 - Consider standard business practices and configurable accounting requirements
-- **Remember to increase version number** accordingly when branches get integrated into master
+- **CRITICAL: ALWAYS bump version numbers BEFORE committing to master**
+  - **Home Assistant add-on version**: `printernizer/config.yaml` (format: `2.0.X`)
+  - **Standalone version**: `src/utils/version.py` (format: `1.5.X`)
+  - **Both versions must be bumped together** in the same commit
+  - Home Assistant requires version bumps to trigger add-on updates
+  - Use bugfix increment (X+1) for fixes, minor increment for features
+- **IMPORTANT: There are TWO code directories that must be kept in sync**:
+  - `src/` - Standalone Python/Docker version
+  - `printernizer/src/` - Home Assistant add-on version
+  - **Any code changes must be applied to BOTH directories**
+  - They share the same codebase but are deployed differently
 - **Always create a new branch** when you develop a new feature or major bugfix
 - **Keep deployment methods independent** - changes should not break any deployment option
 - **Test all three deployment methods** before merging to master
