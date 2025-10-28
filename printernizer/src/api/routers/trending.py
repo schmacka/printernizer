@@ -48,7 +48,7 @@ class TrendingStats(BaseModel):
     refresh_interval_hours: float
 
 
-@router.get("/", response_model=List[TrendingModel])
+@router.get("", response_model=List[TrendingModel])
 async def get_trending(
     platform: Optional[str] = Query(None, description="Filter by platform (makerworld, printables)"),
     category: Optional[str] = Query(None, description="Filter by category"),

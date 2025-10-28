@@ -126,7 +126,7 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
     )
 
 
-@router.get("/", response_model=List[PrinterResponse])
+@router.get("", response_model=List[PrinterResponse])
 async def list_printers(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
@@ -142,7 +142,7 @@ async def list_printers(
         )
 
 
-@router.post("/", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
 async def create_printer(
     printer_data: PrinterCreateRequest,
     printer_service: PrinterService = Depends(get_printer_service)
