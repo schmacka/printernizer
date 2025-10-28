@@ -87,6 +87,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Local file management with status tracking
 - Flexible file organization and management
 
+### API Routing Standards
+
+**CRITICAL: Trailing Slash Policy**
+
+This application has `redirect_slashes=False` configured in FastAPI to prevent conflicts with StaticFiles mounted at the root path. This setting requires strict adherence to routing patterns.
+
+**Mandatory Routing Pattern:**
+- **NEVER use `"/"` as the endpoint path** in router decorators
+- **ALWAYS use `""` (empty string)** for root resource endpoints
+- This ensures API routes work WITHOUT trailing slashes (standard REST behavior)
+
+**Why This Matters:**
+- FastAPI combines router prefix + endpoint path to create final routes
+- With `redirect_slashes=False`, routes must match exactly (no automatic redirects)
+- Using `"/"` creates routes ending in `/`, requiring trailing slash in client URLs
+- Using `""` creates routes without `/`, matching standard HTTP client behavior
+- **This issue has occurred 3+ times** - strict adherence prevents recurrence
+
+**Correct Patterns:**
+
+```python
+# ✅ CORRECT - Root resource operations (list, create)
+@router.get("")          # GET /api/v1/printers (no trailing slash)
+@router.post("")         # POST /api/v1/printers (no trailing slash)
+
+# ✅ CORRECT - Specific resource operations
+@router.get("/{id}")     # GET /api/v1/printers/abc123
+@router.put("/{id}")     # UPDATE /api/v1/printers/abc123
+@router.delete("/{id}")  # DELETE /api/v1/printers/abc123
+
+# ✅ CORRECT - Nested operations
+@router.post("/{id}/connect")    # POST /api/v1/printers/abc123/connect
+@router.get("/health")            # GET /api/v1/health
+```
+
+```python
+# ❌ INCORRECT - Will cause 405 errors when accessed without trailing slash
+@router.get("/")         # Creates route /api/v1/printers/ (WITH slash)
+@router.post("/")        # Requires POST /api/v1/printers/ (WITH slash)
+                         # Standard clients send without slash → 405 ERROR
+```
+
+**Testing Requirements:**
+- All API endpoints MUST be tested WITHOUT trailing slash
+- Integration tests should verify POST/PUT/DELETE work without trailing slash
+- Any new router must follow the empty string `""` pattern for root endpoints
+
+**Git History Reference:**
+- Previous fixes: commits ddf53ea, 34680e6, branch fix/disable-redirect-slashes
+- Root cause: StaticFiles at "/" + redirect_slashes=False + "/" endpoints
+- This is a permanent architectural constraint - do not attempt to re-enable redirect_slashes
+
 ## Deployment Architecture
 
 Printernizer supports **three independent deployment methods**. Each method uses the same core codebase but has deployment-specific configurations:

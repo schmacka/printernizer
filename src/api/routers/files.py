@@ -57,7 +57,7 @@ class FileListResponse(BaseModel):
     pagination: PaginationResponse
 
 
-@router.get("/", response_model=FileListResponse)
+@router.get("", response_model=FileListResponse)
 async def list_files(
     printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
     status: Optional[FileStatus] = Query(None, description="Filter by file status"),

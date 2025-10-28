@@ -67,7 +67,7 @@ class TrendingSave(BaseModel):
 
 
 # API endpoints
-@router.post("/", response_model=Dict[str, str])
+@router.post("", response_model=Dict[str, str])
 async def create_idea(
     idea_data: IdeaCreate,
     idea_service: IdeaService = Depends(get_idea_service)
@@ -95,7 +95,7 @@ async def create_idea(
         )
 
 
-@router.get("/", response_model=Dict[str, Any])
+@router.get("", response_model=Dict[str, Any])
 async def list_ideas(
     status: Optional[str] = Query(None, pattern="^(idea|planned|printing|completed|archived)$"),
     is_business: Optional[bool] = Query(None),

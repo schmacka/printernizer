@@ -74,7 +74,7 @@ def _transform_job_to_response(job_data: dict) -> dict:
     return response_data
 
 
-@router.get("/", response_model=List[JobResponse])
+@router.get("", response_model=List[JobResponse])
 async def list_jobs(
     printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
     job_status: Optional[str] = Query(None, description="Filter by job status"),

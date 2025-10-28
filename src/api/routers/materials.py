@@ -60,7 +60,7 @@ class ConsumptionRequest(BaseModel):
     print_time_hours: Optional[float] = Field(None, gt=0, le=1000)
 
 
-@router.get("/", response_model=List[MaterialResponse])
+@router.get("", response_model=List[MaterialResponse])
 async def get_materials(
     material_type: Optional[MaterialType] = None,
     brand: Optional[MaterialBrand] = None,
@@ -213,7 +213,7 @@ async def get_material(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/", response_model=MaterialResponse, status_code=201)
+@router.post("", response_model=MaterialResponse, status_code=201)
 async def create_material(
     material_data: MaterialCreate,
     material_service: MaterialService = Depends(get_material_service)
