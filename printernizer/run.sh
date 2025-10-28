@@ -117,6 +117,37 @@ if [ "$PRINTER_COUNT" -gt 0 ]; then
         PRINTER_ENABLED=$(bashio::config "printers[${i}].enabled" "true")
 
         bashio::log.info "  • ${PRINTER_NAME} (${PRINTER_TYPE}) @ ${PRINTER_IP} - Enabled: ${PRINTER_ENABLED}"
+
+        # Create printer ID from name (convert to lowercase, replace spaces with underscores)
+        PRINTER_ID=$(echo "$PRINTER_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr -cd '[:alnum:]_')
+
+        # Export printer configuration to environment variables for application
+        export PRINTERNIZER_PRINTER_${PRINTER_ID}_NAME="$PRINTER_NAME"
+        export PRINTERNIZER_PRINTER_${PRINTER_ID}_TYPE="$PRINTER_TYPE"
+        export PRINTERNIZER_PRINTER_${PRINTER_ID}_IP_ADDRESS="$PRINTER_IP"
+        export PRINTERNIZER_PRINTER_${PRINTER_ID}_IS_ACTIVE="$PRINTER_ENABLED"
+
+        # Type-specific credentials
+        if [ "$PRINTER_TYPE" = "bambu_lab" ]; then
+            ACCESS_CODE=$(bashio::config "printers[${i}].access_code" "")
+            SERIAL_NUMBER=$(bashio::config "printers[${i}].serial_number" "")
+
+            if [ -n "$ACCESS_CODE" ]; then
+                export PRINTERNIZER_PRINTER_${PRINTER_ID}_ACCESS_CODE="$ACCESS_CODE"
+            fi
+
+            if [ -n "$SERIAL_NUMBER" ]; then
+                export PRINTERNIZER_PRINTER_${PRINTER_ID}_SERIAL_NUMBER="$SERIAL_NUMBER"
+            fi
+        elif [ "$PRINTER_TYPE" = "prusa" ]; then
+            API_KEY=$(bashio::config "printers[${i}].api_key" "")
+
+            if [ -n "$API_KEY" ]; then
+                export PRINTERNIZER_PRINTER_${PRINTER_ID}_API_KEY="$API_KEY"
+            fi
+        fi
+
+        bashio::log.info "  ✓ Exported printer configuration to environment: PRINTERNIZER_PRINTER_${PRINTER_ID}_*"
     done
 else
     bashio::log.warning "No printers configured. Add printers via the web interface."
