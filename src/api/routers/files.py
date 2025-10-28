@@ -16,7 +16,7 @@ from src.utils.dependencies import get_file_service, get_config_service
 
 
 logger = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/files")
 
 
 class FileResponse(BaseModel):
