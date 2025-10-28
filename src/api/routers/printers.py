@@ -16,7 +16,7 @@ from src.utils.dependencies import get_printer_service
 
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/printers")
+router = APIRouter()
 
 
 class CurrentJobInfo(BaseModel):

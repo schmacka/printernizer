@@ -14,7 +14,7 @@ from src.utils.dependencies import get_job_service
 
 
 logger = structlog.get_logger()
-router = APIRouter(prefix="/jobs")
+router = APIRouter()
 
 
 class JobResponse(BaseModel):
