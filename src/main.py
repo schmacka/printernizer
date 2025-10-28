@@ -100,38 +100,38 @@ async def lifespan(app: FastAPI):
     database = Database()
     await database.initialize()
     app.state.database = database
-    logger.info("✓ Database initialized successfully")
+    logger.info("[OK] Database initialized successfully")
 
     # Run database migrations
     logger.info("Running database migrations...")
     migration_service = MigrationService(database)
     await migration_service.run_migrations()
     app.state.migration_service = migration_service
-    logger.info("✓ Database migrations completed")
+    logger.info("[OK] Database migrations completed")
     
     # Initialize services
     logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
-    logger.info("✓ Core services initialized")
+    logger.info("[OK] Core services initialized")
 
     # Initialize Library service (before file_watcher so it can use it)
     logger.info("Initializing library service...")
     from src.services.library_service import LibraryService
     library_service = LibraryService(database, config_service, event_service)
     await library_service.initialize()
-    logger.info("✓ Library service initialized")
+    logger.info("[OK] Library service initialized")
 
     # Initialize file watcher service with library integration
     logger.info("Initializing file watcher service...")
     file_watcher_service = FileWatcherService(config_service, event_service, library_service)
-    logger.info("✓ File watcher service initialized")
+    logger.info("[OK] File watcher service initialized")
 
     # Initialize file service with file watcher, printer service, config service, and library
     logger.info("Initializing file service...")
     file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
-    logger.info("✓ File service initialized")
+    logger.info("[OK] File service initialized")
 
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
@@ -141,7 +141,7 @@ async def lifespan(app: FastAPI):
     thumbnail_service = ThumbnailService(event_service)
     url_parser_service = UrlParserService()
     # trending_service = TrendingService(database, event_service)  # DISABLED
-    logger.info("✓ Ideas services initialized")
+    logger.info("[OK] Ideas services initialized")
 
     app.state.config_service = config_service
     app.state.event_service = event_service
@@ -157,7 +157,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting background services...")
     await event_service.start()
     await printer_service.initialize()
-    logger.info("✓ Background services started")
+    logger.info("[OK] Background services started")
 
     # Subscribe WebSocket broadcast for individual printer status updates (includes thumbnails)
     async def _on_printer_status_update(data):
@@ -175,26 +175,26 @@ async def lifespan(app: FastAPI):
     # Initialize Ideas-related services
     # logger.info("Starting trending service...")  # DISABLED
     # await trending_service.initialize()  # DISABLED
-    # logger.info("✓ Trending service started")  # DISABLED
+    # logger.info("[OK] Trending service started")  # DISABLED
 
     # Start printer monitoring
     logger.info("Starting printer monitoring...")
     try:
         await printer_service.start_monitoring()
-        logger.info("✓ Printer monitoring started successfully")
+        logger.info("[OK] Printer monitoring started successfully")
     except Exception as e:
-        logger.warning("⚠ Failed to start printer monitoring", error=str(e))
+        logger.warning("[WARNING] Failed to start printer monitoring", error=str(e))
 
     # Start file watcher service
     logger.info("Starting file watcher...")
     try:
         await file_watcher_service.start()
-        logger.info("✓ File watcher service started successfully")
+        logger.info("[OK] File watcher service started successfully")
     except Exception as e:
-        logger.warning("⚠ Failed to start file watcher service", error=str(e))
+        logger.warning("[WARNING] Failed to start file watcher service", error=str(e))
 
     logger.info("=" * 60)
-    logger.info("✓ PRINTERNIZER BACKEND READY")
+    logger.info("[OK] PRINTERNIZER BACKEND READY")
     logger.info("=" * 60)
     
     yield
@@ -302,7 +302,8 @@ def create_application() -> FastAPI:
         version=APP_VERSION,
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
-        lifespan=lifespan
+        lifespan=lifespan,
+        redirect_slashes=False  # Disable automatic trailing slash redirects to fix API routing with StaticFiles
     )
     
     # CORS Configuration
@@ -357,12 +358,12 @@ def create_application() -> FastAPI:
     
     # API Routes
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
-    app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
+    app.include_router(printers_router, prefix="/api/v1", tags=["Printers"])
     app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
-    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"])
-    app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
+    app.include_router(jobs_router, prefix="/api/v1", tags=["Jobs"])
+    app.include_router(files_router, prefix="/api/v1", tags=["Files"])
     app.include_router(library_router, prefix="/api/v1", tags=["Library"])  # New library system
-    app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
+    app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
     app.include_router(trending_router, prefix="/api/v1", tags=["Trending"])
@@ -402,7 +403,7 @@ def create_application() -> FastAPI:
         # so that API routes take precedence
         app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 
-        logger.info("✓ Frontend routes configured successfully")
+        logger.info("Frontend routes configured successfully")
     
     # Prometheus metrics endpoint
     @app.get("/metrics")
