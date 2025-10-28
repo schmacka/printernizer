@@ -2,7 +2,17 @@
 
 ## Overview
 
-Printernizer uses **automatic versioning** based on git tags. The version is dynamically extracted from git tags at application startup, eliminating the need for manual version updates in code.
+Printernizer uses **dual versioning** with two independent version numbers:
+
+1. **Application Version (1.x.x)**: Core application version based on git tags
+2. **Home Assistant Add-on Version (2.x.x)**: Add-on packaging version in `printernizer/config.yaml`
+
+### Why Two Versions?
+
+- **Application Version**: Tracks the core Printernizer application changes (API, backend, frontend)
+- **Add-on Version**: Tracks Home Assistant integration changes (configuration, add-on features, HA-specific updates)
+
+Both versions can be incremented independently based on what changed.
 
 ## How It Works
 
@@ -26,6 +36,24 @@ We follow **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
 
 ## Creating a New Release
 
+### Quick Reference: Where to Update Versions
+
+**For Core Application Changes (API, Backend, Frontend):**
+1. Update fallback in `src/utils/version.py`:
+   - `get_version(fallback="1.5.X")`
+   - `get_short_version(fallback="1.5.X")`
+2. Create git tag: `git tag v1.5.X`
+3. Push tag: `git push origin v1.5.X`
+
+**For Home Assistant Add-on Changes:**
+1. Update `printernizer/config.yaml`:
+   - `version: "2.0.X"`
+2. Commit the change
+3. Push to repository
+
+**For Changes Affecting Both:**
+- Update BOTH version numbers
+
 ### Step 1: Make Your Changes
 ```bash
 # Make code changes
@@ -33,7 +61,9 @@ git add .
 git commit -m "fix: Your bug fix description"
 ```
 
-### Step 2: Create a Git Tag
+### Step 2: Update Versions
+
+**Application Version (Git Tag):**
 ```bash
 # For a patch release (bug fixes)
 git tag -a v1.4.3 -m "Release v1.4.3 - Bug fixes
