@@ -302,7 +302,8 @@ def create_application() -> FastAPI:
         version=APP_VERSION,
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
-        lifespan=lifespan
+        lifespan=lifespan,
+        redirect_slashes=False  # Disable automatic trailing slash redirects to fix API routing with StaticFiles
     )
     
     # CORS Configuration
