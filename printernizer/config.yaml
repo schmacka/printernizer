@@ -1,5 +1,5 @@
 name: Printernizer
-version: "2.0.30"
+version: "2.0.31"
 slug: printernizer
 description: Professional 3D Printer Management for Bambu Lab A1 and Prusa Core One
 url: https://github.com/schmacka/printernizer
@@ -80,10 +80,9 @@ map:
 
 # Host network access for printer connectivity
 # IMPORTANT: Printer discovery requires host_network to access multicast traffic (SSDP/mDNS)
-# If you want to use auto-discovery, you may need to enable host_network: true
-# This can be toggled in the add-on Network settings
-host_network: false
-network_mode: bridge
+# Enabled by default to support auto-discovery of Bambu Lab and Prusa printers
+# Can be disabled in add-on Network settings if discovery is not needed
+host_network: true
 
 # Services required
 services:
