@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# Git pre-commit hook for Printernizer
+# Auto-syncs /src and /frontend to /printernizer/ for Home Assistant add-on
+#
+
+# Colors for output
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Get the project root (where .git is located)
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+
+# Check if src/ or frontend/ have staged changes
+SRC_CHANGED=$(git diff --cached --name-only | grep -E '^src/' || true)
+FRONTEND_CHANGED=$(git diff --cached --name-only | grep -E '^frontend/' || true)
+
+if [ -n "$SRC_CHANGED" ] || [ -n "$FRONTEND_CHANGED" ]; then
+    echo -e "${YELLOW}[pre-commit] Changes detected in src/ or frontend/${NC}"
+    echo -e "${YELLOW}[pre-commit] Auto-syncing to printernizer/ directory...${NC}"
+
+    # Run the sync script
+    if [ -f "$PROJECT_ROOT/scripts/sync-ha-addon.sh" ]; then
+        "$PROJECT_ROOT/scripts/sync-ha-addon.sh"
+
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}[pre-commit] Sync completed successfully${NC}"
+
+            # Stage the synced files
+            git add printernizer/src/ printernizer/frontend/
+
+            echo -e "${GREEN}[pre-commit] Synced files added to commit${NC}"
+        else
+            echo -e "${YELLOW}[pre-commit] Warning: Sync script failed${NC}"
+            echo -e "${YELLOW}[pre-commit] Continuing with commit anyway...${NC}"
+        fi
+    else
+        echo -e "${YELLOW}[pre-commit] Warning: sync-ha-addon.sh not found${NC}"
+        echo -e "${YELLOW}[pre-commit] Please run the sync manually${NC}"
+    fi
+
+    echo ""
+fi
+
+# Exit successfully to allow the commit to proceed
+exit 0

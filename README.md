@@ -544,20 +544,61 @@ kubectl apply -f production.yml
 
 ## 🛠️ Development
 
+### Single Source Architecture
+
+**IMPORTANT for Contributors**: Printernizer uses a single-source architecture with automated synchronization to support three deployment methods (Python, Docker, Home Assistant) without code duplication.
+
+**✅ Correct Workflow - Edit Once**:
+```bash
+# Edit application code in THESE directories ONLY:
+/src/                    # Backend code (EDIT HERE)
+/frontend/               # Frontend code (EDIT HERE)
+
+# DO NOT edit these directories (they are auto-synced):
+/printernizer/src/       # Auto-synced copy (DO NOT TOUCH)
+/printernizer/frontend/  # Auto-synced copy (DO NOT TOUCH)
+```
+
+**🔄 Automatic Synchronization**:
+1. **Pre-commit hook** - Automatically syncs when you commit changes
+2. **GitHub Actions** - Validates sync on push to master
+3. **Manual sync** - Run if needed:
+   ```bash
+   # Linux/Mac
+   ./scripts/sync-ha-addon.sh
+
+   # Windows
+   scripts\sync-ha-addon.bat
+   ```
+
+**Why This Design**:
+- Home Assistant build system requires files in `printernizer/` directory
+- Single source prevents version drift and merge conflicts
+- Developers work in one place, automation handles deployment variants
+
 ### Project Structure
 ```
 printernizer/
-├── src/                    # Application source code
+├── src/                    # Application source code (EDIT HERE)
 │   ├── api/               # FastAPI routers and endpoints
 │   ├── services/          # Business logic services
 │   ├── models/            # Data models and schemas
 │   ├── database/          # Database management
 │   └── utils/             # Utility functions
-├── frontend/              # Web interface files
+├── frontend/              # Web interface files (EDIT HERE)
+├── printernizer/          # Home Assistant add-on
+│   ├── src/               # Auto-synced from /src (DO NOT EDIT)
+│   ├── frontend/          # Auto-synced from /frontend (DO NOT EDIT)
+│   ├── Dockerfile         # HA-specific build
+│   ├── config.yaml        # HA add-on configuration
+│   └── run.sh             # HA startup script
+├── scripts/               # Utility scripts
+│   ├── sync-ha-addon.sh   # Sync script (Linux/Mac)
+│   └── sync-ha-addon.bat  # Sync script (Windows)
 ├── tests/                 # Test suites
 ├── docs/                  # Documentation
-├── scripts/               # Utility scripts
-└── config/                # Configuration files
+└── .git-hooks/            # Pre-commit automation
+    └── pre-commit         # Auto-sync hook
 ```
 
 ### Running Tests

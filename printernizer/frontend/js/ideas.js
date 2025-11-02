@@ -3,8 +3,9 @@
  * Handles idea creation, editing, filtering, and external platform integration
  */
 
-// API Configuration - Use current origin for backend requests
-const API_BASE_URL = window.location.protocol + '//' + window.location.hostname + ':8000';
+// API Configuration - Use centralized config that handles HA Ingress mode
+// CONFIG.API_BASE_URL includes '/api/v1', so we strip it since this file adds it back
+const API_BASE_URL = CONFIG.API_BASE_URL.replace('/api/v1', '');
 
 // Ideas global state
 let ideasState = {

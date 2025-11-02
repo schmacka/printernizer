@@ -179,7 +179,18 @@ class ApiClient {
     async deletePrinter(printerId) {
         return this.delete(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId));
     }
-    
+
+    /**
+     * Printer Discovery Functions
+     */
+    async discoverPrinters(params = {}) {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_DISCOVER, params);
+    }
+
+    async getNetworkInterfaces() {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_DISCOVER_INTERFACES);
+    }
+
     /**
      * Printer Control Functions
      */

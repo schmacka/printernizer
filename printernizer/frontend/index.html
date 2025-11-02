@@ -208,6 +208,10 @@
             <div class="page-header">
                 <h1>Drucker Verwaltung</h1>
                 <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="discoverPrinters()" id="discoverButton">
+                        <span class="btn-icon">🔍</span>
+                        Drucker suchen
+                    </button>
                     <button class="btn btn-primary" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
                         Drucker hinzufügen
@@ -215,7 +219,32 @@
                 </div>
             </div>
 
+            <!-- Discovered Printers Section -->
+            <div id="discoveredPrintersSection" class="section" style="display: none;">
+                <div class="section-header">
+                    <h2>Gefundene Drucker</h2>
+                    <div class="header-actions">
+                        <select id="networkInterfaceSelect" class="form-select" style="margin-right: 10px;">
+                            <option value="">Auto-Erkennung</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" onclick="discoverPrinters()">
+                            <span class="btn-icon">🔄</span>
+                            Erneut suchen
+                        </button>
+                    </div>
+                </div>
+                <div class="discovered-printers-list" id="discoveredPrintersList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Suche nach Druckern im Netzwerk...</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="printers-container">
+                <div class="section-header">
+                    <h2>Konfigurierte Drucker</h2>
+                </div>
                 <div class="printers-list" id="printersList">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>

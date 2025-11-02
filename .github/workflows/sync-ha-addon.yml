@@ -1,0 +1,118 @@
+name: Sync Home Assistant Add-on
+
+on:
+  push:
+    branches:
+      - master
+      - 'feature/**'
+      - 'fix/**'
+    paths:
+      - 'src/**'
+      - 'frontend/**'
+      - 'scripts/sync-ha-addon.sh'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version bumping
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run sync script
+        run: |
+          chmod +x scripts/sync-ha-addon.sh
+          ./scripts/sync-ha-addon.sh
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if git diff --quiet printernizer/src printernizer/frontend; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected after sync"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected after sync"
+          fi
+
+      - name: Bump HA Add-on version
+        if: steps.check_changes.outputs.changes == 'true' && github.ref == 'refs/heads/master'
+        run: |
+          # Read current version from config.yaml
+          CURRENT_VERSION=$(grep "^version:" printernizer/config.yaml | awk '{print $2}' | tr -d '"')
+          echo "Current version: $CURRENT_VERSION"
+
+          # Increment patch version (e.g., 2.0.31 -> 2.0.32)
+          IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+          NEW_VERSION="$major.$minor.$((patch + 1))"
+          echo "New version: $NEW_VERSION"
+
+          # Update version in config.yaml
+          sed -i "s/^version: .*/version: \"$NEW_VERSION\"/" printernizer/config.yaml
+
+          # Also update CHANGELOG.md with sync notice
+          DATE=$(date +%Y-%m-%d)
+          sed -i "3i\\## [$NEW_VERSION] - $DATE\n\n- Auto-sync: Source code synchronized from main repository\n" printernizer/CHANGELOG.md
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git add printernizer/src/ printernizer/frontend/
+
+          # Add version files if they were modified
+          if [ -f printernizer/config.yaml ]; then
+            git add printernizer/config.yaml printernizer/CHANGELOG.md || true
+          fi
+
+          # Create commit message
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            COMMIT_MSG="chore: Auto-sync HA add-on from main repository
+
+- Synchronized src/ and frontend/ to printernizer/
+- Version bumped in config.yaml
+- Updated CHANGELOG.md
+
+🤖 Automated sync via GitHub Actions"
+          else
+            COMMIT_MSG="chore: Sync HA add-on (branch: ${{ github.ref_name }})
+
+- Synchronized src/ and frontend/ to printernizer/
+
+🤖 Automated sync via GitHub Actions"
+          fi
+
+          git commit -m "$COMMIT_MSG"
+          git push
+
+      - name: Create sync summary
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          echo "## ✅ Home Assistant Add-on Sync Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git diff HEAD~1 --stat printernizer/ >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: No changes summary
+        if: steps.check_changes.outputs.changes == 'false'
+        run: |
+          echo "## ℹ️ No Sync Required" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The Home Assistant add-on code is already up to date." >> $GITHUB_STEP_SUMMARY

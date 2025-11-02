@@ -720,6 +720,222 @@ function refreshPrinters() {
     printerManager.loadPrinters();
 }
 
+/**
+ * Discover printers on the network
+ */
+async function discoverPrinters() {
+    const discoveredSection = document.getElementById('discoveredPrintersSection');
+    const discoveredList = document.getElementById('discoveredPrintersList');
+    const discoverButton = document.getElementById('discoverButton');
+    const interfaceSelect = document.getElementById('networkInterfaceSelect');
+
+    if (!discoveredSection || !discoveredList) return;
+
+    try {
+        // Show the discovered section
+        discoveredSection.style.display = 'block';
+
+        // Show loading state
+        discoveredList.innerHTML = `
+            <div class="loading-placeholder">
+                <div class="spinner"></div>
+                <p>Suche nach Druckern im Netzwerk...</p>
+            </div>
+        `;
+
+        // Disable discover button
+        if (discoverButton) {
+            discoverButton.disabled = true;
+            discoverButton.innerHTML = '<span class="btn-icon">⏳</span> Suche läuft...';
+        }
+
+        // Get selected interface (if any)
+        const selectedInterface = interfaceSelect ? interfaceSelect.value : null;
+
+        // Call discovery API
+        const params = {};
+        if (selectedInterface) {
+            params.interface = selectedInterface;
+        }
+
+        const response = await api.discoverPrinters(params);
+
+        // Display results
+        if (response.discovered && response.discovered.length > 0) {
+            discoveredList.innerHTML = '';
+            response.discovered.forEach(printer => {
+                const printerCard = createDiscoveredPrinterCard(printer);
+                discoveredList.appendChild(printerCard);
+            });
+
+            // Show success message
+            showNotification(`${response.discovered.length} Drucker gefunden (${response.scan_duration_ms}ms)`, 'success');
+        } else {
+            discoveredList.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔍</div>
+                    <h3>Keine Drucker gefunden</h3>
+                    <p>Es wurden keine Drucker im Netzwerk gefunden.</p>
+                    <p class="text-sm text-muted">Stellen Sie sicher, dass:</p>
+                    <ul class="text-sm text-muted" style="text-align: left; max-width: 400px; margin: 10px auto;">
+                        <li>Ihre Drucker eingeschaltet und mit dem Netzwerk verbunden sind</li>
+                        <li>Sie sich im gleichen Netzwerk befinden</li>
+                        <li>Bei Docker/Home Assistant: Host-Netzwerkmodus aktiviert ist</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Show errors if any
+        if (response.errors && response.errors.length > 0) {
+            console.warn('Discovery errors:', response.errors);
+            response.errors.forEach(error => {
+                showNotification(error, 'warning');
+            });
+        }
+
+    } catch (error) {
+        console.error('Failed to discover printers:', error);
+        discoveredList.innerHTML = `
+            <div class="error-state">
+                <div class="error-icon">⚠️</div>
+                <h3>Fehler bei der Drucker-Suche</h3>
+                <p>${escapeHtml(error.message || 'Unbekannter Fehler')}</p>
+            </div>
+        `;
+        showNotification('Drucker-Suche fehlgeschlagen', 'error');
+    } finally {
+        // Re-enable discover button
+        if (discoverButton) {
+            discoverButton.disabled = false;
+            discoverButton.innerHTML = '<span class="btn-icon">🔍</span> Drucker suchen';
+        }
+    }
+}
+
+/**
+ * Create a card for a discovered printer
+ */
+function createDiscoveredPrinterCard(printer) {
+    const card = document.createElement('div');
+    card.className = `card discovered-printer-card ${printer.already_added ? 'already-added' : ''}`;
+
+    const typeBadge = printer.type === 'bambu' ?
+        '<span class="badge badge-bambu">Bambu Lab</span>' :
+        '<span class="badge badge-prusa">Prusa</span>';
+
+    const statusBadge = printer.already_added ?
+        '<span class="badge badge-secondary">Bereits hinzugefügt</span>' :
+        '<span class="badge badge-success">Neu gefunden</span>';
+
+    card.innerHTML = `
+        <div class="card-header">
+            <div class="printer-title">
+                <h3>${escapeHtml(printer.name || printer.hostname || printer.ip)}</h3>
+                <div class="printer-badges">
+                    ${typeBadge}
+                    ${statusBadge}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="printer-info">
+                <div class="info-row">
+                    <span class="label">IP-Adresse:</span>
+                    <span class="value">${escapeHtml(printer.ip)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Hostname:</span>
+                    <span class="value">${escapeHtml(printer.hostname)}</span>
+                </div>
+                ${printer.model ? `
+                <div class="info-row">
+                    <span class="label">Modell:</span>
+                    <span class="value">${escapeHtml(printer.model)}</span>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+        <div class="card-footer">
+            ${!printer.already_added ? `
+                <button class="btn btn-primary" onclick="addDiscoveredPrinter('${escapeHtml(printer.ip)}', '${printer.type}', '${escapeHtml(printer.name || printer.hostname)}')">
+                    <span class="btn-icon">➕</span>
+                    Hinzufügen
+                </button>
+            ` : `
+                <button class="btn btn-secondary" disabled>
+                    <span class="btn-icon">✓</span>
+                    Bereits konfiguriert
+                </button>
+            `}
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Add a discovered printer
+ */
+function addDiscoveredPrinter(ipAddress, type, name) {
+    // Pre-fill the add printer form with discovered info
+    showAddPrinter();
+
+    // Wait for form to be shown, then fill it
+    setTimeout(() => {
+        const nameInput = document.querySelector('input[name="name"]');
+        const typeSelect = document.querySelector('select[name="printer_type"]');
+        const ipInput = document.querySelector('input[name="ip_address"]');
+
+        if (nameInput) nameInput.value = name;
+        if (ipInput) ipInput.value = ipAddress;
+        if (typeSelect) {
+            // Map discovery type to form type
+            const formType = type === 'bambu' ? 'bambu_lab' : 'prusa_core';
+            typeSelect.value = formType;
+            // Trigger change event to update form fields
+            typeSelect.dispatchEvent(new Event('change'));
+        }
+    }, 100);
+}
+
+/**
+ * Load network interfaces for discovery
+ */
+async function loadNetworkInterfaces() {
+    try {
+        const interfaceSelect = document.getElementById('networkInterfaceSelect');
+        if (!interfaceSelect) return;
+
+        const response = await api.getNetworkInterfaces();
+
+        if (response.interfaces && response.interfaces.length > 0) {
+            // Clear existing options except auto-detect
+            interfaceSelect.innerHTML = '<option value="">Auto-Erkennung</option>';
+
+            // Add interfaces
+            response.interfaces.forEach(iface => {
+                const option = document.createElement('option');
+                option.value = iface.name;
+                option.textContent = `${iface.name} (${iface.ip})${iface.is_default ? ' - Standard' : ''}`;
+                if (iface.is_default) {
+                    option.selected = false; // Keep auto-detect selected by default
+                }
+                interfaceSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to load network interfaces:', error);
+    }
+}
+
+// Load network interfaces when printer page is shown
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.currentPage === 'printers') {
+        loadNetworkInterfaces();
+    }
+});
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { PrinterManager, printerManager };

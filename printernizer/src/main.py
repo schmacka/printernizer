@@ -69,7 +69,7 @@ from src.utils.version import get_version
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="1.5.6")
+APP_VERSION = get_version(fallback="1.5.8")
 
 
 # Prometheus metrics - initialized once
@@ -91,41 +91,57 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     logger = structlog.get_logger()
+    logger.info("=" * 60)
     logger.info("Starting Printernizer application", version=APP_VERSION)
-    
+    logger.info("=" * 60)
+
     # Initialize database
+    logger.info("Initializing database...")
     database = Database()
     await database.initialize()
     app.state.database = database
-    
+    logger.info("[OK] Database initialized successfully")
+
     # Run database migrations
+    logger.info("Running database migrations...")
     migration_service = MigrationService(database)
     await migration_service.run_migrations()
     app.state.migration_service = migration_service
+    logger.info("[OK] Database migrations completed")
     
     # Initialize services
+    logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
+    logger.info("[OK] Core services initialized")
 
     # Initialize Library service (before file_watcher so it can use it)
+    logger.info("Initializing library service...")
     from src.services.library_service import LibraryService
     library_service = LibraryService(database, config_service, event_service)
     await library_service.initialize()
+    logger.info("[OK] Library service initialized")
 
     # Initialize file watcher service with library integration
+    logger.info("Initializing file watcher service...")
     file_watcher_service = FileWatcherService(config_service, event_service, library_service)
+    logger.info("[OK] File watcher service initialized")
 
     # Initialize file service with file watcher, printer service, config service, and library
+    logger.info("Initializing file service...")
     file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
+    logger.info("[OK] File service initialized")
 
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
 
     # Initialize Ideas-related services
+    logger.info("Initializing ideas and trending services...")
     thumbnail_service = ThumbnailService(event_service)
     url_parser_service = UrlParserService()
     # trending_service = TrendingService(database, event_service)  # DISABLED
+    logger.info("[OK] Ideas services initialized")
 
     app.state.config_service = config_service
     app.state.event_service = event_service
@@ -136,10 +152,12 @@ async def lifespan(app: FastAPI):
     app.state.url_parser_service = url_parser_service
     # app.state.trending_service = trending_service  # DISABLED
     app.state.library_service = library_service
-    
+
     # Initialize and start background services
+    logger.info("Starting background services...")
     await event_service.start()
     await printer_service.initialize()
+    logger.info("[OK] Background services started")
 
     # Subscribe WebSocket broadcast for individual printer status updates (includes thumbnails)
     async def _on_printer_status_update(data):
@@ -155,23 +173,29 @@ async def lifespan(app: FastAPI):
     event_service.subscribe("printer_status_update", _on_printer_status_update)
 
     # Initialize Ideas-related services
+    # logger.info("Starting trending service...")  # DISABLED
     # await trending_service.initialize()  # DISABLED
-    
+    # logger.info("[OK] Trending service started")  # DISABLED
+
     # Start printer monitoring
+    logger.info("Starting printer monitoring...")
     try:
         await printer_service.start_monitoring()
-        logger.info("Printer monitoring started successfully")
+        logger.info("[OK] Printer monitoring started successfully")
     except Exception as e:
-        logger.warning("Failed to start printer monitoring", error=str(e))
-    
+        logger.warning("[WARNING] Failed to start printer monitoring", error=str(e))
+
     # Start file watcher service
+    logger.info("Starting file watcher...")
     try:
         await file_watcher_service.start()
-        logger.info("File watcher service started successfully")
+        logger.info("[OK] File watcher service started successfully")
     except Exception as e:
-        logger.warning("Failed to start file watcher service", error=str(e))
-    
-    logger.info("Printernizer startup complete")
+        logger.warning("[WARNING] Failed to start file watcher service", error=str(e))
+
+    logger.info("=" * 60)
+    logger.info("[OK] PRINTERNIZER BACKEND READY")
+    logger.info("=" * 60)
     
     yield
     
@@ -278,8 +302,8 @@ def create_application() -> FastAPI:
         version=APP_VERSION,
         docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
         redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
-        redirect_slashes=False,  # Disable automatic trailing slash redirects to prevent conflicts with StaticFiles
-        lifespan=lifespan
+        lifespan=lifespan,
+        redirect_slashes=False  # Disable automatic trailing slash redirects to fix API routing with StaticFiles
     )
     
     # CORS Configuration
@@ -334,12 +358,12 @@ def create_application() -> FastAPI:
     
     # API Routes
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
-    app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
+    app.include_router(printers_router, prefix="/api/v1", tags=["Printers"])
     app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
-    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"])
-    app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
+    app.include_router(jobs_router, prefix="/api/v1", tags=["Jobs"])
+    app.include_router(files_router, prefix="/api/v1", tags=["Files"])
     app.include_router(library_router, prefix="/api/v1", tags=["Library"])  # New library system
-    app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytics"])
+    app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
     app.include_router(trending_router, prefix="/api/v1", tags=["Trending"])
@@ -379,7 +403,7 @@ def create_application() -> FastAPI:
         # so that API routes take precedence
         app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 
-        logger.info("✓ Frontend routes configured successfully")
+        logger.info("Frontend routes configured successfully")
     
     # Prometheus metrics endpoint
     @app.get("/metrics")
@@ -451,10 +475,13 @@ app = create_application()
 if __name__ == "__main__":
     # Production server configuration
     setup_signal_handlers()
-    
+
+    port = int(os.getenv("PORT", 8000))
+    host = "0.0.0.0"
+
     config = {
-        "host": "0.0.0.0",
-        "port": int(os.getenv("PORT", 8000)),
+        "host": host,
+        "port": port,
         "workers": 1,  # Force single worker to avoid database initialization conflicts
         "log_level": os.getenv("LOG_LEVEL", "info"),
         "access_log": True,
@@ -462,12 +489,23 @@ if __name__ == "__main__":
         "server_header": False,
         "date_header": False
     }
-    
+
     if os.getenv("ENVIRONMENT") == "development":
         config.update({
             "reload": True,
             "reload_dirs": ["src"],
             "workers": 1
         })
-    
+
+    # Log server startup
+    logger = structlog.get_logger()
+    logger.info("=" * 60)
+    logger.info("STARTING UVICORN SERVER")
+    logger.info(f"Listening on: http://{host}:{port}")
+    logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'production')}")
+    logger.info(f"Deployment Mode: {os.getenv('DEPLOYMENT_MODE', 'standalone')}")
+    if os.getenv("HA_INGRESS") == "true":
+        logger.info("Home Assistant Ingress: ENABLED")
+    logger.info("=" * 60)
+
     uvicorn.run("src.main:app", **config)

@@ -186,15 +186,31 @@ The application automatically detects deployment mode via environment variables:
 - `DEPLOYMENT_MODE=homeassistant` - HA Add-on mode
 - `HA_INGRESS=true` - Enables Ingress security (HA only)
 
-### Shared Codebase
+### Shared Codebase - Single Source Architecture
 
-**IMPORTANT**: All three deployment methods share:
-- `src/` - Application code (unchanged for all modes)
-- `frontend/` - Web interface (unchanged for all modes)
+**IMPORTANT**: All three deployment methods share the same codebase with automated synchronization:
+
+**Single Source of Truth**:
+- `/src/` - Primary application code (EDIT HERE)
+- `/frontend/` - Primary web interface (EDIT HERE)
 - `requirements.txt` - Python dependencies
 - Core business logic and features
 
-**Deployment-specific**:
+**Automated Sync to Home Assistant Add-on**:
+- `/printernizer/src/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
+- `/printernizer/frontend/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
+- Synchronization happens automatically via:
+  1. **Git pre-commit hook** - Auto-syncs when you commit changes to `/src/` or `/frontend/`
+  2. **GitHub Actions CI/CD** - Validates sync on push to master
+  3. **Manual script** - Run `scripts/sync-ha-addon.sh` (Linux/Mac) or `scripts/sync-ha-addon.bat` (Windows)
+
+**Why This Architecture**:
+- Home Assistant build system requires files in `printernizer/` directory (build context constraint)
+- Single source prevents code divergence and version drift
+- Triple safety net (hook + CI + manual) ensures consistency
+- Developers work in one place, automation handles the rest
+
+**Deployment-specific Files**:
 - Startup scripts (`run.sh` vs `entrypoint.sh` vs HA `run.sh`)
 - Configuration parsing (`.env` vs env vars vs `options.json`)
 - Path mapping (local vs volumes vs `/data`)
@@ -208,19 +224,47 @@ The application automatically detects deployment mode via environment variables:
 - **Advanced 3D preview capabilities** with multiple rendering options
 
 ## Development Notes
+
+### General Development
 - Focus on enterprise features while maintaining simplicity
 - Consider standard business practices and configurable accounting requirements
-- **CRITICAL: ALWAYS bump version numbers BEFORE committing to master**
-  - **Home Assistant add-on version**: `printernizer/config.yaml` (format: `2.0.X`)
-  - **Standalone version**: `src/utils/version.py` (format: `1.5.X`)
-  - **Both versions must be bumped together** in the same commit
-  - Home Assistant requires version bumps to trigger add-on updates
-  - Use bugfix increment (X+1) for fixes, minor increment for features
-- **IMPORTANT: There are TWO code directories that must be kept in sync**:
-  - `src/` - Standalone Python/Docker version
-  - `printernizer/src/` - Home Assistant add-on version
-  - **Any code changes must be applied to BOTH directories**
-  - They share the same codebase but are deployed differently
 - **Always create a new branch** when you develop a new feature or major bugfix
 - **Keep deployment methods independent** - changes should not break any deployment option
 - **Test all three deployment methods** before merging to master
+
+### Version Management
+- **CRITICAL: Version bumps are now AUTOMATED via CI/CD**
+  - **Standalone version**: Bump manually in `src/utils/version.py` (format: `1.5.X`)
+  - **Home Assistant add-on version**: Auto-bumped by GitHub Actions on master push (format: `2.0.X`)
+  - Use bugfix increment (X+1) for fixes, minor increment for features
+  - Home Assistant requires version bumps to trigger add-on updates
+
+### Code Synchronization Workflow
+
+**Single Source of Truth**: Edit code ONLY in `/src/` and `/frontend/` directories.
+
+**Automated Sync Process**:
+1. **During Development**:
+   - Edit files in `/src/` or `/frontend/` (never touch `/printernizer/src/` or `/printernizer/frontend/`)
+   - Pre-commit hook auto-syncs on commit
+   - Synced files automatically staged and included in commit
+
+2. **Manual Sync** (if needed):
+   ```bash
+   # Linux/Mac
+   ./scripts/sync-ha-addon.sh
+
+   # Windows
+   scripts\sync-ha-addon.bat
+   ```
+
+3. **CI/CD Validation**:
+   - GitHub Actions runs sync on push to master
+   - Auto-bumps HA add-on version
+   - Commits and pushes changes if needed
+
+**Important Notes**:
+- NEVER edit files in `/printernizer/src/` or `/printernizer/frontend/` directly
+- If pre-commit hook is bypassed (`--no-verify`), CI will catch and fix
+- Sync script can be run manually anytime
+- Both directories will always stay in sync automatically

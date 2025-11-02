@@ -12,7 +12,7 @@ from src.utils.dependencies import get_analytics_service
 
 
 logger = structlog.get_logger()
-router = APIRouter()
+router = APIRouter(prefix="/analytics")
 
 
 class AnalyticsResponse(BaseModel):
