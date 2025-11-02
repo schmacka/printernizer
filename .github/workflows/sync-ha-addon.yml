@@ -10,6 +10,7 @@ on:
       - 'src/**'
       - 'frontend/**'
       - 'scripts/sync-ha-addon.sh'
+      - '.github/workflows/sync-ha-addon.yml'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
