@@ -21,6 +21,11 @@ requests==2.31.0
 paho-mqtt>=2.0.0
 bambulabs-api>=1.0.0  # Primary library for Bambu Lab file operations
 
+# Network Discovery
+zeroconf>=0.132.0  # mDNS/Bonjour discovery for Prusa printers
+ssdpy>=0.4.1  # SSDP protocol for Bambu Lab printer discovery
+netifaces>=0.11.0  # Network interface enumeration
+
 # File Download and Management
 aiofiles==23.2.1
 watchdog==3.0.0

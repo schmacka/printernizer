@@ -1,5 +1,5 @@
 name: Printernizer
-version: "2.0.28"
+version: "2.0.29"
 slug: printernizer
 description: Professional 3D Printer Management for Bambu Lab A1 and Prusa Core One
 url: https://github.com/schmacka/printernizer
@@ -42,6 +42,9 @@ options:
   enable_3d_preview: true
   enable_websockets: true
   enable_business_reports: true
+  discovery_enabled: true
+  discovery_timeout_seconds: 10
+  discovery_scan_interval_minutes: 60
   printers: []
 
 schema:
@@ -51,6 +54,9 @@ schema:
   enable_3d_preview: bool?
   enable_websockets: bool?
   enable_business_reports: bool?
+  discovery_enabled: bool?
+  discovery_timeout_seconds: int(5,60)?
+  discovery_scan_interval_minutes: int(10,1440)?
   printers:
     - name: str
       type: list(bambu_lab|prusa)
@@ -73,6 +79,9 @@ map:
   - data:rw
 
 # Host network access for printer connectivity
+# IMPORTANT: Printer discovery requires host_network to access multicast traffic (SSDP/mDNS)
+# If you want to use auto-discovery, you may need to enable host_network: true
+# This can be toggled in the add-on Network settings
 host_network: false
 network_mode: bridge
 

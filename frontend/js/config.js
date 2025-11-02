@@ -282,6 +282,8 @@ const CONFIG = {
         // Printers
     PRINTERS: '/printers',
     PRINTER_DETAIL: (id) => `/printers/${id}`,
+    PRINTER_DISCOVER: '/printers/discover',
+    PRINTER_DISCOVER_INTERFACES: '/printers/discover/interfaces',
 
         // Jobs
         JOBS: '/jobs',

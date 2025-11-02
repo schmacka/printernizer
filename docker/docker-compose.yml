@@ -37,6 +37,11 @@ services:
       - PRINTER_POLLING_INTERVAL=30
       - MAX_CONCURRENT_DOWNLOADS=5
 
+      # Printer discovery settings
+      - DISCOVERY_ENABLED=true
+      - DISCOVERY_TIMEOUT_SECONDS=10
+      - DISCOVERY_SCAN_INTERVAL_MINUTES=60
+
       # WebSocket support
       - ENABLE_WEBSOCKETS=true
 
@@ -63,6 +68,10 @@ services:
       - printernizer-cache:/app/data/preview-cache
 
     # Network configuration
+    # IMPORTANT: For printer discovery to work, you may need to use host networking mode
+    # This allows the container to access multicast traffic (SSDP/mDNS)
+    # Uncomment the line below and comment out the 'networks' and 'ports' sections:
+    # network_mode: host
     networks:
       - printernizer-network
 

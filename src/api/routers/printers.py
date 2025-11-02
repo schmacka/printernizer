@@ -1,10 +1,11 @@
 """Printer management endpoints."""
 
+import os
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from fastapi.responses import RedirectResponse
 import base64
 from pydantic import BaseModel
@@ -12,6 +13,7 @@ import structlog
 
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
+from src.services.discovery_service import DiscoveryService
 from src.utils.dependencies import get_printer_service
 
 
@@ -139,6 +141,95 @@ async def list_printers(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve printers"
+        )
+
+
+@router.get("/discover")
+async def discover_printers(
+    interface: Optional[str] = Query(None, description="Network interface to scan (auto-detect if not specified)"),
+    timeout: Optional[int] = Query(None, description="Discovery timeout in seconds (default from config)"),
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """
+    Discover printers on the local network.
+
+    Searches for:
+    - Bambu Lab printers via SSDP (ports 1990, 2021)
+    - Prusa printers via mDNS/Bonjour
+
+    Returns list of discovered printers with status indicating if they're already configured.
+
+    Note: May require host networking mode in Docker/Home Assistant environments.
+    """
+    try:
+        # Check if discovery is enabled
+        discovery_enabled = os.getenv("DISCOVERY_ENABLED", "true").lower() == "true"
+        if not discovery_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Printer discovery is disabled"
+            )
+
+        # Get timeout from config if not provided
+        if timeout is None:
+            timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
+
+        # Create discovery service
+        discovery_service = DiscoveryService(timeout=timeout)
+
+        # Get list of configured printer IPs for duplicate detection
+        printers = await printer_service.list_printers()
+        configured_ips = [p.ip_address for p in printers if p.ip_address]
+
+        # Run discovery
+        logger.info("Starting printer discovery", interface=interface, timeout=timeout)
+        results = await discovery_service.discover_all(
+            interface=interface,
+            configured_ips=configured_ips
+        )
+
+        logger.info("Printer discovery completed",
+                   discovered_count=len(results['discovered']),
+                   duration_ms=results['scan_duration_ms'])
+
+        return results
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Printer discovery failed", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Printer discovery failed: {str(e)}"
+        )
+
+
+@router.get("/discover/interfaces")
+async def list_network_interfaces():
+    """
+    List available network interfaces for discovery.
+
+    Returns list of network interfaces with their IP addresses.
+    Useful for allowing users to select which network to scan.
+    """
+    try:
+        interfaces = DiscoveryService.get_network_interfaces()
+        default_interface = DiscoveryService.get_default_interface()
+
+        # Mark the default interface
+        for iface in interfaces:
+            if iface["name"] == default_interface:
+                iface["is_default"] = True
+
+        return {
+            "interfaces": interfaces,
+            "default": default_interface
+        }
+    except Exception as e:
+        logger.error("Failed to list network interfaces", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve network interfaces"
         )
 
 

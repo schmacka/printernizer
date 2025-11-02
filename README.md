@@ -44,6 +44,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 ### 🖨️ Printer Support
 - **Bambu Lab A1** - Full MQTT integration with real-time status updates
 - **Prusa Core One** - HTTP API integration via PrusaLink
+- **Auto-discovery** - Automatically find printers on your network (SSDP + mDNS)
 - **Multi-printer management** - Simultaneous monitoring of multiple printers
 - **Connection health monitoring** - Automatic retry and error handling
 
