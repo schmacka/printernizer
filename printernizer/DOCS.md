@@ -114,6 +114,61 @@ enable_business_reports: true
 
 ## Printer Setup
 
+### Auto-Discovery (Recommended)
+
+Printernizer can automatically discover printers on your local network using SSDP (for Bambu Lab) and mDNS/Bonjour (for Prusa).
+
+**How to Use Auto-Discovery:**
+
+1. **Enable Host Network (if needed):**
+   - Go to **Add-on Configuration → Network** tab
+   - Toggle **Show disabled ports**
+   - If discovery doesn't work, you may need to enable **Host network** mode
+   - This allows the add-on to access multicast traffic (SSDP/mDNS)
+
+2. **Run Discovery:**
+   - Open the Printernizer web interface
+   - Go to **Drucker** (Printers) page
+   - Click **"Drucker suchen"** (Discover Printers) button
+   - Wait 5-10 seconds for the scan to complete
+
+3. **Add Discovered Printer:**
+   - Discovered printers will appear in the "Gefundene Drucker" (Discovered Printers) section
+   - Click **"Hinzufügen"** (Add) on the printer you want to add
+   - The add printer form will be pre-filled with IP address and type
+   - Complete the configuration (add credentials for Bambu Lab, API key for Prusa)
+   - Click **Save**
+
+**Configuration Options:**
+```yaml
+discovery_enabled: true
+discovery_timeout_seconds: 10
+discovery_scan_interval_minutes: 60
+```
+
+**discovery_enabled** (optional, default: `true`)
+- Enables/disables automatic printer discovery feature
+- Set to `false` if you don't want discovery capability
+
+**discovery_timeout_seconds** (optional, default: `10`)
+- How long to wait for printer responses during discovery
+- Range: 5-60 seconds
+- Increase if your network is slow or printers aren't found
+
+**discovery_scan_interval_minutes** (optional, default: `60`)
+- Currently for future automatic background scanning
+- Range: 10-1440 minutes (1 day)
+
+**Troubleshooting Discovery:**
+- **No printers found:** Make sure printers are powered on and connected to the network
+- **Discovery errors:** Check if you're on the same network as the printers
+- **SSDP/mDNS blocked:** Some networks block multicast traffic - enable **Host network** mode
+- **Docker/HA networking:** Host network mode may be required for discovery to work
+
+### Manual Printer Configuration
+
+If auto-discovery doesn't work or you prefer manual configuration, you can add printers via the configuration file:
+
 ### Bambu Lab A1 Configuration
 
 **Required Information:**
