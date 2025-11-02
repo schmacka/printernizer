@@ -63,7 +63,8 @@ jobs:
 
           # Also update CHANGELOG.md with sync notice
           DATE=$(date +%Y-%m-%d)
-          sed -i "3i\\## [$NEW_VERSION] - $DATE\n\n- Auto-sync: Source code synchronized from main repository\n" printernizer/CHANGELOG.md
+          CHANGELOG_ENTRY="## [$NEW_VERSION] - $DATE\n\n- Auto-sync: Source code synchronized from main repository\n"
+          sed -i "3i$CHANGELOG_ENTRY" printernizer/CHANGELOG.md
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
@@ -77,24 +78,29 @@ jobs:
             git add printernizer/config.yaml printernizer/CHANGELOG.md || true
           fi
 
-          # Create commit message
+          # Create commit message using heredoc
           if [ "${{ github.ref }}" == "refs/heads/master" ]; then
-            COMMIT_MSG="chore: Auto-sync HA add-on from main repository
+            git commit -m "$(cat <<'EOF'
+          chore: Auto-sync HA add-on from main repository
 
-- Synchronized src/ and frontend/ to printernizer/
-- Version bumped in config.yaml
-- Updated CHANGELOG.md
+          - Synchronized src/ and frontend/ to printernizer/
+          - Version bumped in config.yaml
+          - Updated CHANGELOG.md
 
-🤖 Automated sync via GitHub Actions"
+          🤖 Automated sync via GitHub Actions
+          EOF
+          )"
           else
-            COMMIT_MSG="chore: Sync HA add-on (branch: ${{ github.ref_name }})
+            git commit -m "$(cat <<'EOF'
+          chore: Sync HA add-on (branch: ${{ github.ref_name }})
 
-- Synchronized src/ and frontend/ to printernizer/
+          - Synchronized src/ and frontend/ to printernizer/
 
-🤖 Automated sync via GitHub Actions"
+          🤖 Automated sync via GitHub Actions
+          EOF
+          )"
           fi
 
-          git commit -m "$COMMIT_MSG"
           git push
 
       - name: Create sync summary
