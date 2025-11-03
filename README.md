@@ -267,6 +267,13 @@ Add your printers via the web interface or JSON configuration:
 }
 ```
 
+**Security Note - Credential Management**:
+- `config/printers.json` contains sensitive printer credentials (API keys, access codes)
+- This file is in `.gitignore` and should NEVER be committed to version control
+- Create your own `config/printers.json` from `config/printers.example.json`
+- For production deployments, use environment variables or secrets management
+- See [SECURITY.md](SECURITY.md) for detailed security guidelines
+
 ## 🏗️ Architecture
 
 ```
