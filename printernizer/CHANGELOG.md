@@ -2,6 +2,25 @@
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
+## [2.0.32] - 2025-11-03
+
+### Added
+- **Dark Theme Support**: Complete dark theme implementation with toggle functionality
+  - Professional dark color scheme optimized for readability
+  - Theme toggle button in navigation bar with moon/sun icon
+  - localStorage persistence for user preference
+  - Automatic system theme detection
+  - Smooth transitions between light and dark modes
+  - Full coverage for all UI components and pages
+
+### Features
+- Components styled: Navigation, cards, modals, forms, buttons, tables, printer cards
+- File items, overview cards, status badges, alerts, toasts, progress bars
+- Ideas, library, settings, debug sections
+- Auto-download UI, search controls, pagination
+- Theme preference saved in localStorage with OS dark mode detection
+- Accessible with proper ARIA labels
+
 ## [2.0.20] - 2025-10-27
 
 ### Fixed
