@@ -31,12 +31,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Check for source changes (before sync)
+        id: check_source_changes
+        run: |
+          # Check if src/ or frontend/ changed in this push
+          if git diff --quiet HEAD~1 HEAD -- src/ frontend/; then
+            echo "source_changed=false" >> $GITHUB_OUTPUT
+            echo "No changes in source directories (src/ or frontend/)"
+          else
+            echo "source_changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in source directories (src/ or frontend/)"
+          fi
+
       - name: Run sync script
         run: |
           chmod +x scripts/sync-ha-addon.sh
           ./scripts/sync-ha-addon.sh
 
-      - name: Check for changes
+      - name: Check for sync changes
         id: check_changes
         run: |
           if git diff --quiet printernizer/src printernizer/frontend; then
@@ -48,7 +60,7 @@ jobs:
           fi
 
       - name: Bump HA Add-on version
-        if: steps.check_changes.outputs.changes == 'true' && github.ref == 'refs/heads/master'
+        if: (steps.check_source_changes.outputs.source_changed == 'true' || steps.check_changes.outputs.changes == 'true') && github.ref == 'refs/heads/master'
         run: |
           # Read current version from config.yaml
           CURRENT_VERSION=$(grep "^version:" printernizer/config.yaml | awk '{print $2}' | tr -d '"')
@@ -70,7 +82,7 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Commit and push changes
-        if: steps.check_changes.outputs.changes == 'true'
+        if: steps.check_source_changes.outputs.source_changed == 'true' || steps.check_changes.outputs.changes == 'true'
         run: |
           git add printernizer/src/ printernizer/frontend/
 
@@ -105,7 +117,7 @@ jobs:
           git push
 
       - name: Create sync summary
-        if: steps.check_changes.outputs.changes == 'true'
+        if: steps.check_source_changes.outputs.source_changed == 'true' || steps.check_changes.outputs.changes == 'true'
         run: |
           echo "## ✅ Home Assistant Add-on Sync Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -118,7 +130,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: No changes summary
-        if: steps.check_changes.outputs.changes == 'false'
+        if: steps.check_source_changes.outputs.source_changed == 'false' && steps.check_changes.outputs.changes == 'false'
         run: |
           echo "## ℹ️ No Sync Required" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
