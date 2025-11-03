@@ -1,5 +1,8 @@
 # Printernizer .gitignore
 
+# Git worktrees
+.worktrees/
+
 # Python
 __pycache__/
 *.py[cod]
