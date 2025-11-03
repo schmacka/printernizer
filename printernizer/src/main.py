@@ -358,7 +358,7 @@ def create_application() -> FastAPI:
     
     # API Routes
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
-    app.include_router(printers_router, prefix="/api/v1", tags=["Printers"])
+    app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
     app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
     app.include_router(jobs_router, prefix="/api/v1", tags=["Jobs"])
     app.include_router(files_router, prefix="/api/v1", tags=["Files"])
