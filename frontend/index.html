@@ -9,7 +9,10 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/enhanced-metadata.css">
     <link rel="stylesheet" href="css/library.css">
+    <link rel="stylesheet" href="css/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <!-- Theme Switcher - Load early to prevent flash -->
+    <script src="js/theme-switcher.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -83,6 +86,10 @@
                         ☕ Support
                     </a>
                 </div>
+                <button id="themeToggle" class="theme-toggle" aria-label="Theme umschalten" title="Theme umschalten">
+                    <span class="theme-icon" id="themeIcon">🌙</span>
+                    <span class="theme-text" id="themeText">Dunkel</span>
+                </button>
                 <div class="system-time" id="systemTime"></div>
             </div>
         </div>
