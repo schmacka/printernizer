@@ -155,6 +155,7 @@ async def list_printers(
 async def discover_printers(
     interface: Optional[str] = Query(None, description="Network interface to scan (auto-detect if not specified)"),
     timeout: Optional[int] = Query(None, description="Discovery timeout in seconds (default from config)"),
+    scan_subnet: bool = Query(True, description="Enable subnet scanning for Prusa printers (slower but more reliable)"),
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """
@@ -162,11 +163,12 @@ async def discover_printers(
 
     Searches for:
     - Bambu Lab printers via SSDP (ports 1990, 2021)
-    - Prusa printers via mDNS/Bonjour
+    - Prusa printers via mDNS/Bonjour and HTTP subnet scan
 
     Returns list of discovered printers with status indicating if they're already configured.
 
     Note: May require host networking mode in Docker/Home Assistant environments.
+    Subnet scanning may take longer (20-30 seconds) but is more reliable for Prusa printers.
     """
     try:
         # Check if discovery is available
@@ -196,10 +198,11 @@ async def discover_printers(
         configured_ips = [p.ip_address for p in printers if p.ip_address]
 
         # Run discovery
-        logger.info("Starting printer discovery", interface=interface, timeout=timeout)
+        logger.info("Starting printer discovery", interface=interface, timeout=timeout, scan_subnet=scan_subnet)
         results = await discovery_service.discover_all(
             interface=interface,
-            configured_ips=configured_ips
+            configured_ips=configured_ips,
+            scan_subnet=scan_subnet
         )
 
         logger.info("Printer discovery completed",
