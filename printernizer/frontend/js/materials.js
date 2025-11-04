@@ -45,7 +45,7 @@ class MaterialsManager {
                 console.error('Failed to load material types: HTTP', response.status);
                 // Set default enums if API fails
                 this.enums = {
-                    material_types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
+                    types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
                     brands: [],
                     colors: []
                 };
@@ -56,7 +56,7 @@ class MaterialsManager {
             console.error('Failed to load material types:', error);
             // Set default enums if fetch fails
             this.enums = {
-                material_types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
+                types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
                 brands: [],
                 colors: []
             };
@@ -368,11 +368,11 @@ class MaterialsManager {
         if (diameter) diameter.value = '1.75';
 
         // Populate type dropdown from enums
-        if (this.enums && this.enums.material_types) {
+        if (this.enums && this.enums.types) {
             const typeSelect = document.getElementById('materialType');
             if (typeSelect) {
                 typeSelect.innerHTML = '<option value="">Typ auswählen</option>';
-                this.enums.material_types.forEach(type => {
+                this.enums.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type;
                     option.textContent = type;
