@@ -15,13 +15,7 @@ from dataclasses import dataclass
 import structlog
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
-
-# Platform-specific observer imports for better Windows compatibility
-if sys.platform == "win32":
-    from watchdog.observers.polling import PollingObserver
-    WindowsObserver = PollingObserver
-else:
-    WindowsObserver = Observer
+from watchdog.observers.polling import PollingObserver
 
 if TYPE_CHECKING:
     from watchdog.observers import Observer as ObserverType
@@ -152,12 +146,13 @@ class FileWatcherService:
         
         try:
             # Initialize observer with platform-specific handling
-            try:
+            # Use PollingObserver on Windows to avoid threading issues
+            if sys.platform == "win32":
+                self._observer = PollingObserver()
+                logger.info("Using PollingObserver for Windows compatibility")
+            else:
                 self._observer = Observer()
-            except Exception as e:
-                logger.warning("Standard observer failed, falling back to polling observer", error=str(e))
-                # Fallback to polling observer on Windows if native observer fails
-                self._observer = WindowsObserver()
+                logger.debug("Using native Observer for file watching")
             
             # Add watch folders
             watch_folders = await self.config_service.get_watch_folders()
