@@ -65,7 +65,7 @@ class MaterialService:
                     diameter REAL NOT NULL,
                     weight REAL NOT NULL,
                     remaining_weight REAL NOT NULL,
-                    cost_per_kg DECIMAL(10,2) NOT NULL,
+                    cost_per_kg DECIMAL(10,2) DEFAULT 0,
                     purchase_date TIMESTAMP NOT NULL,
                     vendor TEXT NOT NULL,
                     batch_number TEXT,
