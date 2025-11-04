@@ -211,7 +211,7 @@ class MaterialsManager {
                     <h3>Keine Filamente gefunden</h3>
                     <p>Fügen Sie Ihre erste Filamentspule hinzu</p>
                     <button class="btn btn-primary" onclick="materialsManager.showAddModal()">
-                        <i class="fas fa-plus"></i> Filament hinzufügen
+                        <span class="btn-icon">➕</span> Filament hinzufügen
                     </button>
                 </div>
             `;
@@ -236,10 +236,10 @@ class MaterialsManager {
                     <div class="material-type">${this.formatMaterialType(material.material_type)}</div>
                     <div class="material-actions">
                         <button class="btn-icon" onclick="materialsManager.editMaterial('${material.id}')" title="Bearbeiten">
-                            <i class="fas fa-edit"></i>
+                            ✏️
                         </button>
                         <button class="btn-icon" onclick="materialsManager.deleteMaterial('${material.id}')" title="Löschen">
-                            <i class="fas fa-trash"></i>
+                            🗑️
                         </button>
                     </div>
                 </div>
@@ -278,7 +278,7 @@ class MaterialsManager {
                     <h3>Keine Filamente gefunden</h3>
                     <p>Fügen Sie Ihre erste Filamentspule hinzu</p>
                     <button class="btn btn-primary" onclick="materialsManager.showAddModal()">
-                        <i class="fas fa-plus"></i> Filament hinzufügen
+                        <span class="btn-icon">➕</span> Filament hinzufügen
                     </button>
                 </div>
             `;
@@ -330,10 +330,10 @@ class MaterialsManager {
                 <td>${this.formatDate(material.purchase_date)}</td>
                 <td class="actions">
                     <button class="btn-icon" onclick="materialsManager.editMaterial('${material.id}')" title="Bearbeiten">
-                        <i class="fas fa-edit"></i>
+                        ✏️
                     </button>
                     <button class="btn-icon" onclick="materialsManager.deleteMaterial('${material.id}')" title="Löschen">
-                        <i class="fas fa-trash"></i>
+                        🗑️
                     </button>
                 </td>
             </tr>
@@ -342,11 +342,11 @@ class MaterialsManager {
 
     getSortIcon(field) {
         if (this.currentSort.field !== field) {
-            return '<i class="fas fa-sort sort-inactive"></i>';
+            return '<span class="sort-icon sort-inactive">↕️</span>';
         }
         return this.currentSort.direction === 'asc'
-            ? '<i class="fas fa-sort-up sort-active"></i>'
-            : '<i class="fas fa-sort-down sort-active"></i>';
+            ? '<span class="sort-icon sort-active">↑</span>'
+            : '<span class="sort-icon sort-active">↓</span>';
     }
 
     showAddMaterialModal() {
