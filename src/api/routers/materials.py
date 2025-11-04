@@ -27,7 +27,7 @@ from src.services.material_service import MaterialService
 from src.utils.dependencies import get_material_service
 
 
-router = APIRouter(prefix="/api/materials", tags=["Materials"])
+router = APIRouter(prefix="/materials", tags=["Materials"])
 
 
 class MaterialResponse(BaseModel):

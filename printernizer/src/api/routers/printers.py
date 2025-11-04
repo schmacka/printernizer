@@ -13,9 +13,16 @@ import structlog
 
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
-from src.services.discovery_service import DiscoveryService
 from src.utils.dependencies import get_printer_service
 
+# Optional: Discovery service requires netifaces which may not be available on Windows
+DISCOVERY_AVAILABLE = False
+try:
+    from src.services.discovery_service import DiscoveryService
+    DISCOVERY_AVAILABLE = True
+except ImportError:
+    DiscoveryService = None
+    # Discovery endpoints will return 503 errors when not available
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -162,6 +169,13 @@ async def discover_printers(
     Note: May require host networking mode in Docker/Home Assistant environments.
     """
     try:
+        # Check if discovery is available
+        if not DISCOVERY_AVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Printer discovery unavailable (netifaces not installed)"
+            )
+
         # Check if discovery is enabled
         discovery_enabled = os.getenv("DISCOVERY_ENABLED", "true").lower() == "true"
         if not discovery_enabled:
@@ -213,6 +227,13 @@ async def list_network_interfaces():
     Useful for allowing users to select which network to scan.
     """
     try:
+        # Check if discovery is available
+        if not DISCOVERY_AVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Network interface discovery unavailable (netifaces not installed)"
+            )
+
         interfaces = DiscoveryService.get_network_interfaces()
         default_interface = DiscoveryService.get_default_interface()
 
