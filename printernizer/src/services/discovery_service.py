@@ -15,12 +15,17 @@ try:
     ZEROCONF_AVAILABLE = True
 except ImportError:
     ZEROCONF_AVAILABLE = False
+    # Create stub classes if zeroconf is not available
+    ServiceListener = object
+    Zeroconf = None
+    ServiceBrowser = None
 
 try:
     from ssdpy import SSDPClient
     SSDP_AVAILABLE = True
 except ImportError:
     SSDP_AVAILABLE = False
+    SSDPClient = None
 
 logger = structlog.get_logger()
 
@@ -140,7 +145,8 @@ class DiscoveryService:
     async def discover_all(
         self,
         interface: Optional[str] = None,
-        configured_ips: Optional[List[str]] = None
+        configured_ips: Optional[List[str]] = None,
+        scan_subnet: bool = False
     ) -> Dict[str, Any]:
         """
         Discover all printers on the network.
@@ -148,6 +154,7 @@ class DiscoveryService:
         Args:
             interface: Network interface to use (None for auto-detect)
             configured_ips: List of already configured printer IPs for duplicate detection
+            scan_subnet: Whether to perform full subnet scan for Prusa (slow, default False)
 
         Returns:
             Dictionary with discovered printers and scan metadata
@@ -170,8 +177,13 @@ class DiscoveryService:
         if ZEROCONF_AVAILABLE:
             tasks.append(self._discover_prusa_mdns(interface))
         else:
-            errors.append("mDNS library not available - Prusa discovery disabled")
+            errors.append("mDNS library not available - Prusa mDNS discovery disabled")
             logger.warning("mDNS library (zeroconf) not available")
+        
+        # Optionally try HTTP discovery for Prusa (subnet scan - can be slow)
+        # Only enable if explicitly requested via scan_subnet parameter
+        if scan_subnet:
+            tasks.append(self._discover_prusa_http(interface))
 
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -256,23 +268,43 @@ class DiscoveryService:
                     if 'bambulab-com:device:3dprinter' in message.lower():
                         # Extract IP from message headers
                         ip_address = None
+                        name = None
+                        model = None
+                        serial = None
+                        
                         for line in message.split('\n'):
+                            line = line.strip()
+                            
                             if line.upper().startswith('LOCATION:'):
                                 # Try to extract IP from LOCATION header
-                                # Format: LOCATION: http://192.168.1.100:port/
+                                # Bambu format: LOCATION: 192.168.176.101 (no http://)
+                                # Other format: LOCATION: http://192.168.1.100:port/
                                 import re
+                                # Try with protocol first
                                 match = re.search(r'://(\d+\.\d+\.\d+\.\d+)', line)
                                 if match:
                                     ip_address = match.group(1)
-                                    break
+                                else:
+                                    # Try without protocol (Bambu format)
+                                    match = re.search(r'(\d+\.\d+\.\d+\.\d+)', line)
+                                    if match:
+                                        ip_address = match.group(1)
+                            
+                            elif line.startswith('DevName.bambu.com:'):
+                                name = line.split(':', 1)[1].strip()
+                            
+                            elif line.startswith('DevModel.bambu.com:'):
+                                model = line.split(':', 1)[1].strip()
+                            
+                            elif line.startswith('USN:'):
+                                serial = line.split(':', 1)[1].strip()
 
                         if ip_address and ip_address not in discovered_ips:
                             discovered_ips.add(ip_address)
 
-                            # Extract printer info from SSDP message
-                            name = self._extract_ssdp_field(message, 'SERVER') or f"Bambu Lab Printer ({ip_address})"
-                            model = self._extract_ssdp_field(message, 'MODEL')
-                            serial = self._extract_ssdp_field(message, 'USN')
+                            # Use extracted name or create default
+                            if not name:
+                                name = f"Bambu Lab Printer ({ip_address})"
 
                             printer = DiscoveredPrinter(
                                 printer_type="bambu",
@@ -284,7 +316,7 @@ class DiscoveryService:
                             )
                             self.discovered_printers.append(printer)
                             logger.info("Discovered Bambu Lab printer",
-                                       ip=ip_address, name=name)
+                                       ip=ip_address, name=name, model=model)
 
                 except asyncio.TimeoutError:
                     # No data received in this iteration, continue
@@ -349,6 +381,104 @@ class DiscoveryService:
 
         except Exception as e:
             logger.error("Prusa mDNS discovery failed", error=str(e))
+            raise
+
+    async def _discover_prusa_http(self, subnet: Optional[str] = None) -> None:
+        """
+        Discover Prusa printers by scanning subnet for HTTP API.
+        
+        This is a fallback method when mDNS doesn't work (common on Windows).
+        Scans common IP ranges and checks for PrusaLink API.
+        
+        Args:
+            subnet: Subnet to scan (e.g., "192.168.1.0/24"). If None, uses local network.
+        """
+        try:
+            import aiohttp
+            
+            logger.info("Starting Prusa HTTP discovery")
+            
+            # If no subnet provided, try to detect from network interfaces
+            if not subnet:
+                interfaces = self.get_network_interfaces()
+                if not interfaces:
+                    logger.warning("No network interfaces found for HTTP discovery")
+                    return
+                
+                # Use first non-localhost interface
+                interface_ip = interfaces[0]['ip']
+                # Convert to subnet (assuming /24)
+                parts = interface_ip.split('.')
+                subnet = f"{parts[0]}.{parts[1]}.{parts[2]}.0/24"
+            
+            # Parse subnet
+            import ipaddress
+            network = ipaddress.ip_network(subnet, strict=False)
+            
+            logger.info("Scanning subnet for Prusa printers", subnet=str(network))
+            
+            # Create semaphore to limit concurrent requests
+            semaphore = asyncio.Semaphore(20)  # Max 20 concurrent requests
+            
+            async def check_ip(ip: str):
+                """Check if IP is a Prusa printer."""
+                async with semaphore:
+                    try:
+                        timeout = aiohttp.ClientTimeout(total=2)
+                        async with aiohttp.ClientSession(timeout=timeout) as session:
+                            # Try PrusaLink API endpoint
+                            async with session.get(f"http://{ip}/api/version") as resp:
+                                if resp.status in [200, 401, 403]:
+                                    # Prusa responds with 401 if not authenticated, but still confirms it's there
+                                    try:
+                                        if resp.status == 200:
+                                            data = await resp.json()
+                                            # Check if it's actually a Prusa
+                                            if 'text' in data and 'prusa' in data.get('text', '').lower():
+                                                printer = DiscoveredPrinter(
+                                                    printer_type="prusa",
+                                                    name=data.get('hostname', f"Prusa ({ip})"),
+                                                    ip_address=ip,
+                                                    hostname=f"{data.get('hostname', ip)}.local",
+                                                    model=None  # Could extract from version info
+                                                )
+                                                self.discovered_printers.append(printer)
+                                                logger.info("Discovered Prusa printer via HTTP",
+                                                          ip=ip, name=printer.name)
+                                        else:
+                                            # 401/403 means API exists but needs auth - likely Prusa
+                                            printer = DiscoveredPrinter(
+                                                printer_type="prusa",
+                                                name=f"Prusa ({ip})",
+                                                ip_address=ip,
+                                                hostname=f"{ip}.local",
+                                                model=None
+                                            )
+                                            self.discovered_printers.append(printer)
+                                            logger.info("Discovered Prusa printer via HTTP (auth required)",
+                                                      ip=ip)
+                                    except Exception:
+                                        pass  # Not JSON or parsing failed
+                    except asyncio.TimeoutError:
+                        pass  # IP didn't respond in time
+                    except aiohttp.ClientError:
+                        pass  # Connection failed
+                    except Exception:
+                        pass  # Other error, skip
+            
+            # Scan all IPs in subnet (skip network and broadcast addresses)
+            tasks = []
+            for ip in network.hosts():
+                tasks.append(check_ip(str(ip)))
+            
+            # Run all checks concurrently
+            await asyncio.gather(*tasks)
+            
+            logger.info("Prusa HTTP discovery completed",
+                       count=len([p for p in self.discovered_printers if p.printer_type == "prusa"]))
+            
+        except Exception as e:
+            logger.error("Prusa HTTP discovery failed", error=str(e))
             raise
 
     @staticmethod
