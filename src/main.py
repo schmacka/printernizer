@@ -202,8 +202,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("[WARNING] Failed to start file watcher service", error=str(e))
 
+    # Server ready confirmation with useful connection information
+    port = os.getenv("PORT", "8000")
     logger.info("=" * 60)
-    logger.info("[OK] PRINTERNIZER BACKEND READY")
+    logger.info("🚀 PRINTERNIZER BACKEND READY")
+    logger.info(f"Server is accepting connections at http://0.0.0.0:{port}")
+    logger.info(f"API documentation available at http://0.0.0.0:{port}/docs")
+    logger.info(f"Health check endpoint: http://0.0.0.0:{port}/api/v1/health")
+    if os.getenv("DISABLE_RELOAD") == "true":
+        logger.info("⚡ Fast startup mode (reload disabled)")
     logger.info("=" * 60)
     
     yield
@@ -500,10 +507,26 @@ if __name__ == "__main__":
         "date_header": False
     }
 
+    # Development mode configuration with reload optimizations
     if os.getenv("ENVIRONMENT") == "development":
+        # Allow disabling reload for faster startup when needed
+        use_reload = os.getenv("DISABLE_RELOAD", "false").lower() != "true"
+
         config.update({
-            "reload": True,
-            "reload_dirs": ["src"],
+            "reload": use_reload,
+            "reload_dirs": ["src"] if use_reload else [],
+            "reload_excludes": [
+                "*.db",           # SQLite database files
+                "*.db-journal",   # Database journals
+                "*.db-shm",       # Shared memory files
+                "*.db-wal",       # Write-ahead log files
+                "*.log",          # Log files
+                "__pycache__",    # Python cache directories
+                "*.pyc",          # Compiled Python files
+                ".pytest_cache",  # Test cache
+                "frontend/*",     # Frontend static files
+                "*/downloads/*",  # Downloads directory
+            ],
             "workers": 1
         })
 
