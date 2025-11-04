@@ -40,7 +40,7 @@ class MaterialsManager {
 
     async loadEnums() {
         try {
-            const response = await fetch('/api/v1/api/materials/types');
+            const response = await fetch('/api/v1/materials/types');
             if (!response.ok) {
                 console.error('Failed to load material types: HTTP', response.status);
                 // Set default enums if API fails
@@ -72,7 +72,7 @@ class MaterialsManager {
             if (this.currentFilters.color) params.append('color', this.currentFilters.color);
             if (this.currentFilters.lowStock) params.append('low_stock', 'true');
 
-            const url = `/api/v1/api/materials${params.toString() ? '?' + params.toString() : ''}`;
+            const url = `/api/v1/materials${params.toString() ? '?' + params.toString() : ''}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -161,7 +161,7 @@ class MaterialsManager {
 
     async updateStats() {
         try {
-            const response = await fetch('/api/v1/api/materials/stats');
+            const response = await fetch('/api/v1/materials/stats');
             const stats = await response.json();
 
             // Update stat cards
@@ -469,7 +469,7 @@ class MaterialsManager {
         };
 
         try {
-            const url = materialId ? `/api/v1/api/materials/${materialId}` : '/api/v1/api/materials';
+            const url = materialId ? `/api/v1/materials/${materialId}` : '/api/v1/materials';
             const method = materialId ? 'PATCH' : 'POST';
 
             const response = await fetch(url, {
@@ -497,7 +497,7 @@ class MaterialsManager {
         if (!confirm('Filament wirklich löschen?')) return;
 
         try {
-            const response = await fetch(`/api/v1/api/materials/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/v1/materials/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             await this.loadMaterials();
