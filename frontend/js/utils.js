@@ -840,6 +840,31 @@ async function loadAppVersion() {
 // Make loadAppVersion available globally
 window.loadAppVersion = loadAppVersion;
 
+/**
+ * Simplified notification wrapper for backward compatibility
+ * Maps simple notification calls to the full showToast system
+ *
+ * @param {string} message - The notification message
+ * @param {string} type - Notification type: 'success', 'error', 'warning', 'info'
+ */
+function showNotification(message, type = 'info') {
+    // Map type to title
+    const titles = {
+        success: 'Erfolg',
+        error: 'Fehler',
+        warning: 'Warnung',
+        info: 'Information'
+    };
+
+    const title = titles[type] || titles.info;
+
+    // Use existing showToast with appropriate defaults
+    return showToast(type, title, message);
+}
+
+// Make showNotification available globally
+window.showNotification = showNotification;
+
 // Initialize system time and version when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
     initSystemTime();
@@ -852,7 +877,7 @@ if (typeof module !== 'undefined' && module.exports) {
         formatDate, formatTime, formatDateTime, getRelativeTime, formatDuration,
         formatNumber, formatCurrency, formatPercentage, formatBytes, formatWeight,
         isValidIP, isValidEmail, validateForm,
-        setLoadingState, showToast, showModal, closeModal,
+        setLoadingState, showToast, showNotification, showModal, closeModal,
         debounce, throttle, copyToClipboard, downloadFile,
         getStatusConfig, createStatusBadge, escapeHtml, truncateText, generateId,
         Storage, URLParams

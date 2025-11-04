@@ -70,7 +70,7 @@ from src.utils.version import get_version
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="1.5.8")
+APP_VERSION = get_version(fallback="1.5.9")
 
 
 # Prometheus metrics - initialized once

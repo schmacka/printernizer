@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.9] - 2025-11-04
+
+### Fixed
+- **Printer Autodiscovery**: Fixed 503 Service Unavailable error on `/api/v1/printers/discover` endpoint
+  - Installed `netifaces-plus` package (Windows-compatible fork of netifaces)
+  - Fixed conditional import of `zeroconf` ServiceListener to prevent NameError
+  - Added stub classes for optional dependencies when not available
+- **Frontend Notifications**: Implemented missing `showNotification()` function
+  - Created wrapper function that maps to existing `showToast()` system
+  - Resolves JavaScript errors: "showNotification is not defined"
+  - Affects printers.js, ideas.js, and camera.js modules
+
+### Changed
+- Updated `requirements.txt` to use `netifaces-plus>=0.12.0` instead of `netifaces>=0.11.0` for Windows compatibility
+- Application version bumped to 1.5.9 (bugfix release)
+- Home Assistant add-on version bumped to 2.0.37
+
+### Documentation
+- Added detailed fix plan in `docs/fixes/PRINTER_AUTODISCOVERY_FIX.md`
+
 ## [1.2.0] - 2025-10-02
 
 ### Added - Phase 2: Enhanced 3D Model Metadata Display (Issue #43, #45)

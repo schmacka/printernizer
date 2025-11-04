@@ -8,6 +8,8 @@
 
 This document provides step-by-step debugging procedures for the Printernizer Auto-Download System, specifically for resolving download failures and backend communication issues.
 
+> **Note**: For backend startup performance issues and slow server initialization, see [Startup Performance Analysis](development/STARTUP_PERFORMANCE_ANALYSIS.md).
+
 ## 🚨 Common Error Scenarios
 
 ### Error: "Unknown download status: error"

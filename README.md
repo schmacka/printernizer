@@ -632,6 +632,11 @@ pylint src/
 mypy src/
 ```
 
+### Performance & Troubleshooting
+
+- **Startup Performance** - If experiencing slow backend startup, see [Startup Performance Analysis](docs/development/STARTUP_PERFORMANCE_ANALYSIS.md) for optimization strategies
+- **Debug Procedures** - For system troubleshooting, see [Debug Procedures](docs/DEBUG_PROCEDURES.md)
+
 ## 🚀 Deployment
 
 ### Current Deployment Options
