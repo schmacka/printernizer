@@ -8,7 +8,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 

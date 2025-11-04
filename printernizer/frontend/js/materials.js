@@ -482,18 +482,29 @@ class MaterialsManager {
         const validBrands = ['OVERTURE', 'PRUSAMENT', 'BAMBU', 'POLYMAKER', 'ESUN', 'OTHER'];
         const validColors = ['BLACK', 'WHITE', 'GREY', 'RED', 'BLUE', 'GREEN', 'YELLOW', 'ORANGE', 'PURPLE', 'PINK', 'TRANSPARENT', 'NATURAL', 'OTHER'];
 
-        // Convert grams to kg for API
-        const data = {
-            material_type: document.getElementById('materialType').value,
-            brand: validBrands.includes(brandValue) ? brandValue : 'OTHER',
-            color: validColors.includes(colorValue) ? colorValue : 'OTHER',
-            diameter: parseFloat(document.getElementById('materialDiameter').value),
-            weight: spoolWeightG / 1000,  // Convert g to kg
-            remaining_weight: remainingWeightG / 1000,  // Convert g to kg
-            cost_per_kg: pricePerKg !== null ? pricePerKg : 0,  // Default to 0 if empty
-            vendor: document.getElementById('materialBrand').value || 'Unknown',  // Use brand as vendor for now
-            notes: document.getElementById('materialNotes').value || null
-        };
+        // Build request data based on operation
+        let data;
+        if (materialId) {
+            // PATCH: Only send MaterialUpdate fields
+            data = {
+                remaining_weight: remainingWeightG / 1000,  // Convert g to kg
+                cost_per_kg: pricePerKg !== null ? pricePerKg : 0,
+                notes: document.getElementById('materialNotes').value || null
+            };
+        } else {
+            // POST: Send full MaterialCreate
+            data = {
+                material_type: document.getElementById('materialType').value,
+                brand: validBrands.includes(brandValue) ? brandValue : 'OTHER',
+                color: validColors.includes(colorValue) ? colorValue : 'OTHER',
+                diameter: parseFloat(document.getElementById('materialDiameter').value),
+                weight: spoolWeightG / 1000,  // Convert g to kg
+                remaining_weight: remainingWeightG / 1000,  // Convert g to kg
+                cost_per_kg: pricePerKg !== null ? pricePerKg : 0,
+                vendor: document.getElementById('materialBrand').value || 'Unknown',
+                notes: document.getElementById('materialNotes').value || null
+            };
+        }
 
         try {
             const url = materialId ? `/api/v1/materials/${materialId}` : '/api/v1/materials';
