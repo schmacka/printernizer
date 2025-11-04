@@ -27,7 +27,7 @@ from src.services.material_service import MaterialService
 from src.utils.dependencies import get_material_service
 
 
-router = APIRouter(prefix="/api/materials", tags=["Materials"])
+router = APIRouter(prefix="/materials", tags=["Materials"])
 
 
 class MaterialResponse(BaseModel):
@@ -40,7 +40,7 @@ class MaterialResponse(BaseModel):
     weight: float
     remaining_weight: float
     remaining_percentage: float
-    cost_per_kg: Decimal
+    cost_per_kg: Decimal  # Can be 0 if not tracked
     remaining_value: Decimal
     vendor: str
     batch_number: Optional[str]

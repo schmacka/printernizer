@@ -13,7 +13,6 @@ from uuid import uuid4
 
 import aiofiles
 import structlog
-from sqlalchemy import text
 
 from src.database.database import Database
 from src.models.material import (
@@ -107,7 +106,7 @@ class MaterialService:
 
     async def _load_materials(self):
         """Load materials from database into cache."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             cursor = await conn.execute('SELECT * FROM materials ORDER BY created_at DESC')
             rows = await cursor.fetchall()
 
@@ -159,7 +158,7 @@ class MaterialService:
             updated_at=now
         )
 
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             await conn.execute('''
                 INSERT INTO materials (
                     id, material_type, brand, color, diameter, weight,
@@ -200,7 +199,7 @@ class MaterialService:
         material.updated_at = datetime.now()
 
         # Update database
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             set_clauses = []
             values = []
             for field, value in update_dict.items():
@@ -247,7 +246,7 @@ class MaterialService:
         material.remaining_weight = max(0, material.remaining_weight - weight_kg)
         material.updated_at = datetime.now()
 
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             # Insert consumption record
             consumption_id = str(uuid4())
             await conn.execute('''
@@ -387,7 +386,7 @@ class MaterialService:
         """Calculate total consumption in kg for a period."""
         since = datetime.now() - timedelta(days=days)
 
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             cursor = await conn.execute('''
                 SELECT SUM(weight_used) as total
                 FROM material_consumption
@@ -401,7 +400,7 @@ class MaterialService:
 
     async def generate_report(self, start_date: datetime, end_date: datetime) -> MaterialReport:
         """Generate material consumption report for a period."""
-        async with self.db.get_connection() as conn:
+        async with self.db.connection() as conn:
             # Get consumption data for period
             cursor = await conn.execute('''
                 SELECT mc.*, m.material_type, m.brand, m.color, j.is_business

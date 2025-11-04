@@ -14,6 +14,7 @@ from src.services.idea_service import IdeaService
 from src.services.trending_service import TrendingService
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
+from src.services.material_service import MaterialService
 
 
 async def get_database(request: Request) -> Database:
@@ -76,3 +77,8 @@ async def get_thumbnail_service(request: Request) -> ThumbnailService:
 async def get_url_parser_service(request: Request) -> UrlParserService:
     """Get URL parser service instance from app state."""
     return request.app.state.url_parser_service
+
+
+async def get_material_service(request: Request) -> MaterialService:
+    """Get material service instance from app state."""
+    return request.app.state.material_service

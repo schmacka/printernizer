@@ -1,0 +1,490 @@
+/**
+ * Materials Page Styles
+ * Modern, responsive design for filament inventory management
+ */
+
+/* ============ Statistics Cards (reuse library styles) ============ */
+.materials-stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-6, 1.5rem);
+    margin-bottom: var(--spacing-8, 2rem);
+}
+
+/* ============ View Controls ============ */
+.view-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.view-mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-mode-toggle .btn {
+    min-width: 100px;
+}
+
+.view-mode-toggle .btn.active {
+    background: var(--primary-color, #667eea);
+    color: white;
+}
+
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sort-controls label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700, #374151);
+}
+
+.sort-controls select {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.sort-controls select:hover {
+    border-color: #667eea;
+}
+
+.sort-controls select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ============ Materials Cards Grid ============ */
+.materials-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.material-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    border-left: 4px solid transparent;
+}
+
+.material-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.material-card.low-stock {
+    border-left-color: #f59e0b;
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.05) 0%, white 100%);
+}
+
+.material-card.out-of-stock {
+    border-left-color: #ef4444;
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.05) 0%, white 100%);
+}
+
+/* Material Card Header */
+.material-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.material-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--primary-color, #667eea);
+    color: white;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.material-status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.material-status-badge.low {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.material-status-badge.out {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Material Info */
+.material-info {
+    margin-bottom: 1rem;
+}
+
+.material-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--gray-900, #111827);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.material-color-indicator {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--gray-300, #d1d5db);
+    display: inline-block;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.material-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--gray-600, #4b5563);
+}
+
+.material-detail-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.material-detail-label {
+    font-size: 0.75rem;
+    color: var(--gray-500, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.material-detail-value {
+    font-weight: 600;
+    color: var(--gray-900, #111827);
+}
+
+/* Progress Bar */
+.material-progress {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.material-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--gray-600, #4b5563);
+    margin-bottom: 0.5rem;
+}
+
+.material-progress-bar {
+    height: 8px;
+    background: var(--gray-200, #e5e7eb);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.material-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.material-progress-fill.low {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.material-progress-fill.out {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Material Actions */
+.material-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.material-action-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--gray-300, #d1d5db);
+    background: white;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700, #374151);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.material-action-btn:hover {
+    background: var(--gray-50, #f9fafb);
+    border-color: var(--primary-color, #667eea);
+    color: var(--primary-color, #667eea);
+}
+
+.material-action-btn.danger:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* ============ Materials Table ============ */
+.materials-table-wrapper {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.materials-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.materials-table thead {
+    background: var(--gray-50, #f9fafb);
+    border-bottom: 2px solid var(--gray-200, #e5e7eb);
+}
+
+.materials-table th {
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--gray-700, #374151);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.materials-table tbody tr {
+    border-bottom: 1px solid var(--gray-200, #e5e7eb);
+    transition: background-color 0.2s;
+}
+
+.materials-table tbody tr:hover {
+    background: var(--gray-50, #f9fafb);
+}
+
+.materials-table tbody tr.low-stock {
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.materials-table tbody tr.out-of-stock {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.materials-table td {
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: var(--gray-900, #111827);
+}
+
+.material-table-color {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.material-table-stock-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.material-table-progress {
+    flex: 1;
+    max-width: 120px;
+}
+
+.material-table-progress-bar {
+    height: 6px;
+    background: var(--gray-200, #e5e7eb);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.material-table-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.material-table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.material-table-action-btn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--gray-300, #d1d5db);
+    background: white;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--gray-700, #374151);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.material-table-action-btn:hover {
+    background: var(--gray-50, #f9fafb);
+    border-color: var(--primary-color, #667eea);
+    color: var(--primary-color, #667eea);
+}
+
+.material-table-action-btn.danger:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+/* ============ Empty State ============ */
+.materials-empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--gray-500, #6b7280);
+}
+
+.materials-empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.materials-empty-state-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--gray-900, #111827);
+    margin-bottom: 0.5rem;
+}
+
+.materials-empty-state-description {
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ============ Responsive Design ============ */
+@media (max-width: 768px) {
+    .materials-stats-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .materials-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .view-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .sort-controls {
+        width: 100%;
+    }
+
+    .sort-controls select {
+        flex: 1;
+    }
+
+    .materials-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .materials-table {
+        min-width: 800px;
+    }
+
+    .material-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .materials-stats-container {
+        grid-template-columns: 1fr;
+    }
+
+    .material-actions {
+        flex-direction: column;
+    }
+
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+}
+
+/* ============ Dark Theme Support ============ */
+[data-theme="dark"] .material-card,
+[data-theme="dark"] .materials-table-wrapper,
+[data-theme="dark"] .view-controls,
+[data-theme="dark"] .filter-bar {
+    background: var(--dark-card-bg, #1f2937);
+    color: var(--dark-text, #f9fafb);
+}
+
+[data-theme="dark"] .materials-table thead {
+    background: var(--dark-bg, #111827);
+}
+
+[data-theme="dark"] .materials-table tbody tr:hover {
+    background: rgba(75, 85, 99, 0.3);
+}
+
+[data-theme="dark"] .material-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .material-name,
+[data-theme="dark"] .material-detail-value,
+[data-theme="dark"] .materials-table td {
+    color: var(--dark-text, #f9fafb);
+}
+
+[data-theme="dark"] .material-action-btn,
+[data-theme="dark"] .material-table-action-btn {
+    background: var(--dark-bg, #111827);
+    border-color: var(--gray-600, #4b5563);
+    color: var(--dark-text, #f9fafb);
+}
+
+[data-theme="dark"] .material-action-btn:hover,
+[data-theme="dark"] .material-table-action-btn:hover {
+    background: var(--dark-card-bg, #1f2937);
+}

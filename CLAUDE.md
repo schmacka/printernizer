@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Reference
+
+For detailed information on specific topics, see the Claude Code Skills in `.claude/skills/`:
+
+- **[Architecture & Context](.claude/skills/printernizer-architecture.md)** - Project overview, technology stack, API specifications
+- **[Development Workflow](.claude/skills/printernizer-development-workflow.md)** - Code sync, version management, development guidelines
+- **[Core Features](.claude/skills/printernizer-features.md)** - Job monitoring, file management, business features, metadata
+- **[Deployment](.claude/skills/printernizer-deployment.md)** - Deployment methods, architecture, data persistence
+
 ## Project Overview
 
 **Printernizer** is a professional 3D print management system designed for managing Bambu Lab A1 and Prusa Core One printers. It provides automated job tracking, file downloads, and business reporting capabilities for 3D printing operations.
@@ -12,259 +21,135 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Timezone**: Configurable (defaults to system timezone)
 **Business Focus**: Distinguish between business orders and private models
 
-## Architecture Overview
+## Critical Development Rules
 
-### Core Components
-- **Printer APIs**: 
-  - Bambu Lab MQTT integration via bambulabs-api library
-  - Prusa PrusaLink HTTP API integration
-- **Job Monitoring**: Real-time tracking with 30-second polling intervals
-- **File Management**: Automatic downloads and organization system
-- **Database**: SQLite with job-based architecture
-- **Web Interface**: Primary access method (desktop GUI planned for later)
+### ⚠️ Code Synchronization - READ THIS FIRST
 
-### API Integration Specifications
+**NEVER EDIT FILES IN `/printernizer/src/` OR `/printernizer/frontend/` DIRECTLY**
 
-#### Bambu Lab A1
-- **Protocol**: MQTT over bambulabs-api library
-- **Authentication**: IP + Access Code + Serial Number
-- **Features**: Real-time status, job progress, temperature monitoring
-- **Polling**: Event-driven via MQTT callbacks
+- **Single Source of Truth**: `/src/` and `/frontend/`
+- **Auto-synced copy**: `/printernizer/src/` and `/printernizer/frontend/`
+- Pre-commit hook automatically syncs changes
+- See [Development Workflow](.claude/skills/printernizer-development-workflow.md) for details
 
-#### Prusa Core One  
-- **Protocol**: HTTP REST API via PrusaLink
-- **Authentication**: API Key
-- **Features**: Job status, file downloads, print history
-- **Polling**: HTTP requests every 30 seconds
+### Version Management
 
-## Core Feature Requirements
+**Version Files** (keep synchronized):
+- `src/api/routers/health.py` - API version
+- `printernizer/config.yaml` - Home Assistant add-on version
+- `printernizer/CHANGELOG.md` - Version history
 
-### Job Monitoring System
-- Real-time job tracking for multiple printers
-- 30-second polling intervals for status updates
-- Job-based database architecture using SQLite
+See [Development Workflow](.claude/skills/printernizer-development-workflow.md) for versioning standards.
 
-### File Management (Drucker-Dateien System)
-- **Automatic printer detection** of saved files on Bambu Lab & Prusa
-- **One-click downloads** directly from GUI
-- **Combined file listing** showing local and printer files in unified view
-- **Smart download organization** by printer/date with secure file naming
-- **Status tracking**: Available 📁, Downloaded ✓, Local 💾
-- **Filter options** by printer and download status
-- **Download statistics** and cleanup management
+## Quick Start
 
-### Business & Export Features
-- **Excel/CSV export** for accounting software integration
-- **Cost calculations** including material and power costs
-- **Material consumption tracking** based on job data
-- **Business statistics** for commercial operations
+1. **Review Skills**: Read the skill files in `.claude/skills/` for detailed context
+2. **Check Sync Status**: Ensure code sync is working before making changes
+3. **Follow Patterns**: Use existing code patterns as templates
+4. **Test Thoroughly**: Test changes in all deployment modes if applicable
 
-### 3D Preview System (Planned)
-- **Multi-format support**: STL/3MF/G-Code with automatic format detection
-- **Click-to-preview** directly from print list
-- **Multiple rendering backends**: Trimesh, numpy-stl, matplotlib
-- **Modal view** for detailed examination
-- **Intelligent caching** for performance optimization
+## Key Documentation
 
-## Development Guidelines
+- [`README.md`](README.md) - User-facing documentation
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) - Contribution guidelines
+- [`docs/`](docs/) - Technical documentation
+- [`CHANGELOG.md`](CHANGELOG.md) - Version history
 
-### Business Logic Requirements
-- **Business Integration**: Flexible workflow and reporting capabilities
-- **Material Tracking**: Comprehensive material usage monitoring
-- **Localization**: Configurable timezone and locale settings
-- **Export Compatibility**: Excel/CSV formats for standard accounting software
+## Architecture Quick Reference
 
-### Technology Stack Expectations
-- **Database**: SQLite for job storage and tracking
-- **Web Framework**: To be determined (Flask/FastAPI recommended)
-- **MQTT Client**: bambulabs-api library for Bambu Lab integration
-- **HTTP Client**: Standard library or requests for Prusa API
-- **3D Processing**: Trimesh, numpy-stl, matplotlib for preview features
+**Core Services**:
+- [`PrinterService`](src/services/printer_service.py) - Printer management
+- [`JobService`](src/services/job_service.py) - Job tracking
+- [`FileService`](src/services/file_service.py) - File management
+- [`AnalyticsService`](src/services/analytics_service.py) - Business analytics
 
-### File Organization
-- Downloads organized by printer and date
-- Secure file naming conventions
-- Local file management with status tracking
-- Flexible file organization and management
+**Printer Integrations**:
+- [`BambuLabPrinter`](src/printers/bambu_lab.py) - Bambu Lab MQTT
+- [`PrusaPrinter`](src/printers/prusa.py) - Prusa HTTP API
 
-### API Routing Standards
+**API Routers** (FastAPI):
+- [`/api/v1/printers`](src/api/routers/printers.py)
+- [`/api/v1/jobs`](src/api/routers/jobs.py)
+- [`/api/v1/files`](src/api/routers/files.py)
+- [`/api/v1/analytics`](src/api/routers/analytics.py)
 
-**CRITICAL: Trailing Slash Policy**
+## Common Tasks
 
-This application has `redirect_slashes=False` configured in FastAPI to prevent conflicts with StaticFiles mounted at the root path. This setting requires strict adherence to routing patterns.
+### Adding a New Feature
+
+1. Review relevant skill file for context
+2. Identify affected services/routers
+3. Update database schema if needed (with migration)
+4. Implement backend logic
+5. Add API endpoints
+6. Update frontend
+7. Add tests
+8. Update documentation
+
+### Fixing a Bug
+
+1. Identify affected component(s)
+2. Review related code in context
+3. Write/update tests to reproduce bug
+4. Fix issue
+5. Verify tests pass
+6. Update changelog if significant
+
+### Adding Printer Support
+
+1. Review [`BasePrinter`](src/printers/base.py) interface
+2. Study existing implementations
+3. Create new printer class
+4. Implement required methods
+5. Add configuration schema
+6. Update documentation
+7. Add integration tests
+
+## Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_models.py
+
+# Run with coverage
+pytest --cov=src tests/
+```
+
+## API Routing Standards - CRITICAL
+
+**Trailing Slash Policy**
+
+This application has `redirect_slashes=False` configured in FastAPI to prevent conflicts with StaticFiles mounted at the root path.
 
 **Mandatory Routing Pattern:**
 - **NEVER use `"/"` as the endpoint path** in router decorators
 - **ALWAYS use `""` (empty string)** for root resource endpoints
 - This ensures API routes work WITHOUT trailing slashes (standard REST behavior)
 
-**Why This Matters:**
-- FastAPI combines router prefix + endpoint path to create final routes
-- With `redirect_slashes=False`, routes must match exactly (no automatic redirects)
-- Using `"/"` creates routes ending in `/`, requiring trailing slash in client URLs
-- Using `""` creates routes without `/`, matching standard HTTP client behavior
-- **This issue has occurred 3+ times** - strict adherence prevents recurrence
-
 **Correct Patterns:**
 
 ```python
-# ✅ CORRECT - Root resource operations (list, create)
+# ✅ CORRECT
 @router.get("")          # GET /api/v1/printers (no trailing slash)
 @router.post("")         # POST /api/v1/printers (no trailing slash)
-
-# ✅ CORRECT - Specific resource operations
 @router.get("/{id}")     # GET /api/v1/printers/abc123
-@router.put("/{id}")     # UPDATE /api/v1/printers/abc123
-@router.delete("/{id}")  # DELETE /api/v1/printers/abc123
 
-# ✅ CORRECT - Nested operations
-@router.post("/{id}/connect")    # POST /api/v1/printers/abc123/connect
-@router.get("/health")            # GET /api/v1/health
-```
-
-```python
-# ❌ INCORRECT - Will cause 405 errors when accessed without trailing slash
+# ❌ INCORRECT - Will cause 405 errors
 @router.get("/")         # Creates route /api/v1/printers/ (WITH slash)
-@router.post("/")        # Requires POST /api/v1/printers/ (WITH slash)
-                         # Standard clients send without slash → 405 ERROR
 ```
 
-**Testing Requirements:**
-- All API endpoints MUST be tested WITHOUT trailing slash
-- Integration tests should verify POST/PUT/DELETE work without trailing slash
-- Any new router must follow the empty string `""` pattern for root endpoints
+**Git History**: commits ddf53ea, 34680e6, branch fix/disable-redirect-slashes
 
-**Git History Reference:**
-- Previous fixes: commits ddf53ea, 34680e6, branch fix/disable-redirect-slashes
-- Root cause: StaticFiles at "/" + redirect_slashes=False + "/" endpoints
-- This is a permanent architectural constraint - do not attempt to re-enable redirect_slashes
+## Need Help?
 
-## Deployment Architecture
+- **Documentation**: Start with skill files in `.claude/skills/`
+- **Code Examples**: Review existing implementations
+- **Issues**: Check GitHub issues for known problems
+- **Discussions**: GitHub Discussions for questions
 
-Printernizer supports **three independent deployment methods**. Each method uses the same core codebase but has deployment-specific configurations:
+---
 
-### 1. Python Standalone
-- **Location**: Root directory (`run.sh`, `run.bat`)
-- **Use Case**: Development, testing, local installation
-- **Setup**: Direct Python execution
-- **Configuration**: `.env` file
-- **Data Storage**: Local directories (`data/`, `printer-files/`)
-
-### 2. Docker Standalone
-- **Location**: `docker/` directory
-- **Use Case**: Production servers, NAS systems
-- **Setup**: `docker-compose up -d`
-- **Configuration**: Environment variables in `docker-compose.yml`
-- **Data Storage**: Docker volumes (persistent)
-- **Files**:
-  - `Dockerfile` - Multi-stage build with Python 3.11
-  - `docker-compose.yml` - Full orchestration
-  - `entrypoint.sh` - Container initialization
-  - `README.md` - Docker deployment guide
-
-### 3. Home Assistant Add-on
-- **Location**: `printernizer/` directory (Add-on name)
-- **Use Case**: Home Assistant users, 24/7 integration
-- **Setup**: Install via HA Add-on Store (repository.json)
-- **Configuration**: HA UI (`options.json`)
-- **Data Storage**: `/data/printernizer/` (HA persistent storage)
-- **Files**:
-  - `Dockerfile` - Alpine-based with `ARG BUILD_FROM`
-  - `config.yaml` - Add-on metadata and schema
-  - `build.yaml` - Multi-architecture builds
-  - `run.sh` - HA-specific startup with bashio
-  - `README.md` - Add-on store description
-  - `DOCS.md` - Detailed user documentation
-  - `CHANGELOG.md` - Add-on version history
-- **Repository**: `repository.json` in root for HA Add-on Store discovery
-
-### Deployment Mode Detection
-
-The application automatically detects deployment mode via environment variables:
-- `DEPLOYMENT_MODE=standalone` - Default Python mode
-- `DEPLOYMENT_MODE=docker` - Docker standalone
-- `DEPLOYMENT_MODE=homeassistant` - HA Add-on mode
-- `HA_INGRESS=true` - Enables Ingress security (HA only)
-
-### Shared Codebase - Single Source Architecture
-
-**IMPORTANT**: All three deployment methods share the same codebase with automated synchronization:
-
-**Single Source of Truth**:
-- `/src/` - Primary application code (EDIT HERE)
-- `/frontend/` - Primary web interface (EDIT HERE)
-- `requirements.txt` - Python dependencies
-- Core business logic and features
-
-**Automated Sync to Home Assistant Add-on**:
-- `/printernizer/src/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
-- `/printernizer/frontend/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
-- Synchronization happens automatically via:
-  1. **Git pre-commit hook** - Auto-syncs when you commit changes to `/src/` or `/frontend/`
-  2. **GitHub Actions CI/CD** - Validates sync on push to master
-  3. **Manual script** - Run `scripts/sync-ha-addon.sh` (Linux/Mac) or `scripts/sync-ha-addon.bat` (Windows)
-
-**Why This Architecture**:
-- Home Assistant build system requires files in `printernizer/` directory (build context constraint)
-- Single source prevents code divergence and version drift
-- Triple safety net (hook + CI + manual) ensures consistency
-- Developers work in one place, automation handles the rest
-
-**Deployment-specific Files**:
-- Startup scripts (`run.sh` vs `entrypoint.sh` vs HA `run.sh`)
-- Configuration parsing (`.env` vs env vars vs `options.json`)
-- Path mapping (local vs volumes vs `/data`)
-- Security (direct vs Docker vs Ingress)
-
-## Future Enhancements
-- **MQTT discovery** for Home Assistant sensors (printer status, job completion)
-- **HA automations** integration with triggers and actions
-- **Kubernetes deployment** for enterprise scale-out
-- **Desktop GUI application** as alternative to web interface
-- **Advanced 3D preview capabilities** with multiple rendering options
-
-## Development Notes
-
-### General Development
-- Focus on enterprise features while maintaining simplicity
-- Consider standard business practices and configurable accounting requirements
-- **Always create a new branch** when you develop a new feature or major bugfix
-- **Keep deployment methods independent** - changes should not break any deployment option
-- **Test all three deployment methods** before merging to master
-
-### Version Management
-- **CRITICAL: Version bumps are now AUTOMATED via CI/CD**
-  - **Standalone version**: Bump manually in `src/utils/version.py` (format: `1.5.X`)
-  - **Home Assistant add-on version**: Auto-bumped by GitHub Actions on master push (format: `2.0.X`)
-  - Use bugfix increment (X+1) for fixes, minor increment for features
-  - Home Assistant requires version bumps to trigger add-on updates
-
-### Code Synchronization Workflow
-
-**Single Source of Truth**: Edit code ONLY in `/src/` and `/frontend/` directories.
-
-**Automated Sync Process**:
-1. **During Development**:
-   - Edit files in `/src/` or `/frontend/` (never touch `/printernizer/src/` or `/printernizer/frontend/`)
-   - Pre-commit hook auto-syncs on commit
-   - Synced files automatically staged and included in commit
-
-2. **Manual Sync** (if needed):
-   ```bash
-   # Linux/Mac
-   ./scripts/sync-ha-addon.sh
-
-   # Windows
-   scripts\sync-ha-addon.bat
-   ```
-
-3. **CI/CD Validation**:
-   - GitHub Actions runs sync on push to master
-   - Auto-bumps HA add-on version
-   - Commits and pushes changes if needed
-
-**Important Notes**:
-- NEVER edit files in `/printernizer/src/` or `/printernizer/frontend/` directly
-- If pre-commit hook is bypassed (`--no-verify`), CI will catch and fix
-- Sync script can be run manually anytime
-- Both directories will always stay in sync automatically
+**Remember**: Always edit in `/src/` and `/frontend/`, never in `/printernizer/src/` or `/printernizer/frontend/`!

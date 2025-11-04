@@ -46,6 +46,7 @@ from src.api.routers.idea_url import router as idea_url_router
 from src.api.routers.trending import router as trending_router
 from src.api.routers.debug import router as debug_router
 from src.api.routers.library import router as library_router
+from src.api.routers.materials import router as materials_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -123,6 +124,13 @@ async def lifespan(app: FastAPI):
     await library_service.initialize()
     logger.info("[OK] Library service initialized")
 
+    # Initialize Material service (spool inventory management)
+    logger.info("Initializing material service...")
+    from src.services.material_service import MaterialService
+    material_service = MaterialService(database, event_service)
+    await material_service.initialize()
+    logger.info("[OK] Material service initialized")
+
     # Initialize file watcher service with library integration
     logger.info("Initializing file watcher service...")
     file_watcher_service = FileWatcherService(config_service, event_service, library_service)
@@ -152,6 +160,7 @@ async def lifespan(app: FastAPI):
     app.state.url_parser_service = url_parser_service
     # app.state.trending_service = trending_service  # DISABLED
     app.state.library_service = library_service
+    app.state.material_service = material_service
 
     # Initialize and start background services
     logger.info("Starting background services...")
@@ -360,9 +369,10 @@ def create_application() -> FastAPI:
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
     app.include_router(printers_router, prefix="/api/v1/printers", tags=["Printers"])
     app.include_router(camera_router, prefix="/api/v1/printers", tags=["Camera"])
-    app.include_router(jobs_router, prefix="/api/v1", tags=["Jobs"])
-    app.include_router(files_router, prefix="/api/v1", tags=["Files"])
+    app.include_router(jobs_router, prefix="/api/v1/jobs", tags=["Jobs"])
+    app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
     app.include_router(library_router, prefix="/api/v1", tags=["Library"])  # New library system
+    app.include_router(materials_router, prefix="/api/v1", tags=["Materials"])  # Material management
     app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
@@ -483,7 +493,7 @@ if __name__ == "__main__":
         "host": host,
         "port": port,
         "workers": 1,  # Force single worker to avoid database initialization conflicts
-        "log_level": os.getenv("LOG_LEVEL", "info"),
+        "log_level": os.getenv("LOG_LEVEL", "info").lower(),  # Normalize to lowercase for uvicorn
         "access_log": True,
         "use_colors": False,
         "server_header": False,

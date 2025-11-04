@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/enhanced-metadata.css">
     <link rel="stylesheet" href="css/library.css">
+    <link rel="stylesheet" href="css/materials.css">
     <link rel="stylesheet" href="css/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <!-- Theme Switcher - Load early to prevent flash -->
@@ -48,6 +49,11 @@
                     <span class="nav-icon" aria-hidden="true">🗄️</span>
                     Bibliothek
                 </a>
+                <a href="#materials" class="nav-link" data-page="materials"
+                   role="button" aria-describedby="nav-materials-desc">
+                    <span class="nav-icon" aria-hidden="true">🧵</span>
+                    Filamente
+                </a>
                 <a href="#ideas" class="nav-link" data-page="ideas"
                    role="button" aria-describedby="nav-ideas-desc">
                     <span class="nav-icon" aria-hidden="true">💡</span>
@@ -71,6 +77,7 @@
                 <div id="nav-jobs-desc">Übersicht und Verwaltung der Druckaufträge</div>
                 <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
                 <div id="nav-library-desc">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
+                <div id="nav-materials-desc">Filament-Verwaltung und Bestandsübersicht</div>
                 <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
                 <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
                 <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
@@ -531,6 +538,152 @@
                 </div>
             </div>
 
+        </div>
+
+        <!-- Materials Page -->
+        <div id="materials" class="page">
+            <div class="page-header">
+                <h1>🧵 Filament-Verwaltung</h1>
+                <div class="header-subtitle">Bestandsverwaltung und Verbrauchstracking</div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="materialsManager.loadMaterials()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                    <button class="btn btn-primary" onclick="materialsManager.showAddMaterialModal()">
+                        <span class="btn-icon">➕</span>
+                        Filament hinzufügen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Materials Statistics -->
+            <div class="materials-stats-container" id="materialsStats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalSpools">--</div>
+                    <div class="stat-label">Spulen</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalWeight">--</div>
+                    <div class="stat-label">Gesamt (kg)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statLowStock">--</div>
+                    <div class="stat-label">Niedrig</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statTotalValue">--</div>
+                    <div class="stat-label">Wert (€)</div>
+                </div>
+            </div>
+
+            <!-- Filter and Search Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label for="filterMaterialType">Typ:</label>
+                    <select id="filterMaterialType" class="filter-select" onchange="materialsManager.applyFilters()">
+                        <option value="">Alle Typen</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterMaterialBrand">Marke:</label>
+                    <select id="filterMaterialBrand" class="filter-select" onchange="materialsManager.applyFilters()">
+                        <option value="">Alle Marken</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filterMaterialColor">Farbe:</label>
+                    <select id="filterMaterialColor" class="filter-select" onchange="materialsManager.applyFilters()">
+                        <option value="">Alle Farben</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterLowStock" onchange="materialsManager.applyFilters()">
+                        <span class="checkbox-custom"></span>
+                        Nur niedrige Bestände
+                    </label>
+                </div>
+                <div class="filter-group search-group">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="materialSearchInput" class="search-input"
+                               placeholder="Suchen..."
+                               autocomplete="off"
+                               oninput="materialsManager.applyFilters()"
+                               aria-label="Nach Material suchen">
+                        <button class="search-clear-btn" id="materialSearchClear"
+                                onclick="materialsManager.clearSearch()"
+                                style="display: none;"
+                                aria-label="Suche löschen">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Mode Toggle -->
+            <div class="view-controls">
+                <div class="view-mode-toggle">
+                    <button class="btn btn-small" id="cardsViewBtn" onclick="materialsManager.setViewMode('cards')">
+                        <span class="btn-icon">⊞</span>
+                        Karten
+                    </button>
+                    <button class="btn btn-small" id="tableViewBtn" onclick="materialsManager.setViewMode('table')">
+                        <span class="btn-icon">☰</span>
+                        Tabelle
+                    </button>
+                </div>
+                <div class="sort-controls">
+                    <label for="sortMaterialsBy">Sortierung:</label>
+                    <select id="sortMaterialsBy" class="filter-select" onchange="materialsManager.setSorting()">
+                        <option value="created_at:desc">Neueste zuerst</option>
+                        <option value="created_at:asc">Älteste zuerst</option>
+                        <option value="name:asc">Name (A-Z)</option>
+                        <option value="name:desc">Name (Z-A)</option>
+                        <option value="remaining_weight:asc">Bestand (niedrig→hoch)</option>
+                        <option value="remaining_weight:desc">Bestand (hoch→niedrig)</option>
+                        <option value="price_per_kg:asc">Preis (niedrig→hoch)</option>
+                        <option value="price_per_kg:desc">Preis (hoch→niedrig)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Materials Container -->
+            <div class="materials-container">
+                <div id="materialsCardsView" class="materials-cards-grid">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Filamente...</p>
+                    </div>
+                </div>
+                <div id="materialsTableView" class="materials-table-wrapper" style="display: none;">
+                    <table class="materials-table">
+                        <thead>
+                            <tr>
+                                <th>Typ</th>
+                                <th>Marke</th>
+                                <th>Farbe</th>
+                                <th>Bestand</th>
+                                <th>Gewicht</th>
+                                <th>Preis/kg</th>
+                                <th>Wert</th>
+                                <th>Standort</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materialsTableBody">
+                            <tr>
+                                <td colspan="9" class="loading-placeholder">
+                                    <div class="spinner"></div>
+                                    <p>Lade Filamente...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <!-- File Detail Modal -->
@@ -1621,6 +1774,118 @@
         </div>
     </div>
 
+    <!-- Material Add/Edit Modal -->
+    <div id="materialModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="materialModalTitle">Filament hinzufügen</h3>
+                <button class="modal-close" onclick="materialsManager.closeModal()">&times;</button>
+            </div>
+            <form id="materialForm" class="modal-body">
+                <input type="hidden" id="materialId" name="materialId">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materialType">Typ <span class="required">*</span></label>
+                        <select id="materialType" name="material_type" class="form-control" required>
+                            <option value="">Typ auswählen</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="materialBrand">Marke <span class="required">*</span></label>
+                        <input type="text" id="materialBrand" name="brand" class="form-control" required
+                               placeholder="z.B. OVERTURE, Prusament"
+                               maxlength="100">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materialColor">Farbe <span class="required">*</span></label>
+                        <input type="text" id="materialColor" name="color" class="form-control" required
+                               placeholder="z.B. Rot, Blau, Transparent"
+                               maxlength="50">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="materialColorHex">Farbcode (Hex)</label>
+                        <input type="color" id="materialColorHex" name="color_hex" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materialSpoolWeight">Spulengewicht (g) <span class="required">*</span></label>
+                        <input type="number" id="materialSpoolWeight" name="spool_weight_g"
+                               class="form-control" required min="0" step="1"
+                               placeholder="1000">
+                        <small class="form-text text-muted">Gewicht einer vollen Spule in Gramm</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="materialRemainingWeight">Restgewicht (g) <span class="required">*</span></label>
+                        <input type="number" id="materialRemainingWeight" name="remaining_weight_g"
+                               class="form-control" required min="0" step="1"
+                               placeholder="800">
+                        <small class="form-text text-muted">Aktuelles Restgewicht in Gramm</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="materialPricePerKg">Preis pro kg (€)</label>
+                        <input type="number" id="materialPricePerKg" name="price_per_kg"
+                               class="form-control" min="0" step="0.01"
+                               placeholder="20.00">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="materialDiameter">Durchmesser (mm) <span class="required">*</span></label>
+                        <select id="materialDiameter" name="diameter_mm" class="form-control" required>
+                            <option value="1.75">1.75mm</option>
+                            <option value="2.85">2.85mm</option>
+                            <option value="3.00">3.00mm</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="materialLocation">Lagerort</label>
+                    <input type="text" id="materialLocation" name="location" class="form-control"
+                           placeholder="z.B. Regal A3, Schublade 2"
+                           maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="materialNotes">Notizen</label>
+                    <textarea id="materialNotes" name="notes" class="form-control"
+                              placeholder="Zusätzliche Informationen..."
+                              maxlength="500" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="materialIsActive" name="is_active" checked>
+                        <span class="checkbox-custom"></span>
+                        Aktiv
+                    </label>
+                    <small class="form-text text-muted">Nur aktive Filamente werden im Bestand angezeigt</small>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="materialsManager.closeModal()">
+                    Abbrechen
+                </button>
+                <button type="submit" form="materialForm" class="btn btn-primary" id="materialSubmitBtn">
+                    <span class="btn-icon">➕</span>
+                    Speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/error-handler.js"></script>
     <script src="js/config.js"></script>
@@ -1649,6 +1914,7 @@
     <script src="js/download-debug.js"></script>
     <script src="js/auto-download-init.js"></script>
     <script src="js/library.js"></script>
+    <script src="js/materials.js"></script>
 
     <script src="js/main.js?v=1.1"></script>
 
