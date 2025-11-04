@@ -450,6 +450,19 @@ class MaterialsManager {
         const remainingWeightG = parseFloat(document.getElementById('materialRemainingWeight').value);
         const brandValue = document.getElementById('materialBrand').value.trim().toUpperCase();
         const colorValue = document.getElementById('materialColor').value.trim().toUpperCase();
+        const pricePerKgValue = document.getElementById('materialPricePerKg').value.trim();
+
+        // Validate and parse price if provided
+        let pricePerKg = null;
+        if (pricePerKgValue) {
+            pricePerKg = parseFloat(pricePerKgValue);
+            if (isNaN(pricePerKg) || pricePerKg < 0) {
+                this.showError('Preis pro kg muss eine positive Zahl oder 0 sein');
+                return;
+            }
+            // Round to 2 decimal places
+            pricePerKg = Math.round(pricePerKg * 100) / 100;
+        }
 
         // Valid enum values
         const validBrands = ['OVERTURE', 'PRUSAMENT', 'BAMBU', 'POLYMAKER', 'ESUN', 'OTHER'];
@@ -463,7 +476,7 @@ class MaterialsManager {
             diameter: parseFloat(document.getElementById('materialDiameter').value),
             weight: spoolWeightG / 1000,  // Convert g to kg
             remaining_weight: remainingWeightG / 1000,  // Convert g to kg
-            cost_per_kg: parseFloat(document.getElementById('materialPricePerKg').value || 0),
+            cost_per_kg: pricePerKg !== null ? pricePerKg : 0,  // Default to 0 if empty
             vendor: document.getElementById('materialBrand').value || 'Unknown',  // Use brand as vendor for now
             notes: document.getElementById('materialNotes').value || null
         };
@@ -471,6 +484,8 @@ class MaterialsManager {
         try {
             const url = materialId ? `/api/v1/materials/${materialId}` : '/api/v1/materials';
             const method = materialId ? 'PATCH' : 'POST';
+
+            console.log('Saving material:', { url, method, data });
 
             const response = await fetch(url, {
                 method,
@@ -480,6 +495,7 @@ class MaterialsManager {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                console.error('Save failed:', { status: response.status, errorData });
                 throw new Error(errorData.detail || `HTTP ${response.status}`);
             }
 

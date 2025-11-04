@@ -64,9 +64,9 @@ class MaterialSpool:
     diameter: float  # mm (1.75, 2.85, etc.)
     weight: float  # kg (original spool weight)
     remaining_weight: float  # kg (current remaining)
-    cost_per_kg: Decimal  # EUR per kg
-    purchase_date: datetime
-    vendor: str
+    cost_per_kg: Decimal = Decimal('0')  # EUR per kg (optional, defaults to 0)
+    purchase_date: datetime = field(default_factory=datetime.now)
+    vendor: str = ""
     batch_number: Optional[str] = None
     notes: Optional[str] = None
     printer_id: Optional[str] = None  # Currently loaded in printer
@@ -106,7 +106,7 @@ class MaterialCreate(BaseModel):
     diameter: float = Field(gt=0, le=10, description="Filament diameter in mm")
     weight: float = Field(gt=0, le=10, description="Spool weight in kg")
     remaining_weight: float = Field(ge=0, le=10, description="Remaining weight in kg")
-    cost_per_kg: Decimal = Field(gt=0, le=1000, description="Cost per kg in EUR")
+    cost_per_kg: Optional[Decimal] = Field(default=Decimal('0'), ge=0, le=1000, description="Cost per kg in EUR (optional)")
     vendor: str = Field(min_length=1, max_length=100)
     batch_number: Optional[str] = Field(None, max_length=50)
     notes: Optional[str] = Field(None, max_length=500)
@@ -125,7 +125,7 @@ class MaterialUpdate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     remaining_weight: Optional[float] = Field(None, ge=0, le=10)
-    cost_per_kg: Optional[Decimal] = Field(None, gt=0, le=1000)
+    cost_per_kg: Optional[Decimal] = Field(None, ge=0, le=1000)
     printer_id: Optional[str] = None
     notes: Optional[str] = Field(None, max_length=500)
 

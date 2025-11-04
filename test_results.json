@@ -1,0 +1,581 @@
+{
+  "console_messages": [
+    {
+      "type": "log",
+      "text": "Theme applied: light",
+      "location": {
+        "url": "http://localhost:8000/js/theme-switcher.js",
+        "lineNumber": 105,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udc1b Download Debug Tools Loaded! Available commands:",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 312,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- debugDownload(printerId, printerName) - Full debug test",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 313,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- testDownloadAPI(printerId) - Test API endpoint only",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 314,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- checkDownloadHealth() - System health check",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 315,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- clearFailedDownloads() - Clear failed tasks",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 316,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- monitorDownloads(5) - Start monitoring (5s interval)",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 317,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- stopMonitoringDownloads() - Stop monitoring",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 318,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "- exportDownloadDebug() - Export debug report",
+      "location": {
+        "url": "http://localhost:8000/js/download-debug.js",
+        "lineNumber": 319,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "Printernizer application ready",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 466,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "Available global objects: {app: undefined, api: ApiClient, wsClient: WebSocketClient, printernizer: Object}",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 467,
+        "columnNumber": 8
+      }
+    },
+    {
+      "type": "log",
+      "text": "Theme toggle button initialized",
+      "location": {
+        "url": "http://localhost:8000/js/theme-switcher.js",
+        "lineNumber": 148,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Loading app version...",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 797,
+        "columnNumber": 12
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Found appVersion element: JSHandle@node",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 807,
+        "columnNumber": 12
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Fetching health endpoint...",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 810,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "Milestone 1.2 features initialized successfully",
+      "location": {
+        "url": "http://localhost:8000/js/milestone-1-2-functions.js",
+        "lineNumber": 487,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "Printer form initialized with validation",
+      "location": {
+        "url": "http://localhost:8000/js/printer-form.js",
+        "lineNumber": 79,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "Edit printer form initialized with validation",
+      "location": {
+        "url": "http://localhost:8000/js/printer-form.js",
+        "lineNumber": 111,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "DOM loaded, initializing application...",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 291,
+        "columnNumber": 12
+      }
+    },
+    {
+      "type": "log",
+      "text": "Initializing Printernizer application",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 25,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "Navigated to page: dashboard",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 139,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "Printernizer application initialized",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 39,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Response status: 200 OK",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 815,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Health data received: {status: degraded, timestamp: 2025-11-04T09:34:45.011040, version: 1.5.9-38-g2e49a1d-dirty, environment: development, database: Object}",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 819,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Setting version to: 1.5.9-38-g2e49a1d-dirty",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 822,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Version element content now: 1.5.9-38-g2e49a1d-dirty",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 824,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "System health check: {status: degraded, timestamp: 2025-11-04T09:34:45.023961, version: 1.5.9-38-g2e49a1d-dirty, environment: development, database: Object}",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 165,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "Initializing dashboard",
+      "location": {
+        "url": "http://localhost:8000/js/dashboard.js",
+        "lineNumber": 17,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "location": {
+        "url": "http://localhost:8000/api/v1/jobs?page=1&limit=5&order_by=created_at&order_dir=desc",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load recent jobs: ApiError: Serverfehler. Bitte versuchen Sie es sp\u00e4ter erneut.\n    at ApiClient.request (http://localhost:8000/js/api.js:54:23)\n    at async Dashboard.loadRecentJobs (http://localhost:8000/js/dashboard.js:289:30)\n    at async Dashboard.loadDashboard (http://localhost:8000/js/dashboard.js:52:13)",
+      "location": {
+        "url": "http://localhost:8000/js/dashboard.js",
+        "lineNumber": 307,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "location": {
+        "url": "http://localhost:8000/api/v1/files?page=1&limit=10&status=downloaded&has_thumbnail=true&order_by=downloaded_at&order_dir=desc",
+        "lineNumber": 0,
+        "columnNumber": 0
+      }
+    },
+    {
+      "type": "error",
+      "text": "Failed to load recent printed files: ApiError: Serverfehler. Bitte versuchen Sie es sp\u00e4ter erneut.\n    at ApiClient.request (http://localhost:8000/js/api.js:54:23)\n    at async Dashboard.loadRecentPrintedFiles (http://localhost:8000/js/dashboard.js:465:30)\n    at async Dashboard.loadDashboard (http://localhost:8000/js/dashboard.js:55:13)",
+      "location": {
+        "url": "http://localhost:8000/js/dashboard.js",
+        "lineNumber": 489,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "WebSocket connected",
+      "location": {
+        "url": "http://localhost:8000/js/websocket.js",
+        "lineNumber": 90,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Main] Loading app version after initialization",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 304,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Loading app version...",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 797,
+        "columnNumber": 12
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Found appVersion element: JSHandle@node",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 807,
+        "columnNumber": 12
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Fetching health endpoint...",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 810,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Response status: 200 OK",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 815,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Health data received: {status: degraded, timestamp: 2025-11-04T09:34:45.526702, version: 1.5.9-38-g2e49a1d-dirty, environment: development, database: Object}",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 819,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Setting version to: 1.5.9-38-g2e49a1d-dirty",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 822,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "[Version] Version element content now: 1.5.9-38-g2e49a1d-dirty",
+      "location": {
+        "url": "http://localhost:8000/js/utils.js",
+        "lineNumber": 824,
+        "columnNumber": 20
+      }
+    },
+    {
+      "type": "log",
+      "text": "Navigated to page: materials",
+      "location": {
+        "url": "http://localhost:8000/js/main.js?v=1.1",
+        "lineNumber": 139,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\ude80 Starting Auto-Download System initialization...",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 26,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udccb Initializing core components...",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 81,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udccb Initializing Download Queue",
+      "location": {
+        "url": "http://localhost:8000/js/download-queue.js",
+        "lineNumber": 28,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\uddbc\ufe0f Initializing Thumbnail Queue",
+      "location": {
+        "url": "http://localhost:8000/js/thumbnail-queue.js",
+        "lineNumber": 29,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udcdd Initializing Download Logger",
+      "location": {
+        "url": "http://localhost:8000/js/download-logger.js",
+        "lineNumber": 25,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "info",
+      "text": "[INFO] system: Download Logger initialized {sessionId: session_1762245287020_4uplax439, timestamp: 2025-11-04T08:34:47.021Z, userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb\u2026Gecko) HeadlessChrome/140.0.7339.16 Safari/537.36}",
+      "location": {
+        "url": "http://localhost:8000/js/download-logger.js",
+        "lineNumber": 110,
+        "columnNumber": 24
+      }
+    },
+    {
+      "type": "log",
+      "text": "\u2705 Core components initialized",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 100,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83e\udd16 Initializing Auto-Download Manager...",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 107,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\ude80 Initializing Auto-Download Manager",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-manager.js",
+        "lineNumber": 29,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udccb Initializing Download Queue",
+      "location": {
+        "url": "http://localhost:8000/js/download-queue.js",
+        "lineNumber": 28,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\uddbc\ufe0f Initializing Thumbnail Queue",
+      "location": {
+        "url": "http://localhost:8000/js/thumbnail-queue.js",
+        "lineNumber": 29,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udcdd Initializing Download Logger",
+      "location": {
+        "url": "http://localhost:8000/js/download-logger.js",
+        "lineNumber": 25,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "info",
+      "text": "[INFO] system: Download Logger initialized {sessionId: session_1762245287020_4uplax439, timestamp: 2025-11-04T08:34:47.024Z, userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWeb\u2026Gecko) HeadlessChrome/140.0.7339.16 Safari/537.36}",
+      "location": {
+        "url": "http://localhost:8000/js/download-logger.js",
+        "lineNumber": 110,
+        "columnNumber": 24
+      }
+    },
+    {
+      "type": "info",
+      "text": "[INFO] system: Auto-Download Manager initialized successfully {}",
+      "location": {
+        "url": "http://localhost:8000/js/download-logger.js",
+        "lineNumber": 110,
+        "columnNumber": 24
+      }
+    },
+    {
+      "type": "log",
+      "text": "\u2705 Auto-Download Manager initialized",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 121,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udda5\ufe0f Initializing UI components...",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 128,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udda5\ufe0f Auto-Download UI initialized",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-ui.js",
+        "lineNumber": 28,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\u2705 UI components initialized",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 133,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udd0c Setting up WebSocket integration...",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 140,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\ud83d\udd27 Updating existing functionality...",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 216,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\u2705 Existing functionality updated",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 227,
+        "columnNumber": 16
+      }
+    },
+    {
+      "type": "log",
+      "text": "\u2705 Auto-Download System initialization complete",
+      "location": {
+        "url": "http://localhost:8000/js/auto-download-init.js",
+        "lineNumber": 47,
+        "columnNumber": 20
+      }
+    }
+  ],
+  "errors": []
+}
