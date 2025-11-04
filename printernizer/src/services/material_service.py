@@ -220,6 +220,23 @@ class MaterialService:
         await self.event_service.emit_event('material_updated', {'material': material.__dict__})
         return material
 
+    async def delete_material(self, material_id: str) -> bool:
+        """Delete a material spool from inventory."""
+        if material_id not in self.materials_cache:
+            return False
+
+        # Delete from database
+        async with self.db.connection() as conn:
+            await conn.execute("DELETE FROM materials WHERE id = ?", (material_id,))
+            await conn.commit()
+
+        # Remove from cache
+        material = self.materials_cache.pop(material_id)
+
+        await self.event_service.emit_event('material_deleted', {'material_id': material_id})
+        logger.info(f"Deleted material {material_id}")
+        return True
+
     async def record_consumption(self, job_id: str, material_id: str,
                                 weight_grams: float, printer_id: str,
                                 file_name: Optional[str] = None,

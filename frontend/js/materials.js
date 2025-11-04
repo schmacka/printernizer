@@ -398,6 +398,20 @@ class MaterialsManager {
 
         document.getElementById('materialId').value = material.id;
 
+        // Populate type dropdown from enums first
+        if (this.enums && this.enums.types) {
+            const typeSelect = document.getElementById('materialType');
+            if (typeSelect) {
+                typeSelect.innerHTML = '<option value="">Typ auswählen</option>';
+                this.enums.types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    typeSelect.appendChild(option);
+                });
+            }
+        }
+
         // Populate form with correct IDs
         // Convert kg to grams for display
         document.getElementById('materialType').value = material.material_type;

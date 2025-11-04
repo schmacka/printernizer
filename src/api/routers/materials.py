@@ -320,9 +320,16 @@ async def delete_material(
     material_id: str,
     material_service: MaterialService = Depends(get_material_service)
 ):
-    """Delete a material spool (soft delete)."""
-    # Note: Implement soft delete if needed to preserve consumption history
-    raise HTTPException(501, "Material deletion not yet implemented")
+    """Delete a material spool from inventory."""
+    try:
+        success = await material_service.delete_material(material_id)
+        if not success:
+            raise HTTPException(404, f"Material {material_id} not found")
+        return Response(status_code=204)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/consumption/history")
