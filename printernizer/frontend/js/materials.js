@@ -393,24 +393,28 @@ class MaterialsManager {
         const material = this.materials.find(m => m.id === id);
         if (!material) return;
 
-        document.getElementById('modalTitle').textContent = 'Filament bearbeiten';
+        const modalTitle = document.getElementById('materialModalTitle');
+        if (modalTitle) modalTitle.textContent = 'Filament bearbeiten';
+
         document.getElementById('materialId').value = material.id;
 
-        // Populate form
+        // Populate form with correct IDs
+        // Convert kg to grams for display
         document.getElementById('materialType').value = material.material_type;
-        document.getElementById('brand').value = material.brand;
-        document.getElementById('color').value = material.color;
-        document.getElementById('diameter').value = material.diameter;
-        document.getElementById('weight').value = material.weight;
-        document.getElementById('remainingWeight').value = material.remaining_weight;
-        document.getElementById('costPerKg').value = material.cost_per_kg;
-        document.getElementById('purchaseDate').value = material.purchase_date.split('T')[0];
-        document.getElementById('vendor').value = material.vendor || '';
-        document.getElementById('batchNumber').value = material.batch_number || '';
-        document.getElementById('notes').value = material.notes || '';
+        document.getElementById('materialBrand').value = material.brand;
+        document.getElementById('materialColor').value = material.color;
+        document.getElementById('materialDiameter').value = material.diameter;
+        document.getElementById('materialSpoolWeight').value = Math.round(material.weight * 1000);  // kg to g
+        document.getElementById('materialRemainingWeight').value = Math.round(material.remaining_weight * 1000);  // kg to g
+        document.getElementById('materialPricePerKg').value = material.cost_per_kg;
+        document.getElementById('materialNotes').value = material.notes || '';
 
-        this.populateFormDropdowns();
-        document.getElementById('materialModal').classList.add('show');
+        // Show modal
+        const modal = document.getElementById('materialModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('show');
+        }
     }
 
     populateFormDropdowns() {
@@ -440,23 +444,33 @@ class MaterialsManager {
         }
 
         const materialId = document.getElementById('materialId').value;
+
+        // Get values from form with correct IDs
+        const spoolWeightG = parseFloat(document.getElementById('materialSpoolWeight').value);
+        const remainingWeightG = parseFloat(document.getElementById('materialRemainingWeight').value);
+        const brandValue = document.getElementById('materialBrand').value.trim().toUpperCase();
+        const colorValue = document.getElementById('materialColor').value.trim().toUpperCase();
+
+        // Valid enum values
+        const validBrands = ['OVERTURE', 'PRUSAMENT', 'BAMBU', 'POLYMAKER', 'ESUN', 'OTHER'];
+        const validColors = ['BLACK', 'WHITE', 'GREY', 'RED', 'BLUE', 'GREEN', 'YELLOW', 'ORANGE', 'PURPLE', 'PINK', 'TRANSPARENT', 'NATURAL', 'OTHER'];
+
+        // Convert grams to kg for API
         const data = {
             material_type: document.getElementById('materialType').value,
-            brand: document.getElementById('brand').value,
-            color: document.getElementById('color').value,
-            diameter: parseFloat(document.getElementById('diameter').value),
-            weight: parseFloat(document.getElementById('weight').value),
-            remaining_weight: parseFloat(document.getElementById('remainingWeight').value),
-            cost_per_kg: parseFloat(document.getElementById('costPerKg').value),
-            purchase_date: document.getElementById('purchaseDate').value,
-            vendor: document.getElementById('vendor').value,
-            batch_number: document.getElementById('batchNumber').value,
-            notes: document.getElementById('notes').value
+            brand: validBrands.includes(brandValue) ? brandValue : 'OTHER',
+            color: validColors.includes(colorValue) ? colorValue : 'OTHER',
+            diameter: parseFloat(document.getElementById('materialDiameter').value),
+            weight: spoolWeightG / 1000,  // Convert g to kg
+            remaining_weight: remainingWeightG / 1000,  // Convert g to kg
+            cost_per_kg: parseFloat(document.getElementById('materialPricePerKg').value || 0),
+            vendor: document.getElementById('materialBrand').value || 'Unknown',  // Use brand as vendor for now
+            notes: document.getElementById('materialNotes').value || null
         };
 
         try {
             const url = materialId ? `/api/v1/api/materials/${materialId}` : '/api/v1/api/materials';
-            const method = materialId ? 'PUT' : 'POST';
+            const method = materialId ? 'PATCH' : 'POST';
 
             const response = await fetch(url, {
                 method,
@@ -464,7 +478,10 @@ class MaterialsManager {
                 body: JSON.stringify(data)
             });
 
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP ${response.status}`);
+            }
 
             this.closeModal();
             await this.loadMaterials();
@@ -472,7 +489,7 @@ class MaterialsManager {
             this.showSuccess(materialId ? 'Filament aktualisiert' : 'Filament hinzugefügt');
         } catch (error) {
             console.error('Failed to save material:', error);
-            this.showError('Fehler beim Speichern');
+            this.showError('Fehler beim Speichern: ' + error.message);
         }
     }
 
@@ -503,6 +520,26 @@ class MaterialsManager {
         if (form) form.reset();
     }
 
+    applyFilters() {
+        // Update current filters from UI
+        const filterType = document.getElementById('filterMaterialType');
+        const filterBrand = document.getElementById('filterMaterialBrand');
+        const filterColor = document.getElementById('filterMaterialColor');
+        const filterLowStock = document.getElementById('filterLowStock');
+        const searchInput = document.getElementById('materialSearchInput');
+
+        this.currentFilters = {
+            type: filterType ? filterType.value : '',
+            brand: filterBrand ? filterBrand.value : '',
+            color: filterColor ? filterColor.value : '',
+            lowStock: filterLowStock ? filterLowStock.checked : false,
+            search: searchInput ? searchInput.value : ''
+        };
+
+        // Reload and re-render
+        this.loadMaterials().then(() => this.render());
+    }
+
     clearFilters() {
         this.currentFilters = {
             type: '',
@@ -512,11 +549,17 @@ class MaterialsManager {
             search: ''
         };
 
-        document.getElementById('filterType').value = '';
-        document.getElementById('filterBrand').value = '';
-        document.getElementById('filterColor').value = '';
-        document.getElementById('filterLowStock').checked = false;
-        document.getElementById('searchMaterials').value = '';
+        const filterType = document.getElementById('filterMaterialType');
+        const filterBrand = document.getElementById('filterMaterialBrand');
+        const filterColor = document.getElementById('filterMaterialColor');
+        const filterLowStock = document.getElementById('filterLowStock');
+        const searchInput = document.getElementById('materialSearchInput');
+
+        if (filterType) filterType.value = '';
+        if (filterBrand) filterBrand.value = '';
+        if (filterColor) filterColor.value = '';
+        if (filterLowStock) filterLowStock.checked = false;
+        if (searchInput) searchInput.value = '';
 
         this.loadMaterials().then(() => this.render());
     }
