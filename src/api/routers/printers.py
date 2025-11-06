@@ -60,7 +60,7 @@ class PrinterUpdateRequest(BaseModel):
 
 class PrinterResponse(BaseModel):
     """Response model for printer data."""
-    id: UUID
+    id: str
     name: str
     printer_type: PrinterType
     status: PrinterStatus
