@@ -528,6 +528,42 @@ async function validateDownloadsPath() {
     }
 }
 
+async function validateLibraryPath() {
+    const folderPathInput = document.getElementById('libraryPath');
+    const validationResult = document.getElementById('libraryPathValidationResult');
+
+    if (!folderPathInput || !validationResult) return;
+
+    const folderPath = folderPathInput.value.trim();
+    if (!folderPath) {
+        validationResult.style.display = 'none';
+        return;
+    }
+
+    try {
+        // Show loading state
+        validationResult.style.display = 'block';
+        validationResult.className = 'validation-result loading';
+        validationResult.innerHTML = '<span class="spinner-small"></span> Validiere...';
+
+        // Validate path
+        const response = await api.validateLibraryPath(folderPath);
+
+        if (response.valid) {
+            validationResult.className = 'validation-result success';
+            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || 'Bibliothek-Verzeichnis ist gültig und beschreibbar');
+        } else {
+            validationResult.className = 'validation-result error';
+            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || 'Bibliothek-Verzeichnis ist ungültig');
+        }
+
+    } catch (error) {
+        console.error('Failed to validate library path:', error);
+        validationResult.className = 'validation-result error';
+        validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
+    }
+}
+
 // Export for use in main.js
 if (typeof window !== 'undefined') {
     window.settingsManager = settingsManager;
