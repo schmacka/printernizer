@@ -1,3 +1,10 @@
+## [2.0.44] - 2025-11-06
+
+- feat: Enable startup discovery by default with 60s delay and fix pre-fill
+- feat: Add printer discovery enhancements with manufacturer icons
+- feat: Add job creation API and fix jobs list endpoint
+- fix: Improve HA add-on changelog messages
+
 ## [2.0.43] - 2025-11-06
 
 - feat: Add job creation API and fix jobs list endpoint

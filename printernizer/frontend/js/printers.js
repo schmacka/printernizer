@@ -820,9 +820,14 @@ function createDiscoveredPrinterCard(printer) {
     const card = document.createElement('div');
     card.className = `card discovered-printer-card ${printer.already_added ? 'already-added' : ''}`;
 
+    // Manufacturer icon and badge
+    const manufacturerIcon = printer.type === 'bambu' ?
+        '<img src="/assets/bambu-icon.svg" class="manufacturer-icon" alt="Bambu Lab" title="Bambu Lab">' :
+        '<img src="/assets/prusa-icon.svg" class="manufacturer-icon" alt="Prusa" title="Prusa">';
+
     const typeBadge = printer.type === 'bambu' ?
-        '<span class="badge badge-bambu">Bambu Lab</span>' :
-        '<span class="badge badge-prusa">Prusa</span>';
+        '<span class="badge badge-bambu"><img src="/assets/bambu-icon.svg" class="badge-icon" alt="">Bambu Lab</span>' :
+        '<span class="badge badge-prusa"><img src="/assets/prusa-icon.svg" class="badge-icon" alt="">Prusa</span>';
 
     const statusBadge = printer.already_added ?
         '<span class="badge badge-secondary">Bereits hinzugefügt</span>' :
@@ -831,7 +836,10 @@ function createDiscoveredPrinterCard(printer) {
     card.innerHTML = `
         <div class="card-header">
             <div class="printer-title">
-                <h3>${escapeHtml(printer.name || printer.hostname || printer.ip)}</h3>
+                <div class="printer-title-with-icon">
+                    ${manufacturerIcon}
+                    <h3>${escapeHtml(printer.name || printer.hostname || printer.ip)}</h3>
+                </div>
                 <div class="printer-badges">
                     ${typeBadge}
                     ${statusBadge}
@@ -878,25 +886,39 @@ function createDiscoveredPrinterCard(printer) {
  * Add a discovered printer
  */
 function addDiscoveredPrinter(ipAddress, type, name) {
-    // Pre-fill the add printer form with discovered info
-    showAddPrinter();
+    // Show the add printer modal
+    showModal('addPrinterModal');
 
-    // Wait for form to be shown, then fill it
+    // Wait for modal to be shown, then fill the form
     setTimeout(() => {
-        const nameInput = document.querySelector('input[name="name"]');
-        const typeSelect = document.querySelector('select[name="printer_type"]');
-        const ipInput = document.querySelector('input[name="ip_address"]');
+        const nameInput = document.getElementById('printerName');
+        const typeSelect = document.getElementById('printerType');
+        const ipInput = document.getElementById('printerIP');
 
-        if (nameInput) nameInput.value = name;
-        if (ipInput) ipInput.value = ipAddress;
+        // Fill in the discovered printer information
+        if (nameInput) {
+            nameInput.value = name || '';
+        }
+
+        if (ipInput) {
+            ipInput.value = ipAddress || '';
+        }
+
         if (typeSelect) {
             // Map discovery type to form type
             const formType = type === 'bambu' ? 'bambu_lab' : 'prusa_core';
             typeSelect.value = formType;
-            // Trigger change event to update form fields
-            typeSelect.dispatchEvent(new Event('change'));
+
+            // Trigger change event to show printer-specific fields
+            typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+            console.log('Pre-filled discovered printer:', {
+                name: name,
+                ip: ipAddress,
+                type: formType
+            });
         }
-    }, 100);
+    }, 150); // Slightly longer delay to ensure modal is fully rendered
 }
 
 /**
