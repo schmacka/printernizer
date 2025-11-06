@@ -1,3 +1,18 @@
+## [2.0.45] - 2025-11-06
+
+### Fixed
+- **Critical: Printer Persistence Fix**: Printer configurations now persist across addon restarts
+  - Changed printer config storage from `/app/config/printers.json` (ephemeral) to `/data/printernizer/printers.json` (persistent)
+  - Printers added through the frontend will no longer disappear after addon restart
+  - ConfigService now automatically detects Home Assistant environment and uses persistent storage
+  - Added `PRINTER_CONFIG_PATH` environment variable in run.sh for explicit configuration
+
+### Technical Details
+- **Root Cause**: Printer configurations were saved to `/app/config/printers.json`, which is part of the container image and is recreated on each restart
+- **Solution**: Store printer configs in `/data/printernizer/` which is mapped to Home Assistant's persistent storage
+- Only `/data` directory is persistent in HA addons (configured via `map: - data:rw` in config.yaml)
+- This fix ensures all user configurations persist across container restarts
+
 ## [2.0.44] - 2025-11-06
 
 - feat: Enable startup discovery by default with 60s delay and fix pre-fill

@@ -188,17 +188,32 @@ class Settings(BaseSettings):
 
 class ConfigService:
     """Configuration service for managing printer and system settings."""
-    
+
     def __init__(self, config_path: Optional[str] = None, database = None):
         """Initialize configuration service."""
         self.settings = Settings()
         self.watch_folder_db = WatchFolderDbService(database)
         self._migrated_env_folders = False
-        
+
         if config_path is None:
-            config_path = Path(__file__).parent.parent.parent / "config" / "printers.json"
-        
+            # Check for environment variable for config path (used in HA addon for persistence)
+            env_config_path = os.environ.get('PRINTER_CONFIG_PATH')
+            if env_config_path:
+                config_path = Path(env_config_path)
+            else:
+                # Default to data directory for persistence, fallback to config if not exists
+                data_config_path = Path("/data/printernizer/printers.json")
+                legacy_config_path = Path(__file__).parent.parent.parent / "config" / "printers.json"
+
+                # Use data path if in HA environment, otherwise use legacy path
+                if os.path.exists("/data"):
+                    config_path = data_config_path
+                else:
+                    config_path = legacy_config_path
+
         self.config_path = Path(config_path)
+        # Ensure parent directory exists
+        self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self._printers: Dict[str, PrinterConfig] = {}
         self._load_printer_configs()
         
