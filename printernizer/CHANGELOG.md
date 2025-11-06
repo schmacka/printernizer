@@ -1,3 +1,9 @@
+## [2.0.53] - 2025-11-06
+
+- fix: Normalize API endpoint paths to remove leading slashes
+- fix: Add event listeners and data collection for form-associated inputs
+- fix: Fix settings save functionality and clean up addon config
+
 ## [2.0.52] - 2025-11-06
 
 - fix: Add event listeners and data collection for form-associated inputs
