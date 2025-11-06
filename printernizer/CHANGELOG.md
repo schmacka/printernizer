@@ -1,49 +1,10 @@
 # Changelog - Printernizer Home Assistant Add-on
 
-## [2.0.42] - 2025-11-06
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.41] - 2025-11-06
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.40] - 2025-11-06
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.39] - 2025-11-06
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.38] - 2025-11-04
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.37] - 2025-11-04
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.36] - 2025-11-04
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.35] - 2025-11-04
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.34] - 2025-11-04
-
-- Auto-sync: Source code synchronized from main repository
-
-## [2.0.33] - 2025-11-03
-
-- Auto-sync: Source code synchronized from main repository
-
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
 
-## [2.0.32] - 2025-11-03
+**Note**: Generic auto-sync entries (versions 2.0.33-2.0.42) have been consolidated. See git history for detailed changes between those versions.
 
+## [2.0.32] - 2025-11-03
 ### Added
 - **Dark Theme Support**: Complete dark theme implementation with toggle functionality
   - Professional dark color scheme optimized for readability
@@ -61,8 +22,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - Theme preference saved in localStorage with OS dark mode detection
 - Accessible with proper ARIA labels
 
-## [2.0.20] - 2025-10-27
 
+## [2.0.20] - 2025-10-27
 ### Fixed
 - **Critical Frontend Connection Fix**: Corrected API URL construction for Home Assistant Ingress mode
 - Frontend now uses simple relative paths (`/api/v1`) instead of preserving Ingress prefix
@@ -80,8 +41,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - **Impact**: All API calls and WebSocket connections now work correctly through HA Ingress
 - This completes the frontend connection fixes from 2.0.17-2.0.19
 
-## [2.0.19] - 2025-10-26
 
+## [2.0.19] - 2025-10-26
 ### Fixed
 - **Critical Ingress Security Fix**: Removed overly restrictive IP check that was blocking frontend connections
 - Frontend can now connect to backend when accessed through Home Assistant Ingress
@@ -98,13 +59,13 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - No additional IP filtering needed - HA's Ingress provides sufficient security
 - This completes the frontend connection fixes from 2.0.16-2.0.17
 
-## [2.0.18] - 2025-10-26
 
+## [2.0.18] - 2025-10-26
 ### Changed
 - Version bump for maintenance release
 
-## [2.0.17] - 2025-10-26
 
+## [2.0.17] - 2025-10-26
 ### Fixed
 - **Critical Frontend Connection Fix**: Completely rewrote API path detection to properly support Home Assistant Ingress
 - Frontend now correctly preserves Ingress base path when making API requests
@@ -126,8 +87,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - **WebSocket**: Updated to use same path detection logic for consistency
 - **Debug utilities**: Browser console tools for configuration inspection
 
-## [2.0.16] - 2025-10-26
 
+## [2.0.16] - 2025-10-26
 ### Fixed
 - **Ideas API connection**: Fixed ideas.js module using hardcoded API URL that broke Home Assistant Ingress mode
 - Ideas/bookmarks/trending features now properly connect through Ingress proxy
@@ -139,18 +100,18 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - Maintains compatibility with standalone and Docker deployments
 - Completes the frontend connection fix for all frontend modules
 
-## [2.0.15] - 2025-10-26
 
+## [2.0.15] - 2025-10-26
 ### Changed
 - Version bump for maintenance release
+
 
 ## [2.0.14] - 2025-10-26
-
 ### Changed
 - Version bump for maintenance release
 
-## [2.0.13] - 2025-10-26
 
+## [2.0.13] - 2025-10-26
 ### Fixed
 - **WebSocket URL construction**: Fixed WebSocket connection URL construction for Home Assistant Ingress
 - WebSocket now correctly connects through Ingress proxy with proper URL handling
@@ -161,8 +122,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - Ensures real-time updates work correctly in Ingress mode
 - No changes to standalone deployment modes
 
-## [2.0.12] - 2025-10-25
 
+## [2.0.12] - 2025-10-25
 ### Fixed
 - **Frontend static file serving**: Fixed frontend not displaying correctly via Home Assistant Ingress
 - Static files now mounted at root path instead of `/static` for proper resource loading
@@ -175,13 +136,13 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - Frontend resources (css/, js/, assets/) now accessible from root paths
 - Maintains Home Assistant Ingress double-slash handling compatibility
 
-## [2.0.11] - 2025-10-24
 
+## [2.0.11] - 2025-10-24
 ### Fixed
 - Minor improvements to Ingress compatibility
 
-## [2.0.10] - 2025-10-24
 
+## [2.0.10] - 2025-10-24
 ### Fixed
 - **Critical Ingress routing fix**: Added route handler for double-slash (`//`) path
 - Fixed 404 error when accessing add-on via Home Assistant Ingress
@@ -192,8 +153,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - This is a known Home Assistant Ingress behavior where trailing slashes in ingress paths result in double slashes
 - No changes to application functionality - routing fix only
 
-## [2.0.9] - 2025-10-24
 
+## [2.0.9] - 2025-10-24
 ### Improved
 - **Enhanced startup logging**: Added detailed status messages throughout the startup process
 - Clear indicators for each service initialization step with ✓ checkmarks
@@ -214,8 +175,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - Better error distinction between critical and non-critical startup failures
 - Improved troubleshooting capabilities through detailed logs
 
-## [2.0.8] - 2025-10-24
 
+## [2.0.8] - 2025-10-24
 ### Fixed
 - **Critical startup fix**: Added missing CMD directive to Dockerfile to start the application
 - Fixed 502 Bad Gateway error when accessing add-on via Home Assistant Ingress
@@ -226,8 +187,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - Relocated run.sh from /usr/bin/ to / (root) following HA add-on best practices
 - No changes to application functionality - deployment fix only
 
-## [2.0.2] - 2025-10-23
 
+## [2.0.2] - 2025-10-23
 ### Fixed
 - **Critical build fix**: Replaced symlinks with actual file copies in add-on directory
 - Resolved Docker build error "too many links" during Home Assistant installation
@@ -239,8 +200,8 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 - All files now accessible during Home Assistant add-on build process
 - No changes to application functionality - deployment fix only
 
-## [2.0.0] - 2025-10-22
 
+## [2.0.0] - 2025-10-22
 ### Added
 - 🎉 **Initial Home Assistant Add-on release**
 - Multi-architecture support (aarch64, amd64, armv7, armhf)
@@ -315,3 +276,4 @@ All notable changes to the Printernizer Home Assistant Add-on will be documented
 ---
 
 For complete project changelog, see: [Main CHANGELOG.md](https://github.com/schmacka/printernizer/blob/master/CHANGELOG.md)
+

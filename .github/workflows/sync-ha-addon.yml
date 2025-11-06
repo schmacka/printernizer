@@ -74,10 +74,35 @@ jobs:
           # Update version in config.yaml
           sed -i "s/^version: .*/version: \"$NEW_VERSION\"/" printernizer/config.yaml
 
-          # Also update CHANGELOG.md with sync notice
+          # Extract changes from main CHANGELOG.md or recent commits
           DATE=$(date +%Y-%m-%d)
-          CHANGELOG_ENTRY="## [$NEW_VERSION] - $DATE\n\n- Auto-sync: Source code synchronized from main repository\n"
-          sed -i "3i$CHANGELOG_ENTRY" printernizer/CHANGELOG.md
+
+          # Try to extract unreleased changes from main CHANGELOG.md
+          UNRELEASED_CHANGES=$(awk '/## \[Unreleased\]/,/## \[/ {print}' CHANGELOG.md | sed -n '/## \[Unreleased\]/,/## \[/{//!p;}' | sed '/^$/d' | head -30)
+
+          if [ -n "$UNRELEASED_CHANGES" ]; then
+            # Use unreleased changes from main CHANGELOG
+            echo "Using changes from main CHANGELOG [Unreleased] section"
+            {
+              echo "## [$NEW_VERSION] - $DATE"
+              echo ""
+              echo "$UNRELEASED_CHANGES"
+              echo ""
+            } | cat - printernizer/CHANGELOG.md > printernizer/CHANGELOG.md.tmp
+            mv printernizer/CHANGELOG.md.tmp printernizer/CHANGELOG.md
+          else
+            # Fall back to commit messages if no unreleased changes
+            echo "No unreleased changes found, extracting from recent commits"
+            COMMIT_MESSAGES=$(git log --pretty=format:"- %s" --no-merges HEAD~5..HEAD | grep -v "Auto-sync\|chore:" || echo "- Source code synchronized from main repository")
+
+            {
+              echo "## [$NEW_VERSION] - $DATE"
+              echo ""
+              echo "$COMMIT_MESSAGES"
+              echo ""
+            } | cat - printernizer/CHANGELOG.md > printernizer/CHANGELOG.md.tmp
+            mv printernizer/CHANGELOG.md.tmp printernizer/CHANGELOG.md
+          fi
 
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
