@@ -15,16 +15,19 @@ class PrinterManager {
      */
     init() {
         console.log('Initializing printer management');
-        
+
+        // Scroll to top of page
+        window.scrollTo(0, 0);
+
         // Load printers
         this.loadPrinters();
-        
+
         // Set up refresh interval
         this.startAutoRefresh();
-        
+
         // Setup form handlers
         this.setupFormHandlers();
-        
+
         // Setup WebSocket listeners
         this.setupWebSocketListeners();
     }
