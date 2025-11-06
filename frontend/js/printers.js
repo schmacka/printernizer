@@ -886,25 +886,39 @@ function createDiscoveredPrinterCard(printer) {
  * Add a discovered printer
  */
 function addDiscoveredPrinter(ipAddress, type, name) {
-    // Pre-fill the add printer form with discovered info
-    showAddPrinter();
+    // Show the add printer modal
+    showModal('addPrinterModal');
 
-    // Wait for form to be shown, then fill it
+    // Wait for modal to be shown, then fill the form
     setTimeout(() => {
-        const nameInput = document.querySelector('input[name="name"]');
-        const typeSelect = document.querySelector('select[name="printer_type"]');
-        const ipInput = document.querySelector('input[name="ip_address"]');
+        const nameInput = document.getElementById('printerName');
+        const typeSelect = document.getElementById('printerType');
+        const ipInput = document.getElementById('printerIP');
 
-        if (nameInput) nameInput.value = name;
-        if (ipInput) ipInput.value = ipAddress;
+        // Fill in the discovered printer information
+        if (nameInput) {
+            nameInput.value = name || '';
+        }
+
+        if (ipInput) {
+            ipInput.value = ipAddress || '';
+        }
+
         if (typeSelect) {
             // Map discovery type to form type
             const formType = type === 'bambu' ? 'bambu_lab' : 'prusa_core';
             typeSelect.value = formType;
-            // Trigger change event to update form fields
-            typeSelect.dispatchEvent(new Event('change'));
+
+            // Trigger change event to show printer-specific fields
+            typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+            console.log('Pre-filled discovered printer:', {
+                name: name,
+                ip: ipAddress,
+                type: formType
+            });
         }
-    }, 100);
+    }, 150); // Slightly longer delay to ensure modal is fully rendered
 }
 
 /**
