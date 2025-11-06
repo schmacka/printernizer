@@ -1992,6 +1992,112 @@
     color: var(--color-gray-700);
 }
 
+/* Manufacturer icon styles */
+.manufacturer-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
+.printer-title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.badge-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.badge.badge-bambu {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    background: var(--color-orange-100);
+    color: var(--color-orange-700);
+    border: 1px solid var(--color-orange-200);
+}
+
+.badge.badge-prusa {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    background: var(--color-red-100);
+    color: var(--color-red-700);
+    border: 1px solid var(--color-red-200);
+}
+
+.badge.badge-success {
+    background: var(--color-green-100);
+    color: var(--color-green-700);
+    border: 1px solid var(--color-green-200);
+}
+
+.badge.badge-secondary {
+    background: var(--color-gray-100);
+    color: var(--color-gray-700);
+    border: 1px solid var(--color-gray-200);
+}
+
+/* Discovered Printers Banner */
+.discovered-printers-banner {
+    background: linear-gradient(135deg, var(--color-green-50) 0%, var(--color-blue-50) 100%);
+    border: 2px solid var(--color-green-200);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+    animation: slideIn 0.5s ease;
+}
+
+.discovered-printers-banner .banner-content {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.discovered-printers-banner .banner-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.discovered-printers-banner .banner-text {
+    flex: 1;
+}
+
+.discovered-printers-banner .banner-text h4 {
+    margin: 0 0 var(--spacing-1) 0;
+    color: var(--text-primary);
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+}
+
+.discovered-printers-banner .banner-text p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
+.discovered-printers-banner .btn-icon-only {
+    background: transparent;
+    border: none;
+    padding: var(--spacing-2);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    line-height: 1;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+}
+
+.discovered-printers-banner .btn-icon-only:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text-primary);
+}
+
 .priority-stars {
     color: var(--color-yellow-500);
     font-size: var(--text-sm);

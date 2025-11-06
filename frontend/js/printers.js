@@ -820,9 +820,14 @@ function createDiscoveredPrinterCard(printer) {
     const card = document.createElement('div');
     card.className = `card discovered-printer-card ${printer.already_added ? 'already-added' : ''}`;
 
+    // Manufacturer icon and badge
+    const manufacturerIcon = printer.type === 'bambu' ?
+        '<img src="/assets/bambu-icon.svg" class="manufacturer-icon" alt="Bambu Lab" title="Bambu Lab">' :
+        '<img src="/assets/prusa-icon.svg" class="manufacturer-icon" alt="Prusa" title="Prusa">';
+
     const typeBadge = printer.type === 'bambu' ?
-        '<span class="badge badge-bambu">Bambu Lab</span>' :
-        '<span class="badge badge-prusa">Prusa</span>';
+        '<span class="badge badge-bambu"><img src="/assets/bambu-icon.svg" class="badge-icon" alt="">Bambu Lab</span>' :
+        '<span class="badge badge-prusa"><img src="/assets/prusa-icon.svg" class="badge-icon" alt="">Prusa</span>';
 
     const statusBadge = printer.already_added ?
         '<span class="badge badge-secondary">Bereits hinzugefügt</span>' :
@@ -831,7 +836,10 @@ function createDiscoveredPrinterCard(printer) {
     card.innerHTML = `
         <div class="card-header">
             <div class="printer-title">
-                <h3>${escapeHtml(printer.name || printer.hostname || printer.ip)}</h3>
+                <div class="printer-title-with-icon">
+                    ${manufacturerIcon}
+                    <h3>${escapeHtml(printer.name || printer.hostname || printer.ip)}</h3>
+                </div>
                 <div class="printer-badges">
                     ${typeBadge}
                     ${statusBadge}

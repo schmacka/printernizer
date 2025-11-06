@@ -252,6 +252,55 @@ async def lifespan(app: FastAPI):
     )
     timer.end("Monitoring services startup (parallel)")
 
+    # Optional: Run automatic printer discovery on startup
+    if os.getenv("DISCOVERY_RUN_ON_STARTUP", "false").lower() == "true":
+        timer.start("Automatic printer discovery")
+        logger.info("Running automatic printer discovery on startup...")
+        try:
+            # Import discovery service
+            try:
+                from src.services.discovery_service import DiscoveryService
+
+                # Get timeout from config
+                timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
+                discovery_service = DiscoveryService(timeout=timeout)
+
+                # Get configured printer IPs for duplicate detection
+                printers = await printer_service.list_printers()
+                configured_ips = [p.ip_address for p in printers if p.ip_address]
+
+                # Run discovery
+                results = await discovery_service.discover_all(
+                    interface=None,
+                    configured_ips=configured_ips,
+                    scan_subnet=True  # Full scan for best results
+                )
+
+                # Store discovered printers in app state for dashboard display
+                app.state.startup_discovered_printers = results.get('discovered', [])
+
+                discovered_count = len(results.get('discovered', []))
+                new_count = sum(1 for p in results.get('discovered', []) if not p.get('already_added', False))
+
+                if discovered_count > 0:
+                    logger.info(f"[OK] Automatic discovery found {discovered_count} printers ({new_count} new)",
+                              discovered_count=discovered_count,
+                              new_count=new_count,
+                              duration_ms=results.get('scan_duration_ms'))
+                else:
+                    logger.info("[OK] Automatic discovery completed (no printers found)")
+
+            except ImportError:
+                logger.warning("[WARNING] Discovery service not available (netifaces not installed)")
+                app.state.startup_discovered_printers = []
+
+        except Exception as e:
+            logger.warning("[WARNING] Automatic printer discovery failed", error=str(e))
+            app.state.startup_discovered_printers = []
+        timer.end("Automatic printer discovery")
+    else:
+        app.state.startup_discovered_printers = []
+
     # Generate startup performance report
     timer.report()
 

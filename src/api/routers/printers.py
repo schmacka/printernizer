@@ -257,6 +257,39 @@ async def list_network_interfaces():
         )
 
 
+@router.get("/discover/startup")
+async def get_startup_discovered_printers():
+    """
+    Get printers discovered during application startup.
+
+    Returns the list of printers found during automatic discovery on startup
+    (if DISCOVERY_RUN_ON_STARTUP is enabled). This allows the dashboard to
+    display newly discovered printers without running a new scan.
+
+    Returns empty list if startup discovery is disabled or no printers were found.
+    """
+    try:
+        from fastapi import Request
+        from src.main import app
+
+        # Get discovered printers from app state
+        discovered = getattr(app.state, 'startup_discovered_printers', [])
+
+        return {
+            "discovered": discovered,
+            "count": len(discovered),
+            "new_count": sum(1 for p in discovered if not p.get('already_added', False))
+        }
+    except Exception as e:
+        logger.error("Failed to get startup discovered printers", error=str(e))
+        # Return empty result instead of error for better UX
+        return {
+            "discovered": [],
+            "count": 0,
+            "new_count": 0
+        }
+
+
 @router.post("", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
 async def create_printer(
     printer_data: PrinterCreateRequest,
