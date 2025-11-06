@@ -1,3 +1,9 @@
+## [2.0.48] - 2025-11-06
+
+- fix: Add responsive mobile navigation with hamburger menu
+- feat: Add navigation bar customization to settings
+- fix: Fix printer persistence in Home Assistant addon
+
 ## [2.0.47] - 2025-11-06
 
 - feat: Add navigation bar customization to settings

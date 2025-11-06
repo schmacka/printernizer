@@ -206,6 +206,13 @@ class NavigationPreferencesUIManager {
         const visibleSections = window.navigationPreferences.getVisibleSections();
         const currentPage = window.app?.currentPage || 'dashboard';
 
+        // Close mobile menu if open
+        const navToggle = document.getElementById('navToggle');
+        if (navToggle) {
+            navToggle.setAttribute('aria-expanded', 'false');
+            navMenu.classList.remove('active');
+        }
+
         // Clear existing nav links (but keep screen reader descriptions)
         const srOnly = navMenu.querySelector('.sr-only');
         navMenu.innerHTML = '';
