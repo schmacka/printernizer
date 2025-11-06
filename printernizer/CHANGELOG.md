@@ -1,3 +1,9 @@
+## [2.0.52] - 2025-11-06
+
+- fix: Add event listeners and data collection for form-associated inputs
+- fix: Fix settings save functionality and clean up addon config
+- feat: Add library path validator to settings tab
+
 ## [2.0.51] - 2025-11-06
 
 - fix: Fix settings save functionality and clean up addon config
