@@ -1004,6 +1004,32 @@
                         </div>
                     </div>
 
+                    <!-- Navigation Customization -->
+                    <div class="card settings-section">
+                        <div class="card-header">
+                            <h3>Navigationsleiste</h3>
+                            <span class="card-icon">🧭</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <p class="text-muted">
+                                    Passen Sie die Reihenfolge und Sichtbarkeit der Navigationselemente an.
+                                </p>
+                            </div>
+
+                            <div id="navigationSectionsList" class="navigation-sections-list">
+                                <!-- Dynamic content will be inserted here -->
+                            </div>
+
+                            <div class="navigation-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                <button class="btn btn-secondary" onclick="navigationPreferencesManager.resetNavigationPreferences()">
+                                    <span class="btn-icon">🔄</span>
+                                    Auf Standardeinstellungen zurücksetzen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- System Information -->
                     <div class="card settings-section">
                         <div class="card-header">
@@ -1901,6 +1927,7 @@
     <script src="js/api.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/navigation-preferences.js"></script>
     <script src="js/components.js"></script>
     <script src="js/milestone-1-2-functions.js"></script>
     <script src="js/printer-form.js"></script>
@@ -1912,6 +1939,7 @@
     <script src="js/files.js"></script>
     <script src="js/ideas.js"></script>
     <script src="js/settings.js?v=1.1"></script>
+    <script src="js/navigation-preferences-ui.js"></script>
     <script src="js/debug.js?v=1.1"></script>
 
     <!-- Auto-Download System -->
