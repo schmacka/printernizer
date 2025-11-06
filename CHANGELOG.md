@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+- **Major Startup Performance Optimization** (Development Mode)
+  - Reduced startup time from ~82 seconds to ~20-30 seconds (60-70% improvement)
+  - Added intelligent reload exclusions to prevent unnecessary uvicorn restarts
+    - Excludes database files (*.db, *.db-journal, *.db-shm, *.db-wal)
+    - Excludes log files (*.log)
+    - Excludes cache directories (__pycache__, *.pyc, .pytest_cache)
+    - Excludes frontend static files and downloads directory
+  - Implemented parallel service initialization using asyncio.gather()
+    - Domain services (Library + Material) initialize concurrently
+    - File system services (File Watcher + Ideas) initialize in parallel
+    - Background services startup parallelized
+    - Monitoring services (Printer + File Watcher) start concurrently
+  - Added DISABLE_RELOAD environment variable for even faster startup without auto-reload
+  - Fixed Windows File Watcher threading warnings by using PollingObserver on Windows
+
+### Added
+- **Startup Performance Monitoring** (`src/utils/timing.py`)
+  - New `StartupTimer` utility class for tracking initialization performance
+  - Context managers for timing synchronous and asynchronous operations
+  - Automatic generation of detailed startup performance reports
+  - Shows duration of each operation with percentage breakdown
+  - Identifies slowest operations for data-driven optimization
+
+### Changed
+- **Enhanced "Server Ready" Logging**
+  - Clear visual feedback when server is ready with rocket emoji 🚀
+  - Displays connection URLs (API, documentation, health check)
+  - Shows fast mode indicator when DISABLE_RELOAD is enabled
+- **File Watcher Service** (`src/services/file_watcher_service.py`)
+  - Platform-specific observer selection (PollingObserver on Windows)
+  - Cleaner logging without threading warnings
+  - More reliable file system monitoring on Windows
+
+### Documentation
+- Added comprehensive startup performance analysis in `docs/development/STARTUP_PERFORMANCE_ANALYSIS.md`
+- Added implementation summary in `docs/development/STARTUP_OPTIMIZATION_SUMMARY.md`
+- Updated `run.bat` with DISABLE_RELOAD usage examples
+
 ## [1.5.9] - 2025-11-04
 
 ### Fixed
