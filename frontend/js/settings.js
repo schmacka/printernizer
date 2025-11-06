@@ -64,10 +64,18 @@ class SettingsManager {
      * Populate settings form with current values
      */
     populateSettingsForm() {
-        if (!this.currentSettings) return;
+        if (!this.currentSettings) {
+            console.warn('No current settings to populate');
+            return;
+        }
 
         const form = document.getElementById('applicationSettingsForm');
-        if (!form) return;
+        if (!form) {
+            console.error('Settings form not found');
+            return;
+        }
+
+        console.log('Populating settings form with:', this.currentSettings);
 
         // Set form values (inputs inside the form)
         const elements = form.elements;
@@ -76,27 +84,36 @@ class SettingsManager {
             if (key && this.currentSettings.hasOwnProperty(key)) {
                 if (element.type === 'checkbox') {
                     element.checked = this.currentSettings[key];
+                    console.log(`Populated form element: ${key} = ${this.currentSettings[key]} (checkbox)`);
                 } else {
                     element.value = this.currentSettings[key];
+                    console.log(`Populated form element: ${key} = ${this.currentSettings[key]}`);
                 }
             }
         }
 
         // Also populate inputs associated with the form (using form attribute)
         const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
+        console.log(`Populating ${associatedInputs.length} form-associated inputs`);
+
         associatedInputs.forEach(element => {
             const key = element.name;
             if (key && this.currentSettings.hasOwnProperty(key)) {
                 if (element.type === 'checkbox') {
                     element.checked = this.currentSettings[key];
+                    console.log(`Populated associated input: ${key} = ${this.currentSettings[key]} (checkbox)`);
                 } else {
                     element.value = this.currentSettings[key];
+                    console.log(`Populated associated input: ${key} = ${this.currentSettings[key]}`);
                 }
+            } else if (key) {
+                console.warn(`Associated input ${key} not found in settings`);
             }
         });
 
         this.isDirty = false;
         this.updateSaveButton();
+        console.log('Form population complete');
     }
 
     /**
@@ -104,27 +121,44 @@ class SettingsManager {
      */
     async saveSettings() {
         try {
+            console.log('=== SAVE SETTINGS STARTED ===');
+            console.log('isDirty:', this.isDirty);
+
             if (!this.isDirty) {
+                console.warn('No changes detected - aborting save');
                 showToast('info', 'Keine Änderungen', 'Es wurden keine Änderungen vorgenommen');
                 return;
             }
 
             const formData = this.collectFormData();
+            console.log('Collected form data:', formData);
+            console.log('Number of fields to save:', Object.keys(formData).length);
+
+            if (Object.keys(formData).length === 0) {
+                console.warn('No data collected - aborting save');
+                showToast('warning', 'Keine Daten', 'Keine Formulardaten gefunden');
+                return;
+            }
 
             showToast('info', 'Speichere Einstellungen', 'Konfiguration wird gespeichert');
 
             const result = await api.updateApplicationSettings(formData);
-            
-            showToast('success', 'Einstellungen gespeichert', 
+            console.log('Save result:', result);
+
+            showToast('success', 'Einstellungen gespeichert',
                      `${result.updated_fields.length} Einstellungen wurden aktualisiert`);
-            
+
             this.isDirty = false;
             this.updateSaveButton();
-            
+
             // Reload settings to reflect any server-side changes
+            console.log('Reloading settings after save');
             await this.loadSettings();
 
+            console.log('=== SAVE SETTINGS COMPLETED ===');
+
         } catch (error) {
+            console.error('Save settings error:', error);
             window.ErrorHandler?.handleSettingsError(error, { operation: 'save' });
             showToast('error', 'Fehler beim Speichern', 'Einstellungen konnten nicht gespeichert werden');
         }
@@ -135,44 +169,71 @@ class SettingsManager {
      */
     collectFormData() {
         const form = document.getElementById('applicationSettingsForm');
-        if (!form) return {};
+        if (!form) {
+            console.warn('Settings form not found');
+            return {};
+        }
 
         const formData = {};
 
         // Collect from form elements (inputs inside the form)
         const elements = form.elements;
         for (let element of elements) {
-            if (element.name && element.value !== '') {
-                if (element.type === 'number') {
-                    formData[element.name] = parseFloat(element.value);
-                } else if (element.type === 'checkbox') {
-                    formData[element.name] = element.checked;
-                } else {
-                    formData[element.name] = element.value;
+            if (!element.name) continue;
+
+            if (element.type === 'checkbox') {
+                // Always collect checkbox state
+                formData[element.name] = element.checked;
+                console.log(`Collected form element: ${element.name} = ${element.checked} (checkbox)`);
+            } else if (element.type === 'number') {
+                // Collect number if not empty
+                const value = element.value.trim();
+                if (value !== '') {
+                    formData[element.name] = parseFloat(value);
+                    console.log(`Collected form element: ${element.name} = ${value} (number)`);
+                }
+            } else if (element.type === 'text' || element.type === 'select-one') {
+                // Collect text/select if not empty
+                const value = element.value.trim();
+                if (value !== '') {
+                    formData[element.name] = value;
+                    console.log(`Collected form element: ${element.name} = ${value} (${element.type})`);
                 }
             }
         }
 
         // Also collect from inputs associated with the form (using form attribute)
+        // These are inputs outside the form but logically part of it (like library settings)
         const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
+        console.log(`Found ${associatedInputs.length} form-associated inputs`);
+
         associatedInputs.forEach(element => {
-            if (element.name) {
-                if (element.type === 'number') {
-                    const value = element.value.trim();
-                    if (value !== '') {
-                        formData[element.name] = parseFloat(value);
-                    }
-                } else if (element.type === 'checkbox') {
-                    formData[element.name] = element.checked;
-                } else if (element.type === 'text') {
-                    const value = element.value.trim();
-                    if (value !== '') {
-                        formData[element.name] = value;
-                    }
+            if (!element.name) return;
+
+            if (element.type === 'checkbox') {
+                // Always collect checkbox state
+                formData[element.name] = element.checked;
+                console.log(`Collected associated input: ${element.name} = ${element.checked} (checkbox)`);
+            } else if (element.type === 'number') {
+                // Collect number if not empty
+                const value = element.value.trim();
+                if (value !== '') {
+                    formData[element.name] = parseFloat(value);
+                    console.log(`Collected associated input: ${element.name} = ${value} (number)`);
+                }
+            } else if (element.type === 'text') {
+                // Collect text if not empty
+                const value = element.value.trim();
+                if (value !== '') {
+                    formData[element.name] = value;
+                    console.log(`Collected associated input: ${element.name} = ${value} (text)`);
+                } else {
+                    console.log(`Skipped empty associated input: ${element.name} (text)`);
                 }
             }
         });
 
+        console.log('Final form data to be saved:', formData);
         return formData;
     }
 
@@ -181,10 +242,16 @@ class SettingsManager {
      */
     setupFormHandlers() {
         const form = document.getElementById('applicationSettingsForm');
-        if (!form) return;
+        if (!form) {
+            console.error('Settings form not found - cannot setup handlers');
+            return;
+        }
+
+        console.log('Setting up form change handlers');
 
         // Handler function for marking form as dirty
-        const markDirty = () => {
+        const markDirty = (event) => {
+            console.log(`Form changed: ${event.target.name || event.target.id} = ${event.target.value || event.target.checked}`);
             this.isDirty = true;
             this.updateSaveButton();
             this.scheduleAutoSave();
@@ -193,14 +260,20 @@ class SettingsManager {
         // Track changes on form itself (for inputs inside the form)
         form.addEventListener('input', markDirty);
         form.addEventListener('change', markDirty);
+        console.log('Attached event listeners to main form');
 
         // Also track changes on inputs associated with the form (using form attribute)
         // This includes library settings that are visually separate but logically part of the form
         const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
+        console.log(`Found ${associatedInputs.length} form-associated inputs for event listeners`);
+
         associatedInputs.forEach(input => {
+            console.log(`Attaching listeners to: ${input.name || input.id} (${input.type})`);
             input.addEventListener('input', markDirty);
             input.addEventListener('change', markDirty);
         });
+
+        console.log('Form change handlers setup complete');
     }
 
     /**
