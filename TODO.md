@@ -33,6 +33,7 @@
 - [ ] **Connect with porcus3d.de for print jobs**
 - [ ] **Favorites from Makerworld and Printables**
 - [ ] **Mailbox Integration**
+- [ ] **Cross-Site Search Feature** - Unified search across local files, ideas, Makerworld, Printables, and more external platforms with advanced filtering (See `docs/plans/2025-11-06-cross-site-search-design.md`)
 
 ---
 
