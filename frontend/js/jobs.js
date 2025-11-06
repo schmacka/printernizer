@@ -737,33 +737,33 @@ class JobManager {
      */
     renderJobDetailActions(job) {
         const actions = [];
-        
+
         // Cancel job if active
         if (['printing', 'queued', 'preparing', 'paused'].includes(job.status)) {
             actions.push(`
-                <button class="btn btn-warning" onclick="jobManager.cancelJob(${job.id})">
+                <button class="btn btn-warning" onclick="jobManager.cancelJob('${job.id}')">
                     <span class="btn-icon">⏹️</span>
                     Auftrag abbrechen
                 </button>
             `);
         }
-        
+
         // Edit job info
         actions.push(`
-            <button class="btn btn-secondary" onclick="jobManager.editJob(${job.id})">
+            <button class="btn btn-secondary" onclick="jobManager.editJob('${job.id}')">
                 <span class="btn-icon">✏️</span>
                 Bearbeiten
             </button>
         `);
-        
+
         // Export job data
         actions.push(`
-            <button class="btn btn-secondary" onclick="jobManager.exportJob(${job.id})">
+            <button class="btn btn-secondary" onclick="jobManager.exportJob('${job.id}')">
                 <span class="btn-icon">📊</span>
                 Export
             </button>
         `);
-        
+
         return actions.join('');
     }
 
