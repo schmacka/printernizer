@@ -1,5 +1,13 @@
 # Changelog - Printernizer Home Assistant Add-on
 
+## [2.0.40] - 2025-11-06
+
+- Auto-sync: Source code synchronized from main repository
+
+## [2.0.39] - 2025-11-06
+
+- Auto-sync: Source code synchronized from main repository
+
 ## [2.0.38] - 2025-11-04
 
 - Auto-sync: Source code synchronized from main repository

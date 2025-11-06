@@ -55,7 +55,7 @@ from src.services.file_service import FileService
 from src.services.file_watcher_service import FileWatcherService
 from src.services.migration_service import MigrationService
 from src.services.monitoring_service import monitoring_service
-# from src.services.trending_service import TrendingService  # DISABLED
+from src.services.trending_service import TrendingService
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.utils.logging_config import setup_logging
@@ -180,6 +180,14 @@ async def lifespan(app: FastAPI):
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
 
+    # Initialize TrendingService (re-enabled in master)
+    timer.start("Trending service initialization")
+    logger.info("Initializing trending service...")
+    trending_service = TrendingService(database, event_service)
+    await trending_service.initialize()
+    timer.end("Trending service initialization")
+    logger.info("[OK] Trending service initialized")
+
     app.state.config_service = config_service
     app.state.event_service = event_service
     app.state.printer_service = printer_service
@@ -187,7 +195,7 @@ async def lifespan(app: FastAPI):
     app.state.file_watcher_service = file_watcher_service
     app.state.thumbnail_service = thumbnail_service
     app.state.url_parser_service = url_parser_service
-    # app.state.trending_service = trending_service  # DISABLED
+    app.state.trending_service = trending_service
     app.state.library_service = library_service
     app.state.material_service = material_service
 
@@ -297,15 +305,15 @@ async def lifespan(app: FastAPI):
             )
         )
 
-    # Trending service - DISABLED
-    # if hasattr(app.state, 'trending_service') and app.state.trending_service:
-    #     shutdown_tasks.append(
-    #         shutdown_with_timeout(
-    #             app.state.trending_service.cleanup(),
-    #             "Trending service",
-    #             timeout=5
-    #         )
-    #     )
+    # Trending service
+    if hasattr(app.state, 'trending_service') and app.state.trending_service:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.trending_service.cleanup(),
+                "Trending service",
+                timeout=5
+            )
+        )
 
     # Thumbnail service
     if hasattr(app.state, 'thumbnail_service') and app.state.thumbnail_service:
