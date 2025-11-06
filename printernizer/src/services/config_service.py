@@ -438,19 +438,65 @@ class ConfigService:
         """Validate a watch folder path."""
         try:
             path = Path(folder_path)
-            
+
             if not path.exists():
                 return {"valid": False, "error": "Path does not exist"}
-            
+
             if not path.is_dir():
                 return {"valid": False, "error": "Path is not a directory"}
-            
+
             if not os.access(path, os.R_OK):
                 return {"valid": False, "error": "Directory is not readable"}
-            
+
             return {"valid": True, "message": "Watch folder is valid"}
-            
+
         except Exception as e:
+            return {"valid": False, "error": f"Invalid path: {str(e)}"}
+
+    def validate_downloads_path(self, folder_path: str) -> Dict[str, Any]:
+        """Validate the downloads path - check if it's available, writable, and deletable."""
+        import tempfile
+
+        try:
+            path = Path(folder_path)
+
+            # Check if path exists, if not try to create it
+            if not path.exists():
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    logger.info("Created downloads directory", path=str(path))
+                except Exception as e:
+                    return {"valid": False, "error": f"Cannot create directory: {str(e)}"}
+
+            # Check if it's a directory
+            if not path.is_dir():
+                return {"valid": False, "error": "Path is not a directory"}
+
+            # Check if it's readable
+            if not os.access(path, os.R_OK):
+                return {"valid": False, "error": "Directory is not readable"}
+
+            # Check if it's writable
+            if not os.access(path, os.W_OK):
+                return {"valid": False, "error": "Directory is not writable"}
+
+            # Test actual write and delete operations
+            try:
+                # Create a temporary test file
+                test_file = path / f".printernizer_test_{os.getpid()}.tmp"
+                test_file.write_text("test")
+
+                # Try to delete it
+                test_file.unlink()
+
+                logger.info("Downloads path validation successful", path=str(path))
+                return {"valid": True, "message": "Download path is valid and writable"}
+
+            except Exception as e:
+                return {"valid": False, "error": f"Cannot write or delete files: {str(e)}"}
+
+        except Exception as e:
+            logger.error("Error validating downloads path", path=folder_path, error=str(e))
             return {"valid": False, "error": f"Invalid path: {str(e)}"}
     
     async def get_watch_folder_settings(self) -> Dict[str, Any]:

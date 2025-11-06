@@ -492,6 +492,42 @@ async function shutdownServer() {
     }
 }
 
+async function validateDownloadsPath() {
+    const folderPathInput = document.getElementById('downloadsPath');
+    const validationResult = document.getElementById('downloadsPathValidationResult');
+
+    if (!folderPathInput || !validationResult) return;
+
+    const folderPath = folderPathInput.value.trim();
+    if (!folderPath) {
+        validationResult.style.display = 'none';
+        return;
+    }
+
+    try {
+        // Show loading state
+        validationResult.style.display = 'block';
+        validationResult.className = 'validation-result loading';
+        validationResult.innerHTML = '<span class="spinner-small"></span> Validiere...';
+
+        // Validate path
+        const response = await api.validateDownloadsPath(folderPath);
+
+        if (response.valid) {
+            validationResult.className = 'validation-result success';
+            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || 'Download-Verzeichnis ist gültig und beschreibbar');
+        } else {
+            validationResult.className = 'validation-result error';
+            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || 'Download-Verzeichnis ist ungültig');
+        }
+
+    } catch (error) {
+        console.error('Failed to validate downloads path:', error);
+        validationResult.className = 'validation-result error';
+        validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
+    }
+}
+
 // Export for use in main.js
 if (typeof window !== 'undefined') {
     window.settingsManager = settingsManager;
