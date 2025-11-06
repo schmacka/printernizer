@@ -24,19 +24,24 @@ class PrinternizerApp {
      */
     init() {
         console.log('Initializing Printernizer application');
-        
+
+        // Apply navigation preferences
+        if (window.navigationPreferencesManager) {
+            window.navigationPreferencesManager.updateNavigation();
+        }
+
         // Setup navigation
         this.setupNavigation();
-        
+
         // Initialize current page
         this.showPage(this.currentPage);
-        
+
         // Setup global error handling
         this.setupErrorHandling();
-        
+
         // Check initial connection
         this.checkSystemHealth();
-        
+
         console.log('Printernizer application initialized');
     }
 
