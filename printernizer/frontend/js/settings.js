@@ -455,6 +455,43 @@ async function removeWatchFolderFromSettings(folderPath) {
     }
 }
 
+async function shutdownServer() {
+    const confirmed = confirm(
+        'Sind Sie sicher, dass Sie den Server herunterfahren möchten?\n\n' +
+        'Der Server wird ordnungsgemäß heruntergefahren und alle aktiven Verbindungen werden geschlossen.'
+    );
+    if (!confirmed) return;
+
+    try {
+        showToast('warning', 'Server wird heruntergefahren', 'Bitte warten Sie...', 3000);
+
+        // Call shutdown API
+        await api.shutdownServer();
+
+        showToast('success', 'Server heruntergefahren',
+                 'Der Server wurde erfolgreich heruntergefahren.', 5000);
+
+        // Optionally disable UI or show a message that server is down
+        setTimeout(() => {
+            document.body.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; font-family: system-ui;">
+                    <h1 style="color: #ef4444;">⏹️ Server wurde heruntergefahren</h1>
+                    <p style="color: #6b7280; margin-top: 10px;">Der Server wurde ordnungsgemäß heruntergefahren.</p>
+                    <p style="color: #6b7280;">Sie können dieses Fenster jetzt schließen.</p>
+                </div>
+            `;
+        }, 2000);
+
+    } catch (error) {
+        window.ErrorHandler?.handleSettingsError(error, { operation: 'shutdown' });
+        if (error instanceof ApiError) {
+            showToast('error', 'Fehler beim Herunterfahren', error.getUserMessage());
+        } else {
+            showToast('error', 'Fehler', 'Server konnte nicht heruntergefahren werden');
+        }
+    }
+}
+
 // Export for use in main.js
 if (typeof window !== 'undefined') {
     window.settingsManager = settingsManager;
