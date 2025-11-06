@@ -1,3 +1,9 @@
+## [2.0.55] - 2025-11-06
+
+- fix: Add quotes to job ID parameters in onclick handlers
+- fix: Change PrinterResponse id field from UUID to str
+- docs: Add comprehensive cross-site search feature design
+
 ## [2.0.54] - 2025-11-06
 
 - fix: Add quotes to job ID parameters in onclick handlers
