@@ -273,66 +273,66 @@ const CONFIG = {
     ENDPOINTS: {
         // System
         HEALTH: 'health',
-        SYSTEM_INFO: '/system/info',
-        SYSTEM_SHUTDOWN: '/system/shutdown',
+        SYSTEM_INFO: 'system/info',
+        SYSTEM_SHUTDOWN: 'system/shutdown',
 
         // Settings
         APPLICATION_SETTINGS: 'settings/application',
         WATCH_FOLDER_SETTINGS: 'settings/watch-folders',
 
         // Printers
-    PRINTERS: '/printers',
-    PRINTER_DETAIL: (id) => `/printers/${id}`,
-    PRINTER_DISCOVER: '/printers/discover',
-    PRINTER_DISCOVER_INTERFACES: '/printers/discover/interfaces',
-    PRINTER_DISCOVER_STARTUP: '/printers/discover/startup',
+        PRINTERS: 'printers',
+        PRINTER_DETAIL: (id) => `printers/${id}`,
+        PRINTER_DISCOVER: 'printers/discover',
+        PRINTER_DISCOVER_INTERFACES: 'printers/discover/interfaces',
+        PRINTER_DISCOVER_STARTUP: 'printers/discover/startup',
 
         // Jobs
-        JOBS: '/jobs',
-        JOB_DETAIL: (id) => `/jobs/${id}`,
-        JOB_CANCEL: (id) => `/jobs/${id}/cancel`,
+        JOBS: 'jobs',
+        JOB_DETAIL: (id) => `jobs/${id}`,
+        JOB_CANCEL: (id) => `jobs/${id}/cancel`,
 
         // Files
-        FILES: '/files',
-        FILE_DETAIL: (id) => `/files/${id}`,
-        FILE_DOWNLOAD: (id) => `/files/${id}/download`,
-        FILE_DOWNLOAD_STATUS: (id) => `/files/${id}/download/status`,
-        FILES_CLEANUP: '/files/cleanup',
-        FILES_CLEANUP_CANDIDATES: '/files/cleanup/candidates',
+        FILES: 'files',
+        FILE_DETAIL: (id) => `files/${id}`,
+        FILE_DOWNLOAD: (id) => `files/${id}/download`,
+        FILE_DOWNLOAD_STATUS: (id) => `files/${id}/download/status`,
+        FILES_CLEANUP: 'files/cleanup',
+        FILES_CLEANUP_CANDIDATES: 'files/cleanup/candidates',
 
         // Statistics
-        STATISTICS_OVERVIEW: '/analytics/overview',
-        STATISTICS_PRINTER: (id) => `/analytics/printers/${id}`,
+        STATISTICS_OVERVIEW: 'analytics/overview',
+        STATISTICS_PRINTER: (id) => `analytics/printers/${id}`,
 
         // ========================================
         // MILESTONE 1.2: ENHANCED ENDPOINTS
         // ========================================
 
         // Real-time Printer Status
-        PRINTER_STATUS: (id) => `/printers/${id}/status`,
-        PRINTER_STATUS_HISTORY: (id) => `/printers/${id}/status/history`,
-        PRINTER_CONNECTION_STATUS: (id) => `/printers/${id}/connection`,
+        PRINTER_STATUS: (id) => `printers/${id}/status`,
+        PRINTER_STATUS_HISTORY: (id) => `printers/${id}/status/history`,
+        PRINTER_CONNECTION_STATUS: (id) => `printers/${id}/connection`,
 
         // Real-time Monitoring
-        PRINTER_MONITORING_START: (id) => `/printers/${id}/monitoring/start`,
-        PRINTER_MONITORING_STOP: (id) => `/printers/${id}/monitoring/stop`,
+        PRINTER_MONITORING_START: (id) => `printers/${id}/monitoring/start`,
+        PRINTER_MONITORING_STOP: (id) => `printers/${id}/monitoring/stop`,
 
         // Enhanced File Management (Drucker-Dateien)
-        PRINTER_FILES: (id) => `/printers/${id}/files`,
-        PRINTER_FILE_DOWNLOAD: (id, filename) => `/printers/${id}/files/${filename}/download`,
-        PRINTER_FILE_DOWNLOAD_STATUS: (id, filename) => `/printers/${id}/files/${filename}/status`,
-        PRINTER_DOWNLOAD_FILE: (id) => `/printers/${id}/download-file`,
+        PRINTER_FILES: (id) => `printers/${id}/files`,
+        PRINTER_FILE_DOWNLOAD: (id, filename) => `printers/${id}/files/${filename}/download`,
+        PRINTER_FILE_DOWNLOAD_STATUS: (id, filename) => `printers/${id}/files/${filename}/status`,
+        PRINTER_DOWNLOAD_FILE: (id) => `printers/${id}/download-file`,
 	// Manual trigger to download & process currently printing job file for thumbnail extraction
-	PRINTER_DOWNLOAD_CURRENT_JOB: (id) => `/printers/${id}/download-current-job`,
+	PRINTER_DOWNLOAD_CURRENT_JOB: (id) => `printers/${id}/download-current-job`,
 
         // Thumbnail Processing Endpoints
-        FILE_EXTRACT_THUMBNAIL: (fileId) => `/files/${fileId}/thumbnail/extract`,
-        FILE_GENERATE_THUMBNAIL: (fileId) => `/files/${fileId}/thumbnail/generate`,
-        FILE_ANALYZE_GCODE: (fileId) => `/files/${fileId}/analyze/gcode`,
+        FILE_EXTRACT_THUMBNAIL: (fileId) => `files/${fileId}/thumbnail/extract`,
+        FILE_GENERATE_THUMBNAIL: (fileId) => `files/${fileId}/thumbnail/generate`,
+        FILE_ANALYZE_GCODE: (fileId) => `files/${fileId}/analyze/gcode`,
 
         // Enhanced Job Management
-        PRINTER_CURRENT_JOB: (id) => `/printers/${id}/jobs/current`,
-        PRINTER_SYNC_JOBS: (id) => `/printers/${id}/jobs/sync`
+        PRINTER_CURRENT_JOB: (id) => `printers/${id}/jobs/current`,
+        PRINTER_SYNC_JOBS: (id) => `printers/${id}/jobs/sync`
     },
 
     // WebSocket Message Types
