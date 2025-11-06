@@ -283,15 +283,15 @@ class ApiClient {
     }
 
     async getFileMetadata(fileId) {
-        return this.get(`/files/${fileId}/metadata`);
+        return this.get(`files/${fileId}/metadata`);
     }
 
     async getFileStatistics() {
-        return this.get('/files/statistics');
+        return this.get('files/statistics');
     }
 
     async deleteFile(fileId) {
-        return this.delete(`/files/${fileId}`);
+        return this.delete(`files/${fileId}`);
     }
 
     async getCleanupCandidates(filters = {}) {
@@ -307,39 +307,39 @@ class ApiClient {
 
     // Watch Folder Management Endpoints
     async getWatchFolderSettings() {
-        return this.get('/files/watch-folders/settings');
+        return this.get('files/watch-folders/settings');
     }
 
     async getWatchFolderStatus() {
-        return this.get('/files/watch-folders/status');
+        return this.get('files/watch-folders/status');
     }
 
     async validateWatchFolder(folderPath) {
-        return this.post('/files/watch-folders/validate?folder_path=' + encodeURIComponent(folderPath));
+        return this.post('files/watch-folders/validate?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async validateDownloadsPath(folderPath) {
-        return this.post('/settings/downloads-path/validate?folder_path=' + encodeURIComponent(folderPath));
+        return this.post('settings/downloads-path/validate?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async validateLibraryPath(folderPath) {
-        return this.post('/settings/library-path/validate?folder_path=' + encodeURIComponent(folderPath));
+        return this.post('settings/library-path/validate?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async addWatchFolder(folderPath) {
-        return this.post('/files/watch-folders/add?folder_path=' + encodeURIComponent(folderPath));
+        return this.post('files/watch-folders/add?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async removeWatchFolder(folderPath) {
-        return this.delete('/files/watch-folders/remove?folder_path=' + encodeURIComponent(folderPath));
+        return this.delete('files/watch-folders/remove?folder_path=' + encodeURIComponent(folderPath));
     }
 
     async reloadWatchFolders() {
-        return this.post('/files/watch-folders/reload');
+        return this.post('files/watch-folders/reload');
     }
 
     async updateWatchFolder(folderPath, isActive) {
-        return this.patch('/files/watch-folders/update?folder_path=' + encodeURIComponent(folderPath) + '&is_active=' + isActive);
+        return this.patch('files/watch-folders/update?folder_path=' + encodeURIComponent(folderPath) + '&is_active=' + isActive);
     }
 
     // Statistics Endpoints
