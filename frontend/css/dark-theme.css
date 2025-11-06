@@ -690,3 +690,27 @@
 .spinner {
     transition: none;
 }
+
+/* Hamburger Menu Button */
+[data-theme="dark"] .hamburger,
+[data-theme="dark"] .hamburger::before,
+[data-theme="dark"] .hamburger::after {
+    background-color: #e0e0e0;
+}
+
+[data-theme="dark"] .nav-toggle[aria-expanded="true"] .hamburger {
+    background-color: transparent;
+}
+
+/* Mobile Navigation Menu */
+@media (max-width: 640px) {
+    [data-theme="dark"] .nav-menu {
+        background: #1a1a1a;
+        border-bottom: 1px solid #3a3a3a;
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    }
+
+    [data-theme="dark"] .nav-link {
+        border-bottom: 1px solid #2d2d2d;
+    }
+}
