@@ -49,6 +49,35 @@ class PrinternizerApp {
      * Setup navigation event handlers
      */
     setupNavigation() {
+        // Handle hamburger menu toggle
+        const navToggle = document.getElementById('navToggle');
+        const navMenu = document.querySelector('.nav-menu');
+
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true';
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!navMenu.contains(e.target) && !navToggle.contains(e.target)) {
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    navMenu.classList.remove('active');
+                }
+            });
+
+            // Close menu when clicking a nav link (mobile)
+            navMenu.addEventListener('click', (e) => {
+                if (e.target.classList.contains('nav-link')) {
+                    navToggle.setAttribute('aria-expanded', 'false');
+                    navMenu.classList.remove('active');
+                }
+            });
+        }
+
         // Handle navigation clicks
         document.addEventListener('click', (e) => {
             const navLink = e.target.closest('.nav-link[data-page]');
@@ -58,19 +87,19 @@ class PrinternizerApp {
                 this.showPage(page);
             }
         });
-        
+
         // Handle back/forward browser navigation
         window.addEventListener('popstate', (e) => {
             const page = e.state?.page || 'dashboard';
             this.showPage(page, false);
         });
-        
+
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
         if (['dashboard', 'printers', 'jobs', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
             this.currentPage = currentHash;
         }
-        
+
         history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
     }
 
