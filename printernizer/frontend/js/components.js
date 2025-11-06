@@ -682,30 +682,30 @@ class JobListItem {
      */
     renderJobActions() {
         const actions = [];
-        
+
         // View details
         actions.push(`
-            <button class="btn btn-sm btn-secondary" onclick="showJobDetails(${this.job.id})" title="Details anzeigen">
+            <button class="btn btn-sm btn-secondary" onclick="showJobDetails('${this.job.id}')" title="Details anzeigen">
                 <span class="btn-icon">👁️</span>
             </button>
         `);
-        
+
         // Cancel job if active
         if (['printing', 'queued', 'preparing'].includes(this.job.status)) {
             actions.push(`
-                <button class="btn btn-sm btn-warning" onclick="cancelJob(${this.job.id})" title="Auftrag abbrechen">
+                <button class="btn btn-sm btn-warning" onclick="cancelJob('${this.job.id}')" title="Auftrag abbrechen">
                     <span class="btn-icon">⏹️</span>
                 </button>
             `);
         }
-        
+
         // Edit job info
         actions.push(`
-            <button class="btn btn-sm btn-secondary" onclick="editJob(${this.job.id})" title="Bearbeiten">
+            <button class="btn btn-sm btn-secondary" onclick="editJob('${this.job.id}')" title="Bearbeiten">
                 <span class="btn-icon">✏️</span>
             </button>
         `);
-        
+
         return actions.join('');
     }
 

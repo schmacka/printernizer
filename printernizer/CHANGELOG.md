@@ -1,3 +1,9 @@
+## [2.0.54] - 2025-11-06
+
+- fix: Add quotes to job ID parameters in onclick handlers
+- fix: Normalize API endpoint paths to remove leading slashes
+- fix: Add event listeners and data collection for form-associated inputs
+
 ## [2.0.53] - 2025-11-06
 
 - fix: Normalize API endpoint paths to remove leading slashes
