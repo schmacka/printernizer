@@ -69,7 +69,7 @@ class SettingsManager {
         const form = document.getElementById('applicationSettingsForm');
         if (!form) return;
 
-        // Set form values
+        // Set form values (inputs inside the form)
         const elements = form.elements;
         for (let element of elements) {
             const key = element.name;
@@ -81,6 +81,19 @@ class SettingsManager {
                 }
             }
         }
+
+        // Also populate inputs associated with the form (using form attribute)
+        const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
+        associatedInputs.forEach(element => {
+            const key = element.name;
+            if (key && this.currentSettings.hasOwnProperty(key)) {
+                if (element.type === 'checkbox') {
+                    element.checked = this.currentSettings[key];
+                } else {
+                    element.value = this.currentSettings[key];
+                }
+            }
+        });
 
         this.isDirty = false;
         this.updateSaveButton();
@@ -125,8 +138,9 @@ class SettingsManager {
         if (!form) return {};
 
         const formData = {};
-        const elements = form.elements;
 
+        // Collect from form elements (inputs inside the form)
+        const elements = form.elements;
         for (let element of elements) {
             if (element.name && element.value !== '') {
                 if (element.type === 'number') {
@@ -139,6 +153,26 @@ class SettingsManager {
             }
         }
 
+        // Also collect from inputs associated with the form (using form attribute)
+        const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
+        associatedInputs.forEach(element => {
+            if (element.name) {
+                if (element.type === 'number') {
+                    const value = element.value.trim();
+                    if (value !== '') {
+                        formData[element.name] = parseFloat(value);
+                    }
+                } else if (element.type === 'checkbox') {
+                    formData[element.name] = element.checked;
+                } else if (element.type === 'text') {
+                    const value = element.value.trim();
+                    if (value !== '') {
+                        formData[element.name] = value;
+                    }
+                }
+            }
+        });
+
         return formData;
     }
 
@@ -149,17 +183,23 @@ class SettingsManager {
         const form = document.getElementById('applicationSettingsForm');
         if (!form) return;
 
-        // Track changes
-        form.addEventListener('input', () => {
+        // Handler function for marking form as dirty
+        const markDirty = () => {
             this.isDirty = true;
             this.updateSaveButton();
             this.scheduleAutoSave();
-        });
+        };
 
-        form.addEventListener('change', () => {
-            this.isDirty = true;
-            this.updateSaveButton();
-            this.scheduleAutoSave();
+        // Track changes on form itself (for inputs inside the form)
+        form.addEventListener('input', markDirty);
+        form.addEventListener('change', markDirty);
+
+        // Also track changes on inputs associated with the form (using form attribute)
+        // This includes library settings that are visually separate but logically part of the form
+        const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
+        associatedInputs.forEach(input => {
+            input.addEventListener('input', markDirty);
+            input.addEventListener('change', markDirty);
         });
     }
 
