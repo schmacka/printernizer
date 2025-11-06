@@ -8,13 +8,21 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
 import structlog
 
-from src.models.job import Job, JobStatus
+from src.models.job import Job, JobStatus, JobCreate
 from src.services.job_service import JobService
 from src.utils.dependencies import get_job_service
 
 
 logger = structlog.get_logger()
 router = APIRouter()
+
+
+class PaginationResponse(BaseModel):
+    """Pagination information."""
+    page: int
+    limit: int
+    total_items: int
+    total_pages: int
 
 
 class JobResponse(BaseModel):
@@ -50,6 +58,13 @@ class JobResponse(BaseModel):
         }
 
 
+class JobListResponse(BaseModel):
+    """Response model for job list with pagination."""
+    jobs: List[JobResponse]
+    total_count: int
+    pagination: PaginationResponse
+
+
 def _transform_job_to_response(job_data: dict) -> dict:
     """Transform job data to response format."""
     # Create a copy to avoid modifying the original
@@ -74,30 +89,81 @@ def _transform_job_to_response(job_data: dict) -> dict:
     return response_data
 
 
-@router.get("", response_model=List[JobResponse])
+@router.get("", response_model=JobListResponse)
 async def list_jobs(
     printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
     job_status: Optional[str] = Query(None, description="Filter by job status"),
     is_business: Optional[bool] = Query(None, description="Filter business/private jobs"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of jobs to return"),
-    offset: int = Query(0, ge=0, description="Number of jobs to skip"),
+    limit: int = Query(50, ge=1, le=1000, description="Maximum number of jobs to return"),
+    page: int = Query(1, ge=1, description="Page number"),
     job_service: JobService = Depends(get_job_service)
 ):
-    """List jobs with optional filtering."""
+    """List jobs with optional filtering and pagination."""
     try:
-        jobs = await job_service.list_jobs(
+        # Get all jobs matching filters (without pagination)
+        all_jobs = await job_service.list_jobs(
             printer_id=printer_id,
             status=job_status,
             is_business=is_business,
-            limit=limit,
-            offset=offset
+            limit=None,  # Get all matching jobs first
+            offset=0
         )
-        return [JobResponse.model_validate(_transform_job_to_response(job.__dict__)) for job in jobs]
+
+        total_items = len(all_jobs)
+        total_pages = max(1, (total_items + limit - 1) // limit)
+
+        # Apply pagination
+        start_idx = (page - 1) * limit
+        end_idx = start_idx + limit
+        paginated_jobs = all_jobs[start_idx:end_idx]
+
+        # Transform jobs to response format
+        job_responses = [JobResponse.model_validate(_transform_job_to_response(job)) for job in paginated_jobs]
+
+        return JobListResponse(
+            jobs=job_responses,
+            total_count=total_items,
+            pagination=PaginationResponse(
+                page=page,
+                limit=limit,
+                total_items=total_items,
+                total_pages=total_pages
+            )
+        )
     except Exception as e:
         logger.error("Failed to list jobs", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve jobs"
+        )
+
+
+@router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
+async def create_job(
+    job_data: JobCreate,
+    job_service: JobService = Depends(get_job_service)
+):
+    """Create a new print job."""
+    try:
+        job_id = await job_service.create_job(job_data.model_dump())
+        job = await job_service.get_job(job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Job created but could not be retrieved"
+            )
+        return JobResponse.model_validate(_transform_job_to_response(job))
+    except ValueError as e:
+        logger.error("Invalid job data", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("Failed to create job", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create job"
         )
 
 
@@ -114,7 +180,8 @@ async def get_job(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Job not found"
             )
-        return JobResponse.model_validate(_transform_job_to_response(job.__dict__))
+        # Job is already a dictionary from the service layer
+        return JobResponse.model_validate(_transform_job_to_response(job))
     except HTTPException:
         raise
     except Exception as e:

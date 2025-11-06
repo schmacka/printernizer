@@ -1,3 +1,9 @@
+## [2.0.43] - 2025-11-06
+
+- feat: Add job creation API and fix jobs list endpoint
+- fix: Improve HA add-on changelog messages
+- feat: Add server shutdown button in settings
+
 # Changelog - Printernizer Home Assistant Add-on
 
 All notable changes to the Printernizer Home Assistant Add-on will be documented in this file.
