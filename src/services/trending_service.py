@@ -246,26 +246,35 @@ class TrendingService:
             # Use chunked reading for large responses to avoid memory issues
             async with session.get(url, chunked=True) as response:
                 response.raise_for_status()
-                
+
                 # Check content length and handle large responses appropriately
                 content_length = response.headers.get('content-length')
                 if content_length and int(content_length) > 10 * 1024 * 1024:  # 10MB
                     logger.warning(f"Large response detected: {content_length} bytes from {url}")
-                
+
                 # Read response in chunks to handle large content
                 chunks = []
                 total_size = 0
                 max_size = 50 * 1024 * 1024  # 50MB limit
-                
+
                 async for chunk in response.content.iter_chunked(8192):  # 8KB chunks
                     total_size += len(chunk)
                     if total_size > max_size:
                         raise aiohttp.ClientPayloadError(f"Response too large: {total_size} bytes")
                     chunks.append(chunk)
-                
-                # Decode response
+
+                # Decode response - try to detect encoding from content-type header
                 content = b''.join(chunks)
-                encoding = response.get_encoding()
+                encoding = 'utf-8'  # Default
+
+                # Try to get encoding from content-type header
+                content_type = response.headers.get('content-type', '')
+                if 'charset=' in content_type.lower():
+                    try:
+                        encoding = content_type.lower().split('charset=')[1].split(';')[0].strip()
+                    except:
+                        pass
+
                 try:
                     return content.decode(encoding)
                 except (UnicodeDecodeError, LookupError):
