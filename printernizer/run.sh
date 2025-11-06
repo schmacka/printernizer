@@ -25,6 +25,7 @@ bashio::log.info "  • Library Folder: ${LIBRARY_FOLDER}"
 bashio::log.info "  • 3D Preview: ${ENABLE_3D_PREVIEW}"
 bashio::log.info "  • WebSockets: ${ENABLE_WEBSOCKETS}"
 bashio::log.info "  • Business Reports: ${ENABLE_BUSINESS_REPORTS}"
+bashio::log.info "  • Printer Config: /data/printernizer/printers.json (persistent)"
 
 # Set timezone
 export TZ="${TIMEZONE}"
@@ -61,6 +62,9 @@ TZ=${TIMEZONE}
 
 # Database
 DATABASE_PATH=/data/printernizer/printernizer.db
+
+# Printer configuration (persistent storage in /data)
+PRINTER_CONFIG_PATH=/data/printernizer/printers.json
 
 # File paths (persistent storage in /data)
 LIBRARY_PATH=${LIBRARY_FOLDER}

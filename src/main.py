@@ -71,7 +71,7 @@ from src.utils.timing import StartupTimer
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="1.5.9")
+APP_VERSION = get_version(fallback="2.0.45")
 
 
 # Prometheus metrics - initialized once
