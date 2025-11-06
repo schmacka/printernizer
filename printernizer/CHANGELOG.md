@@ -1,3 +1,10 @@
+## [2.0.46] - 2025-11-06
+
+- fix: Fix printer persistence in Home Assistant addon
+- feat: Enable startup discovery by default with 60s delay and fix pre-fill
+- feat: Add printer discovery enhancements with manufacturer icons
+- feat: Add job creation API and fix jobs list endpoint
+
 ## [2.0.45] - 2025-11-06
 
 ### Fixed
