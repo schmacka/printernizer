@@ -1,3 +1,9 @@
+## [2.0.49] - 2025-11-06
+
+- feat: Add download path validator to settings tab
+- fix: Add responsive mobile navigation with hamburger menu
+- feat: Add navigation bar customization to settings
+
 ## [2.0.48] - 2025-11-06
 
 - fix: Add responsive mobile navigation with hamburger menu
