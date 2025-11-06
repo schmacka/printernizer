@@ -604,7 +604,9 @@ class ConfigService:
         # List of settings that can be updated at runtime
         updatable_settings = {
             "log_level", "monitoring_interval", "connection_timeout",
-            "max_file_size", "vat_rate", "downloads_path"
+            "max_file_size", "vat_rate", "downloads_path",
+            "library_enabled", "library_path", "library_auto_organize",
+            "library_auto_extract_metadata", "library_auto_deduplicate"
         }
 
         logger.info("Processing settings update", settings_dict=settings_dict, updatable_settings=updatable_settings)
@@ -662,7 +664,12 @@ class ConfigService:
             "connection_timeout": "CONNECTION_TIMEOUT",
             "max_file_size": "MAX_FILE_SIZE",
             "vat_rate": "VAT_RATE",
-            "downloads_path": "DOWNLOADS_PATH"
+            "downloads_path": "DOWNLOADS_PATH",
+            "library_enabled": "LIBRARY_ENABLED",
+            "library_path": "LIBRARY_PATH",
+            "library_auto_organize": "LIBRARY_AUTO_ORGANIZE",
+            "library_auto_extract_metadata": "LIBRARY_AUTO_EXTRACT_METADATA",
+            "library_auto_deduplicate": "LIBRARY_AUTO_DEDUPLICATE"
         }
 
         # Update environment variables
@@ -670,7 +677,9 @@ class ConfigService:
             if key in env_key_mapping:
                 env_key = env_key_mapping[key]
                 # Format value appropriately
-                if isinstance(value, str):
+                if isinstance(value, bool):
+                    existing_env[env_key] = str(value).lower()
+                elif isinstance(value, str):
                     existing_env[env_key] = f'"{value}"'
                 else:
                     existing_env[env_key] = str(value)
