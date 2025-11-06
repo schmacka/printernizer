@@ -263,6 +263,23 @@ async def validate_watch_folder(
         )
 
 
+@router.post("/downloads-path/validate")
+async def validate_downloads_path(
+    folder_path: str,
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Validate the downloads path - check if it's available, writable, and deletable."""
+    try:
+        result = config_service.validate_downloads_path(folder_path)
+        return result
+    except Exception as e:
+        logger.error("Failed to validate downloads path", folder_path=folder_path, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to validate downloads path"
+        )
+
+
 class GcodeOptimizationSettings(BaseModel):
     """G-code optimization settings model."""
     optimize_print_only: bool

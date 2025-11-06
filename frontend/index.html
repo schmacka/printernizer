@@ -920,6 +920,17 @@
                                     <input type="text" id="downloadsPath" name="downloads_path" class="form-control" placeholder="z.B. C:\Downloads\Printernizer">
                                     <small class="form-text text-muted">Verzeichnis für heruntergeladene Dateien</small>
                                 </div>
+
+                                <div class="form-group">
+                                    <div class="validation-result" id="downloadsPathValidationResult" style="display: none;"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <button type="button" class="btn btn-secondary" onclick="validateDownloadsPath()">
+                                        <span class="btn-icon">✓</span>
+                                        Pfad validieren
+                                    </button>
+                                </div>
                                 
                                 <div class="form-group">
                                     <label for="maxFileSize">Max. Dateigröße (MB)</label>

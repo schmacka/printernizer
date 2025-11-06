@@ -318,6 +318,10 @@ class ApiClient {
         return this.post('/files/watch-folders/validate?folder_path=' + encodeURIComponent(folderPath));
     }
 
+    async validateDownloadsPath(folderPath) {
+        return this.post('/settings/downloads-path/validate?folder_path=' + encodeURIComponent(folderPath));
+    }
+
     async addWatchFolder(folderPath) {
         return this.post('/files/watch-folders/add?folder_path=' + encodeURIComponent(folderPath));
     }
