@@ -66,6 +66,7 @@ from src.utils.middleware import (
     SecurityHeadersMiddleware
 )
 from src.utils.version import get_version
+from src.utils.timing import StartupTimer
 
 
 # Application version - Automatically extracted from git tags
@@ -92,65 +93,100 @@ async def lifespan(app: FastAPI):
     # Startup
     setup_logging()
     logger = structlog.get_logger()
+
+    # Initialize startup performance timer
+    timer = StartupTimer()
+
     logger.info("=" * 60)
     logger.info("Starting Printernizer application", version=APP_VERSION)
     logger.info("=" * 60)
 
     # Initialize database
+    timer.start("Database initialization")
     logger.info("Initializing database...")
     database = Database()
     await database.initialize()
     app.state.database = database
+    timer.end("Database initialization")
     logger.info("[OK] Database initialized successfully")
 
     # Run database migrations
+    timer.start("Database migrations")
     logger.info("Running database migrations...")
     migration_service = MigrationService(database)
     await migration_service.run_migrations()
     app.state.migration_service = migration_service
+    timer.end("Database migrations")
     logger.info("[OK] Database migrations completed")
     
     # Initialize services
+    timer.start("Core services initialization")
     logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
     printer_service = PrinterService(database, event_service, config_service)
+    timer.end("Core services initialization")
     logger.info("[OK] Core services initialized")
 
-    # Initialize Library service (before file_watcher so it can use it)
-    logger.info("Initializing library service...")
+    # Initialize Library and Material services in parallel (independent)
+    timer.start("Domain services initialization (parallel)")
+    logger.info("Initializing library and material services in parallel...")
     from src.services.library_service import LibraryService
-    library_service = LibraryService(database, config_service, event_service)
-    await library_service.initialize()
-    logger.info("[OK] Library service initialized")
-
-    # Initialize Material service (spool inventory management)
-    logger.info("Initializing material service...")
     from src.services.material_service import MaterialService
-    material_service = MaterialService(database, event_service)
-    await material_service.initialize()
-    logger.info("[OK] Material service initialized")
 
-    # Initialize file watcher service with library integration
-    logger.info("Initializing file watcher service...")
-    file_watcher_service = FileWatcherService(config_service, event_service, library_service)
-    logger.info("[OK] File watcher service initialized")
+    async def init_library():
+        library_service = LibraryService(database, config_service, event_service)
+        await library_service.initialize()
+        return library_service
 
-    # Initialize file service with file watcher, printer service, config service, and library
+    async def init_material():
+        material_service = MaterialService(database, event_service)
+        await material_service.initialize()
+        return material_service
+
+    # Run in parallel
+    library_service, material_service = await asyncio.gather(
+        init_library(),
+        init_material()
+    )
+    timer.end("Domain services initialization (parallel)")
+    logger.info("[OK] Library and material services initialized")
+
+    # Initialize file watcher and ideas services in parallel (independent)
+    timer.start("File system & ideas services initialization (parallel)")
+    logger.info("Initializing file watcher and ideas services in parallel...")
+
+    async def init_file_watcher():
+        return FileWatcherService(config_service, event_service, library_service)
+
+    async def init_ideas_services():
+        return ThumbnailService(event_service), UrlParserService()
+
+    # Run in parallel
+    (file_watcher_service, (thumbnail_service, url_parser_service)) = await asyncio.gather(
+        init_file_watcher(),
+        init_ideas_services()
+    )
+    timer.end("File system & ideas services initialization (parallel)")
+    logger.info("[OK] File watcher and ideas services initialized")
+
+    # Initialize file service (depends on file_watcher)
+    timer.start("File service initialization")
     logger.info("Initializing file service...")
     file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
+    timer.end("File service initialization")
     logger.info("[OK] File service initialized")
 
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
 
-    # Initialize Ideas-related services
-    logger.info("Initializing ideas and trending services...")
-    thumbnail_service = ThumbnailService(event_service)
-    url_parser_service = UrlParserService()
+    # Initialize TrendingService (re-enabled in master)
+    timer.start("Trending service initialization")
+    logger.info("Initializing trending service...")
     trending_service = TrendingService(database, event_service)
     await trending_service.initialize()
-    logger.info("[OK] Ideas services initialized")
+    timer.end("Trending service initialization")
+    logger.info("[OK] Trending service initialized")
 
     app.state.config_service = config_service
     app.state.event_service = event_service
@@ -163,10 +199,14 @@ async def lifespan(app: FastAPI):
     app.state.library_service = library_service
     app.state.material_service = material_service
 
-    # Initialize and start background services
-    logger.info("Starting background services...")
-    await event_service.start()
-    await printer_service.initialize()
+    # Initialize and start background services in parallel
+    timer.start("Background services startup (parallel)")
+    logger.info("Starting background services in parallel...")
+    await asyncio.gather(
+        event_service.start(),
+        printer_service.initialize()
+    )
+    timer.end("Background services startup (parallel)")
     logger.info("[OK] Background services started")
 
     # Subscribe WebSocket broadcast for individual printer status updates (includes thumbnails)
@@ -187,24 +227,43 @@ async def lifespan(app: FastAPI):
     # await trending_service.initialize()  # DISABLED
     # logger.info("[OK] Trending service started")  # DISABLED
 
-    # Start printer monitoring
-    logger.info("Starting printer monitoring...")
-    try:
-        await printer_service.start_monitoring()
-        logger.info("[OK] Printer monitoring started successfully")
-    except Exception as e:
-        logger.warning("[WARNING] Failed to start printer monitoring", error=str(e))
+    # Start printer monitoring and file watcher in parallel
+    timer.start("Monitoring services startup (parallel)")
+    logger.info("Starting printer monitoring and file watcher in parallel...")
 
-    # Start file watcher service
-    logger.info("Starting file watcher...")
-    try:
-        await file_watcher_service.start()
-        logger.info("[OK] File watcher service started successfully")
-    except Exception as e:
-        logger.warning("[WARNING] Failed to start file watcher service", error=str(e))
+    async def start_printer_monitoring():
+        try:
+            await printer_service.start_monitoring()
+            logger.info("[OK] Printer monitoring started successfully")
+        except Exception as e:
+            logger.warning("[WARNING] Failed to start printer monitoring", error=str(e))
 
+    async def start_file_watcher():
+        try:
+            await file_watcher_service.start()
+            logger.info("[OK] File watcher service started successfully")
+        except Exception as e:
+            logger.warning("[WARNING] Failed to start file watcher service", error=str(e))
+
+    # Run in parallel
+    await asyncio.gather(
+        start_printer_monitoring(),
+        start_file_watcher()
+    )
+    timer.end("Monitoring services startup (parallel)")
+
+    # Generate startup performance report
+    timer.report()
+
+    # Server ready confirmation with useful connection information
+    port = os.getenv("PORT", "8000")
     logger.info("=" * 60)
-    logger.info("[OK] PRINTERNIZER BACKEND READY")
+    logger.info("🚀 PRINTERNIZER BACKEND READY")
+    logger.info(f"Server is accepting connections at http://0.0.0.0:{port}")
+    logger.info(f"API documentation available at http://0.0.0.0:{port}/docs")
+    logger.info(f"Health check endpoint: http://0.0.0.0:{port}/api/v1/health")
+    if os.getenv("DISABLE_RELOAD") == "true":
+        logger.info("⚡ Fast startup mode (reload disabled)")
     logger.info("=" * 60)
     
     yield
@@ -501,10 +560,26 @@ if __name__ == "__main__":
         "date_header": False
     }
 
+    # Development mode configuration with reload optimizations
     if os.getenv("ENVIRONMENT") == "development":
+        # Allow disabling reload for faster startup when needed
+        use_reload = os.getenv("DISABLE_RELOAD", "false").lower() != "true"
+
         config.update({
-            "reload": True,
-            "reload_dirs": ["src"],
+            "reload": use_reload,
+            "reload_dirs": ["src"] if use_reload else [],
+            "reload_excludes": [
+                "*.db",           # SQLite database files
+                "*.db-journal",   # Database journals
+                "*.db-shm",       # Shared memory files
+                "*.db-wal",       # Write-ahead log files
+                "*.log",          # Log files
+                "__pycache__",    # Python cache directories
+                "*.pyc",          # Compiled Python files
+                ".pytest_cache",  # Test cache
+                "frontend/*",     # Frontend static files
+                "*/downloads/*",  # Downloads directory
+            ],
             "workers": 1
         })
 
