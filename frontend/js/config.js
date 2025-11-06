@@ -274,6 +274,7 @@ const CONFIG = {
         // System
         HEALTH: 'health',
         SYSTEM_INFO: '/system/info',
+        SYSTEM_SHUTDOWN: '/system/shutdown',
 
         // Settings
         APPLICATION_SETTINGS: 'settings/application',

@@ -146,6 +146,10 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.SYSTEM_INFO);
     }
 
+    async shutdownServer() {
+        return this.post(CONFIG.ENDPOINTS.SYSTEM_SHUTDOWN);
+    }
+
     // Settings Endpoints
     async getApplicationSettings() {
         return this.get(CONFIG.ENDPOINTS.APPLICATION_SETTINGS);

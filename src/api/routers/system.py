@@ -1,5 +1,7 @@
 """System management endpoints."""
 
+import os
+import signal
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 import structlog
@@ -50,4 +52,30 @@ async def create_backup(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create backup"
+        )
+
+
+@router.post("/shutdown")
+async def shutdown_server():
+    """Shutdown the server gracefully.
+
+    Triggers a SIGTERM signal to the current process, which will be handled
+    by the application's signal handler to perform a graceful shutdown.
+    """
+    try:
+        logger.info("Server shutdown requested via API")
+
+        # Send SIGTERM to current process for graceful shutdown
+        # This will trigger the signal handler in main.py
+        os.kill(os.getpid(), signal.SIGTERM)
+
+        return {
+            "status": "success",
+            "message": "Server shutdown initiated"
+        }
+    except Exception as e:
+        logger.error("Failed to initiate shutdown", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initiate server shutdown"
         )
