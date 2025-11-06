@@ -1,3 +1,9 @@
+## [2.0.51] - 2025-11-06
+
+- fix: Fix settings save functionality and clean up addon config
+- feat: Add library path validator to settings tab
+- feat: Add download path validator to settings tab
+
 ## [2.0.50] - 2025-11-06
 
 - feat: Add library path validator to settings tab
