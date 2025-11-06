@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Prusa inspired icon - simplified Core One/i3 representation -->
+  <path d="M4 20 L20 20" stroke-width="2.5"/>
+  <path d="M6 20 L6 6 L12 2 L18 6 L18 20" fill="none" stroke-width="1.5"/>
+  <circle cx="12" cy="11" r="2" fill="currentColor" opacity="0.4"/>
+  <path d="M10 11 L14 11" stroke-width="1"/>
+  <rect x="8" y="14" width="8" height="4" rx="0.5" opacity="0.2" fill="currentColor"/>
+  <path d="M9 6 L15 6" stroke-width="1" opacity="0.5"/>
+</svg>

@@ -195,6 +195,10 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.PRINTER_DISCOVER_INTERFACES);
     }
 
+    async getStartupDiscoveredPrinters() {
+        return this.get(CONFIG.ENDPOINTS.PRINTER_DISCOVER_STARTUP);
+    }
+
     /**
      * Printer Control Functions
      */

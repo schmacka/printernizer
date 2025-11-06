@@ -42,6 +42,9 @@ class Dashboard {
      */
     async loadDashboard() {
         try {
+            // Check for startup discovered printers
+            await this.checkStartupDiscoveredPrinters();
+
             // Load overview statistics
             await this.loadOverviewStatistics();
 
@@ -58,6 +61,89 @@ class Dashboard {
         } catch (error) {
             console.error('Failed to load dashboard:', error);
             this.showDashboardError(error);
+        }
+    }
+
+    /**
+     * Check for printers discovered during startup
+     */
+    async checkStartupDiscoveredPrinters() {
+        try {
+            const result = await api.getStartupDiscoveredPrinters();
+
+            if (result && result.new_count > 0) {
+                // Show notification with discovered printers
+                const message = result.new_count === 1
+                    ? `1 neuer Drucker gefunden! Klicken Sie hier, um ihn anzuzeigen.`
+                    : `${result.new_count} neue Drucker gefunden! Klicken Sie hier, um sie anzuzeigen.`;
+
+                // Show persistent notification with action
+                showNotification(message, 'success', 10000, () => {
+                    // Navigate to printers page and trigger discovery display
+                    if (typeof app !== 'undefined' && app.showPage) {
+                        app.showPage('printers');
+                        // Scroll to discovered section
+                        setTimeout(() => {
+                            const section = document.getElementById('discoveredPrintersSection');
+                            if (section) {
+                                section.style.display = 'block';
+                                section.scrollIntoView({ behavior: 'smooth' });
+
+                                // Populate discovered printers list
+                                const list = document.getElementById('discoveredPrintersList');
+                                if (list && typeof createDiscoveredPrinterCard === 'function') {
+                                    list.innerHTML = '';
+                                    result.discovered.forEach(printer => {
+                                        const card = createDiscoveredPrinterCard(printer);
+                                        list.appendChild(card);
+                                    });
+                                }
+                            }
+                        }, 100);
+                    }
+                });
+
+                // Also show banner on dashboard
+                this.showDiscoveredPrintersBanner(result.new_count);
+            }
+        } catch (error) {
+            console.error('Failed to check startup discovered printers:', error);
+            // Silently fail - don't disrupt dashboard loading
+        }
+    }
+
+    /**
+     * Show banner for discovered printers on dashboard
+     */
+    showDiscoveredPrintersBanner(count) {
+        const dashboardContainer = document.getElementById('dashboard');
+        if (!dashboardContainer) return;
+
+        // Create banner element
+        const banner = document.createElement('div');
+        banner.className = 'discovered-printers-banner';
+        banner.innerHTML = `
+            <div class="banner-content">
+                <div class="banner-icon">🔍</div>
+                <div class="banner-text">
+                    <h4>${count === 1 ? '1 neuer Drucker gefunden' : `${count} neue Drucker gefunden`}</h4>
+                    <p>Neue Drucker wurden beim Start automatisch erkannt.</p>
+                </div>
+                <button class="btn btn-primary" onclick="app.showPage('printers')">
+                    Zur Drucker-Seite
+                </button>
+                <button class="btn-icon-only" onclick="this.closest('.discovered-printers-banner').remove()" title="Schließen">
+                    ✕
+                </button>
+            </div>
+        `;
+
+        // Insert banner at the top of dashboard
+        const firstChild = dashboardContainer.firstElementChild;
+        if (firstChild) {
+            dashboardContainer.insertBefore(banner, firstChild);
+        } else {
+            dashboardContainer.appendChild(banner);
         }
     }
 

@@ -252,6 +252,66 @@ async def lifespan(app: FastAPI):
     )
     timer.end("Monitoring services startup (parallel)")
 
+    # Initialize empty list for discovered printers
+    app.state.startup_discovered_printers = []
+
+    # Optional: Schedule automatic printer discovery to run after startup delay
+    if os.getenv("DISCOVERY_RUN_ON_STARTUP", "true").lower() == "true":
+        delay_seconds = int(os.getenv("DISCOVERY_STARTUP_DELAY_SECONDS", "60"))
+        logger.info(f"Automatic printer discovery scheduled to run in {delay_seconds} seconds")
+
+        async def delayed_discovery():
+            """Run printer discovery after startup delay."""
+            try:
+                # Wait for the configured delay
+                await asyncio.sleep(delay_seconds)
+
+                logger.info("Starting automatic printer discovery (delayed startup)")
+
+                # Import discovery service
+                try:
+                    from src.services.discovery_service import DiscoveryService
+
+                    # Get timeout from config
+                    timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
+                    discovery_service = DiscoveryService(timeout=timeout)
+
+                    # Get configured printer IPs for duplicate detection
+                    printers = await printer_service.list_printers()
+                    configured_ips = [p.ip_address for p in printers if p.ip_address]
+
+                    # Run discovery
+                    results = await discovery_service.discover_all(
+                        interface=None,
+                        configured_ips=configured_ips,
+                        scan_subnet=True  # Full scan for best results
+                    )
+
+                    # Store discovered printers in app state for dashboard display
+                    app.state.startup_discovered_printers = results.get('discovered', [])
+
+                    discovered_count = len(results.get('discovered', []))
+                    new_count = sum(1 for p in results.get('discovered', []) if not p.get('already_added', False))
+
+                    if discovered_count > 0:
+                        logger.info(f"[OK] Automatic discovery found {discovered_count} printers ({new_count} new)",
+                                  discovered_count=discovered_count,
+                                  new_count=new_count,
+                                  duration_ms=results.get('scan_duration_ms'))
+                    else:
+                        logger.info("[OK] Automatic discovery completed (no printers found)")
+
+                except ImportError:
+                    logger.warning("[WARNING] Discovery service not available (netifaces not installed)")
+                    app.state.startup_discovered_printers = []
+
+            except Exception as e:
+                logger.warning("[WARNING] Automatic printer discovery failed", error=str(e))
+                app.state.startup_discovered_printers = []
+
+        # Start discovery as background task (don't await it)
+        asyncio.create_task(delayed_discovery())
+
     # Generate startup performance report
     timer.report()
 
