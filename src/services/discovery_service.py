@@ -429,12 +429,19 @@ class DiscoveryService:
                             # Try PrusaLink API endpoint
                             async with session.get(f"http://{ip}/api/version") as resp:
                                 if resp.status in [200, 401, 403]:
-                                    # Prusa responds with 401 if not authenticated, but still confirms it's there
+                                    # Prusa responds with 200/401/403 - all indicate PrusaLink API exists
                                     try:
                                         if resp.status == 200:
                                             data = await resp.json()
-                                            # Check if it's actually a Prusa
-                                            if 'text' in data and 'prusa' in data.get('text', '').lower():
+                                            # Check if it's actually a Prusa by looking for common PrusaLink fields
+                                            is_prusa = (
+                                                ('text' in data and 'prusa' in data.get('text', '').lower()) or
+                                                'api' in data or  # PrusaLink returns 'api' field
+                                                'server' in data or  # PrusaLink returns 'server' field
+                                                'hostname' in data  # Many PrusaLink versions include hostname
+                                            )
+
+                                            if is_prusa:
                                                 printer = DiscoveredPrinter(
                                                     printer_type="prusa",
                                                     name=data.get('hostname', f"Prusa ({ip})"),
@@ -444,7 +451,10 @@ class DiscoveryService:
                                                 )
                                                 self.discovered_printers.append(printer)
                                                 logger.info("Discovered Prusa printer via HTTP",
-                                                          ip=ip, name=printer.name)
+                                                          ip=ip, name=printer.name, version_data=data)
+                                            else:
+                                                logger.debug("Found /api/version endpoint but not a Prusa printer",
+                                                           ip=ip, data=data)
                                         else:
                                             # 401/403 means API exists but needs auth - likely Prusa
                                             printer = DiscoveredPrinter(
@@ -456,9 +466,20 @@ class DiscoveryService:
                                             )
                                             self.discovered_printers.append(printer)
                                             logger.info("Discovered Prusa printer via HTTP (auth required)",
-                                                      ip=ip)
-                                    except Exception:
-                                        pass  # Not JSON or parsing failed
+                                                      ip=ip, status=resp.status)
+                                    except Exception as e:
+                                        # If we get 401/403, it's still likely a Prusa even if we can't parse JSON
+                                        if resp.status in [401, 403]:
+                                            printer = DiscoveredPrinter(
+                                                printer_type="prusa",
+                                                name=f"Prusa ({ip})",
+                                                ip_address=ip,
+                                                hostname=f"{ip}.local",
+                                                model=None
+                                            )
+                                            self.discovered_printers.append(printer)
+                                            logger.info("Discovered Prusa printer via HTTP (auth required, parse failed)",
+                                                      ip=ip, error=str(e))
                     except asyncio.TimeoutError:
                         pass  # IP didn't respond in time
                     except aiohttp.ClientError:
