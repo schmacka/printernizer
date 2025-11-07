@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2025-11-07
+
+### Added
+- **Timelapse Configuration UI** - Expose timelapse settings in Home Assistant addon configuration
+  - `timelapse_enabled` - Enable/disable timelapse feature
+  - `timelapse_source_folder` - Configure source folder for timelapse images
+  - `timelapse_output_folder` - Configure output folder for processed videos
+  - `timelapse_output_strategy` - Choose where videos are saved (same/separate/both)
+  - `timelapse_auto_process_timeout` - Configure auto-processing delay
+  - `timelapse_cleanup_age_days` - Configure cleanup recommendation threshold
+- Documentation in README for timelapse configuration and setup
+
+### Changed
+- Automatic directory creation for timelapse folders on addon startup
+- Environment variable mapping in run.sh for all timelapse settings
+
 ## [2.1.6] - 2025-11-07
 
 ### Fixed

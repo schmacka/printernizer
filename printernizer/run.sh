@@ -17,6 +17,12 @@ LIBRARY_FOLDER=$(bashio::config 'library_folder' '/data/printernizer/library')
 ENABLE_3D_PREVIEW=$(bashio::config 'enable_3d_preview' 'true')
 ENABLE_WEBSOCKETS=$(bashio::config 'enable_websockets' 'true')
 ENABLE_BUSINESS_REPORTS=$(bashio::config 'enable_business_reports' 'true')
+TIMELAPSE_ENABLED=$(bashio::config 'timelapse_enabled' 'true')
+TIMELAPSE_SOURCE_FOLDER=$(bashio::config 'timelapse_source_folder' '/data/timelapse-images')
+TIMELAPSE_OUTPUT_FOLDER=$(bashio::config 'timelapse_output_folder' '/data/timelapses')
+TIMELAPSE_OUTPUT_STRATEGY=$(bashio::config 'timelapse_output_strategy' 'separate')
+TIMELAPSE_AUTO_PROCESS_TIMEOUT=$(bashio::config 'timelapse_auto_process_timeout' '300')
+TIMELAPSE_CLEANUP_AGE_DAYS=$(bashio::config 'timelapse_cleanup_age_days' '30')
 
 bashio::log.info "Configuration loaded from Home Assistant"
 bashio::log.info "  • Log Level: ${LOG_LEVEL}"
@@ -25,6 +31,9 @@ bashio::log.info "  • Library Folder: ${LIBRARY_FOLDER}"
 bashio::log.info "  • 3D Preview: ${ENABLE_3D_PREVIEW}"
 bashio::log.info "  • WebSockets: ${ENABLE_WEBSOCKETS}"
 bashio::log.info "  • Business Reports: ${ENABLE_BUSINESS_REPORTS}"
+bashio::log.info "  • Timelapse Enabled: ${TIMELAPSE_ENABLED}"
+bashio::log.info "  • Timelapse Source: ${TIMELAPSE_SOURCE_FOLDER}"
+bashio::log.info "  • Timelapse Output: ${TIMELAPSE_OUTPUT_FOLDER}"
 bashio::log.info "  • Printer Config: /data/printernizer/printers.json (persistent)"
 
 # Set timezone
@@ -38,6 +47,8 @@ mkdir -p "${LIBRARY_FOLDER}"
 mkdir -p /data/printernizer/printer-files
 mkdir -p /data/printernizer/preview-cache
 mkdir -p /data/printernizer/backups
+mkdir -p "${TIMELAPSE_SOURCE_FOLDER}"
+mkdir -p "${TIMELAPSE_OUTPUT_FOLDER}"
 mkdir -p /app/logs
 mkdir -p /app/temp
 
@@ -79,6 +90,15 @@ CORS_ORIGINS=http://172.30.32.2,https://172.30.32.2
 ENABLE_3D_PREVIEW=${ENABLE_3D_PREVIEW}
 ENABLE_WEBSOCKETS=${ENABLE_WEBSOCKETS}
 ENABLE_BUSINESS_REPORTS=${ENABLE_BUSINESS_REPORTS}
+
+# Timelapse configuration
+TIMELAPSE_ENABLED=${TIMELAPSE_ENABLED}
+TIMELAPSE_SOURCE_FOLDER=${TIMELAPSE_SOURCE_FOLDER}
+TIMELAPSE_OUTPUT_FOLDER=${TIMELAPSE_OUTPUT_FOLDER}
+TIMELAPSE_OUTPUT_STRATEGY=${TIMELAPSE_OUTPUT_STRATEGY}
+TIMELAPSE_AUTO_PROCESS_TIMEOUT=${TIMELAPSE_AUTO_PROCESS_TIMEOUT}
+TIMELAPSE_CLEANUP_AGE_DAYS=${TIMELAPSE_CLEANUP_AGE_DAYS}
+TIMELAPSE_FLICKERFREE_PATH=/usr/local/bin/do_timelapse.sh
 
 # Printer settings
 PRINTER_POLLING_INTERVAL=30

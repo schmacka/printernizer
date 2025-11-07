@@ -1,5 +1,5 @@
 name: Printernizer
-version: "2.1.7"
+version: "2.2.0"
 slug: printernizer
 description: Professional 3D Printer Management for Bambu Lab A1 and Prusa Core One
 url: https://github.com/schmacka/printernizer
@@ -40,12 +40,24 @@ options:
   timezone: Europe/Berlin
   discovery_timeout_seconds: 10
   discovery_scan_interval_minutes: 60
+  timelapse_enabled: true
+  timelapse_source_folder: /data/timelapse-images
+  timelapse_output_folder: /data/timelapses
+  timelapse_output_strategy: separate
+  timelapse_auto_process_timeout: 300
+  timelapse_cleanup_age_days: 30
 
 schema:
   log_level: list(debug|info|warning|error)?
   timezone: str?
   discovery_timeout_seconds: int(5,60)?
   discovery_scan_interval_minutes: int(10,1440)?
+  timelapse_enabled: bool?
+  timelapse_source_folder: str?
+  timelapse_output_folder: str?
+  timelapse_output_strategy: list(same|separate|both)?
+  timelapse_auto_process_timeout: int(60,3600)?
+  timelapse_cleanup_age_days: int(1,365)?
 
 # Image configuration
 #image: ghcr.io/schmacka/printernizer-{arch}

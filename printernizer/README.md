@@ -10,6 +10,7 @@ Printernizer provides enterprise-grade fleet management with real-time monitorin
 
 - 🔄 **Real-time printer monitoring** - Live status, temperatures, and job progress
 - 📁 **Unified file management** - One-click downloads from all printers
+- 🎬 **Automated timelapse creation** - FlickerFree deflicker video processing with auto-detection
 - 🏢 **Business analytics** - Professional reporting and cost tracking
 - ⚡ **WebSocket updates** - Instant status updates without page refresh
 - 🖼️ **3D preview** - Automatic thumbnail generation for print files
@@ -87,6 +88,12 @@ printers:
 | `enable_3d_preview` | bool | `true` | Enable 3D file preview generation |
 | `enable_websockets` | bool | `true` | Enable real-time WebSocket updates |
 | `enable_business_reports` | bool | `true` | Enable business analytics features |
+| `timelapse_enabled` | bool | `true` | Enable automated timelapse video creation |
+| `timelapse_source_folder` | string | `/data/timelapse-images` | Folder to watch for timelapse image subfolders |
+| `timelapse_output_folder` | string | `/data/timelapses` | Folder for completed timelapse videos |
+| `timelapse_output_strategy` | list | `separate` | Video output location: same\|separate\|both |
+| `timelapse_auto_process_timeout` | int | `300` | Seconds to wait after last image before auto-processing (60-3600) |
+| `timelapse_cleanup_age_days` | int | `30` | Age threshold for cleanup recommendations in days (1-365) |
 
 ### Printer Configuration Fields
 
@@ -102,6 +109,54 @@ printers:
 
 **Prusa specific:**
 - `api_key` - PrusaLink API key (generate in PrusaLink settings)
+
+### Timelapse Configuration
+
+Printernizer can automatically create timelapse videos from your 3D prints using the FlickerFree deflicker algorithm.
+
+**Basic Setup:**
+```yaml
+timelapse_enabled: true
+timelapse_source_folder: /data/timelapse-images
+timelapse_output_folder: /data/timelapses
+timelapse_output_strategy: separate
+```
+
+**Output Strategies:**
+- `same` - Save videos in the same folder as source images
+- `separate` - Save videos in the dedicated output folder (recommended)
+- `both` - Save videos in both locations
+
+**How it Works:**
+1. Configure your printer to save timelapse images to `/data/timelapse-images/[job-name]/`
+2. Printernizer automatically detects new image folders
+3. After `timelapse_auto_process_timeout` seconds of no new images, processing begins
+4. Videos are created with FlickerFree deflicker and saved to the configured location
+5. Videos appear in the Zeitraffer (Timelapse) section of the web UI
+
+**Folder Structure:**
+```
+/data/
+├── timelapse-images/          ← Source (configure printer to save here)
+│   ├── job_2025-01-07_12-30/  ← Auto-detected job folders
+│   │   ├── img_0001.jpg
+│   │   ├── img_0002.jpg
+│   │   └── ...
+│   └── job_2025-01-07_15-45/
+└── timelapses/                ← Output (processed videos)
+    ├── job_2025-01-07_12-30.mp4
+    └── job_2025-01-07_15-45.mp4
+```
+
+**Bambu Lab Setup:**
+1. In Bambu Studio, enable timelapse recording
+2. Configure Bambu Lab to save timelapse images to a network share or mapped to `/data/timelapse-images`
+3. Printernizer will auto-detect and process new jobs
+
+**Storage Management:**
+- Use `timelapse_cleanup_age_days` to get recommendations for old files
+- Storage usage is tracked in the Zeitraffer section
+- Cleanup is manual to prevent accidental deletion
 
 ## Usage
 
@@ -187,12 +242,17 @@ Data is stored in `/data/printernizer/` and persists across restarts. To reset:
 All data is stored in Home Assistant's add-on data directory:
 
 ```
-/data/printernizer/
-├── printernizer.db          # SQLite database
-├── library/                 # 3D model files (configurable via library_folder)
-├── printer-files/           # Downloaded files
-├── preview-cache/           # 3D preview thumbnails
-└── backups/                 # Database backups
+/data/
+├── printernizer/
+│   ├── printernizer.db      # SQLite database
+│   ├── library/             # 3D model files (configurable)
+│   ├── printer-files/       # Downloaded files
+│   ├── preview-cache/       # 3D preview thumbnails
+│   └── backups/             # Database backups
+├── timelapse-images/        # Source images from printers (configurable)
+│   └── [job-folders]/       # Auto-detected print job folders
+└── timelapses/              # Processed timelapse videos (configurable)
+    └── *.mp4                # Completed videos
 ```
 
 This data persists across:
