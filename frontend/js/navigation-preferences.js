@@ -34,6 +34,14 @@ class NavigationPreferences {
                 required: false
             },
             {
+                id: 'timelapses',
+                icon: '🎬',
+                label: 'Zeitraffer',
+                description: 'Zeitraffer-Videos von Druckaufträgen',
+                visible: true,
+                required: false
+            },
+            {
                 id: 'files',
                 icon: '📁',
                 label: 'Dateien',
