@@ -1,3 +1,9 @@
+## [2.1.5] - 2025-11-07
+
+- fix: Improve printer auto-detection UX
+- docs: update timelapse design doc with current implementation status
+- feat: Improve printer auto-detection and redesign printer UI
+
 ## [2.1.4] - 2025-11-07
 
 - feat: Improve printer auto-detection and redesign printer UI

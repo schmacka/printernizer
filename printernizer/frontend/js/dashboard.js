@@ -16,13 +16,13 @@ class Dashboard {
      */
     init() {
         console.log('Initializing dashboard');
-        
-        // Load initial data
-        this.loadDashboard();
-        
+
+        // Load initial data (pass true to indicate initial load)
+        this.loadDashboard(true);
+
         // Set up refresh interval
         this.startAutoRefresh();
-        
+
         // Listen for WebSocket updates
         this.setupWebSocketListeners();
     }
@@ -40,10 +40,12 @@ class Dashboard {
     /**
      * Load all dashboard data
      */
-    async loadDashboard() {
+    async loadDashboard(isInitialLoad = false) {
         try {
-            // Check for startup discovered printers
-            await this.checkStartupDiscoveredPrinters();
+            // Check for startup discovered printers only on initial load, not on refreshes
+            if (isInitialLoad) {
+                await this.checkStartupDiscoveredPrinters();
+            }
 
             // Load overview statistics
             await this.loadOverviewStatistics();
@@ -105,14 +107,16 @@ class Dashboard {
                                     section.style.display = 'block';
                                     section.scrollIntoView({ behavior: 'smooth' });
 
-                                    // Populate discovered printers list
+                                    // Populate discovered printers list (only show new printers, not already added)
                                     const list = document.getElementById('discoveredPrintersList');
                                     if (list && typeof createDiscoveredPrinterCard === 'function') {
                                         list.innerHTML = '';
-                                        result.discovered.forEach(printer => {
-                                            const card = createDiscoveredPrinterCard(printer);
-                                            list.appendChild(card);
-                                        });
+                                        result.discovered
+                                            .filter(printer => !printer.already_added)
+                                            .forEach(printer => {
+                                                const card = createDiscoveredPrinterCard(printer);
+                                                list.appendChild(card);
+                                            });
                                     }
                                 }
                             }, 100);
