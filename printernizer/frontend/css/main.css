@@ -818,6 +818,19 @@ p {
 @media (max-width: 640px) {
     .nav-toggle {
         display: flex;
+        order: -1; /* Move hamburger menu to the left */
+    }
+
+    .nav-brand {
+        order: 0;
+    }
+
+    .nav-status {
+        order: 1;
+    }
+
+    .brand-text {
+        display: none; /* Hide "Printernizer" text in portrait mode */
     }
 
     .nav-menu {

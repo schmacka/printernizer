@@ -1,3 +1,8 @@
+## [2.1.3] - 2025-11-07
+
+- fix: Use relative URLs for Home Assistant Ingress API connections
+- fix: improve mobile menu layout and branding visibility
+
 ## [2.1.2] - 2025-11-07
 
 - fix: Use relative URLs for Home Assistant Ingress API connections
