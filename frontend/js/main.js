@@ -1,7 +1,6 @@
 /**
  * Printernizer Main Application
  * Handles page routing, navigation, and application initialization
- * Version: 2.1.6
  */
 
 class PrinternizerApp {
