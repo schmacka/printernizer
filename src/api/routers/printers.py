@@ -2,7 +2,6 @@
 
 import os
 from typing import List, Optional
-from uuid import UUID
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
@@ -323,12 +322,12 @@ async def create_printer(
 
 @router.get("/{printer_id}", response_model=PrinterResponse)
 async def get_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Get printer details by ID."""
     try:
-        printer = await printer_service.get_printer(str(printer_id))
+        printer = await printer_service.get_printer(printer_id)
         if not printer:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -338,7 +337,7 @@ async def get_printer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to get printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to get printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve printer"
@@ -347,7 +346,7 @@ async def get_printer(
 
 @router.put("/{printer_id}", response_model=PrinterResponse)
 async def update_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_data: PrinterUpdateRequest,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
@@ -368,7 +367,7 @@ async def update_printer(
             detail=str(e)
         )
     except Exception as e:
-        logger.error("Failed to update printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to update printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update printer"
@@ -377,7 +376,7 @@ async def update_printer(
 
 @router.delete("/{printer_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Delete a printer configuration."""
@@ -391,7 +390,7 @@ async def delete_printer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to delete printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to delete printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete printer"
@@ -400,7 +399,7 @@ async def delete_printer(
 
 @router.post("/{printer_id}/connect")
 async def connect_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Connect to printer."""
@@ -415,7 +414,7 @@ async def connect_printer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to connect printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to connect printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to connect to printer"
@@ -424,7 +423,7 @@ async def connect_printer(
 
 @router.post("/{printer_id}/disconnect")
 async def disconnect_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Disconnect from printer."""
@@ -432,7 +431,7 @@ async def disconnect_printer(
         await printer_service.disconnect_printer(printer_id)
         return {"status": "disconnected"}
     except Exception as e:
-        logger.error("Failed to disconnect printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to disconnect printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to disconnect from printer"
@@ -441,13 +440,12 @@ async def disconnect_printer(
 
 @router.post("/{printer_id}/pause")
 async def pause_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Pause the current print job."""
     try:
-        printer_id_str = str(printer_id)
-        success = await printer_service.pause_printer(printer_id_str)
+        success = await printer_service.pause_printer(printer_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -457,7 +455,7 @@ async def pause_printer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to pause printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to pause printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to pause print job"
@@ -466,13 +464,12 @@ async def pause_printer(
 
 @router.post("/{printer_id}/resume")
 async def resume_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Resume the paused print job."""
     try:
-        printer_id_str = str(printer_id)
-        success = await printer_service.resume_printer(printer_id_str)
+        success = await printer_service.resume_printer(printer_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -482,7 +479,7 @@ async def resume_printer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to resume printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to resume printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to resume print job"
@@ -491,13 +488,12 @@ async def resume_printer(
 
 @router.post("/{printer_id}/stop")
 async def stop_printer(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Stop/cancel the current print job."""
     try:
-        printer_id_str = str(printer_id)
-        success = await printer_service.stop_printer(printer_id_str)
+        success = await printer_service.stop_printer(printer_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -507,7 +503,7 @@ async def stop_printer(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to stop printer", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to stop printer", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to stop print job"
@@ -516,7 +512,7 @@ async def stop_printer(
 
 @router.post("/{printer_id}/download-current-job")
 async def download_current_job_file(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Explicitly trigger download + processing of the currently printing job file.
@@ -530,7 +526,7 @@ async def download_current_job_file(
     - error: Unexpected failure (see message)
     """
     try:
-        result = await printer_service.download_current_job_file(str(printer_id))
+        result = await printer_service.download_current_job_file(printer_id)
         # Map service result directly; ensure a status key exists
         if not isinstance(result, dict):
             return {"status": "error", "message": "Unexpected service response"}
@@ -538,24 +534,23 @@ async def download_current_job_file(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to download current job file", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to download current job file", printer_id=printer_id, error=str(e))
         raise HTTPException(status_code=500, detail="Failed to process current job file")
 
 
 @router.get("/{printer_id}/files")
 async def get_printer_files(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Get files from a specific printer."""
     try:
-        printer_id_str = str(printer_id)
-        files = await printer_service.get_printer_files(printer_id_str)
+        files = await printer_service.get_printer_files(printer_id)
         return {"files": files}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to get printer files", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to get printer files", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve printer files"
@@ -564,13 +559,12 @@ async def get_printer_files(
 
 @router.post("/{printer_id}/monitoring/start")
 async def start_printer_monitoring(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Start monitoring for a specific printer."""
     try:
-        printer_id_str = str(printer_id)
-        success = await printer_service.start_printer_monitoring(printer_id_str)
+        success = await printer_service.start_printer_monitoring(printer_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -580,7 +574,7 @@ async def start_printer_monitoring(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to start printer monitoring", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to start printer monitoring", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to start printer monitoring"
@@ -589,13 +583,12 @@ async def start_printer_monitoring(
 
 @router.post("/{printer_id}/monitoring/stop")
 async def stop_printer_monitoring(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Stop monitoring for a specific printer."""
     try:
-        printer_id_str = str(printer_id)
-        success = await printer_service.stop_printer_monitoring(printer_id_str)
+        success = await printer_service.stop_printer_monitoring(printer_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -605,7 +598,7 @@ async def stop_printer_monitoring(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to stop printer monitoring", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to stop printer monitoring", printer_id=printer_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to stop printer monitoring"
@@ -614,14 +607,13 @@ async def stop_printer_monitoring(
 
 @router.post("/{printer_id}/files/{filename}/download")
 async def download_printer_file(
-    printer_id: UUID,
+    printer_id: str,
     filename: str,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Download a specific file from printer to local storage."""
     try:
-        printer_id_str = str(printer_id)
-        success = await printer_service.download_printer_file(printer_id_str, filename)
+        success = await printer_service.download_printer_file(printer_id, filename)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -631,7 +623,7 @@ async def download_printer_file(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to download printer file", printer_id=str(printer_id), filename=filename, error=str(e))
+        logger.error("Failed to download printer file", printer_id=printer_id, filename=filename, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to download file from printer"
@@ -640,7 +632,7 @@ async def download_printer_file(
 
 @router.get("/{printer_id}/thumbnail")
 async def get_printer_current_thumbnail(
-    printer_id: UUID,
+    printer_id: str,
     printer_service: PrinterService = Depends(get_printer_service),
 ):
     """Return the current job thumbnail image for a printer (if available).
@@ -650,7 +642,7 @@ async def get_printer_current_thumbnail(
     returns the raw image bytes with proper content type. 404 if not present.
     """
     try:
-        printer = await printer_service.get_printer(str(printer_id))
+        printer = await printer_service.get_printer(printer_id)
         if not printer:
             raise HTTPException(status_code=404, detail="Printer not found")
 
@@ -694,5 +686,5 @@ async def get_printer_current_thumbnail(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to get printer thumbnail", printer_id=str(printer_id), error=str(e))
+        logger.error("Failed to get printer thumbnail", printer_id=printer_id, error=str(e))
         raise HTTPException(status_code=500, detail="Failed to retrieve printer thumbnail")

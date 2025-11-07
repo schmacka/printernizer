@@ -1,3 +1,9 @@
+## [2.0.58] - 2025-11-07
+
+- fix: Change printer_id parameter type from UUID to str in API endpoints
+- fix: Improve settings data collection and add debug logging
+- fix: Scroll to top when navigating to printer section
+
 ## [2.0.57] - 2025-11-07
 
 - fix: Improve settings data collection and add debug logging

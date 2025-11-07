@@ -790,9 +790,9 @@ class PrinterService:
             status=PrinterStatus.UNKNOWN
         )
         
-    async def update_printer(self, printer_id: UUID, **updates) -> Optional[Printer]:
+    async def update_printer(self, printer_id: str, **updates) -> Optional[Printer]:
         """Update printer configuration."""
-        printer_id_str = str(printer_id)
+        printer_id_str = printer_id
         
         # Get current configuration
         config = self.config_service.get_printer(printer_id_str)
@@ -842,9 +842,9 @@ class PrinterService:
             )
         return None
         
-    async def delete_printer(self, printer_id: UUID) -> bool:
+    async def delete_printer(self, printer_id: str) -> bool:
         """Delete a printer configuration."""
-        printer_id_str = str(printer_id)
+        printer_id_str = printer_id
         
         # Disconnect if connected
         if printer_id_str in self.printer_instances:
