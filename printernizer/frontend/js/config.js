@@ -22,16 +22,16 @@ const getApiBaseUrl = () => {
     debugLog('Detecting API Base URL', { host, port, protocol, pathname, href });
 
     // If accessed through HA Ingress (no port in URL) or on port 8123, use relative paths
-    // Home Assistant Ingress automatically strips the /api/hassio_ingress/<uuid>/ prefix
-    // before forwarding to the container, so we should use simple relative paths
+    // Home Assistant Ingress proxies requests through /api/hassio_ingress/<token>/
+    // We use relative URLs (no leading slash) so requests are relative to current page URL
     if (!port || port === '8123') {
-        const apiUrl = '/api/v1';
+        const apiUrl = 'api/v1';
 
-        debugLog('HA Ingress mode detected - using simple relative path', {
+        debugLog('HA Ingress mode detected - using relative path', {
             apiUrl,
             pathname,
             reason: !port ? 'no port' : 'port 8123',
-            note: 'HA Ingress strips proxy prefix automatically'
+            note: 'Relative URL ensures requests go through ingress proxy path'
         });
 
         return apiUrl;
@@ -52,17 +52,17 @@ const getWebSocketUrl = () => {
     debugLog('Detecting WebSocket URL', { host, port, protocol, pathname });
 
     // If accessed through HA Ingress (no port in URL) or on port 8123, use relative WebSocket path
-    // Home Assistant Ingress automatically strips the /api/hassio_ingress/<uuid>/ prefix
-    // before forwarding WebSocket connections to the container
+    // Home Assistant Ingress proxies WebSocket connections through /api/hassio_ingress/<token>/
+    // We construct the full WebSocket URL relative to the current page location
     if (!port || port === '8123') {
-        const wsPath = '/ws';
-        const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${wsPath}`;
+        // Build WebSocket URL relative to current location
+        // This ensures it goes through the ingress proxy path
+        const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${pathname}ws`;
 
-        debugLog('HA Ingress WebSocket mode - using simple relative path', {
-            wsPath,
+        debugLog('HA Ingress WebSocket mode - using relative path', {
             wsUrl,
             pathname,
-            note: 'HA Ingress strips proxy prefix automatically'
+            note: 'WebSocket URL relative to current page includes ingress path'
         });
 
         return wsUrl;
