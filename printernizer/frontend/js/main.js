@@ -264,6 +264,9 @@ function refreshCurrentPage() {
             case 'jobs':
                 if (typeof refreshJobs === 'function') refreshJobs();
                 break;
+            case 'timelapses':
+                if (typeof refreshTimelapses === 'function') refreshTimelapses();
+                break;
             case 'files':
                 if (typeof refreshFiles === 'function') refreshFiles();
                 break;
