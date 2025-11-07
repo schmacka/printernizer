@@ -86,6 +86,43 @@ class PrinternizerSettings(BaseSettings):
     library_search_enabled: bool = Field(default=True, env="LIBRARY_SEARCH_ENABLED")
     library_search_min_length: int = Field(default=3, env="LIBRARY_SEARCH_MIN_LENGTH")
 
+    # Timelapse Configuration
+    timelapse_enabled: bool = Field(
+        default=True,
+        env="TIMELAPSE_ENABLED",
+        description="Enable timelapse video creation feature"
+    )
+    timelapse_source_folder: str = Field(
+        default="/app/data/timelapse-images",
+        env="TIMELAPSE_SOURCE_FOLDER",
+        description="Folder to watch for timelapse image subfolders"
+    )
+    timelapse_output_folder: str = Field(
+        default="/app/data/timelapses",
+        env="TIMELAPSE_OUTPUT_FOLDER",
+        description="Folder for completed timelapse videos"
+    )
+    timelapse_output_strategy: str = Field(
+        default="separate",
+        env="TIMELAPSE_OUTPUT_STRATEGY",
+        description="Video output location: same|separate|both"
+    )
+    timelapse_auto_process_timeout: int = Field(
+        default=300,
+        env="TIMELAPSE_AUTO_PROCESS_TIMEOUT",
+        description="Seconds to wait after last image before auto-processing"
+    )
+    timelapse_cleanup_age_days: int = Field(
+        default=30,
+        env="TIMELAPSE_CLEANUP_AGE_DAYS",
+        description="Age threshold for cleanup recommendations (days)"
+    )
+    timelapse_flickerfree_path: str = Field(
+        default="/usr/local/bin/do_timelapse.sh",
+        env="TIMELAPSE_FLICKERFREE_PATH",
+        description="Path to FlickerFree do_timelapse.sh script"
+    )
+
     @validator('secret_key')
     def validate_secret_key(cls, v):
         """Validate and generate secure secret key if needed."""
