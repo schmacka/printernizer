@@ -1,3 +1,9 @@
+## [2.1.6] - 2025-11-07
+
+- fix: Improve printer auto-detection UX
+- docs: update timelapse design doc with current implementation status
+- fix: Use absolute-path-relative URLs for Home Assistant Ingress API connections
+
 ## [2.1.5] - 2025-11-07
 
 - fix: Improve printer auto-detection UX

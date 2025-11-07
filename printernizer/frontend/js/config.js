@@ -11,7 +11,7 @@ const debugLog = (message, data = {}) => {
 };
 
 // Dynamic API URL detection for network access
-// Supports both Home Assistant Ingress (relative paths) and direct access (port 8000)
+// Supports both Home Assistant Ingress (absolute-path-relative URLs) and direct access (port 8000)
 const getApiBaseUrl = () => {
     const host = window.location.hostname;
     const port = window.location.port;
@@ -21,17 +21,33 @@ const getApiBaseUrl = () => {
 
     debugLog('Detecting API Base URL', { host, port, protocol, pathname, href });
 
-    // If accessed through HA Ingress (no port in URL) or on port 8123, use relative paths
+    // If accessed through HA Ingress (no port in URL) or on port 8123, use absolute-path-relative URLs
     // Home Assistant Ingress proxies requests through /api/hassio_ingress/<token>/
-    // We use relative URLs (no leading slash) so requests are relative to current page URL
+    // We extract the base path and construct absolute-path-relative URLs (starting with /)
     if (!port || port === '8123') {
-        const apiUrl = 'api/v1';
+        // Extract the ingress base path from pathname
+        // Pathname will be like: /api/hassio_ingress/<token>/ or /api/hassio_ingress/<token>/index.html
+        // We need to preserve the base path including the trailing slash
+        let basePath = pathname;
 
-        debugLog('HA Ingress mode detected - using relative path', {
+        // Remove any file name (index.html, etc.) but keep the directory path
+        if (basePath.includes('.')) {
+            basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+        }
+
+        // Ensure trailing slash
+        if (!basePath.endsWith('/')) {
+            basePath += '/';
+        }
+
+        const apiUrl = `${basePath}api/v1`;
+
+        debugLog('HA Ingress mode detected - using absolute-path-relative URL', {
             apiUrl,
             pathname,
+            basePath,
             reason: !port ? 'no port' : 'port 8123',
-            note: 'Relative URL ensures requests go through ingress proxy path'
+            note: 'Absolute-path-relative URL includes ingress proxy path'
         });
 
         return apiUrl;
@@ -51,18 +67,31 @@ const getWebSocketUrl = () => {
 
     debugLog('Detecting WebSocket URL', { host, port, protocol, pathname });
 
-    // If accessed through HA Ingress (no port in URL) or on port 8123, use relative WebSocket path
+    // If accessed through HA Ingress (no port in URL) or on port 8123, use absolute-path-relative WebSocket path
     // Home Assistant Ingress proxies WebSocket connections through /api/hassio_ingress/<token>/
-    // We construct the full WebSocket URL relative to the current page location
+    // We extract the base path and construct the WebSocket URL with full absolute path
     if (!port || port === '8123') {
-        // Build WebSocket URL relative to current location
-        // This ensures it goes through the ingress proxy path
-        const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${pathname}ws`;
+        // Extract the ingress base path from pathname
+        let basePath = pathname;
 
-        debugLog('HA Ingress WebSocket mode - using relative path', {
+        // Remove any file name (index.html, etc.) but keep the directory path
+        if (basePath.includes('.')) {
+            basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+        }
+
+        // Ensure trailing slash
+        if (!basePath.endsWith('/')) {
+            basePath += '/';
+        }
+
+        // Build WebSocket URL with absolute-path-relative path
+        const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${basePath}ws`;
+
+        debugLog('HA Ingress WebSocket mode - using absolute-path-relative URL', {
             wsUrl,
             pathname,
-            note: 'WebSocket URL relative to current page includes ingress path'
+            basePath,
+            note: 'WebSocket URL with absolute path includes ingress proxy path'
         });
 
         return wsUrl;
