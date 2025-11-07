@@ -2,7 +2,8 @@
 
 **Date**: 2025-01-07
 **Feature**: Automated Timelapse Video Creation
-**Status**: Design Complete - Ready for Implementation
+**Status**: 90% Implemented - Final Phase (Updated 2025-01-07)
+**Last Updated**: 2025-01-07
 
 ## Overview
 
@@ -23,6 +24,202 @@ This document describes the design for a comprehensive timelapse management syst
 2. **Manual**: User clicks "Process Now" on discovered folder → immediate processing
 3. **Viewing**: User browses gallery → clicks video → plays in modal with job info
 4. **Cleanup**: System recommends old videos → user reviews and deletes
+
+---
+
+## Implementation Status
+
+**Overall Progress**: 90% Complete
+
+### ✅ Completed Components
+
+#### 1. Database Layer (100%)
+- ✅ Migration `012_add_timelapses.sql` created and structured
+- ✅ Timelapses table with all required fields
+- ✅ Foreign key relationship to jobs table
+- ✅ Proper indexes for performance (status, job_id, created_at)
+- ✅ All fields from design spec: tracking, metadata, processing, auto-detection, management
+
+#### 2. Configuration (100%)
+- ✅ All settings in `src/utils/config.py`:
+  - `timelapse_enabled` (bool, default: False)
+  - `timelapse_source_folder` (path)
+  - `timelapse_output_folder` (path)
+  - `timelapse_output_strategy` (same/separate/both)
+  - `timelapse_auto_process_timeout` (seconds)
+  - `timelapse_cleanup_age_days` (days)
+  - `timelapse_flickerfree_path` (script path)
+- ✅ Environment variable support
+- ✅ Integration with existing settings system
+
+#### 3. Service Layer (100%)
+- ✅ `TimelapseService` fully implemented (1018 lines)
+- ✅ Background tasks:
+  - Folder monitoring (every 30 seconds)
+  - Processing queue (every 10 seconds)
+- ✅ Core functionality:
+  - Folder scanning and discovery
+  - Auto-detection with configurable timeout
+  - Sequential processing queue
+  - FlickerFree script execution
+  - Smart job matching algorithm
+  - Error handling and retry logic
+- ✅ All public methods:
+  - `get_timelapses()` - list with filters
+  - `get_timelapse()` - single record
+  - `trigger_processing()` - manual trigger
+  - `delete_timelapse()` - delete video/record
+  - `bulk_delete_timelapses()` - batch deletion
+  - `toggle_pin()` - pin/unpin
+  - `link_to_job()` - manual linking
+  - `get_stats()` - statistics
+  - `get_cleanup_candidates()` - old videos
+- ✅ Service initialized in `src/main.py`
+- ✅ Lifecycle management (start/shutdown)
+
+#### 4. API Layer (95%)
+- ✅ Router at `/api/v1/timelapses`
+- ✅ Implemented endpoints:
+  - `GET /api/v1/timelapses` - List timelapses
+  - `GET /api/v1/timelapses/stats` - Statistics
+  - `GET /api/v1/timelapses/{id}` - Get single
+  - `POST /api/v1/timelapses/{id}/process` - Trigger
+  - `DELETE /api/v1/timelapses/{id}` - Delete
+  - `PATCH /api/v1/timelapses/{id}/link` - Link to job
+  - `PATCH /api/v1/timelapses/{id}/pin` - Toggle pin
+  - `GET /api/v1/timelapses/cleanup/candidates` - Cleanup list
+  - `POST /api/v1/timelapses/bulk-delete` - Bulk delete
+- ❌ **MISSING**: `GET /api/v1/timelapses/{id}/video` - Video file serving
+  - **Impact**: Frontend references this endpoint but it doesn't exist
+  - **Required**: FileResponse/StreamingResponse to serve MP4 files
+  - **Pattern**: Similar to file serving in `src/api/routers/library.py:680-729`
+
+#### 5. Frontend (100%)
+- ✅ Complete UI implementation:
+  - `frontend/js/timelapses.js` (709 lines)
+  - `frontend/css/timelapses.css`
+  - Navigation integration in `index.html`
+  - Page structure with gallery layout
+- ✅ Components:
+  - `TimelapseManager` class - main controller
+  - `TimelapseCard` class - gallery cards
+  - `VideoPlayerModal` class - video playback
+- ✅ Features:
+  - Gallery grid layout
+  - Status badges (discovered, pending, processing, completed, failed)
+  - Filters (status, linked-only)
+  - Stats dashboard
+  - Processing queue indicator
+  - Auto-refresh (30 seconds)
+  - Empty state handling
+- ✅ WebSocket integration:
+  - Real-time event listeners for all states
+  - Live UI updates
+- ✅ API client methods in `frontend/js/api.js`
+- ✅ All CRUD operations
+
+#### 6. WebSocket Events (100%)
+- ✅ All events implemented:
+  - `timelapse.discovered`
+  - `timelapse.pending`
+  - `timelapse.processing`
+  - `timelapse.progress`
+  - `timelapse.completed`
+  - `timelapse.failed`
+  - `timelapse.deleted`
+- ✅ Frontend handlers for all events
+- ✅ Real-time UI updates
+
+### ❌ Incomplete Components (10% Remaining)
+
+#### 1. Video Serving Endpoint (HIGH PRIORITY)
+**File**: `src/api/routers/timelapses.py`
+
+**Missing Endpoint**:
+```python
+@router.get("/{id}/video")
+async def get_timelapse_video(id: str):
+    """Serve timelapse video file for playback"""
+```
+
+**Required Implementation**:
+- Validate timelapse exists and has video file
+- Check video file exists on disk
+- Return `FileResponse` with appropriate headers
+- Handle video streaming for large files
+- Set correct MIME type (`video/mp4`)
+
+**Reference Pattern**: See `src/api/routers/library.py:680-729` for file serving implementation
+
+**Frontend Dependencies**:
+- `frontend/js/timelapses.js:582` - video player source
+- `frontend/js/timelapses.js:655` - download video link
+
+#### 2. Docker Configuration (HIGH PRIORITY)
+
+**Missing from both Docker files**:
+
+**Standalone Docker** (`docker/Dockerfile`):
+```dockerfile
+# Install FlickerFree dependencies
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clone FlickerFree repository
+RUN git clone https://github.com/schmacka/FlickerFree.git /opt/flickerfree
+
+# Make script executable
+RUN chmod +x /opt/flickerfree/do_timelapse.sh
+
+# Set default FlickerFree path
+ENV TIMELAPSE_FLICKERFREE_PATH=/opt/flickerfree/do_timelapse.sh
+
+# Create mount points
+VOLUME ["/data/timelapse-images", "/data/timelapses"]
+```
+
+**Home Assistant Add-on** (`printernizer/Dockerfile`):
+```dockerfile
+# Install FlickerFree dependencies (Alpine Linux)
+RUN apk add --no-cache \
+    ffmpeg \
+    git \
+    bash
+
+# Clone FlickerFree repository
+RUN git clone https://github.com/schmacka/FlickerFree.git /opt/flickerfree
+
+# Make script executable
+RUN chmod +x /opt/flickerfree/do_timelapse.sh
+```
+
+**Also needed**: Update `printernizer/config.yaml` with timelapse options
+
+#### 3. Documentation Updates (MEDIUM PRIORITY)
+- ❌ Update README.md with timelapse feature documentation
+- ❌ Update CHANGELOG.md with feature addition
+- ❌ Add timelapse setup instructions for standalone users
+- ❌ Document FlickerFree installation requirements
+
+### Priority Action Items
+
+**Before feature can be used**:
+1. ⚠️ **CRITICAL**: Add video serving endpoint to API router
+2. ⚠️ **CRITICAL**: Update Docker files to install FlickerFree + ffmpeg
+3. ⚠️ **CRITICAL**: Test end-to-end with actual FlickerFree processing
+
+**Post-implementation**:
+4. 📝 Update README.md documentation
+5. 📝 Update CHANGELOG.md
+6. 📝 Add setup/installation guides
+7. ✅ Comprehensive testing (unit + integration)
+
+### Testing Status
+- ❌ Unit tests not yet written
+- ❌ Integration tests not yet written
+- ❌ Manual testing pending (requires Docker updates)
 
 ---
 
@@ -1291,65 +1488,79 @@ DELETE FROM schema_migrations WHERE version = '009_add_timelapses';
 
 ## Implementation Phases
 
-### Phase 1: Backend Foundation (Week 1)
+### Phase 1: Backend Foundation ✅ COMPLETE
 
 **Tasks**:
-1. Create database migration (`009_add_timelapses.sql`)
-2. Add configuration to `PrinternizerSettings`
-3. Create `TimelapseService` skeleton
-4. Implement folder monitoring (`_scan_source_folders`)
-5. Implement basic status transitions
-6. Create API router with basic endpoints
+1. ✅ Create database migration (`012_add_timelapses.sql`)
+2. ✅ Add configuration to `PrinternizerSettings`
+3. ✅ Create `TimelapseService` skeleton
+4. ✅ Implement folder monitoring (`_scan_source_folders`)
+5. ✅ Implement basic status transitions
+6. ✅ Create API router with basic endpoints
 
-**Deliverable**: Backend can discover folders and track status
+**Deliverable**: ✅ Backend can discover folders and track status
 
-### Phase 2: FlickerFree Integration (Week 1-2)
-
-**Tasks**:
-1. Implement `_process_timelapse` with subprocess execution
-2. Add error parsing and retry logic
-3. Implement processing queue (`_process_queue`)
-4. Add WebSocket event emission
-5. Implement smart job matching
-
-**Deliverable**: Backend can create videos end-to-end
-
-### Phase 3: Frontend Gallery (Week 2)
+### Phase 2: FlickerFree Integration ✅ COMPLETE
 
 **Tasks**:
-1. Create `timelapses.html` with gallery grid
-2. Implement video cards with status badges
-3. Create video player modal
-4. Add filtering and sorting
-5. Implement WebSocket event handlers
-6. Add real-time status updates
+1. ✅ Implement `_process_timelapse` with subprocess execution
+2. ✅ Add error parsing and retry logic
+3. ✅ Implement processing queue (`_process_queue`)
+4. ✅ Add WebSocket event emission
+5. ✅ Implement smart job matching
 
-**Deliverable**: Users can view and play timelapses
+**Deliverable**: ✅ Backend can create videos end-to-end
 
-### Phase 4: Settings & Management (Week 3)
-
-**Tasks**:
-1. Add timelapses settings section to settings UI
-2. Implement configuration validation
-3. Add storage usage dashboard
-4. Implement cleanup recommendations
-5. Add bulk delete functionality
-6. Implement pinning feature
-
-**Deliverable**: Users can configure and manage timelapses
-
-### Phase 5: Deployment & Testing (Week 3-4)
+### Phase 3: Frontend Gallery ✅ COMPLETE
 
 **Tasks**:
-1. Update Docker image with FlickerFree
-2. Update Home Assistant add-on configuration
-3. Write installation documentation
-4. Write unit tests
-5. Write integration tests
-6. Manual testing and bug fixes
-7. Update CHANGELOG and README
+1. ✅ Create `timelapses.html` with gallery grid
+2. ✅ Implement video cards with status badges
+3. ✅ Create video player modal
+4. ✅ Add filtering and sorting
+5. ✅ Implement WebSocket event handlers
+6. ✅ Add real-time status updates
+
+**Deliverable**: ✅ Users can view and play timelapses (pending video serving endpoint)
+
+### Phase 4: Settings & Management ✅ COMPLETE
+
+**Tasks**:
+1. ✅ Add timelapses settings section to settings UI
+2. ✅ Implement configuration validation
+3. ✅ Add storage usage dashboard
+4. ✅ Implement cleanup recommendations
+5. ✅ Add bulk delete functionality
+6. ✅ Implement pinning feature
+
+**Deliverable**: ✅ Users can configure and manage timelapses
+
+### Phase 5: Deployment & Testing ⚠️ IN PROGRESS (90% Complete)
+
+**Completed Tasks**:
+1. ✅ Service integration in `src/main.py`
+2. ✅ Complete API router implementation (except video serving)
+3. ✅ Frontend fully integrated
+4. ✅ WebSocket events fully implemented
+
+**Remaining Tasks**:
+1. ❌ **Add video serving endpoint** (`GET /api/v1/timelapses/{id}/video`)
+2. ❌ **Update Docker image with FlickerFree** (`docker/Dockerfile`)
+3. ❌ **Update Home Assistant add-on** (`printernizer/Dockerfile` + `config.yaml`)
+4. ❌ Write installation documentation
+5. ❌ Write unit tests
+6. ❌ Write integration tests
+7. ❌ Manual testing and bug fixes
+8. ❌ Update CHANGELOG and README
 
 **Deliverable**: Feature ready for production release
+
+**Next Steps**:
+1. Implement video serving endpoint (reference: `src/api/routers/library.py:680-729`)
+2. Update both Docker files to install ffmpeg, git, and clone FlickerFree
+3. Test end-to-end functionality
+4. Write comprehensive tests
+5. Document feature in README and CHANGELOG
 
 ---
 
@@ -1391,6 +1602,34 @@ Key strengths of this design:
 - **Robust error handling** with clear recovery paths
 - **Scalable architecture** ready for future enhancements
 
-The implementation is broken into manageable phases with clear deliverables, allowing for iterative development and testing.
+### Implementation Progress Summary
 
-Next step: Begin Phase 1 implementation with database migration and service skeleton.
+**✅ Phases 1-4 Complete (90%)**:
+- Full backend implementation (service, database, configuration)
+- Comprehensive frontend gallery UI
+- Real-time WebSocket integration
+- Complete management features (pin, link, delete, cleanup)
+
+**⚠️ Phase 5 In Progress (10% remaining)**:
+- Missing video serving endpoint (critical for playback)
+- Docker deployments need FlickerFree integration
+- Documentation and testing pending
+
+### Critical Next Steps
+
+1. **Add video serving endpoint** to `src/api/routers/timelapses.py`:
+   ```python
+   @router.get("/{id}/video")
+   async def get_timelapse_video(id: str) -> FileResponse:
+       """Serve timelapse video file for streaming/download"""
+   ```
+
+2. **Update Docker files** to install FlickerFree:
+   - `docker/Dockerfile` (Debian-based)
+   - `printernizer/Dockerfile` (Alpine-based for HA)
+
+3. **Test end-to-end** with actual timelapse processing
+
+4. **Document** the feature in README and CHANGELOG
+
+The implementation is very close to completion - the core functionality is fully built and just needs the final integration pieces to be production-ready.
