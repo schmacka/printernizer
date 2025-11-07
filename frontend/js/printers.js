@@ -22,6 +22,9 @@ class PrinterManager {
         // Load printers
         this.loadPrinters();
 
+        // Check for startup discovered printers and display them
+        this.checkAndDisplayStartupDiscoveredPrinters();
+
         // Set up refresh interval
         this.startAutoRefresh();
 
@@ -39,6 +42,44 @@ class PrinterManager {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
+        }
+    }
+
+    /**
+     * Check for startup discovered printers and display them automatically
+     */
+    async checkAndDisplayStartupDiscoveredPrinters() {
+        try {
+            const result = await api.getStartupDiscoveredPrinters();
+
+            if (result && result.new_count > 0) {
+                const discoveredSection = document.getElementById('discoveredPrintersSection');
+                const discoveredList = document.getElementById('discoveredPrintersList');
+
+                if (discoveredSection && discoveredList) {
+                    // Show the discovered section
+                    discoveredSection.style.display = 'block';
+
+                    // Populate discovered printers list (only show new printers, not already added)
+                    discoveredList.innerHTML = '';
+                    const newPrinters = result.discovered.filter(printer => !printer.already_added);
+
+                    if (newPrinters.length > 0) {
+                        newPrinters.forEach(printer => {
+                            const card = createDiscoveredPrinterCard(printer);
+                            discoveredList.appendChild(card);
+                        });
+
+                        // Scroll to discovered section
+                        setTimeout(() => {
+                            discoveredSection.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check startup discovered printers:', error);
+            // Silently fail - don't disrupt printer page loading
         }
     }
 
@@ -850,13 +891,23 @@ async function discoverPrinters() {
         // Display results
         if (response.discovered && response.discovered.length > 0) {
             discoveredList.innerHTML = '';
+
+            // Show all discovered printers (including already added ones with their status)
             response.discovered.forEach(printer => {
                 const printerCard = createDiscoveredPrinterCard(printer);
                 discoveredList.appendChild(printerCard);
             });
 
-            // Show success message
-            showNotification(`${response.discovered.length} Drucker gefunden (${response.scan_duration_ms}ms)`, 'success');
+            // Count new printers (not already added)
+            const newCount = response.discovered.filter(p => !p.already_added).length;
+            const totalCount = response.discovered.length;
+
+            // Show success message with proper counts
+            if (newCount > 0) {
+                showNotification(`${newCount} neue Drucker gefunden (${totalCount} gesamt, ${response.scan_duration_ms}ms)`, 'success');
+            } else {
+                showNotification(`${totalCount} Drucker gefunden (alle bereits hinzugefügt, ${response.scan_duration_ms}ms)`, 'info');
+            }
         } else {
             discoveredList.innerHTML = `
                 <div class="empty-state">
