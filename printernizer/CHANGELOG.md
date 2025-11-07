@@ -1,3 +1,12 @@
+## [2.1.2] - 2025-11-07
+
+- fix: Use relative URLs for Home Assistant Ingress API connections
+- feat: Complete Phase 3 timelapse frontend - Part 2 (Wiring & Styles)
+- feat: Implement Phase 3 timelapse frontend - Part 1 (Core Components)
+- feat: Complete Phase 2 timelapse management implementation
+- feat: Implement Phase 1 of Timelapse Management System
+- docs: Add comprehensive timelapse management system design
+
 ## [2.1.1] - 2025-11-07
 
 - feat: Complete Phase 3 timelapse frontend - Part 2 (Wiring & Styles)
