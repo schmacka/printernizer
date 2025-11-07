@@ -1,3 +1,12 @@
+## [2.1.1] - 2025-11-07
+
+- feat: Complete Phase 3 timelapse frontend - Part 2 (Wiring & Styles)
+- feat: Implement Phase 3 timelapse frontend - Part 1 (Core Components)
+- feat: Complete Phase 2 timelapse management implementation
+- feat: Implement Phase 1 of Timelapse Management System
+- fix: Change printer_id parameter type from UUID to str in API endpoints
+- docs: Add comprehensive timelapse management system design
+
 ## [2.0.59] - 2025-11-07
 
 - feat: Complete Phase 3 timelapse frontend - Part 2 (Wiring & Styles)
