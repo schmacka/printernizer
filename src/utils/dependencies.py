@@ -15,6 +15,7 @@ from src.services.trending_service import TrendingService
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.services.material_service import MaterialService
+from src.services.timelapse_service import TimelapseService
 
 
 async def get_database(request: Request) -> Database:
@@ -82,3 +83,6 @@ async def get_url_parser_service(request: Request) -> UrlParserService:
 async def get_material_service(request: Request) -> MaterialService:
     """Get material service instance from app state."""
     return request.app.state.material_service
+async def get_timelapse_service(request: Request) -> TimelapseService:
+    """Get timelapse service instance from app state."""
+    return request.app.state.timelapse_service
