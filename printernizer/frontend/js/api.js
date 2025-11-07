@@ -455,6 +455,92 @@ class ApiClient {
             }
         });
     }
+
+    // ==================== Timelapses API ====================
+
+    /**
+     * Get timelapses with optional filtering
+     */
+    async getTimelapses(filters = {}) {
+        const params = new URLSearchParams();
+        if (filters.status) params.append('status', filters.status);
+        if (filters.linked_only) params.append('linked_only', 'true');
+        if (filters.limit) params.append('limit', filters.limit);
+        if (filters.offset) params.append('offset', filters.offset);
+
+        const queryString = params.toString();
+        const endpoint = queryString ? `/api/v1/timelapses?${queryString}` : '/api/v1/timelapses';
+
+        return this.request(endpoint);
+    }
+
+    /**
+     * Get timelapse statistics
+     */
+    async getTimelapseStats() {
+        return this.request('/api/v1/timelapses/stats');
+    }
+
+    /**
+     * Get specific timelapse by ID
+     */
+    async getTimelapse(timelapseId) {
+        return this.request(`/api/v1/timelapses/${timelapseId}`);
+    }
+
+    /**
+     * Trigger manual processing for a timelapse
+     */
+    async triggerTimelapseProcessing(timelapseId) {
+        return this.request(`/api/v1/timelapses/${timelapseId}/process`, {
+            method: 'POST'
+        });
+    }
+
+    /**
+     * Delete timelapse
+     */
+    async deleteTimelapse(timelapseId) {
+        return this.request(`/api/v1/timelapses/${timelapseId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
+     * Link timelapse to job
+     */
+    async linkTimelapseToJob(timelapseId, jobId) {
+        return this.request(`/api/v1/timelapses/${timelapseId}/link`, {
+            method: 'PATCH',
+            body: JSON.stringify({ job_id: jobId })
+        });
+    }
+
+    /**
+     * Toggle pin status for timelapse
+     */
+    async toggleTimelapsePin(timelapseId) {
+        return this.request(`/api/v1/timelapses/${timelapseId}/pin`, {
+            method: 'PATCH'
+        });
+    }
+
+    /**
+     * Get cleanup candidates
+     */
+    async getCleanupCandidates() {
+        return this.request('/api/v1/timelapses/cleanup/candidates');
+    }
+
+    /**
+     * Bulk delete timelapses
+     */
+    async bulkDeleteTimelapses(timelapseIds) {
+        return this.request('/api/v1/timelapses/bulk-delete', {
+            method: 'POST',
+            body: JSON.stringify({ timelapse_ids: timelapseIds })
+        });
+    }
 }
 
 /**
