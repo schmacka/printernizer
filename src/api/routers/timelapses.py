@@ -143,14 +143,26 @@ async def delete_timelapse(
     Delete timelapse video and database record.
 
     - **timelapse_id**: Unique timelapse identifier
-
-    Note: This is a placeholder for Phase 1. Full implementation in Phase 2.
     """
-    # Phase 2 will implement actual deletion
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Deletion will be implemented in Phase 2"
-    )
+    try:
+        success = await timelapse_service.delete_timelapse(timelapse_id)
+
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Timelapse {timelapse_id} not found"
+            )
+
+        return None
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to delete timelapse", timelapse_id=timelapse_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete timelapse"
+        )
 
 
 @router.patch("/{timelapse_id}/link", response_model=dict)
@@ -164,14 +176,25 @@ async def link_to_job(
 
     - **timelapse_id**: Unique timelapse identifier
     - **job_id**: Job ID to link to
-
-    Note: This is a placeholder for Phase 1. Full implementation in Phase 2.
     """
-    # Phase 2 will implement job linking
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Job linking will be implemented in Phase 2"
-    )
+    try:
+        timelapse = await timelapse_service.link_to_job(timelapse_id, link_data.job_id)
+
+        if not timelapse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Timelapse {timelapse_id} not found"
+            )
+
+        return timelapse
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to link timelapse", timelapse_id=timelapse_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to link timelapse to job"
+        )
 
 
 @router.patch("/{timelapse_id}/pin", response_model=dict)
@@ -185,14 +208,25 @@ async def toggle_pin(
     Pinned timelapses are exempt from cleanup recommendations.
 
     - **timelapse_id**: Unique timelapse identifier
-
-    Note: This is a placeholder for Phase 1. Full implementation in Phase 2.
     """
-    # Phase 2 will implement pinning
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Pinning will be implemented in Phase 2"
-    )
+    try:
+        timelapse = await timelapse_service.toggle_pin(timelapse_id)
+
+        if not timelapse:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Timelapse {timelapse_id} not found"
+            )
+
+        return timelapse
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to toggle pin", timelapse_id=timelapse_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle pin status"
+        )
 
 
 @router.get("/cleanup/candidates", response_model=List[dict])
@@ -203,14 +237,16 @@ async def get_cleanup_candidates(
     Get timelapses recommended for deletion.
 
     Returns videos older than the configured threshold and not pinned.
-
-    Note: This is a placeholder for Phase 1. Full implementation in Phase 2.
     """
-    # Phase 2 will implement cleanup candidates
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Cleanup recommendations will be implemented in Phase 2"
-    )
+    try:
+        candidates = await timelapse_service.get_cleanup_candidates()
+        return candidates
+    except Exception as e:
+        logger.error("Failed to get cleanup candidates", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve cleanup candidates"
+        )
 
 
 @router.post("/bulk-delete", response_model=TimelapseBulkDeleteResult)
@@ -224,11 +260,13 @@ async def bulk_delete_timelapses(
     - **timelapse_ids**: List of timelapse IDs to delete
 
     Returns count of successful and failed deletions.
-
-    Note: This is a placeholder for Phase 1. Full implementation in Phase 2.
     """
-    # Phase 2 will implement bulk deletion
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Bulk deletion will be implemented in Phase 2"
-    )
+    try:
+        result = await timelapse_service.bulk_delete_timelapses(delete_request.timelapse_ids)
+        return TimelapseBulkDeleteResult(**result)
+    except Exception as e:
+        logger.error("Failed to bulk delete timelapses", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete timelapses"
+        )
