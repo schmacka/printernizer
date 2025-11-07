@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-11-07
+
+### Added
+- **Timelapse Management System** - Complete automated timelapse video creation and management
+  - **Automated Monitoring**: Watches configured folders for timelapse images with auto-detection
+  - **FlickerFree Integration**: High-quality video processing with deflicker algorithm
+  - **Gallery UI**: Modern video gallery with thumbnails, metadata, and fullscreen playback
+  - **Smart Job Linking**: Automatically links videos to print jobs when possible
+  - **Processing Queue**: Sequential processing with real-time status updates via WebSocket
+  - **Storage Management**: Track storage usage and get cleanup recommendations
+  - **Manual Control**: Trigger processing on-demand with configurable timeout
+  - **Cross-Platform**: Works in Docker, standalone Python, and Home Assistant add-on
+  - **New Components**:
+    - `src/services/timelapse_service.py` - Core timelapse processing logic (1000+ lines)
+    - `src/api/routers/timelapses.py` - Complete REST API endpoints
+    - `src/models/timelapse.py` - Database models and schemas
+    - `frontend/js/timelapses.js` - Frontend gallery and player (700+ lines)
+    - `frontend/css/timelapses.css` - Responsive styles with dark/light theme
+    - `migrations/012_add_timelapses.sql` - Database schema
+  - **Documentation**: Comprehensive design document with architecture and workflows
+
 ### Performance
 - **Major Startup Performance Optimization** (Development Mode)
   - Reduced startup time from ~82 seconds to ~20-30 seconds (60-70% improvement)
