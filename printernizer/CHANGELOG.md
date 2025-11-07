@@ -1,3 +1,9 @@
+## [2.0.56] - 2025-11-07
+
+- fix: Improve settings data collection and add debug logging
+- fix: Change PrinterResponse id field from UUID to str
+- docs: Add comprehensive cross-site search feature design
+
 ## [2.0.55] - 2025-11-06
 
 - fix: Add quotes to job ID parameters in onclick handlers
