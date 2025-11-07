@@ -1,3 +1,9 @@
+## [2.0.57] - 2025-11-07
+
+- fix: Improve settings data collection and add debug logging
+- fix: Change PrinterResponse id field from UUID to str
+- fix: Scroll to top when navigating to printer section
+
 ## [2.0.56] - 2025-11-07
 
 - fix: Improve settings data collection and add debug logging
