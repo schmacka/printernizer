@@ -1,3 +1,9 @@
+## [2.1.7] - 2025-11-07
+
+- fix: Add missing timelapses case to refreshCurrentPage() function
+- fix: Improve printer auto-detection UX
+- fix: Use absolute-path-relative URLs for Home Assistant Ingress API connections
+
 ## [2.1.6] - 2025-11-07
 
 - fix: Improve printer auto-detection UX
