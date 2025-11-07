@@ -199,6 +199,10 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.PRINTER_DISCOVER_STARTUP);
     }
 
+    async clearStartupDiscoveredPrinters() {
+        return this.delete(CONFIG.ENDPOINTS.PRINTER_DISCOVER_STARTUP);
+    }
+
     /**
      * Printer Control Functions
      */

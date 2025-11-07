@@ -90,82 +90,166 @@ class PrinterManager {
      */
     createPrinterManagementCard(printer) {
         const card = document.createElement('div');
-        card.className = `card printer-management-card status-${printer.status}`;
+        card.className = `card printer-tile-card status-${printer.status}`;
         card.setAttribute('data-printer-id', printer.id);
-        
+
         const status = getStatusConfig('printer', printer.status);
         const printerType = CONFIG.PRINTER_TYPES[printer.printer_type] || { label: printer.printer_type, color: '#6b7280' };
-        
+
         card.innerHTML = `
-            <div class="card-header">
-                <div class="printer-title">
-                    <h3>${escapeHtml(printer.name)}</h3>
-                    <div class="printer-meta">
-                        <span class="printer-type" style="background-color: ${printerType.color};">
-                            ${printerType.label}
-                        </span>
-                        <span class="status-badge ${status.class}">
-                            ${status.icon} ${status.label}
-                        </span>
-                    </div>
+            <div class="printer-tile-header">
+                <div class="printer-tile-status">
+                    <span class="status-badge ${status.class}">${status.icon}</span>
                 </div>
-                <div class="printer-actions">
-                    <button class="btn btn-sm btn-secondary" onclick="printerManager.showPrinterDetails('${printer.id}')" title="Details anzeigen">
-                        <span class="btn-icon">👁️</span>
-                        Details
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="printerManager.editPrinter('${printer.id}')" title="Bearbeiten">
-                        <span class="btn-icon">✏️</span>
-                        Bearbeiten
-                    </button>
-                    <button class="btn btn-sm btn-error" onclick="printerManager.deletePrinter('${printer.id}')" title="Löschen">
-                        <span class="btn-icon">🗑️</span>
-                    </button>
+                <div class="printer-tile-type" style="background-color: ${printerType.color};">
+                    ${printerType.label}
                 </div>
             </div>
-            
-            <div class="card-body">
-                <div class="printer-info-grid">
-                    <div class="info-section">
-                        <h4>Verbindung</h4>
-                        <div class="info-item">
-                            <label>IP-Adresse:</label>
-                            <span>${escapeHtml(printer.ip_address)}</span>
-                        </div>
-                        <div class="info-item">
-                            <label>Letzte Verbindung:</label>
-                            <span>${printer.last_seen ? formatDateTime(printer.last_seen) : 'Nie'}</span>
-                        </div>
-                        <div class="info-item">
-                            <label>Firmware:</label>
-                            <span>${printer.firmware_version || 'Unbekannt'}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="info-section">
-                        <h4>Status</h4>
-                        ${this.renderCurrentJobInfo(printer)}
-                        ${this.renderTemperatureInfo(printer.temperatures)}
-                    </div>
-                    
-                    ${cameraManager ? cameraManager.renderCameraSection(printer) : ''}
-                    
-                    <div class="info-section">
-                        <h4>Statistiken</h4>
-                        ${this.renderPrinterStatistics(printer.statistics)}
-                    </div>
-                    
-                    <div class="info-section">
-                        <h4>Aktionen</h4>
-                        <div class="action-buttons">
-                            ${this.renderPrinterActionButtons(printer)}
-                        </div>
-                    </div>
+
+            <div class="printer-tile-body">
+                <div class="printer-tile-title">
+                    <h3>${escapeHtml(printer.name)}</h3>
+                    <p class="printer-tile-ip">${escapeHtml(printer.ip_address)}</p>
+                </div>
+
+                ${this.renderTileCurrentJob(printer)}
+                ${this.renderTileTemperatures(printer.temperatures)}
+
+                <div class="printer-tile-stats">
+                    ${this.renderTileStatistics(printer.statistics)}
+                </div>
+            </div>
+
+            <div class="printer-tile-footer">
+                <div class="printer-tile-actions">
+                    <button class="btn-icon" onclick="printerManager.showPrinterDetails('${printer.id}')" title="Details anzeigen">
+                        👁️
+                    </button>
+                    <button class="btn-icon" onclick="printerManager.editPrinter('${printer.id}')" title="Bearbeiten">
+                        ✏️
+                    </button>
+                    ${this.renderTilePrinterControls(printer)}
+                    <button class="btn-icon btn-error-icon" onclick="printerManager.deletePrinter('${printer.id}')" title="Löschen">
+                        🗑️
+                    </button>
                 </div>
             </div>
         `;
-        
+
         return card;
+    }
+
+    /**
+     * Render current job info for tile layout
+     */
+    renderTileCurrentJob(printer) {
+        if (!printer.current_job) {
+            return '<div class="printer-tile-idle"><span class="text-muted">Bereit</span></div>';
+        }
+
+        const jobName = typeof printer.current_job === 'string' ? printer.current_job : printer.current_job.name;
+
+        return `
+            <div class="printer-tile-job">
+                <div class="tile-job-name" title="${escapeHtml(jobName)}">${escapeHtml(this.truncateJobName(jobName, 30))}</div>
+                ${printer.progress !== undefined ? `
+                    <div class="tile-progress-container">
+                        <div class="progress">
+                            <div class="progress-bar" style="width: ${printer.progress}%"></div>
+                        </div>
+                        <span class="tile-progress-text">${formatPercentage(printer.progress)}</span>
+                    </div>
+                ` : ''}
+                ${printer.remaining_time_minutes ? `
+                    <div class="tile-time-remaining">
+                        ⏱️ ${formatDuration(printer.remaining_time_minutes * 60)} verbleibend
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    /**
+     * Render temperatures for tile layout
+     */
+    renderTileTemperatures(temperatures) {
+        if (!temperatures) return '';
+
+        const tempItems = [];
+
+        if (temperatures.nozzle !== undefined) {
+            const nozzle = typeof temperatures.nozzle === 'object' ? temperatures.nozzle : { current: temperatures.nozzle };
+            tempItems.push(`<span class="tile-temp" title="Düse">🔥 ${parseFloat(nozzle.current).toFixed(0)}°C</span>`);
+        }
+
+        if (temperatures.bed !== undefined) {
+            const bed = typeof temperatures.bed === 'object' ? temperatures.bed : { current: temperatures.bed };
+            tempItems.push(`<span class="tile-temp" title="Druckbett">🛏️ ${parseFloat(bed.current).toFixed(0)}°C</span>`);
+        }
+
+        if (tempItems.length === 0) return '';
+
+        return `
+            <div class="printer-tile-temps">
+                ${tempItems.join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render statistics for tile layout
+     */
+    renderTileStatistics(statistics) {
+        if (!statistics) return '<span class="text-muted">Keine Statistiken</span>';
+
+        const stats = [];
+
+        if (statistics.total_jobs !== undefined) {
+            stats.push(`<span class="tile-stat" title="Gesamte Aufträge">📊 ${statistics.total_jobs}</span>`);
+        }
+
+        if (statistics.success_rate !== undefined) {
+            const rate = (statistics.success_rate * 100).toFixed(0);
+            stats.push(`<span class="tile-stat" title="Erfolgsrate">✓ ${rate}%</span>`);
+        }
+
+        if (stats.length === 0) return '<span class="text-muted">-</span>';
+
+        return stats.join('');
+    }
+
+    /**
+     * Render printer controls for tile layout
+     */
+    renderTilePrinterControls(printer) {
+        if (printer.status === 'printing') {
+            return `
+                <button class="btn-icon" onclick="printerManager.pausePrinter('${printer.id}')" title="Pausieren">
+                    ⏸️
+                </button>
+                <button class="btn-icon btn-error-icon" onclick="printerManager.stopPrinter('${printer.id}')" title="Stoppen">
+                    ⏹️
+                </button>
+            `;
+        } else if (printer.status === 'paused') {
+            return `
+                <button class="btn-icon" onclick="printerManager.resumePrinter('${printer.id}')" title="Fortsetzen">
+                    ▶️
+                </button>
+                <button class="btn-icon btn-error-icon" onclick="printerManager.stopPrinter('${printer.id}')" title="Stoppen">
+                    ⏹️
+                </button>
+            `;
+        }
+        return '';
+    }
+
+    /**
+     * Truncate job name for display
+     */
+    truncateJobName(jobName, maxLength) {
+        if (jobName.length <= maxLength) return jobName;
+        return jobName.substring(0, maxLength - 3) + '...';
     }
 
     /**
