@@ -19,6 +19,16 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# Convert Windows-style path to Unix-style for rsync (handle C:/ -> /c/)
+# This fixes rsync interpreting C: as a remote host
+if [[ "$PROJECT_ROOT" =~ ^[A-Z]:/ ]]; then
+    # Convert C:/path to /c/path
+    DRIVE_LETTER="${PROJECT_ROOT:0:1}"
+    DRIVE_LETTER_LOWER="$(echo "$DRIVE_LETTER" | tr '[:upper:]' '[:lower:]')"
+    PROJECT_ROOT_UNIX="/${DRIVE_LETTER_LOWER}${PROJECT_ROOT:2}"
+    PROJECT_ROOT="$PROJECT_ROOT_UNIX"
+fi
+
 echo -e "${YELLOW}=== Printernizer HA Add-on Sync ===${NC}"
 echo "Project root: $PROJECT_ROOT"
 echo ""
