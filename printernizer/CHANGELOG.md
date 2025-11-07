@@ -1,3 +1,9 @@
+## [2.1.8] - 2025-11-07
+
+- fix: Replace rsync with cp for Windows compatibility in sync script
+- fix: Convert Windows paths to Unix-style for rsync compatibility
+- test: Verify rsync pre-commit hook works correctly
+
 ## [2.1.7] - 2025-11-07
 
 - fix: Add missing timelapses case to refreshCurrentPage() function
