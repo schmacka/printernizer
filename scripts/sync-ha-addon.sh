@@ -19,37 +19,25 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Convert Windows-style path to Unix-style for rsync (handle C:/ -> /c/)
-# This fixes rsync interpreting C: as a remote host
-if [[ "$PROJECT_ROOT" =~ ^[A-Z]:/ ]]; then
-    # Convert C:/path to /c/path
-    DRIVE_LETTER="${PROJECT_ROOT:0:1}"
-    DRIVE_LETTER_LOWER="$(echo "$DRIVE_LETTER" | tr '[:upper:]' '[:lower:]')"
-    PROJECT_ROOT_UNIX="/${DRIVE_LETTER_LOWER}${PROJECT_ROOT:2}"
-    PROJECT_ROOT="$PROJECT_ROOT_UNIX"
-fi
-
 echo -e "${YELLOW}=== Printernizer HA Add-on Sync ===${NC}"
 echo "Project root: $PROJECT_ROOT"
 echo ""
 
-# Check if rsync is available
-if ! command -v rsync &> /dev/null; then
-    echo -e "${RED}Error: rsync is not installed${NC}"
-    echo "Please install rsync to use this script"
-    exit 1
-fi
-
-# Sync source code
+# Sync source code using cp (more reliable on Windows than rsync)
 echo -e "${YELLOW}Syncing src/ → printernizer/src/${NC}"
-rsync -av --delete \
-    --exclude='__pycache__' \
-    --exclude='*.pyc' \
-    --exclude='*.pyo' \
-    --exclude='.pytest_cache' \
-    --exclude='*.egg-info' \
-    "$PROJECT_ROOT/src/" \
-    "$PROJECT_ROOT/printernizer/src/"
+
+# Remove old destination (to mimic rsync --delete behavior)
+rm -rf "$PROJECT_ROOT/printernizer/src"
+mkdir -p "$PROJECT_ROOT/printernizer/src"
+
+# Copy files excluding unwanted patterns
+find "$PROJECT_ROOT/src" -type f \
+    ! -path "*/__pycache__/*" \
+    ! -name "*.pyc" \
+    ! -name "*.pyo" \
+    ! -path "*/.pytest_cache/*" \
+    ! -path "*.egg-info/*" \
+    -exec bash -c 'dest="$1"; src="$2"; rel="${src#$3/src/}"; mkdir -p "$(dirname "$dest/printernizer/src/$rel")"; cp "$src" "$dest/printernizer/src/$rel"' _ "$PROJECT_ROOT" {} "$PROJECT_ROOT" \;
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Source code synced successfully${NC}"
@@ -62,12 +50,17 @@ echo ""
 
 # Sync frontend
 echo -e "${YELLOW}Syncing frontend/ → printernizer/frontend/${NC}"
-rsync -av --delete \
-    --exclude='node_modules' \
-    --exclude='.vite' \
-    --exclude='dist' \
-    "$PROJECT_ROOT/frontend/" \
-    "$PROJECT_ROOT/printernizer/frontend/"
+
+# Remove old destination
+rm -rf "$PROJECT_ROOT/printernizer/frontend"
+mkdir -p "$PROJECT_ROOT/printernizer/frontend"
+
+# Copy files excluding unwanted patterns
+find "$PROJECT_ROOT/frontend" -type f \
+    ! -path "*/node_modules/*" \
+    ! -path "*/.vite/*" \
+    ! -path "*/dist/*" \
+    -exec bash -c 'dest="$1"; src="$2"; rel="${src#$3/frontend/}"; mkdir -p "$(dirname "$dest/printernizer/frontend/$rel")"; cp "$src" "$dest/printernizer/frontend/$rel"' _ "$PROJECT_ROOT" {} "$PROJECT_ROOT" \;
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Frontend synced successfully${NC}"

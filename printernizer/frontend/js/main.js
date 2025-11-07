@@ -3,6 +3,7 @@
  * Handles page routing, navigation, and application initialization
  */
 
+// Main application class
 class PrinternizerApp {
     constructor() {
         this.currentPage = 'dashboard';
