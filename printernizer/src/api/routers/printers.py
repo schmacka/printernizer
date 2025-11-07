@@ -289,6 +289,33 @@ async def get_startup_discovered_printers():
         }
 
 
+@router.delete("/discover/startup")
+async def clear_startup_discovered_printers():
+    """
+    Clear the list of printers discovered during startup.
+
+    This endpoint allows the frontend to acknowledge that discovered printers
+    have been handled (either added or dismissed by the user), so they won't
+    be shown again until the next discovery run.
+    """
+    try:
+        from src.main import app
+
+        # Clear discovered printers from app state
+        app.state.startup_discovered_printers = []
+
+        return {
+            "status": "cleared",
+            "message": "Startup discovered printers cleared successfully"
+        }
+    except Exception as e:
+        logger.error("Failed to clear startup discovered printers", error=str(e))
+        return {
+            "status": "error",
+            "message": "Failed to clear discovered printers"
+        }
+
+
 @router.post("", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
 async def create_printer(
     printer_data: PrinterCreateRequest,

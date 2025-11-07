@@ -1,3 +1,9 @@
+## [2.1.4] - 2025-11-07
+
+- feat: Improve printer auto-detection and redesign printer UI
+- fix: Use relative URLs for Home Assistant Ingress API connections
+- fix: improve mobile menu layout and branding visibility
+
 ## [2.1.3] - 2025-11-07
 
 - fix: Use relative URLs for Home Assistant Ingress API connections
