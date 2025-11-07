@@ -10,6 +10,7 @@ class PrinternizerApp {
             dashboard: typeof dashboard !== 'undefined' ? dashboard : null,
             printers: typeof printerManager !== 'undefined' ? printerManager : null,
             jobs: typeof jobManager !== 'undefined' ? jobManager : null,
+            timelapses: typeof timelapseManager !== 'undefined' ? timelapseManager : null,
             files: typeof fileManager !== 'undefined' ? fileManager : null,
             library: typeof libraryManager !== 'undefined' ? libraryManager : null,
             materials: typeof materialsManager !== 'undefined' ? materialsManager : null,
@@ -96,7 +97,7 @@ class PrinternizerApp {
 
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
-        if (['dashboard', 'printers', 'jobs', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
+        if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
             this.currentPage = currentHash;
         }
 
@@ -107,7 +108,7 @@ class PrinternizerApp {
      * Show specific page
      */
     showPage(pageName, updateHistory = true) {
-        if (!['dashboard', 'printers', 'jobs', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(pageName)) {
+        if (!['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(pageName)) {
             console.error('Invalid page name:', pageName);
             return;
         }

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/enhanced-metadata.css">
     <link rel="stylesheet" href="css/library.css">
     <link rel="stylesheet" href="css/materials.css">
+    <link rel="stylesheet" href="css/timelapses.css">
     <link rel="stylesheet" href="css/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <!-- Theme Switcher - Load early to prevent flash -->
@@ -37,10 +38,15 @@
                     <span class="nav-icon" aria-hidden="true">🖨️</span>
                     Drucker
                 </a>
-                <a href="#jobs" class="nav-link" data-page="jobs" 
+                <a href="#jobs" class="nav-link" data-page="jobs"
                    role="button" aria-describedby="nav-jobs-desc">
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
                     Aufträge
+                </a>
+                <a href="#timelapses" class="nav-link" data-page="timelapses"
+                   role="button" aria-describedby="nav-timelapses-desc">
+                    <span class="nav-icon" aria-hidden="true">🎬</span>
+                    Zeitraffer
                 </a>
                 <a href="#files" class="nav-link" data-page="files"
                    role="button" aria-describedby="nav-files-desc">
@@ -301,6 +307,76 @@
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
                         <p>Lade Aufträge...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timelapses Page -->
+        <div id="timelapses" class="page">
+            <div class="page-header">
+                <h1>Zeitraffer-Videos</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="timelapseStatusFilter" class="filter-select">
+                            <option value="">Alle Status</option>
+                            <option value="discovered">Entdeckt</option>
+                            <option value="pending">Wartend</option>
+                            <option value="processing">Verarbeitung</option>
+                            <option value="completed">Fertig</option>
+                            <option value="failed">Fehlgeschlagen</option>
+                        </select>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" id="timelapseLinkedOnly">
+                            <span>Nur verknüpfte</span>
+                        </label>
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshTimelapses()">
+                        <span class="btn-icon">🔄</span>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div id="timelapseStats" class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-label">Gesamt:</span>
+                    <span class="stat-value" id="statTotalVideos">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Verarbeitung:</span>
+                    <span class="stat-value" id="statProcessing">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Fertig:</span>
+                    <span class="stat-value" id="statCompleted">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Speicher:</span>
+                    <span class="stat-value" id="statStorageSize">0 MB</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Bereinigung:</span>
+                    <span class="stat-value" id="statCleanupCandidates">0</span>
+                </div>
+            </div>
+
+            <!-- Processing Queue Status (shown when processing) -->
+            <div id="processingQueue" class="processing-queue" style="display: none;">
+                <div class="queue-header">
+                    <span class="queue-icon">⚙️</span>
+                    <span class="queue-title">Verarbeitung läuft...</span>
+                </div>
+                <div id="queueItem" class="queue-item"></div>
+            </div>
+
+            <!-- Timelapses Gallery -->
+            <div class="timelapses-container">
+                <div class="timelapses-grid" id="timelapsesList">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Lade Zeitraffer-Videos...</p>
                     </div>
                 </div>
             </div>
@@ -1960,6 +2036,7 @@
     <script src="js/dashboard.js"></script>
     <script src="js/printers.js"></script>
     <script src="js/jobs.js"></script>
+    <script src="js/timelapses.js"></script>
     <script src="js/enhanced-metadata.js"></script>
     <script src="js/files.js"></script>
     <script src="js/ideas.js"></script>

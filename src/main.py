@@ -47,6 +47,7 @@ from src.api.routers.trending import router as trending_router
 from src.api.routers.debug import router as debug_router
 from src.api.routers.library import router as library_router
 from src.api.routers.materials import router as materials_router
+from src.api.routers.timelapses import router as timelapses_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -58,6 +59,7 @@ from src.services.monitoring_service import monitoring_service
 from src.services.trending_service import TrendingService
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
+from src.services.timelapse_service import TimelapseService
 from src.utils.logging_config import setup_logging
 from src.utils.exceptions import PrinternizerException
 from src.utils.middleware import (
@@ -152,6 +154,13 @@ async def lifespan(app: FastAPI):
     timer.end("Domain services initialization (parallel)")
     logger.info("[OK] Library and material services initialized")
 
+    # Initialize timelapse service
+    timer.start("Timelapse service initialization")
+    logger.info("Initializing timelapse service...")
+    timelapse_service = TimelapseService(database, event_service)
+    timer.end("Timelapse service initialization")
+    logger.info("[OK] Timelapse service initialized")
+
     # Initialize file watcher and ideas services in parallel (independent)
     timer.start("File system & ideas services initialization (parallel)")
     logger.info("Initializing file watcher and ideas services in parallel...")
@@ -198,13 +207,15 @@ async def lifespan(app: FastAPI):
     app.state.trending_service = trending_service
     app.state.library_service = library_service
     app.state.material_service = material_service
+    app.state.timelapse_service = timelapse_service
 
     # Initialize and start background services in parallel
     timer.start("Background services startup (parallel)")
     logger.info("Starting background services in parallel...")
     await asyncio.gather(
         event_service.start(),
-        printer_service.initialize()
+        printer_service.initialize(),
+        timelapse_service.start(),
     )
     timer.end("Background services startup (parallel)")
     logger.info("[OK] Background services started")
@@ -390,7 +401,18 @@ async def lifespan(app: FastAPI):
         shutdown_tasks.append(
             shutdown_with_timeout(
                 app.state.url_parser_service.close(),
+
                 "URL parser service",
+                timeout=5
+            )
+        )
+
+    # Timelapse service
+    if hasattr(app.state, 'timelapse_service') and app.state.timelapse_service:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.timelapse_service.shutdown(),
+                "Timelapse service",
                 timeout=5
             )
         )
@@ -493,6 +515,7 @@ def create_application() -> FastAPI:
     app.include_router(files_router, prefix="/api/v1/files", tags=["Files"])
     app.include_router(library_router, prefix="/api/v1", tags=["Library"])  # New library system
     app.include_router(materials_router, prefix="/api/v1", tags=["Materials"])  # Material management
+    app.include_router(timelapses_router, prefix="/api/v1/timelapses", tags=["Timelapses"])  # Timelapse management
     app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
