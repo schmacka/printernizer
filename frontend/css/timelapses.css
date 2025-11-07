@@ -1,0 +1,460 @@
+/**
+ * Timelapses Page Styles
+ * Styles for timelapse gallery, cards, and video player modal
+ */
+
+/* ==================== Stats Bar ==================== */
+.stats-bar {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 1.5rem;
+    background: var(--card-bg);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* ==================== Processing Queue ==================== */
+.processing-queue {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    color: white;
+}
+
+.queue-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.queue-icon {
+    font-size: 1.5rem;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.queue-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.queue-item {
+    padding-left: 2.25rem;
+    font-size: 0.9375rem;
+    opacity: 0.95;
+}
+
+/* ==================== Timelapses Gallery ==================== */
+.timelapses-container {
+    width: 100%;
+}
+
+.timelapses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    padding: 0.5rem;
+}
+
+/* ==================== Timelapse Card ==================== */
+.timelapse-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.timelapse-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Status Badge */
+.status-badge {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text-primary);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+.status-badge.status-discovered {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #1565c0;
+}
+
+.status-badge.status-pending {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    color: #e65100;
+}
+
+.status-badge.status-processing {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    color: #6a1b9a;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-badge.status-completed {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    color: #2e7d32;
+}
+
+.status-badge.status-failed {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    color: #c62828;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Thumbnail */
+.card-thumbnail {
+    width: 100%;
+    height: 200px;
+    position: relative;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.video-thumbnail {
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.video-thumbnail:hover {
+    filter: brightness(1.1);
+}
+
+.play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    transition: background 0.2s;
+}
+
+.video-thumbnail:hover .play-overlay {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.play-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    transition: transform 0.2s;
+}
+
+.video-thumbnail:hover .play-button {
+    transform: scale(1.1);
+}
+
+.video-duration {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(0, 0, 0, 0.75);
+    color: white;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.placeholder-thumbnail {
+    flex-direction: column;
+    gap: 0.75rem;
+    color: white;
+}
+
+.thumbnail-icon {
+    font-size: 3rem;
+    opacity: 0.9;
+}
+
+.thumbnail-text {
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+/* Card Content */
+.card-content {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.card-metadata span {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.error-text {
+    color: var(--danger-color);
+    font-weight: 500;
+}
+
+/* Card Actions */
+.card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.card-actions .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.card-actions .btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* ==================== Video Player Modal ==================== */
+.modal-video {
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 1200px;
+}
+
+.video-player-container {
+    width: 100%;
+    max-height: 70vh;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.video-player-container video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.video-metadata {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem 0;
+    margin-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.metadata-item {
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+}
+
+.metadata-item strong {
+    color: var(--text-primary);
+    margin-right: 0.5rem;
+}
+
+.metadata-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.metadata-item a:hover {
+    text-decoration: underline;
+}
+
+/* ==================== Empty State ==================== */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin: 0 0 0.75rem 0;
+    font-size: 1.5rem;
+}
+
+.empty-state p {
+    margin: 0.5rem 0;
+}
+
+/* ==================== Filter Checkbox ==================== */
+.filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--card-bg);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.filter-checkbox:hover {
+    background: var(--hover-bg);
+}
+
+.filter-checkbox input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.filter-checkbox span {
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+/* ==================== Responsive Design ==================== */
+@media (max-width: 1024px) {
+    .timelapses-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .stats-bar {
+        gap: 1.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .timelapses-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .stats-bar {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .stat-item {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .card-actions {
+        flex-direction: column;
+    }
+
+    .card-actions .btn {
+        width: 100%;
+    }
+
+    .modal-video {
+        max-width: 95vw;
+        max-height: 95vh;
+    }
+
+    .video-metadata {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .card-thumbnail {
+        height: 180px;
+    }
+
+    .play-button {
+        width: 50px;
+        height: 50px;
+        font-size: 1.25rem;
+    }
+
+    .processing-queue {
+        padding: 0.75rem 1rem;
+    }
+
+    .queue-title {
+        font-size: 1rem;
+    }
+}
