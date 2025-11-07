@@ -1134,3 +1134,235 @@ p {
         margin-bottom: var(--spacing-3);
     }
 }
+
+/* Printer Tile Layout */
+.printers-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--spacing-6);
+    padding: var(--spacing-4);
+}
+
+.printer-tile-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.printer-tile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.printer-tile-card.status-online {
+    border-color: var(--success-color);
+}
+
+.printer-tile-card.status-printing {
+    border-color: var(--info-color);
+}
+
+.printer-tile-card.status-offline {
+    border-color: var(--gray-300);
+}
+
+.printer-tile-card.status-error {
+    border-color: var(--error-color);
+}
+
+/* Printer Tile Header */
+.printer-tile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-4);
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.printer-tile-status .status-badge {
+    font-size: 1.5rem;
+    padding: var(--spacing-2);
+}
+
+.printer-tile-type {
+    padding: var(--spacing-1) var(--spacing-3);
+    border-radius: var(--radius-md);
+    color: var(--white);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Printer Tile Body */
+.printer-tile-body {
+    flex: 1;
+    padding: var(--spacing-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.printer-tile-title h3 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+    color: var(--gray-900);
+    font-weight: 600;
+}
+
+.printer-tile-ip {
+    margin: var(--spacing-1) 0 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--gray-500);
+    font-family: 'Courier New', monospace;
+}
+
+/* Printer Tile Job */
+.printer-tile-job {
+    padding: var(--spacing-3);
+    background: var(--info-light);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--info-color);
+}
+
+.printer-tile-idle {
+    padding: var(--spacing-3);
+    background: var(--gray-100);
+    border-radius: var(--radius-md);
+    text-align: center;
+    color: var(--gray-500);
+}
+
+.tile-job-name {
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--spacing-2);
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tile-progress-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-2);
+}
+
+.tile-progress-container .progress {
+    flex: 1;
+    height: 8px;
+}
+
+.tile-progress-text {
+    font-weight: 600;
+    color: var(--info-color);
+    font-size: var(--font-size-sm);
+    min-width: 45px;
+    text-align: right;
+}
+
+.tile-time-remaining {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+    margin-top: var(--spacing-1);
+}
+
+/* Printer Tile Temperatures */
+.printer-tile-temps {
+    display: flex;
+    gap: var(--spacing-3);
+    padding: var(--spacing-2) 0;
+}
+
+.tile-temp {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: var(--spacing-1) var(--spacing-2);
+    background: var(--gray-100);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+/* Printer Tile Stats */
+.printer-tile-stats {
+    display: flex;
+    gap: var(--spacing-3);
+    padding-top: var(--spacing-2);
+    border-top: 1px solid var(--gray-200);
+}
+
+.tile-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+}
+
+/* Printer Tile Footer */
+.printer-tile-footer {
+    padding: var(--spacing-3) var(--spacing-4);
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+}
+
+.printer-tile-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: var(--spacing-2);
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    color: var(--gray-600);
+}
+
+.btn-icon:hover {
+    background: var(--gray-200);
+    transform: scale(1.1);
+}
+
+.btn-error-icon {
+    color: var(--error-color);
+}
+
+.btn-error-icon:hover {
+    background: var(--error-light);
+}
+
+/* Responsive Printer Tiles */
+@media (max-width: 1024px) {
+    .printers-list {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--spacing-4);
+    }
+}
+
+@media (max-width: 768px) {
+    .printers-list {
+        grid-template-columns: 1fr;
+        padding: var(--spacing-2);
+    }
+
+    .printer-tile-actions {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}

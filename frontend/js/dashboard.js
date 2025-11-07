@@ -72,39 +72,56 @@ class Dashboard {
             const result = await api.getStartupDiscoveredPrinters();
 
             if (result && result.new_count > 0) {
-                // Show notification with discovered printers
-                const message = result.new_count === 1
-                    ? `1 neuer Drucker gefunden! Klicken Sie hier, um ihn anzuzeigen.`
-                    : `${result.new_count} neue Drucker gefunden! Klicken Sie hier, um sie anzuzeigen.`;
+                // Create a unique key for this discovery session
+                const discoveredIds = result.discovered
+                    .filter(p => !p.already_added)
+                    .map(p => p.ip)
+                    .sort()
+                    .join(',');
 
-                // Show persistent notification with action
-                showNotification(message, 'success', 10000, () => {
-                    // Navigate to printers page and trigger discovery display
-                    if (typeof app !== 'undefined' && app.showPage) {
-                        app.showPage('printers');
-                        // Scroll to discovered section
-                        setTimeout(() => {
-                            const section = document.getElementById('discoveredPrintersSection');
-                            if (section) {
-                                section.style.display = 'block';
-                                section.scrollIntoView({ behavior: 'smooth' });
+                const sessionKey = `discovered_printers_notified_${discoveredIds}`;
 
-                                // Populate discovered printers list
-                                const list = document.getElementById('discoveredPrintersList');
-                                if (list && typeof createDiscoveredPrinterCard === 'function') {
-                                    list.innerHTML = '';
-                                    result.discovered.forEach(printer => {
-                                        const card = createDiscoveredPrinterCard(printer);
-                                        list.appendChild(card);
-                                    });
+                // Check if we've already notified about these specific printers in this session
+                const alreadyNotified = sessionStorage.getItem(sessionKey);
+
+                if (!alreadyNotified) {
+                    // Mark as notified before showing notification
+                    sessionStorage.setItem(sessionKey, 'true');
+
+                    // Show notification with discovered printers
+                    const message = result.new_count === 1
+                        ? `1 neuer Drucker gefunden! Klicken Sie hier, um ihn anzuzeigen.`
+                        : `${result.new_count} neue Drucker gefunden! Klicken Sie hier, um sie anzuzeigen.`;
+
+                    // Show persistent notification with action
+                    showNotification(message, 'success', 10000, () => {
+                        // Navigate to printers page and trigger discovery display
+                        if (typeof app !== 'undefined' && app.showPage) {
+                            app.showPage('printers');
+                            // Scroll to discovered section
+                            setTimeout(() => {
+                                const section = document.getElementById('discoveredPrintersSection');
+                                if (section) {
+                                    section.style.display = 'block';
+                                    section.scrollIntoView({ behavior: 'smooth' });
+
+                                    // Populate discovered printers list
+                                    const list = document.getElementById('discoveredPrintersList');
+                                    if (list && typeof createDiscoveredPrinterCard === 'function') {
+                                        list.innerHTML = '';
+                                        result.discovered.forEach(printer => {
+                                            const card = createDiscoveredPrinterCard(printer);
+                                            list.appendChild(card);
+                                        });
+                                    }
                                 }
-                            }
-                        }, 100);
-                    }
-                });
+                            }, 100);
+                        }
+                    });
 
-                // Also show banner on dashboard
-                this.showDiscoveredPrintersBanner(result.new_count);
+                    // Also show banner on dashboard
+                    this.showDiscoveredPrintersBanner(result.new_count);
+                }
             }
         } catch (error) {
             console.error('Failed to check startup discovered printers:', error);
@@ -132,7 +149,7 @@ class Dashboard {
                 <button class="btn btn-primary" onclick="app.showPage('printers')">
                     Zur Drucker-Seite
                 </button>
-                <button class="btn-icon-only" onclick="this.closest('.discovered-printers-banner').remove()" title="Schließen">
+                <button class="btn-icon-only" onclick="dashboard.dismissDiscoveredPrintersBanner()" title="Schließen">
                     ✕
                 </button>
             </div>
@@ -144,6 +161,24 @@ class Dashboard {
             dashboardContainer.insertBefore(banner, firstChild);
         } else {
             dashboardContainer.appendChild(banner);
+        }
+    }
+
+    /**
+     * Dismiss discovered printers banner and clear backend state
+     */
+    async dismissDiscoveredPrintersBanner() {
+        // Remove banner from DOM
+        const banner = document.querySelector('.discovered-printers-banner');
+        if (banner) {
+            banner.remove();
+        }
+
+        // Clear discovered printers from backend
+        try {
+            await api.clearStartupDiscoveredPrinters();
+        } catch (error) {
+            console.error('Failed to clear discovered printers:', error);
         }
     }
 
