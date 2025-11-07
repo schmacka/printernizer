@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.6] - 2025-11-07
+
+### Fixed
+- Fixed timelapse page refresh functionality - added missing case in refreshCurrentPage() switch statement
+
 ## [2.1.0] - 2025-11-07
 
 ### Added
