@@ -12,6 +12,11 @@ from src.models.search import (
 )
 from src.services.search_service import SearchService
 from src.utils.dependencies import get_search_service
+from src.utils.errors import (
+    ValidationError as PrinternizerValidationError,
+    NotFoundError,
+    success_response
+)
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -131,10 +136,7 @@ async def unified_search(
         return results
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid search parameters: {str(e)}")
-    except Exception as e:
-        logger.error("Search failed", error=str(e), query=q)
-        raise HTTPException(status_code=500, detail="Search failed")
+        raise PrinternizerValidationError(field="search_parameters", error=str(e))
 
 
 @router.get("/history", response_model=List[SearchHistoryEntry])
@@ -148,12 +150,8 @@ async def get_search_history(
     Returns the most recent searches with metadata about results count
     and sources searched.
     """
-    try:
-        history = await search_service.get_search_history(limit=limit)
-        return history
-    except Exception as e:
-        logger.error("Failed to get search history", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to get search history")
+    history = await search_service.get_search_history(limit=limit)
+    return history
 
 
 @router.delete("/history/{search_id}")
@@ -167,17 +165,11 @@ async def delete_search_history(
     Args:
         search_id: ID of the search history entry to delete
     """
-    try:
-        success = await search_service.delete_search_history(search_id)
-        if not success:
-            raise HTTPException(status_code=404, detail="Search history entry not found")
+    success = await search_service.delete_search_history(search_id)
+    if not success:
+        raise NotFoundError(resource_type="search_history", resource_id=search_id)
 
-        return {"status": "deleted", "id": search_id}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to delete search history", error=str(e), search_id=search_id)
-        raise HTTPException(status_code=500, detail="Failed to delete search history")
+    return success_response({"status": "deleted", "id": search_id})
 
 
 @router.get("/suggestions", response_model=List[SearchSuggestion])
@@ -196,9 +188,5 @@ async def get_search_suggestions(
         q: Partial query string
         limit: Maximum number of suggestions
     """
-    try:
-        suggestions = await search_service.get_search_suggestions(q, limit)
-        return suggestions
-    except Exception as e:
-        logger.error("Failed to get search suggestions", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to get suggestions")
+    suggestions = await search_service.get_search_suggestions(q, limit)
+    return suggestions

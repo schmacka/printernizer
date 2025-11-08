@@ -6,11 +6,16 @@ Provides REST API for trending 3D models from external platforms.
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 from pydantic import BaseModel, Field
 
 from src.services.trending_service import TrendingService
 from src.utils.dependencies import get_trending_service
+from src.utils.errors import (
+    ValidationError as PrinternizerValidationError,
+    NotFoundError,
+    success_response
+)
 
 
 router = APIRouter(prefix="/ideas/trending", tags=["Trending"])
@@ -56,35 +61,31 @@ async def get_trending(
     trending_service: TrendingService = Depends(get_trending_service)
 ):
     """Get trending models from cache."""
-    try:
-        items = await trending_service.get_trending(
-            platform=platform,
-            category=category,
-            limit=limit
+    items = await trending_service.get_trending(
+        platform=platform,
+        category=category,
+        limit=limit
+    )
+
+    return [
+        TrendingModel(
+            id=item['id'],
+            platform=item['platform'],
+            model_id=item['model_id'],
+            title=item['title'],
+            url=item['url'],
+            thumbnail_url=item.get('thumbnail_url'),
+            thumbnail_local_path=item.get('thumbnail_local_path'),
+            downloads=item.get('downloads', 0),
+            likes=item.get('likes', 0),
+            creator=item.get('creator'),
+            category=item.get('category', 'general'),
+            cached_at=datetime.fromisoformat(item['cached_at']),
+            expires_at=datetime.fromisoformat(item['expires_at']),
+            metadata=item.get('metadata', {}) if isinstance(item.get('metadata'), dict) else {}
         )
-
-        return [
-            TrendingModel(
-                id=item['id'],
-                platform=item['platform'],
-                model_id=item['model_id'],
-                title=item['title'],
-                url=item['url'],
-                thumbnail_url=item.get('thumbnail_url'),
-                thumbnail_local_path=item.get('thumbnail_local_path'),
-                downloads=item.get('downloads', 0),
-                likes=item.get('likes', 0),
-                creator=item.get('creator'),
-                category=item.get('category', 'general'),
-                cached_at=datetime.fromisoformat(item['cached_at']),
-                expires_at=datetime.fromisoformat(item['expires_at']),
-                metadata=item.get('metadata', {}) if isinstance(item.get('metadata'), dict) else {}
-            )
-            for item in items
-        ]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        for item in items
+    ]
 
 
 @router.get("/platforms")
@@ -113,11 +114,8 @@ async def get_trending_stats(
     trending_service: TrendingService = Depends(get_trending_service)
 ):
     """Get trending cache statistics."""
-    try:
-        stats = await trending_service.get_statistics()
-        return TrendingStats(**stats)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    stats = await trending_service.get_statistics()
+    return TrendingStats(**stats)
 
 
 @router.post("/refresh", status_code=202)
@@ -126,31 +124,28 @@ async def refresh_trending(
     trending_service: TrendingService = Depends(get_trending_service)
 ):
     """Force refresh trending cache for all or specific platform."""
-    try:
-        if platform:
-            # Refresh specific platform (would need platform-specific methods)
-            if platform == "makerworld":
-                items = await trending_service.fetch_makerworld_trending()
-                await trending_service.save_trending_items(items, platform)
-            elif platform == "printables":
-                items = await trending_service.fetch_printables_trending()
-                await trending_service.save_trending_items(items, platform)
-            else:
-                raise HTTPException(400, f"Unsupported platform: {platform}")
-
-            return {
-                "message": f"Refresh initiated for {platform}",
-                "items_cached": len(items) if 'items' in locals() else 0
-            }
+    if platform:
+        # Refresh specific platform (would need platform-specific methods)
+        if platform == "makerworld":
+            items = await trending_service.fetch_makerworld_trending()
+            await trending_service.save_trending_items(items, platform)
+        elif platform == "printables":
+            items = await trending_service.fetch_printables_trending()
+            await trending_service.save_trending_items(items, platform)
         else:
-            # Refresh all platforms
-            await trending_service.refresh_all_platforms()
-            return {"message": "Refresh initiated for all platforms"}
+            raise PrinternizerValidationError(
+                field="platform",
+                error=f"Unsupported platform: {platform}"
+            )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "message": f"Refresh initiated for {platform}",
+            "items_cached": len(items) if 'items' in locals() else 0
+        }
+    else:
+        # Refresh all platforms
+        await trending_service.refresh_all_platforms()
+        return {"message": "Refresh initiated for all platforms"}
 
 
 @router.post("/{trending_id}/save", response_model=dict, status_code=201)
@@ -166,16 +161,14 @@ async def save_trending_as_idea(
             user_notes=request.notes
         )
 
-        return {
+        return success_response({
             "message": "Trending item saved as idea successfully",
             "idea_id": idea_id,
             "trending_id": trending_id
-        }
+        })
 
     except ValueError as e:
-        raise HTTPException(404, str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise NotFoundError(resource_type="trending_item", resource_id=trending_id)
 
 
 @router.get("/{platform}")
@@ -189,36 +182,35 @@ async def get_platform_trending(
     supported_platforms = ["makerworld", "printables"]
 
     if platform not in supported_platforms:
-        raise HTTPException(400, f"Unsupported platform. Supported: {supported_platforms}")
-
-    try:
-        items = await trending_service.get_trending(
-            platform=platform,
-            category=category,
-            limit=limit
+        raise PrinternizerValidationError(
+            field="platform",
+            error=f"Unsupported platform. Supported: {supported_platforms}"
         )
 
-        return {
-            "platform": platform,
-            "total_items": len(items),
-            "items": [
-                {
-                    "id": item['id'],
-                    "model_id": item['model_id'],
-                    "title": item['title'],
-                    "url": item['url'],
-                    "creator": item.get('creator'),
-                    "downloads": item.get('downloads', 0),
-                    "likes": item.get('likes', 0),
-                    "category": item.get('category', 'general'),
-                    "cached_at": item['cached_at']
-                }
-                for item in items
-            ]
-        }
+    items = await trending_service.get_trending(
+        platform=platform,
+        category=category,
+        limit=limit
+    )
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "platform": platform,
+        "total_items": len(items),
+        "items": [
+            {
+                "id": item['id'],
+                "model_id": item['model_id'],
+                "title": item['title'],
+                "url": item['url'],
+                "creator": item.get('creator'),
+                "downloads": item.get('downloads', 0),
+                "likes": item.get('likes', 0),
+                "category": item.get('category', 'general'),
+                "cached_at": item['cached_at']
+            }
+            for item in items
+        ]
+    }
 
 
 @router.delete("/cleanup", status_code=204)
@@ -226,10 +218,7 @@ async def cleanup_expired(
     trending_service: TrendingService = Depends(get_trending_service)
 ):
     """Clean up expired trending cache entries."""
-    try:
-        await trending_service.cleanup_expired()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    await trending_service.cleanup_expired()
 
 
 @router.get("/categories/list")

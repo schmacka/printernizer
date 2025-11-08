@@ -25,6 +25,11 @@ from src.models.material import (
 )
 from src.services.material_service import MaterialService
 from src.utils.dependencies import get_material_service
+from src.utils.errors import (
+    MaterialNotFoundError,
+    ValidationError as PrinternizerValidationError,
+    success_response
+)
 
 
 router = APIRouter(prefix="/materials", tags=["Materials"])
@@ -70,44 +75,41 @@ async def get_materials(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Get all materials with optional filters."""
-    try:
-        materials = await material_service.get_all_materials()
+    materials = await material_service.get_all_materials()
 
-        # Apply filters
-        if material_type:
-            materials = [m for m in materials if m.material_type == material_type]
-        if brand:
-            materials = [m for m in materials if m.brand == brand]
-        if color:
-            materials = [m for m in materials if m.color == color]
-        if low_stock:
-            materials = [m for m in materials if m.remaining_percentage < 20]
-        if printer_id:
-            materials = [m for m in materials if m.printer_id == printer_id]
+    # Apply filters
+    if material_type:
+        materials = [m for m in materials if m.material_type == material_type]
+    if brand:
+        materials = [m for m in materials if m.brand == brand]
+    if color:
+        materials = [m for m in materials if m.color == color]
+    if low_stock:
+        materials = [m for m in materials if m.remaining_percentage < 20]
+    if printer_id:
+        materials = [m for m in materials if m.printer_id == printer_id]
 
-        return [
-            MaterialResponse(
-                id=m.id,
-                material_type=m.material_type.value,
-                brand=m.brand.value,
-                color=m.color.value,
-                diameter=m.diameter,
-                weight=m.weight,
-                remaining_weight=m.remaining_weight,
-                remaining_percentage=m.remaining_percentage,
-                cost_per_kg=m.cost_per_kg,
-                remaining_value=m.remaining_value,
-                vendor=m.vendor,
-                batch_number=m.batch_number,
-                notes=m.notes,
-                printer_id=m.printer_id,
-                created_at=m.created_at,
-                updated_at=m.updated_at
-            )
-            for m in materials
-        ]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return [
+        MaterialResponse(
+            id=m.id,
+            material_type=m.material_type.value,
+            brand=m.brand.value,
+            color=m.color.value,
+            diameter=m.diameter,
+            weight=m.weight,
+            remaining_weight=m.remaining_weight,
+            remaining_percentage=m.remaining_percentage,
+            cost_per_kg=m.cost_per_kg,
+            remaining_value=m.remaining_value,
+            vendor=m.vendor,
+            batch_number=m.batch_number,
+            notes=m.notes,
+            printer_id=m.printer_id,
+            created_at=m.created_at,
+            updated_at=m.updated_at
+        )
+        for m in materials
+    ]
 
 
 @router.get("/stats", response_model=MaterialStats)
@@ -115,10 +117,7 @@ async def get_material_stats(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Get material inventory statistics."""
-    try:
-        return await material_service.get_statistics()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return await material_service.get_statistics()
 
 
 @router.get("/types")
@@ -138,15 +137,13 @@ async def get_consumption_report(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Generate material consumption report for a date range."""
-    try:
-        if end_date <= start_date:
-            raise HTTPException(400, "End date must be after start date")
+    if end_date <= start_date:
+        raise PrinternizerValidationError(
+            field="end_date",
+            error="End date must be after start date"
+        )
 
-        return await material_service.generate_report(start_date, end_date)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return await material_service.generate_report(start_date, end_date)
 
 
 @router.get("/export")
@@ -155,27 +152,22 @@ async def export_inventory(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Export material inventory to file."""
-    try:
-        export_path = Path(f"exports/materials_{datetime.now():%Y%m%d_%H%M%S}.{format}")
-        export_path.parent.mkdir(parents=True, exist_ok=True)
+    export_path = Path(f"exports/materials_{datetime.now():%Y%m%d_%H%M%S}.{format}")
+    export_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if format == "csv":
-            success = await material_service.export_inventory(export_path)
-            if success:
-                return FileResponse(
-                    path=str(export_path),
-                    media_type="text/csv",
-                    filename=export_path.name
-                )
-        else:
-            # Excel export would go here
-            raise HTTPException(501, "Excel export not yet implemented")
+    if format == "csv":
+        success = await material_service.export_inventory(export_path)
+        if success:
+            return FileResponse(
+                path=str(export_path),
+                media_type="text/csv",
+                filename=export_path.name
+            )
+    else:
+        # Excel export would go here
+        raise HTTPException(501, "Excel export not yet implemented")
 
-        raise HTTPException(500, "Export failed")
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(500, "Export failed")
 
 
 @router.get("/{material_id}", response_model=MaterialResponse)
@@ -184,33 +176,28 @@ async def get_material(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Get a specific material by ID."""
-    try:
-        material = await material_service.get_material(material_id)
-        if not material:
-            raise HTTPException(404, f"Material {material_id} not found")
+    material = await material_service.get_material(material_id)
+    if not material:
+        raise MaterialNotFoundError(material_id)
 
-        return MaterialResponse(
-            id=material.id,
-            material_type=material.material_type.value,
-            brand=material.brand.value,
-            color=material.color.value,
-            diameter=material.diameter,
-            weight=material.weight,
-            remaining_weight=material.remaining_weight,
-            remaining_percentage=material.remaining_percentage,
-            cost_per_kg=material.cost_per_kg,
-            remaining_value=material.remaining_value,
-            vendor=material.vendor,
-            batch_number=material.batch_number,
-            notes=material.notes,
-            printer_id=material.printer_id,
-            created_at=material.created_at,
-            updated_at=material.updated_at
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return MaterialResponse(
+        id=material.id,
+        material_type=material.material_type.value,
+        brand=material.brand.value,
+        color=material.color.value,
+        diameter=material.diameter,
+        weight=material.weight,
+        remaining_weight=material.remaining_weight,
+        remaining_percentage=material.remaining_percentage,
+        cost_per_kg=material.cost_per_kg,
+        remaining_value=material.remaining_value,
+        vendor=material.vendor,
+        batch_number=material.batch_number,
+        notes=material.notes,
+        printer_id=material.printer_id,
+        created_at=material.created_at,
+        updated_at=material.updated_at
+    )
 
 
 @router.post("", response_model=MaterialResponse, status_code=201)
@@ -241,9 +228,7 @@ async def create_material(
             updated_at=material.updated_at
         )
     except ValueError as e:
-        raise HTTPException(400, str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise PrinternizerValidationError(field="material_data", error=str(e))
 
 
 @router.patch("/{material_id}", response_model=MaterialResponse)
@@ -253,33 +238,28 @@ async def update_material(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Update material information."""
-    try:
-        material = await material_service.update_material(material_id, update_data)
-        if not material:
-            raise HTTPException(404, f"Material {material_id} not found")
+    material = await material_service.update_material(material_id, update_data)
+    if not material:
+        raise MaterialNotFoundError(material_id)
 
-        return MaterialResponse(
-            id=material.id,
-            material_type=material.material_type.value,
-            brand=material.brand.value,
-            color=material.color.value,
-            diameter=material.diameter,
-            weight=material.weight,
-            remaining_weight=material.remaining_weight,
-            remaining_percentage=material.remaining_percentage,
-            cost_per_kg=material.cost_per_kg,
-            remaining_value=material.remaining_value,
-            vendor=material.vendor,
-            batch_number=material.batch_number,
-            notes=material.notes,
-            printer_id=material.printer_id,
-            created_at=material.created_at,
-            updated_at=material.updated_at
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return MaterialResponse(
+        id=material.id,
+        material_type=material.material_type.value,
+        brand=material.brand.value,
+        color=material.color.value,
+        diameter=material.diameter,
+        weight=material.weight,
+        remaining_weight=material.remaining_weight,
+        remaining_percentage=material.remaining_percentage,
+        cost_per_kg=material.cost_per_kg,
+        remaining_value=material.remaining_value,
+        vendor=material.vendor,
+        batch_number=material.batch_number,
+        notes=material.notes,
+        printer_id=material.printer_id,
+        created_at=material.created_at,
+        updated_at=material.updated_at
+    )
 
 
 @router.post("/consumption", response_model=dict, status_code=201)
@@ -298,7 +278,7 @@ async def record_consumption(
             print_time_hours=consumption_data.print_time_hours
         )
 
-        return {
+        return success_response({
             "message": "Consumption recorded successfully",
             "consumption": {
                 "job_id": consumption.job_id,
@@ -308,11 +288,9 @@ async def record_consumption(
                 "cost": float(consumption.cost),
                 "timestamp": consumption.timestamp
             }
-        }
+        })
     except ValueError as e:
-        raise HTTPException(400, str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise PrinternizerValidationError(field="consumption_data", error=str(e))
 
 
 @router.delete("/{material_id}", status_code=204)
@@ -321,15 +299,10 @@ async def delete_material(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Delete a material spool from inventory."""
-    try:
-        success = await material_service.delete_material(material_id)
-        if not success:
-            raise HTTPException(404, f"Material {material_id} not found")
-        return Response(status_code=204)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    success = await material_service.delete_material(material_id)
+    if not success:
+        raise MaterialNotFoundError(material_id)
+    return Response(status_code=204)
 
 
 @router.get("/consumption/history")
