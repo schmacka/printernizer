@@ -202,11 +202,16 @@ class BambuFTPService:
                 if ftp:
                     try:
                         await asyncio.get_event_loop().run_in_executor(None, ftp.quit)
-                    except:
+                    except (OSError, TimeoutError, Exception) as quit_error:
+                        # Quit failed, try to close the connection
+                        logger.debug("FTP quit failed, attempting close",
+                                    error=str(quit_error))
                         try:
                             ftp.close()
-                        except:
-                            pass
+                        except (OSError, Exception) as close_error:
+                            # Best effort cleanup - log and continue
+                            logger.debug("FTP close also failed during cleanup",
+                                        error=str(close_error))
 
     async def list_files(self, directory: str = "/cache") -> List[BambuFTPFile]:
         """
@@ -295,8 +300,10 @@ class BambuFTPService:
                 if len(time_parts) >= 3:
                     # This is a simplified parser - production code might want more robust parsing
                     pass
-            except:
-                pass
+            except (ValueError, IndexError, AttributeError) as e:
+                # Time parsing failed - not critical, leave as None
+                logger.debug("Could not parse FTP file modification time",
+                            line=line, error=str(e))
 
             return BambuFTPFile(
                 name=filename,

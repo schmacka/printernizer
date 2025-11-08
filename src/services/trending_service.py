@@ -272,8 +272,10 @@ class TrendingService:
                 if 'charset=' in content_type.lower():
                     try:
                         encoding = content_type.lower().split('charset=')[1].split(';')[0].strip()
-                    except:
-                        pass
+                    except (IndexError, ValueError, AttributeError) as e:
+                        # Malformed content-type header, use default
+                        logger.debug("Could not parse charset from content-type",
+                                    content_type=content_type, error=str(e))
 
                 try:
                     return content.decode(encoding)
@@ -412,7 +414,10 @@ class TrendingService:
                 import re
                 numbers = re.findall(r'\d+', text)
                 return int(numbers[0]) if numbers else 0
-        except:
+        except (ValueError, TypeError, IndexError, AttributeError) as e:
+            # Could not parse count string, return 0
+            logger.debug("Could not parse count from text",
+                        text=text, error=str(e))
             return 0
 
     async def save_trending_items(self, items: List[Dict[str, Any]], platform: str):
@@ -549,8 +554,10 @@ class TrendingService:
                 if str(thumbnail_file) not in valid_paths:
                     try:
                         thumbnail_file.unlink()
-                    except:
-                        pass
+                    except (OSError, PermissionError) as e:
+                        # Best effort cleanup - log and continue
+                        logger.debug("Could not delete orphaned thumbnail",
+                                    file=str(thumbnail_file), error=str(e))
 
             await conn.commit()
 

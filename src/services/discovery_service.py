@@ -339,8 +339,10 @@ class DiscoveryService:
             for line in message.split('\n'):
                 if line.startswith(f'{field}:'):
                     return line.split(':', 1)[1].strip()
-        except Exception:
-            pass
+        except (ValueError, IndexError, AttributeError) as e:
+            # Malformed SSDP message - return None
+            logger.debug("Could not parse SSDP field",
+                        field=field, error=str(e))
         return None
 
     async def _discover_prusa_mdns(self, interface: Optional[str] = None) -> None:
@@ -484,8 +486,10 @@ class DiscoveryService:
                         pass  # IP didn't respond in time
                     except aiohttp.ClientError:
                         pass  # Connection failed
-                    except Exception:
-                        pass  # Other error, skip
+                    except (OSError, ValueError, RuntimeError) as e:
+                        # Other network/parsing errors during scan - skip this IP
+                        logger.debug("IP scan error, skipping",
+                                    ip=ip, error=str(e))
             
             # Scan all IPs in subnet (skip network and broadcast addresses)
             tasks = []
