@@ -1,3 +1,15 @@
+## [2.2.4] - 2025-11-08
+
+- docs: Add comprehensive FileService refactoring summary
+- refactor: Complete FileService God Class decomposition (Phase 2)
+- refactor: Complete remaining bare exception handlers in non-core services
+- docs: Update technical debt progress after merge
+- refactor: Replace bare exception handlers with specific exception types
+- feat: Add background task tracking and graceful shutdown
+- refactor: Phase 2 technical debt improvements - code quality and consistency
+- fix: Resolve 4 critical bugs identified in technical debt assessment
+- docs: Add comprehensive technical debt assessment and quick reference
+
 ## [2.2.3] - 2025-11-08
 
 - refactor: Complete remaining bare exception handlers in non-core services
