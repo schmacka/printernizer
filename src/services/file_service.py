@@ -39,6 +39,9 @@ class FileService:
         # Thumbnail processing status tracking
         self.thumbnail_processing_log = []  # List of recent thumbnail processing attempts
         self.max_log_entries = 50  # Keep last 50 attempts
+
+        # Background task tracking for graceful shutdown
+        self._background_tasks: set = set()
         
     async def get_files(self, printer_id: Optional[str] = None,
                        include_local: bool = True,
@@ -296,7 +299,8 @@ class FileService:
                                file_id=file_id, destination=destination_path)
 
                     # Process thumbnails asynchronously to not block download completion
-                    asyncio.create_task(self.process_file_thumbnails(destination_path, file_id))
+                    # Track the task for proper cleanup on shutdown
+                    self._create_background_task(self.process_file_thumbnails(destination_path, file_id))
 
                     # Add to library if library service is available and enabled
                     if self.library_service and self.library_service.enabled:
@@ -596,6 +600,53 @@ class FileService:
             raise ValueError(f"Path traversal detected: {filename}")
 
         return full_path
+
+    def _create_background_task(self, coro):
+        """
+        Create and track a background task for proper cleanup.
+
+        This ensures tasks are tracked and can be properly cancelled/awaited
+        during service shutdown, preventing resource leaks.
+
+        Args:
+            coro: The coroutine to run as a background task
+
+        Returns:
+            The created asyncio.Task
+        """
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
+
+    async def shutdown(self):
+        """
+        Gracefully shutdown the file service.
+
+        Waits for all background tasks to complete or cancels them if they
+        take too long. Call this during application shutdown.
+        """
+        if self._background_tasks:
+            logger.info("Shutting down FileService, waiting for background tasks",
+                       task_count=len(self._background_tasks))
+
+            # Give tasks 5 seconds to complete gracefully
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*self._background_tasks, return_exceptions=True),
+                    timeout=5.0
+                )
+                logger.info("All FileService background tasks completed")
+            except asyncio.TimeoutError:
+                logger.warning("FileService background tasks timed out, cancelling",
+                             remaining_tasks=len(self._background_tasks))
+                # Cancel remaining tasks
+                for task in self._background_tasks:
+                    task.cancel()
+                # Wait for cancellation to complete
+                await asyncio.gather(*self._background_tasks, return_exceptions=True)
+
+        logger.info("FileService shutdown complete")
 
     def _extract_printer_info(self, printer: Dict[str, Any]) -> Dict[str, str]:
         """
