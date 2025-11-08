@@ -11,6 +11,11 @@ import structlog
 from src.models.job import Job, JobStatus, JobCreate
 from src.services.job_service import JobService
 from src.utils.dependencies import get_job_service
+from src.utils.errors import (
+    JobNotFoundError,
+    ValidationError as PrinternizerValidationError,
+    success_response
+)
 
 
 logger = structlog.get_logger()
@@ -99,50 +104,43 @@ async def list_jobs(
     job_service: JobService = Depends(get_job_service)
 ):
     """List jobs with optional filtering and pagination."""
-    try:
-        # Calculate offset for database-level pagination
-        offset = (page - 1) * limit
+    # Calculate offset for database-level pagination
+    offset = (page - 1) * limit
 
-        # Get paginated jobs from service with database-level pagination
-        paginated_jobs = await job_service.list_jobs(
-            printer_id=printer_id,
-            status=job_status,
-            is_business=is_business,
+    # Get paginated jobs from service with database-level pagination
+    paginated_jobs = await job_service.list_jobs(
+        printer_id=printer_id,
+        status=job_status,
+        is_business=is_business,
+        limit=limit,
+        offset=offset
+    )
+
+    # Get total count for pagination metadata
+    # TODO: Optimize by adding count-only query to avoid fetching all records
+    all_jobs_count = await job_service.list_jobs(
+        printer_id=printer_id,
+        status=job_status,
+        is_business=is_business,
+        limit=None,
+        offset=0
+    )
+    total_items = len(all_jobs_count)
+    total_pages = max(1, (total_items + limit - 1) // limit)
+
+    # Transform jobs to response format
+    job_responses = [JobResponse.model_validate(_transform_job_to_response(job)) for job in paginated_jobs]
+
+    return JobListResponse(
+        jobs=job_responses,
+        total_count=total_items,
+        pagination=PaginationResponse(
+            page=page,
             limit=limit,
-            offset=offset
+            total_items=total_items,
+            total_pages=total_pages
         )
-
-        # Get total count for pagination metadata
-        # TODO: Optimize by adding count-only query to avoid fetching all records
-        all_jobs_count = await job_service.list_jobs(
-            printer_id=printer_id,
-            status=job_status,
-            is_business=is_business,
-            limit=None,
-            offset=0
-        )
-        total_items = len(all_jobs_count)
-        total_pages = max(1, (total_items + limit - 1) // limit)
-
-        # Transform jobs to response format
-        job_responses = [JobResponse.model_validate(_transform_job_to_response(job)) for job in paginated_jobs]
-
-        return JobListResponse(
-            jobs=job_responses,
-            total_count=total_items,
-            pagination=PaginationResponse(
-                page=page,
-                limit=limit,
-                total_items=total_items,
-                total_pages=total_pages
-            )
-        )
-    except Exception as e:
-        logger.error("Failed to list jobs", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve jobs"
-        )
+    )
 
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
@@ -155,22 +153,17 @@ async def create_job(
         job_id = await job_service.create_job(job_data.model_dump())
         job = await job_service.get_job(job_id)
         if not job:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Job created but could not be retrieved"
+            # This shouldn't happen, but if it does, raise an error
+            raise JobNotFoundError(
+                job_id=job_id,
+                details={"reason": "Job created but could not be retrieved"}
             )
         return JobResponse.model_validate(_transform_job_to_response(job))
     except ValueError as e:
-        logger.error("Invalid job data", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error("Failed to create job", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create job"
+        # Convert service ValueError to standardized ValidationError
+        raise PrinternizerValidationError(
+            field="job_data",
+            error=str(e)
         )
 
 
@@ -180,23 +173,11 @@ async def get_job(
     job_service: JobService = Depends(get_job_service)
 ):
     """Get job details by ID."""
-    try:
-        job = await job_service.get_job(job_id)
-        if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job not found"
-            )
-        # Job is already a dictionary from the service layer
-        return JobResponse.model_validate(_transform_job_to_response(job))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get job", job_id=str(job_id), error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve job"
-        )
+    job = await job_service.get_job(job_id)
+    if not job:
+        raise JobNotFoundError(job_id)
+    # Job is already a dictionary from the service layer
+    return JobResponse.model_validate(_transform_job_to_response(job))
 
 
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -205,18 +186,6 @@ async def delete_job(
     job_service: JobService = Depends(get_job_service)
 ):
     """Delete a job record."""
-    try:
-        success = await job_service.delete_job(job_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job not found"
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to delete job", job_id=str(job_id), error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete job"
-        )
+    success = await job_service.delete_job(job_id)
+    if not success:
+        raise JobNotFoundError(str(job_id))

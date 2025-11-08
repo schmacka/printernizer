@@ -11,6 +11,7 @@ import os
 import signal
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 # Add parent directory to Python path for src imports when running from src/
@@ -63,6 +64,12 @@ from src.services.url_parser_service import UrlParserService
 from src.services.timelapse_service import TimelapseService
 from src.utils.logging_config import setup_logging
 from src.utils.exceptions import PrinternizerException
+from src.utils.errors import (
+    PrinternizerError,
+    printernizer_exception_handler as new_printernizer_exception_handler,
+    generic_exception_handler,
+    http_exception_handler
+)
 from src.utils.middleware import (
     RequestTimingMiddleware,
     GermanComplianceMiddleware,
@@ -572,49 +579,50 @@ def create_application() -> FastAPI:
         from fastapi.responses import Response
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
     
-    # Global exception handlers
+    # Global exception handlers - Phase 3 Standardized Error Handling
+
+    # New standardized PrinternizerError handler (Phase 3)
+    app.add_exception_handler(PrinternizerError, new_printernizer_exception_handler)
+
+    # Legacy PrinternizerException handler (backwards compatibility)
     @app.exception_handler(PrinternizerException)
-    async def printernizer_exception_handler(request: Request, exc: PrinternizerException):
+    async def legacy_printernizer_exception_handler(request: Request, exc: PrinternizerException):
         logger = structlog.get_logger()
-        logger.error("Printernizer exception", error=str(exc), path=request.url.path)
-        
+        logger.error("Legacy Printernizer exception", error=str(exc), path=request.url.path)
+
         return JSONResponse(
             status_code=exc.status_code,
             content={
+                "status": "error",
                 "error": exc.error_code,
                 "message": exc.message,
                 "details": exc.details,
                 "timestamp": exc.timestamp.isoformat()
             }
         )
-    
+
+    # HTTPException handler (converts FastAPI HTTPExceptions to standard format)
+    app.add_exception_handler(HTTPException, http_exception_handler)
+
+    # Request validation error handler (Pydantic validation errors)
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         logger = structlog.get_logger()
         logger.warning("Validation error", errors=exc.errors(), path=request.url.path)
-        
+
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
-                "error": "VALIDATION_ERROR",
+                "status": "error",
                 "message": "Request validation failed",
-                "details": exc.errors()
+                "error_code": "VALIDATION_ERROR",
+                "details": {"validation_errors": exc.errors()},
+                "timestamp": datetime.now().isoformat()
             }
         )
-    
-    @app.exception_handler(Exception)
-    async def general_exception_handler(request: Request, exc: Exception):
-        logger = structlog.get_logger()
-        logger.error("Unhandled exception", error=str(exc), path=request.url.path, exc_info=True)
-        
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={
-                "error": "INTERNAL_SERVER_ERROR",
-                "message": "An internal server error occurred",
-                "details": None
-            }
-        )
+
+    # Generic exception handler (catches all unhandled exceptions) - Must be last
+    app.add_exception_handler(Exception, generic_exception_handler)
     
     return app
 

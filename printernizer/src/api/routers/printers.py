@@ -13,6 +13,14 @@ import structlog
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
 from src.utils.dependencies import get_printer_service
+from src.utils.errors import (
+    PrinterNotFoundError,
+    PrinterConnectionError,
+    PrinterAlreadyExistsError,
+    ServiceUnavailableError,
+    ValidationError as PrinternizerValidationError,
+    success_response
+)
 
 # Optional: Discovery service requires netifaces which may not be available on Windows
 DISCOVERY_AVAILABLE = False
@@ -139,15 +147,9 @@ async def list_printers(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """List all configured printers."""
-    try:
-        printers = await printer_service.list_printers()
-        return [_printer_to_response(printer, printer_service) for printer in printers]
-    except Exception as e:
-        logger.error("Failed to list printers", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve printers"
-        )
+    # Global exception handler will catch any unexpected errors
+    printers = await printer_service.list_printers()
+    return [_printer_to_response(printer, printer_service) for printer in printers]
 
 
 @router.get("/discover")
@@ -169,55 +171,46 @@ async def discover_printers(
     Note: May require host networking mode in Docker/Home Assistant environments.
     Subnet scanning may take longer (20-30 seconds) but is more reliable for Prusa printers.
     """
-    try:
-        # Check if discovery is available
-        if not DISCOVERY_AVAILABLE:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Printer discovery unavailable (netifaces not installed)"
-            )
-
-        # Check if discovery is enabled
-        discovery_enabled = os.getenv("DISCOVERY_ENABLED", "true").lower() == "true"
-        if not discovery_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Printer discovery is disabled"
-            )
-
-        # Get timeout from config if not provided
-        if timeout is None:
-            timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
-
-        # Create discovery service
-        discovery_service = DiscoveryService(timeout=timeout)
-
-        # Get list of configured printer IPs for duplicate detection
-        printers = await printer_service.list_printers()
-        configured_ips = [p.ip_address for p in printers if p.ip_address]
-
-        # Run discovery
-        logger.info("Starting printer discovery", interface=interface, timeout=timeout, scan_subnet=scan_subnet)
-        results = await discovery_service.discover_all(
-            interface=interface,
-            configured_ips=configured_ips,
-            scan_subnet=scan_subnet
+    # Check if discovery is available
+    if not DISCOVERY_AVAILABLE:
+        raise ServiceUnavailableError(
+            service="Printer Discovery",
+            reason="netifaces library not installed"
         )
 
-        logger.info("Printer discovery completed",
-                   discovered_count=len(results['discovered']),
-                   duration_ms=results['scan_duration_ms'])
-
-        return results
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Printer discovery failed", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Printer discovery failed: {str(e)}"
+    # Check if discovery is enabled
+    discovery_enabled = os.getenv("DISCOVERY_ENABLED", "true").lower() == "true"
+    if not discovery_enabled:
+        raise ServiceUnavailableError(
+            service="Printer Discovery",
+            reason="discovery is disabled in configuration"
         )
+
+    # Get timeout from config if not provided
+    if timeout is None:
+        timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
+
+    # Create discovery service
+    discovery_service = DiscoveryService(timeout=timeout)
+
+    # Get list of configured printer IPs for duplicate detection
+    printers = await printer_service.list_printers()
+    configured_ips = [p.ip_address for p in printers if p.ip_address]
+
+    # Run discovery
+    logger.info("Starting printer discovery", interface=interface, timeout=timeout, scan_subnet=scan_subnet)
+    results = await discovery_service.discover_all(
+        interface=interface,
+        configured_ips=configured_ips,
+        scan_subnet=scan_subnet
+    )
+
+    logger.info("Printer discovery completed",
+               discovered_count=len(results['discovered']),
+               duration_ms=results['scan_duration_ms'])
+
+    # Global exception handler will catch any unexpected errors
+    return results
 
 
 @router.get("/discover/interfaces")
@@ -228,32 +221,25 @@ async def list_network_interfaces():
     Returns list of network interfaces with their IP addresses.
     Useful for allowing users to select which network to scan.
     """
-    try:
-        # Check if discovery is available
-        if not DISCOVERY_AVAILABLE:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Network interface discovery unavailable (netifaces not installed)"
-            )
-
-        interfaces = DiscoveryService.get_network_interfaces()
-        default_interface = DiscoveryService.get_default_interface()
-
-        # Mark the default interface
-        for iface in interfaces:
-            if iface["name"] == default_interface:
-                iface["is_default"] = True
-
-        return {
-            "interfaces": interfaces,
-            "default": default_interface
-        }
-    except Exception as e:
-        logger.error("Failed to list network interfaces", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve network interfaces"
+    # Check if discovery is available
+    if not DISCOVERY_AVAILABLE:
+        raise ServiceUnavailableError(
+            service="Network Interface Discovery",
+            reason="netifaces library not installed"
         )
+
+    interfaces = DiscoveryService.get_network_interfaces()
+    default_interface = DiscoveryService.get_default_interface()
+
+    # Mark the default interface
+    for iface in interfaces:
+        if iface["name"] == default_interface:
+            iface["is_default"] = True
+
+    return {
+        "interfaces": interfaces,
+        "default": default_interface
+    }
 
 
 @router.get("/discover/startup")
@@ -335,15 +321,10 @@ async def create_printer(
         logger.info("Converted to response", response_dict=response.model_dump())
         return response
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error("Failed to create printer", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create printer"
+        # Convert service ValueError to standardized ValidationError
+        raise PrinternizerValidationError(
+            field="printer_config",
+            error=str(e)
         )
 
 
@@ -353,22 +334,10 @@ async def get_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Get printer details by ID."""
-    try:
-        printer = await printer_service.get_printer(printer_id)
-        if not printer:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Printer not found"
-            )
-        return _printer_to_response(printer, printer_service)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve printer"
-        )
+    printer = await printer_service.get_printer(printer_id)
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
+    return _printer_to_response(printer, printer_service)
 
 
 @router.put("/{printer_id}", response_model=PrinterResponse)
@@ -378,27 +347,11 @@ async def update_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Update printer configuration."""
-    try:
-        printer = await printer_service.update_printer(printer_id, **printer_data.model_dump(exclude_unset=True))
-        if not printer:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Printer not found"
-            )
-        return _printer_to_response(printer, printer_service)
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error("Failed to update printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update printer"
-        )
+    # ValueError will be caught by global handler and converted to 400
+    printer = await printer_service.update_printer(printer_id, **printer_data.model_dump(exclude_unset=True))
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
+    return _printer_to_response(printer, printer_service)
 
 
 @router.delete("/{printer_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -407,21 +360,9 @@ async def delete_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Delete a printer configuration."""
-    try:
-        success = await printer_service.delete_printer(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Printer not found"
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to delete printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete printer"
-        )
+    success = await printer_service.delete_printer(printer_id)
+    if not success:
+        raise PrinterNotFoundError(printer_id)
 
 
 @router.post("/{printer_id}/connect")
@@ -430,22 +371,13 @@ async def connect_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Connect to printer."""
-    try:
-        success = await printer_service.connect_printer(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to connect to printer"
-            )
-        return {"status": "connected"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to connect printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to connect to printer"
+    success = await printer_service.connect_printer(printer_id)
+    if not success:
+        raise PrinterConnectionError(
+            printer_id=printer_id,
+            reason="Connection failed"
         )
+    return success_response({"status": "connected"})
 
 
 @router.post("/{printer_id}/disconnect")
@@ -454,15 +386,8 @@ async def disconnect_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Disconnect from printer."""
-    try:
-        await printer_service.disconnect_printer(printer_id)
-        return {"status": "disconnected"}
-    except Exception as e:
-        logger.error("Failed to disconnect printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to disconnect from printer"
-        )
+    await printer_service.disconnect_printer(printer_id)
+    return success_response({"status": "disconnected"})
 
 
 @router.post("/{printer_id}/pause")
@@ -471,22 +396,13 @@ async def pause_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Pause the current print job."""
-    try:
-        success = await printer_service.pause_printer(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to pause print job"
-            )
-        return {"status": "paused"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to pause printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to pause print job"
+    success = await printer_service.pause_printer(printer_id)
+    if not success:
+        raise PrinterConnectionError(
+            printer_id=printer_id,
+            reason="Failed to pause print job - printer may not be printing or is unreachable"
         )
+    return success_response({"status": "paused"})
 
 
 @router.post("/{printer_id}/resume")
@@ -495,22 +411,13 @@ async def resume_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Resume the paused print job."""
-    try:
-        success = await printer_service.resume_printer(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to resume print job"
-            )
-        return {"status": "resumed"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to resume printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to resume print job"
+    success = await printer_service.resume_printer(printer_id)
+    if not success:
+        raise PrinterConnectionError(
+            printer_id=printer_id,
+            reason="Failed to resume print job - printer may not be paused or is unreachable"
         )
+    return success_response({"status": "resumed"})
 
 
 @router.post("/{printer_id}/stop")
@@ -519,22 +426,13 @@ async def stop_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Stop/cancel the current print job."""
-    try:
-        success = await printer_service.stop_printer(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to stop print job"
-            )
-        return {"status": "stopped"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to stop printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to stop print job"
+    success = await printer_service.stop_printer(printer_id)
+    if not success:
+        raise PrinterConnectionError(
+            printer_id=printer_id,
+            reason="Failed to stop print job - printer may not be printing or is unreachable"
         )
+    return success_response({"status": "stopped"})
 
 
 @router.post("/{printer_id}/download-current-job")
@@ -552,17 +450,11 @@ async def download_current_job_file(
     - printer_not_found: Unknown printer id
     - error: Unexpected failure (see message)
     """
-    try:
-        result = await printer_service.download_current_job_file(printer_id)
-        # Map service result directly; ensure a status key exists
-        if not isinstance(result, dict):
-            return {"status": "error", "message": "Unexpected service response"}
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to download current job file", printer_id=printer_id, error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to process current job file")
+    result = await printer_service.download_current_job_file(printer_id)
+    # Map service result directly; ensure a status key exists
+    if not isinstance(result, dict):
+        return success_response({"status": "error", "message": "Unexpected service response"})
+    return success_response(result)
 
 
 @router.get("/{printer_id}/files")
@@ -571,17 +463,8 @@ async def get_printer_files(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Get files from a specific printer."""
-    try:
-        files = await printer_service.get_printer_files(printer_id)
-        return {"files": files}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get printer files", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve printer files"
-        )
+    files = await printer_service.get_printer_files(printer_id)
+    return success_response({"files": files})
 
 
 @router.post("/{printer_id}/monitoring/start")
@@ -590,22 +473,13 @@ async def start_printer_monitoring(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Start monitoring for a specific printer."""
-    try:
-        success = await printer_service.start_printer_monitoring(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to start printer monitoring"
-            )
-        return {"status": "monitoring_started"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to start printer monitoring", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to start printer monitoring"
+    success = await printer_service.start_printer_monitoring(printer_id)
+    if not success:
+        raise ServiceUnavailableError(
+            service="Printer Monitoring",
+            reason=f"Failed to start monitoring for printer {printer_id}"
         )
+    return success_response({"status": "monitoring_started"})
 
 
 @router.post("/{printer_id}/monitoring/stop")
@@ -614,22 +488,13 @@ async def stop_printer_monitoring(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Stop monitoring for a specific printer."""
-    try:
-        success = await printer_service.stop_printer_monitoring(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to stop printer monitoring"
-            )
-        return {"status": "monitoring_stopped"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to stop printer monitoring", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to stop printer monitoring"
+    success = await printer_service.stop_printer_monitoring(printer_id)
+    if not success:
+        raise ServiceUnavailableError(
+            service="Printer Monitoring",
+            reason=f"Failed to stop monitoring for printer {printer_id}"
         )
+    return success_response({"status": "monitoring_stopped"})
 
 
 @router.post("/{printer_id}/files/{filename}/download")
@@ -639,22 +504,15 @@ async def download_printer_file(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Download a specific file from printer to local storage."""
-    try:
-        success = await printer_service.download_printer_file(printer_id, filename)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to download file from printer"
-            )
-        return {"status": "downloaded", "filename": filename}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to download printer file", printer_id=printer_id, filename=filename, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to download file from printer"
+    success = await printer_service.download_printer_file(printer_id, filename)
+    if not success:
+        from src.utils.errors import FileDownloadError
+        raise FileDownloadError(
+            filename=filename,
+            printer_id=printer_id,
+            reason="Download operation failed - file may not exist or printer is unreachable"
         )
+    return success_response({"status": "downloaded", "filename": filename})
 
 
 @router.get("/{printer_id}/thumbnail")
@@ -668,50 +526,66 @@ async def get_printer_current_thumbnail(
     endpoint instead of first resolving the file_id. If a thumbnail exists it
     returns the raw image bytes with proper content type. 404 if not present.
     """
-    try:
-        printer = await printer_service.get_printer(printer_id)
-        if not printer:
-            raise HTTPException(status_code=404, detail="Printer not found")
+    from src.utils.errors import FileNotFoundError as PrinternizerFileNotFoundError
 
-        instance = printer_service.printer_instances.get(printer.id)
-        if not instance or not getattr(instance, 'last_status', None):
-            raise HTTPException(status_code=404, detail="No status available for printer")
+    printer = await printer_service.get_printer(printer_id)
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
 
-        status_obj = instance.last_status
-        file_id = getattr(status_obj, 'current_job_file_id', None)
-        has_thumbnail_flag = getattr(status_obj, 'current_job_has_thumbnail', False)
-        if not file_id or not has_thumbnail_flag:
-            raise HTTPException(status_code=404, detail="Printer has no current job thumbnail")
-
-        # Access file service (set on printer_service during startup)
-        file_service = getattr(printer_service, 'file_service', None)
-        if not file_service:
-            raise HTTPException(status_code=500, detail="File service unavailable")
-
-        file_record = await file_service.get_file_by_id(file_id)
-        if not file_record:
-            raise HTTPException(status_code=404, detail="File record for current job not found")
-
-        if not file_record.get('has_thumbnail') or not file_record.get('thumbnail_data'):
-            raise HTTPException(status_code=404, detail="File has no thumbnail data")
-
-        # Decode and stream
-        try:
-            raw = base64.b64decode(file_record['thumbnail_data'])
-        except Exception:
-            raise HTTPException(status_code=500, detail="Corrupt thumbnail data")
-
-        fmt = file_record.get('thumbnail_format', 'png')
-        return Response(
-            content=raw,
-            media_type=f"image/{fmt}",
-            headers={
-                "Cache-Control": "no-cache, max-age=0",  # always fresh for active job
-                "Content-Disposition": f"inline; filename=printer_{printer_id}_current_thumbnail.{fmt}"
-            }
+    instance = printer_service.printer_instances.get(printer.id)
+    if not instance or not getattr(instance, 'last_status', None):
+        raise PrinternizerFileNotFoundError(
+            file_id="current_job_thumbnail",
+            details={"printer_id": printer_id, "reason": "No status available for printer"}
         )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get printer thumbnail", printer_id=printer_id, error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to retrieve printer thumbnail")
+
+    status_obj = instance.last_status
+    file_id = getattr(status_obj, 'current_job_file_id', None)
+    has_thumbnail_flag = getattr(status_obj, 'current_job_has_thumbnail', False)
+    if not file_id or not has_thumbnail_flag:
+        raise PrinternizerFileNotFoundError(
+            file_id="current_job_thumbnail",
+            details={"printer_id": printer_id, "reason": "Printer has no current job thumbnail"}
+        )
+
+    # Access file service (set on printer_service during startup)
+    file_service = getattr(printer_service, 'file_service', None)
+    if not file_service:
+        raise ServiceUnavailableError(
+            service="File Service",
+            reason="File service unavailable during thumbnail lookup"
+        )
+
+    file_record = await file_service.get_file_by_id(file_id)
+    if not file_record:
+        raise PrinternizerFileNotFoundError(
+            file_id=file_id,
+            details={"printer_id": printer_id, "reason": "File record for current job not found"}
+        )
+
+    if not file_record.get('has_thumbnail') or not file_record.get('thumbnail_data'):
+        raise PrinternizerFileNotFoundError(
+            file_id=file_id,
+            details={"printer_id": printer_id, "reason": "File has no thumbnail data"}
+        )
+
+    # Decode and stream
+    try:
+        raw = base64.b64decode(file_record['thumbnail_data'])
+    except Exception:
+        from src.utils.errors import FileProcessingError
+        raise FileProcessingError(
+            file_id=file_id,
+            operation="decode thumbnail",
+            reason="Corrupt or invalid thumbnail data"
+        )
+
+    fmt = file_record.get('thumbnail_format', 'png')
+    return Response(
+        content=raw,
+        media_type=f"image/{fmt}",
+        headers={
+            "Cache-Control": "no-cache, max-age=0",  # always fresh for active job
+            "Content-Disposition": f"inline; filename=printer_{printer_id}_current_thumbnail.{fmt}"
+        }
+    )
