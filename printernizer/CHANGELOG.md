@@ -1,3 +1,12 @@
+## [2.3.5] - 2025-11-08
+
+- feat: Implement automated job creation for print monitoring
+- Fix test setup for test_api_jobs.py and test_api_printers.py
+- docs: Clarify open questions in automated-job-creation design
+- Fix backend test setup by using FastAPI TestClient instead of requests.Session
+- Initial plan
+- fix: Fix backend test failures due to pytest version and middleware issues
+
 ## [2.3.4] - 2025-11-08
 
 - fix: Fix backend test failures due to pytest version and middleware issues

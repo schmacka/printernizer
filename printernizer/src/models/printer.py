@@ -71,5 +71,8 @@ class PrinterStatusUpdate(BaseModel):
     current_job_thumbnail_url: Optional[str] = None
     remaining_time_minutes: Optional[int] = None
     estimated_end_time: Optional[datetime] = None
+    # Direct printer-reported timing (only if available from printer)
+    elapsed_time_minutes: Optional[int] = None  # Time since print started
+    print_start_time: Optional[datetime] = None  # Actual start time from printer
     timestamp: datetime = Field(default_factory=datetime.now)
     raw_data: Optional[Dict[str, Any]] = None
