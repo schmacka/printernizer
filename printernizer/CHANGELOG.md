@@ -1,3 +1,10 @@
+## [2.3.4] - 2025-11-08
+
+- fix: Fix backend test failures due to pytest version and middleware issues
+- feat: Add version status indicator showing if update is available
+- fix: Correct CI/CD workflow configuration for frontend and backend tests
+- docs: Add comprehensive automated job creation design document
+
 ## [2.3.3] - 2025-11-08
 
 - feat: Add version status indicator showing if update is available
