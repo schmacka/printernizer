@@ -615,6 +615,32 @@ class ResourceConflictError(PrinternizerError):
         )
 
 
+class NotFoundError(PrinternizerError):
+    """Generic resource not found error."""
+
+    def __init__(self, resource_type: str, resource_id: str, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize NotFoundError.
+
+        Args:
+            resource_type: Type of resource (snapshot, camera, etc.)
+            resource_id: ID of the resource not found
+            details: Additional context
+        """
+        error_details = {
+            "resource_type": resource_type,
+            "resource_id": resource_id
+        }
+        if details:
+            error_details.update(details)
+
+        super().__init__(
+            message=f"{resource_type.capitalize()} not found: {resource_id}",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details=error_details
+        )
+
+
 # =============================================================================
 # Response Helper Functions
 # =============================================================================
