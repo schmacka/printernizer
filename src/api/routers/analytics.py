@@ -9,6 +9,7 @@ import structlog
 
 from src.services.analytics_service import AnalyticsService
 from src.utils.dependencies import get_analytics_service
+from src.utils.errors import success_response
 
 
 logger = structlog.get_logger()
@@ -51,33 +52,19 @@ async def get_analytics_summary(
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     """Get overall analytics summary."""
-    try:
-        analytics = await analytics_service.get_summary(start_date, end_date)
-        return analytics
-    except Exception as e:
-        logger.error("Failed to get analytics summary", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve analytics"
-        )
+    analytics = await analytics_service.get_summary(start_date, end_date)
+    return analytics
 
 
-@router.get("/business", response_model=BusinessAnalyticsResponse)  
+@router.get("/business", response_model=BusinessAnalyticsResponse)
 async def get_business_analytics(
     start_date: Optional[date] = Query(None, description="Start date for analytics period"),
     end_date: Optional[date] = Query(None, description="End date for analytics period"),
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     """Get business analytics for print operations."""
-    try:
-        analytics = await analytics_service.get_business_analytics(start_date, end_date)
-        return analytics
-    except Exception as e:
-        logger.error("Failed to get business analytics", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve business analytics"
-        )
+    analytics = await analytics_service.get_business_analytics(start_date, end_date)
+    return analytics
 
 
 @router.get("/overview", response_model=OverviewResponse)
@@ -86,12 +73,5 @@ async def get_analytics_overview(
     analytics_service: AnalyticsService = Depends(get_analytics_service)
 ):
     """Get dashboard overview statistics."""
-    try:
-        overview = await analytics_service.get_dashboard_overview(period)
-        return overview
-    except Exception as e:
-        logger.error("Failed to get analytics overview", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve analytics overview"
-        )
+    overview = await analytics_service.get_dashboard_overview(period)
+    return overview
