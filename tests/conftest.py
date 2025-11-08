@@ -686,3 +686,57 @@ def test_config():
         'max_retries': 3,
         'log_level': 'DEBUG'
     }
+
+
+# =====================================================
+# TEST APP FIXTURES
+# =====================================================
+
+@pytest.fixture
+def test_app():
+    """Create a FastAPI test app with mocked dependencies."""
+    from fastapi.testclient import TestClient
+    from src.main import create_application
+    from src.database.database import Database
+    from src.services.config_service import ConfigService
+    from src.utils.dependencies import get_database, get_config_service
+    from unittest.mock import MagicMock, AsyncMock
+
+    # Create test app
+    app = create_application()
+
+    # Create mock database with async methods
+    mock_db = MagicMock(spec=Database)
+    mock_db.health_check = AsyncMock(return_value=True)
+
+    # Create mock config service
+    mock_config = MagicMock(spec=ConfigService)
+    # Add settings attribute with environment
+    mock_settings = MagicMock()
+    mock_settings.environment = "test"
+    mock_config.settings = mock_settings
+
+    # Override dependencies
+    app.dependency_overrides[get_database] = lambda: mock_db
+    app.dependency_overrides[get_config_service] = lambda: mock_config
+
+    # Create mock services (required for healthy status)
+    mock_event_service = MagicMock()
+    mock_printer_service = MagicMock()
+    mock_printer_service._printers = []  # Empty printer list
+    mock_printer_service._monitoring_active = False
+    mock_file_service = MagicMock()
+    mock_trending_service = MagicMock()
+    mock_session = MagicMock()
+    mock_session.closed = False  # Session is not closed
+    mock_trending_service.session = mock_session  # Has active HTTP session
+
+    # Initialize minimal app state for tests
+    app.state.database = mock_db
+    app.state.config_service = mock_config
+    app.state.printer_service = mock_printer_service
+    app.state.file_service = mock_file_service
+    app.state.trending_service = mock_trending_service
+    app.state.event_service = mock_event_service
+
+    return app
