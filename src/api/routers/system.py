@@ -8,6 +8,7 @@ import structlog
 
 from src.services.config_service import ConfigService
 from src.utils.dependencies import get_config_service
+from src.utils.errors import success_response
 
 
 logger = structlog.get_logger()
@@ -28,15 +29,8 @@ async def get_system_info(
     config_service: ConfigService = Depends(get_config_service)
 ):
     """Get system information."""
-    try:
-        info = await config_service.get_system_info()
-        return info
-    except Exception as e:
-        logger.error("Failed to get system info", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve system information"
-        )
+    info = await config_service.get_system_info()
+    return info
 
 
 @router.post("/backup")
@@ -44,15 +38,8 @@ async def create_backup(
     config_service: ConfigService = Depends(get_config_service)
 ):
     """Create system backup."""
-    try:
-        backup_path = await config_service.create_backup()
-        return {"backup_path": backup_path}
-    except Exception as e:
-        logger.error("Failed to create backup", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create backup"
-        )
+    backup_path = await config_service.create_backup()
+    return success_response({"backup_path": backup_path})
 
 
 @router.post("/shutdown")
@@ -62,20 +49,13 @@ async def shutdown_server():
     Triggers a SIGTERM signal to the current process, which will be handled
     by the application's signal handler to perform a graceful shutdown.
     """
-    try:
-        logger.info("Server shutdown requested via API")
+    logger.info("Server shutdown requested via API")
 
-        # Send SIGTERM to current process for graceful shutdown
-        # This will trigger the signal handler in main.py
-        os.kill(os.getpid(), signal.SIGTERM)
+    # Send SIGTERM to current process for graceful shutdown
+    # This will trigger the signal handler in main.py
+    os.kill(os.getpid(), signal.SIGTERM)
 
-        return {
-            "status": "success",
-            "message": "Server shutdown initiated"
-        }
-    except Exception as e:
-        logger.error("Failed to initiate shutdown", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initiate server shutdown"
-        )
+    return success_response({
+        "status": "success",
+        "message": "Server shutdown initiated"
+    })
