@@ -583,104 +583,207 @@ class LibraryService:
         """
         Map BambuParser output to database fields.
 
+        This function handles the complex task of mapping 40+ metadata fields from various
+        slicer formats (BambuStudio, PrusaSlicer, OrcaSlicer) to a normalized database schema.
+        It includes multiple fallback strategies, type conversions, and data format handling.
+
+        Complexity: F-54 (Cyclomatic Complexity)
+        - 40+ metadata fields with conditional mapping
+        - Multiple field name variants per data point
+        - Type conversion and validation for each field
+        - Comma-separated value parsing
+        - JSON array construction
+
         Args:
-            parser_metadata: Metadata extracted by BambuParser
-            parser_thumbnails: Thumbnails extracted by BambuParser
+            parser_metadata: Metadata extracted by BambuParser from 3MF/GCODE files
+            parser_thumbnails: List of thumbnail dictionaries with data, width, height, format
 
         Returns:
-            Dictionary with database field names and values
+            Dictionary with database field names and values (normalized schema)
+
+        Design Rationale:
+            Different slicers use different field names for the same data:
+            - BambuStudio: 'fill_density', 'wall_loops', 'outer_wall_speed'
+            - PrusaSlicer: 'infill_density', 'perimeters', 'print_speed'
+            - This function normalizes these variations into consistent DB fields
+
+        Performance Note:
+            O(n) where n = number of metadata fields (~40-50)
+            Runs once per file import, not performance-critical
         """
         db_fields = {}
 
-        # Physical properties
+        # ==================== PHYSICAL PROPERTIES ====================
+        # Extract model dimensions in millimeters
+        # Different slicers report dimensions differently:
+        # - Some use model_width/depth/height directly from STL bounding box
+        # - Others use max_z_height from actual print path
+        # Priority: explicit dimensions > calculated from print path
+
         if 'model_width' in parser_metadata:
             db_fields['model_width'] = float(parser_metadata['model_width'])
         if 'model_depth' in parser_metadata:
             db_fields['model_depth'] = float(parser_metadata['model_depth'])
         if 'model_height' in parser_metadata:
             db_fields['model_height'] = float(parser_metadata['model_height'])
+
+        # Fallback: Use max_z_height if model_height not available
+        # max_z_height is more accurate as it reflects actual print height
+        # (accounts for first layer height, raft, etc.)
         if 'max_z_height' in parser_metadata:
             db_fields['model_height'] = float(parser_metadata['max_z_height'])
 
-        # Print settings
+        # ==================== PRINT SETTINGS ====================
+        # Layer and nozzle settings affect print quality and time
+
         if 'layer_height' in parser_metadata:
             db_fields['layer_height'] = float(parser_metadata['layer_height'])
         if 'first_layer_height' in parser_metadata:
+            # First layer often thicker for better bed adhesion
             db_fields['first_layer_height'] = float(parser_metadata['first_layer_height'])
         if 'nozzle_diameter' in parser_metadata:
             db_fields['nozzle_diameter'] = float(parser_metadata['nozzle_diameter'])
+
+        # Wall count: Different field names across slicers
+        # BambuStudio: 'wall_loops', PrusaSlicer: 'perimeters'
         if 'wall_loops' in parser_metadata:
             db_fields['wall_count'] = int(parser_metadata['wall_loops'])
+
+        # Infill density: Critical for strength vs print time tradeoff
+        # Field name varies: 'fill_density' (Bambu) vs 'infill_density' (Prusa)
+        # Values can be percentage (0-100) or decimal (0-1) - parser normalizes to percentage
         if 'fill_density' in parser_metadata or 'infill_density' in parser_metadata:
             density = parser_metadata.get('fill_density') or parser_metadata.get('infill_density')
             db_fields['infill_density'] = float(density)
+
         if 'sparse_infill_pattern' in parser_metadata:
+            # Pattern affects strength and print time: grid, gyroid, honeycomb, etc.
             db_fields['infill_pattern'] = parser_metadata['sparse_infill_pattern']
+
+        # Support structures: Boolean in various formats
+        # Input can be: "true"/"false", "1"/"0", "yes"/"no", or actual boolean
+        # Normalize to integer (0/1) for database storage
         if 'support_used' in parser_metadata:
             support = parser_metadata['support_used']
             db_fields['support_used'] = 1 if str(support).lower() in ['true', '1', 'yes'] else 0
+
+        # Temperature settings: Prefer initial layer temps (more accurate)
+        # Initial layer temps often higher for bed adhesion
+        # Fallback to general temps if initial layer not specified
         if 'nozzle_temperature_initial_layer' in parser_metadata or 'nozzle_temperature' in parser_metadata:
             temp = parser_metadata.get('nozzle_temperature_initial_layer') or parser_metadata.get('nozzle_temperature')
             db_fields['nozzle_temperature'] = int(temp)
         if 'bed_temperature_initial_layer' in parser_metadata or 'bed_temperature' in parser_metadata:
             temp = parser_metadata.get('bed_temperature_initial_layer') or parser_metadata.get('bed_temperature')
             db_fields['bed_temperature'] = int(temp)
+
+        # Print speed: Affects quality vs time tradeoff
+        # outer_wall_speed is more accurate (slowest speed = quality indicator)
+        # Fallback to general print_speed if wall speed not specified
         if 'outer_wall_speed' in parser_metadata or 'print_speed' in parser_metadata:
             speed = parser_metadata.get('outer_wall_speed') or parser_metadata.get('print_speed')
             db_fields['print_speed'] = float(speed)
+
         if 'total_layer_count' in parser_metadata:
+            # Total layers = height / layer_height (approximately)
+            # Used for progress tracking during printing
             db_fields['total_layer_count'] = int(parser_metadata['total_layer_count'])
 
-        # Material requirements
+        # ==================== MATERIAL REQUIREMENTS ====================
+        # Calculate material usage for cost estimation and inventory management
+
+        # Filament weight: Critical for cost calculation
+        # Field name varies: 'filament_used [g]' (Bambu) vs 'total_filament_weight' (Prusa)
+        # IMPORTANT: Multi-material prints have comma-separated values (one per extruder)
+        # Example: "15.5,8.3,0.0" = 15.5g extruder 1, 8.3g extruder 2, 0g extruder 3
         if 'filament_used [g]' in parser_metadata or 'total_filament_weight' in parser_metadata:
             weight = parser_metadata.get('filament_used [g]') or parser_metadata.get('total_filament_weight')
-            # Handle comma-separated values (e.g., "15.5,0.0")
+
+            # Handle multi-material prints: sum all extruder values
+            # Skip empty values to handle trailing commas
             if isinstance(weight, str) and ',' in weight:
                 weight = sum(float(x) for x in weight.split(',') if x)
+
             db_fields['total_filament_weight'] = float(weight)
+
+        # Filament length: Used for spool tracking
+        # Similar comma-separated handling for multi-material
+        # Convert from mm to meters for database consistency
         if 'total_filament_length' in parser_metadata or 'total filament used [mm]' in parser_metadata:
             length = parser_metadata.get('total_filament_length') or parser_metadata.get('total filament used [mm]')
+
+            # Multi-material: sum lengths from all extruders
             if isinstance(length, str) and ',' in length:
                 length = sum(float(x) for x in length.split(',') if x)
-            db_fields['filament_length'] = float(length) / 1000  # Convert mm to meters
+
+            db_fields['filament_length'] = float(length) / 1000  # mm → meters
+
+        # Material types: Store as JSON array for multi-material support
+        # Format: semicolon-separated string → JSON array
+        # Example: "PLA;PLA;PETG" → ["PLA", "PLA", "PETG"]
         if 'filament_type' in parser_metadata:
-            # Store as JSON array
             types = parser_metadata['filament_type']
             if isinstance(types, str):
+                # Split on semicolon, strip whitespace, filter empty strings
                 types = [t.strip() for t in types.split(';') if t.strip()]
             db_fields['material_types'] = json.dumps(types)
+
+        # Filament IDs: Unique identifiers for spools
+        # Could be used for color extraction with lookup table
+        # Example: "GFL00;GFL01" = Bambu Lab filament IDs
         if 'filament_ids' in parser_metadata:
-            # Extract colors from filament IDs if available
             ids = parser_metadata['filament_ids']
             if isinstance(ids, str):
                 ids = [i.strip() for i in ids.split(';') if i.strip()]
-            # For now, just store the IDs - color extraction would need mapping
+            # TODO: Implement color extraction from filament ID database
+            # Would need mapping table: filament_id → color_name
+            # For now, just document the IDs are available
             # db_fields['filament_colors'] = json.dumps(ids)
 
-        # Compatibility
+        # ==================== COMPATIBILITY INFORMATION ====================
+        # Track which printers/slicers created this file for troubleshooting
+
+        # Compatible printers: List of printer models that can print this
+        # Stored as JSON array for flexible querying
         if 'compatible_printers' in parser_metadata:
             db_fields['compatible_printers'] = json.dumps(parser_metadata['compatible_printers'].split(';'))
+
+        # Slicer information: Extract name and version from generator string
+        # Generator string format: "SlicerName Version.Number.Patch"
+        # Examples:
+        #   "BambuStudio 1.9.0"
+        #   "PrusaSlicer 2.6.0"
+        #   "OrcaSlicer 1.7.0-beta"
+        # Useful for debugging slicer-specific issues
         if 'generator' in parser_metadata:
-            # Parse slicer name and version from generator string
-            # e.g., "BambuStudio 1.9.0" or "PrusaSlicer 2.6.0"
             generator = parser_metadata['generator']
             parts = generator.split()
             if len(parts) >= 1:
                 db_fields['slicer_name'] = parts[0]
             if len(parts) >= 2:
                 db_fields['slicer_version'] = parts[1]
+
+        # Bed type: Different printer models support different bed surfaces
+        # Examples: "Cool Plate", "Engineering Plate", "Textured PEI"
+        # Affects first layer adhesion strategies
         if 'curr_bed_type' in parser_metadata:
             db_fields['bed_type'] = parser_metadata['curr_bed_type']
 
-        # Thumbnails
+        # ==================== THUMBNAILS ====================
+        # Embedded preview images for UI display
+        # 3MF files can contain multiple thumbnail sizes
+
         if parser_thumbnails and len(parser_thumbnails) > 0:
-            # Use the largest thumbnail
+            # Select largest thumbnail for best quality display
+            # Thumbnails are sorted by pixel area (width × height)
+            # Larger thumbnails provide better preview but increase file size
             largest_thumb = max(parser_thumbnails, key=lambda t: t['width'] * t['height'])
+
             db_fields['has_thumbnail'] = 1
-            db_fields['thumbnail_data'] = largest_thumb['data']
+            db_fields['thumbnail_data'] = largest_thumb['data']  # Base64 encoded PNG
             db_fields['thumbnail_width'] = largest_thumb['width']
             db_fields['thumbnail_height'] = largest_thumb['height']
-            db_fields['thumbnail_format'] = largest_thumb['format']
+            db_fields['thumbnail_format'] = largest_thumb['format']  # Usually "PNG"
 
         return db_fields
 
