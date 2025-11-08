@@ -3304,6 +3304,36 @@ label .required {
 .footer-text {
     opacity: 0.8;
 }
+
+/* Update Status Styles */
+.update-status {
+    margin-left: var(--spacing-2);
+    font-size: var(--font-size-xs);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.update-status.current {
+    background: var(--green-500, #10b981);
+    color: white;
+}
+
+.update-status.outdated {
+    background: var(--orange-500, #f59e0b);
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.update-status.outdated:hover {
+    background: var(--orange-600, #ea580c);
+}
+
+.update-status a {
+    color: inherit;
+    text-decoration: none;
+}
 /* Enhanced Metadata Container Styles */
 .enhanced-metadata-container {
     margin-top: 2rem;
