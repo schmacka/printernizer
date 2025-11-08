@@ -159,9 +159,10 @@ class Settings(BaseSettings):
             # Only resolve if it looks like a local path, not a URL
             if not (v.startswith('http://') or v.startswith('https://')):
                 v = str(Path(v).expanduser().resolve())
-        except Exception:
-            # Best-effort; keep the normalized (non-resolved) path
-            pass
+        except (OSError, ValueError, RuntimeError) as e:
+            # Best-effort; keep the normalized (non-resolved) path if resolution fails
+            logger.debug("Could not resolve downloads_path, using as-is",
+                        path=v, error=str(e))
         if v != original:
             # Log at info level so user can see the normalization (structlog fields are structured)
             logger.info("Normalized downloads_path", original=original, normalized=v)
@@ -186,8 +187,10 @@ class Settings(BaseSettings):
         try:
             if not (v.startswith('http://') or v.startswith('https://')):
                 v = str(Path(v).expanduser().resolve())
-        except Exception:
-            pass
+        except (OSError, ValueError, RuntimeError) as e:
+            # Best-effort; keep the normalized (non-resolved) path if resolution fails
+            logger.debug("Could not resolve library_path, using as-is",
+                        path=v, error=str(e))
         if v != original:
             logger.info("Normalized library_path", original=original, normalized=v)
         return v
