@@ -335,8 +335,10 @@ class MonitoringService:
                             recent_alerts.append(alert_data)
                         except json.JSONDecodeError:
                             continue
-                except Exception:
-                    pass
+                except (OSError, FileNotFoundError, PermissionError) as e:
+                    # Alert log not accessible - not critical for status endpoint
+                    logger.debug("Could not read alert log for status",
+                                error=str(e))
             
             # Perform quick health checks
             health_status = {
