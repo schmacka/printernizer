@@ -46,6 +46,7 @@ options:
   timelapse_output_strategy: separate
   timelapse_auto_process_timeout: 300
   timelapse_cleanup_age_days: 30
+  job_creation_auto_create: true
 
 schema:
   log_level: list(debug|info|warning|error)?
@@ -58,6 +59,7 @@ schema:
   timelapse_output_strategy: list(same|separate|both)?
   timelapse_auto_process_timeout: int(60,3600)?
   timelapse_cleanup_age_days: int(1,365)?
+  job_creation_auto_create: bool?
 
 # Image configuration
 #image: ghcr.io/schmacka/printernizer-{arch}

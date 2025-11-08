@@ -168,6 +168,8 @@ class PrusaPrinter(BasePrinter):
             progress = 0
             remaining_time_minutes = None
             estimated_end_time = None
+            elapsed_time_minutes = None
+            print_start_time = None
 
             if job_data:
                 job_info = job_data.get('job', {})
@@ -188,6 +190,13 @@ class PrusaPrinter(BasePrinter):
                         # Calculate estimated end time
                         from datetime import timedelta
                         estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
+
+                    # Extract elapsed time and calculate start time
+                    print_time = progress_info.get('printTime', 0)  # Seconds since start
+                    if print_time and print_time > 0:
+                        elapsed_time_minutes = int(print_time // 60)
+                        from datetime import timedelta
+                        print_start_time = datetime.now() - timedelta(seconds=print_time)
 
             # Lookup file information for current job
             current_job_file_id = None
@@ -222,6 +231,8 @@ class PrusaPrinter(BasePrinter):
                 current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
                 remaining_time_minutes=remaining_time_minutes,
                 estimated_end_time=estimated_end_time,
+                elapsed_time_minutes=elapsed_time_minutes,
+                print_start_time=print_start_time,
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )
