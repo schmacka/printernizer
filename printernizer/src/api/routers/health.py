@@ -261,6 +261,19 @@ async def check_for_updates():
                         release_url=release_url,
                         check_failed=False
                     )
+                elif response.status == 404:
+                    # No releases published yet - this is not an error
+                    logger.info(
+                        "No releases found on GitHub",
+                        current_version=APP_VERSION
+                    )
+                    return UpdateCheckResponse(
+                        current_version=APP_VERSION,
+                        latest_version=None,
+                        update_available=False,
+                        check_failed=False,
+                        error_message="No releases available yet"
+                    )
                 else:
                     logger.warning(
                         "GitHub API returned non-200 status",
@@ -270,7 +283,7 @@ async def check_for_updates():
                         current_version=APP_VERSION,
                         update_available=False,
                         check_failed=True,
-                        error_message=f"GitHub API returned status {response.status}"
+                        error_message=f"GitHub API error: status {response.status}"
                     )
 
     except asyncio.TimeoutError:

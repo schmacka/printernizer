@@ -1,3 +1,15 @@
+## [2.3.6] - 2025-11-08
+
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+- feat: Implement automated job creation for print monitoring
+- Fix test setup for test_api_jobs.py and test_api_printers.py
+- docs: Clarify open questions in automated-job-creation design
+- Fix backend test setup by using FastAPI TestClient instead of requests.Session
+- Initial plan
+
 ## [2.3.5] - 2025-11-08
 
 - feat: Implement automated job creation for print monitoring
