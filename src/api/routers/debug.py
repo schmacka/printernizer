@@ -4,8 +4,14 @@ Remove this file before production if not needed.
 """
 
 from typing import Optional, List
-from fastapi import APIRouter, Request, Query, HTTPException
+from fastapi import APIRouter, Request, Query
 import structlog
+
+from src.utils.errors import (
+    PrinterNotFoundError,
+    FileNotFoundError,
+    ServiceUnavailableError
+)
 
 logger = structlog.get_logger()
 
@@ -28,7 +34,7 @@ async def debug_printer_thumbnail(
 
     instance = printer_service.printer_instances.get(printer_id)
     if not instance:
-        raise HTTPException(status_code=404, detail="Printer not found")
+        raise PrinterNotFoundError(printer_id)
 
     status = getattr(instance, 'last_status', None)
     response = {
@@ -94,15 +100,16 @@ async def debug_file(
         File record dictionary with thumbnail metadata.
 
     Raises:
-        HTTPException: 404 if file not found, 500 if file service unavailable.
+        FileNotFoundError: If file not found.
+        ServiceUnavailableError: If file service unavailable.
     """
     file_service = getattr(request.app.state, 'file_service', None)
     if not file_service:
-        raise HTTPException(status_code=500, detail="File service unavailable")
+        raise ServiceUnavailableError("File service not available")
 
     record = await file_service.get_file_by_id(file_id)
     if not record:
-        raise HTTPException(status_code=404, detail="File not found")
+        raise FileNotFoundError(file_id)
 
     resp = {k: v for k, v in record.items() if k != 'thumbnail_data'}
     if include_base64_length and record.get('thumbnail_data'):
@@ -124,7 +131,7 @@ async def get_thumbnail_processing_log(
 
     file_service = getattr(request.app.state, 'file_service', None)
     if not file_service:
-        raise HTTPException(status_code=500, detail="File service unavailable")
+        raise ServiceUnavailableError("File service not available")
 
     log_entries = file_service.get_thumbnail_processing_log(limit)
 
