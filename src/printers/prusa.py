@@ -13,6 +13,7 @@ import structlog
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
+from src.constants import NetworkConstants, FileConstants
 
 logger = structlog.get_logger()
 
@@ -46,12 +47,12 @@ class PrusaPrinter(BasePrinter):
             }
 
             # Increase timeout and add retries for better connectivity
-            timeout = aiohttp.ClientTimeout(total=15, connect=10)
+            timeout = aiohttp.ClientTimeout(total=NetworkConstants.THUMBNAIL_DOWNLOAD_TIMEOUT_SECONDS, connect=NetworkConstants.PRUSA_CONNECT_TIMEOUT_SECONDS)
             connector = aiohttp.TCPConnector(
-                keepalive_timeout=30,
-                ttl_dns_cache=300,
+                keepalive_timeout=NetworkConstants.PRUSA_KEEPALIVE_TIMEOUT_SECONDS,
+                ttl_dns_cache=NetworkConstants.PRUSA_DNS_CACHE_TTL_SECONDS,
                 use_dns_cache=True,
-                limit=10,
+                limit=NetworkConstants.PRUSA_CONNECTION_LIMIT,
                 enable_cleanup_closed=True
             )
 
@@ -62,7 +63,7 @@ class PrusaPrinter(BasePrinter):
             )
 
             # Test connection with version endpoint with retries
-            max_retries = 3
+            max_retries = NetworkConstants.PRUSA_MAX_RETRIES
             for attempt in range(max_retries):
                 try:
                     async with self.session.get(f"{self.base_url}/version") as response:
@@ -83,7 +84,7 @@ class PrusaPrinter(BasePrinter):
 
                 except (asyncio.TimeoutError, aiohttp.ClientConnectorError) as e:
                     if attempt < max_retries - 1:
-                        wait_time = (attempt + 1) * 2  # Exponential backoff
+                        wait_time = (attempt + 1) * NetworkConstants.PRUSA_RETRY_BACKOFF_MULTIPLIER  # Exponential backoff
                         logger.warning("Connection attempt failed, retrying",
                                      printer_id=self.printer_id,
                                      attempt=attempt + 1,
@@ -532,7 +533,7 @@ class PrusaPrinter(BasePrinter):
                     first_chunk = None
                     chunks = []
 
-                    async for chunk in response.content.iter_chunked(8192):
+                    async for chunk in response.content.iter_chunked(FileConstants.DOWNLOAD_CHUNK_SIZE_BYTES):
                         if first_chunk is None:
                             first_chunk = chunk
                             # Validate that this is not JSON metadata

@@ -13,6 +13,7 @@ import structlog
 
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
+from src.constants import MonitoringConstants
 
 logger = structlog.get_logger()
 
@@ -182,9 +183,9 @@ class BasePrinter(PrinterInterface):
         self.status_callbacks: List[Callable[[PrinterStatusUpdate], None]] = []
         self._monitoring_task: Optional[asyncio.Task] = None
         self._stop_monitoring = asyncio.Event()
-        self._monitor_interval = 30
-        self._monitor_backoff_factor = 2.0
-        self._monitor_max_interval = 300
+        self._monitor_interval = MonitoringConstants.PRINTER_MONITOR_INTERVAL_SECONDS
+        self._monitor_backoff_factor = MonitoringConstants.MONITOR_BACKOFF_FACTOR
+        self._monitor_max_interval = MonitoringConstants.MONITOR_MAX_INTERVAL_SECONDS
         self._monitor_current_interval = self._monitor_interval
         self._monitor_consecutive_failures = 0
         self._monitor_total_failures = 0
@@ -259,7 +260,7 @@ class BasePrinter(PrinterInterface):
                 logger.error("monitoring.loop.error", printer_id=self.printer_id, error=str(e), failures=self._monitor_consecutive_failures)
                 next_interval = min(self._monitor_current_interval * self._monitor_backoff_factor, self._monitor_max_interval)
                 # Add small jitter to avoid lockstep retries across printers
-                jitter = 1.0 + random.uniform(-0.1, 0.1)
+                jitter = 1.0 + random.uniform(MonitoringConstants.MONITOR_JITTER_MIN, MonitoringConstants.MONITOR_JITTER_MAX)
                 self._monitor_current_interval = max(1, int(next_interval * jitter))
                 logger.warning("monitoring.backoff", printer_id=self.printer_id, next_interval=self._monitor_current_interval)
             

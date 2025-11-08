@@ -13,6 +13,12 @@ from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 from src.services.bambu_ftp_service import BambuFTPService, BambuFTPFile
+from src.constants import (
+    PortConstants,
+    NetworkConstants,
+    TemperatureConstants,
+    FileConstants
+)
 
 # Import bambulabs_api dependencies
 try:
@@ -70,7 +76,7 @@ class BambuLabPrinter(BasePrinter):
         else:
             self.client = None  # MQTT client will be initialized in connect
             self.latest_data: Dict[str, Any] = {}
-            self.mqtt_port = 8883
+            self.mqtt_port = PortConstants.BAMBU_MQTT_PORT
         
     def _on_connect(self, client, userdata, flags, rc):
         """Handle MQTT connection event.
@@ -228,7 +234,7 @@ class BambuLabPrinter(BasePrinter):
             loop = asyncio.get_event_loop()
 
             def _mqtt_connect():
-                result = self.client.connect(self.ip_address, self.mqtt_port, 60)
+                result = self.client.connect(self.ip_address, self.mqtt_port, NetworkConstants.MQTT_CONNECT_TIMEOUT_SECONDS)
                 if result != 0:
                     raise ConnectionError(f"MQTT connect failed with code {result}")
                 return result
@@ -244,7 +250,7 @@ class BambuLabPrinter(BasePrinter):
 
             # Wait for connection to be established
             sleep_start = time.time()
-            await asyncio.sleep(3)
+            await asyncio.sleep(NetworkConstants.MQTT_CONNECTION_WAIT_SECONDS)
             sleep_duration = time.time() - sleep_start
             logger.debug("[TIMING] MQTT connection establishment wait",
                         printer_id=self.printer_id,
@@ -407,10 +413,10 @@ class BambuLabPrinter(BasePrinter):
                     alternative_status.gcode_file = None
                 
                 # If we have temperature data, we can infer printing status
-                if (hasattr(alternative_status, 'nozzle_temper') and 
-                    alternative_status.nozzle_temper > 200 and
-                    hasattr(alternative_status, 'bed_temper') and 
-                    alternative_status.bed_temper > 50):
+                if (hasattr(alternative_status, 'nozzle_temper') and
+                    alternative_status.nozzle_temper > TemperatureConstants.NOZZLE_TEMP_PRINTING_THRESHOLD_C and
+                    hasattr(alternative_status, 'bed_temper') and
+                    alternative_status.bed_temper > TemperatureConstants.BED_TEMP_PRINTING_THRESHOLD_C):
                     alternative_status.name = 'PRINTING'
                     logger.info("Inferred PRINTING status from temperature data",
                               printer_id=self.printer_id,
@@ -539,13 +545,13 @@ class BambuLabPrinter(BasePrinter):
             elif progress == 100:
                 # Print completed but printer might still be cooling down
                 printer_status = PrinterStatus.ONLINE
-                if nozzle_temp > 50 or bed_temp > 30:
+                if nozzle_temp > TemperatureConstants.NOZZLE_TEMP_COOLING_THRESHOLD_C or bed_temp > TemperatureConstants.BED_TEMP_COOLING_THRESHOLD_C:
                     message = f"Print Complete - Cooling down (Nozzle {nozzle_temp}°C, Bed {bed_temp}°C)"
                 else:
                     message = "Print Complete - Ready"
             else:
                 # Fallback: use temperature as indicator only if status explicitly says PRINTING
-                if nozzle_temp > 200 and bed_temp > 50:
+                if nozzle_temp > TemperatureConstants.NOZZLE_TEMP_PRINTING_THRESHOLD_C and bed_temp > TemperatureConstants.BED_TEMP_PRINTING_THRESHOLD_C:
                     printer_status = PrinterStatus.PRINTING
                     message = f"Printing - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
                 else:
@@ -555,14 +561,14 @@ class BambuLabPrinter(BasePrinter):
             # Printer is idle - check if just completing a print based on temperatures
             if progress == 100:
                 printer_status = PrinterStatus.ONLINE
-                if nozzle_temp > 50 or bed_temp > 30:
+                if nozzle_temp > TemperatureConstants.NOZZLE_TEMP_COOLING_THRESHOLD_C or bed_temp > TemperatureConstants.BED_TEMP_COOLING_THRESHOLD_C:
                     message = f"Print Complete - Cooling down (Nozzle {nozzle_temp}°C, Bed {bed_temp}°C)"
                 else:
                     message = "Print Complete - Ready"
-            elif nozzle_temp > 50:
+            elif nozzle_temp > TemperatureConstants.NOZZLE_TEMP_COOLING_THRESHOLD_C:
                 message = f"Heating - Nozzle {nozzle_temp}°C"
                 printer_status = PrinterStatus.ONLINE
-            elif bed_temp > 30:
+            elif bed_temp > TemperatureConstants.BED_TEMP_COOLING_THRESHOLD_C:
                 message = f"Heating - Bed {bed_temp}°C"
                 printer_status = PrinterStatus.ONLINE
             else:
@@ -572,7 +578,7 @@ class BambuLabPrinter(BasePrinter):
             # Map the status using the mapping function
             printer_status = self._map_bambu_status(status_name)
             # Provide better status messages for other states
-            if printer_status == PrinterStatus.ONLINE and (nozzle_temp > 50 or bed_temp > 30):
+            if printer_status == PrinterStatus.ONLINE and (nozzle_temp > TemperatureConstants.NOZZLE_TEMP_COOLING_THRESHOLD_C or bed_temp > TemperatureConstants.BED_TEMP_COOLING_THRESHOLD_C):
                 message = f"{status_name} - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
             else:
                 message = f"Status: {status_name}"
@@ -669,19 +675,19 @@ class BambuLabPrinter(BasePrinter):
 
         # Improved status detection for printing
         # High temperatures usually indicate printing activity
-        if nozzle_temp > 200 and bed_temp > 50:
+        if nozzle_temp > TemperatureConstants.NOZZLE_TEMP_PRINTING_THRESHOLD_C and bed_temp > TemperatureConstants.BED_TEMP_PRINTING_THRESHOLD_C:
             printer_status = PrinterStatus.PRINTING
             if progress > 0:
                 message = f"Printing - Layer {layer_num}, {progress}%"
             else:
                 message = f"Printing - Nozzle {nozzle_temp}°C, Bed {bed_temp}°C"
-        elif progress > 0 and nozzle_temp > 100:
+        elif progress > 0 and nozzle_temp > TemperatureConstants.NOZZLE_TEMP_ACTIVE_THRESHOLD_C:
             printer_status = PrinterStatus.PRINTING
             message = f"Printing - Layer {layer_num}, {progress}%"
-        elif nozzle_temp > 50:
+        elif nozzle_temp > TemperatureConstants.NOZZLE_TEMP_COOLING_THRESHOLD_C:
             printer_status = PrinterStatus.ONLINE
             message = f"Heating - Nozzle {nozzle_temp}°C"
-        elif bed_temp > 30:
+        elif bed_temp > TemperatureConstants.BED_TEMP_COOLING_THRESHOLD_C:
             printer_status = PrinterStatus.ONLINE
             message = f"Heating - Bed {bed_temp}°C"
         else:
@@ -836,9 +842,9 @@ class BambuLabPrinter(BasePrinter):
 
             # Determine job status
             nozzle_temp = print_data.get("nozzle_temper", 0)
-            if progress > 0 and nozzle_temp > 100:
+            if progress > 0 and nozzle_temp > TemperatureConstants.NOZZLE_TEMP_ACTIVE_THRESHOLD_C:
                 job_status = JobStatus.PRINTING
-            elif nozzle_temp > 50:
+            elif nozzle_temp > TemperatureConstants.NOZZLE_TEMP_COOLING_THRESHOLD_C:
                 job_status = JobStatus.PREPARING
             else:
                 job_status = JobStatus.IDLE
@@ -938,9 +944,9 @@ class BambuLabPrinter(BasePrinter):
 
         try:
             # Method 0: Use cached files if recently updated
-            if (hasattr(self, 'cached_files') and self.cached_files and 
+            if (hasattr(self, 'cached_files') and self.cached_files and
                 hasattr(self, 'last_file_update') and self.last_file_update and
-                (datetime.now() - self.last_file_update).seconds < 30):
+                (datetime.now() - self.last_file_update).seconds < FileConstants.BAMBU_FILE_CACHE_VALIDITY_SECONDS):
                 logger.info("Using cached file list from recent update",
                            printer_id=self.printer_id, file_count=len(self.cached_files))
                 return self.cached_files
@@ -1635,12 +1641,12 @@ class BambuLabPrinter(BasePrinter):
                 f"http://{self.ip_address}/cache/{filename}",
                 f"http://{self.ip_address}/model/{filename}",
                 f"http://{self.ip_address}/files/{filename}",
-                f"http://{self.ip_address}:8080/cache/{filename}",
-                f"http://{self.ip_address}:8080/model/{filename}",
-                f"http://{self.ip_address}:8080/files/{filename}",
+                f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/cache/{filename}",
+                f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/model/{filename}",
+                f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/files/{filename}",
             ]
 
-            timeout = aiohttp.ClientTimeout(total=120)  # 2 minute timeout for large files
+            timeout = aiohttp.ClientTimeout(total=NetworkConstants.HTTP_DOWNLOAD_TIMEOUT_SECONDS)
 
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 for url in possible_urls:
@@ -1661,7 +1667,7 @@ class BambuLabPrinter(BasePrinter):
 
                                 downloaded_size = 0
                                 with open(local_path, 'wb') as f:
-                                    async for chunk in response.content.iter_chunked(8192):
+                                    async for chunk in response.content.iter_chunked(FileConstants.DOWNLOAD_CHUNK_SIZE_BYTES):
                                         f.write(chunk)
                                         downloaded_size += len(chunk)
 
@@ -1802,7 +1808,7 @@ class BambuLabPrinter(BasePrinter):
         try:
             # Bambu Lab A1 typically exposes camera at port 8080
             # Format: http://printer-ip:8080/stream or mjpeg stream
-            stream_url = f"http://{self.ip_address}:8080/stream"
+            stream_url = f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/stream"
             
             logger.debug("Generated camera stream URL", 
                         printer_id=self.printer_id, url=stream_url)
@@ -1822,14 +1828,14 @@ class BambuLabPrinter(BasePrinter):
             
         try:
             import aiohttp
-            
+
             # Bambu Lab snapshot endpoint
-            snapshot_url = f"http://{self.ip_address}:8080/snapshot"
-            
+            snapshot_url = f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/snapshot"
+
             logger.info("Taking snapshot from Bambu Lab printer",
                        printer_id=self.printer_id, url=snapshot_url)
-            
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=NetworkConstants.SNAPSHOT_TIMEOUT_SECONDS)) as session:
                 async with session.get(snapshot_url) as response:
                     if response.status == 200:
                         image_data = await response.read()
