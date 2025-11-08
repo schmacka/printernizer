@@ -116,6 +116,35 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Printernizer application", version=APP_VERSION)
     logger.info("=" * 60)
 
+    # Validate configuration before proceeding
+    timer.start("Settings validation")
+    logger.info("Validating application settings...")
+    from src.utils.config import validate_settings_on_startup, get_settings
+
+    validation_result = validate_settings_on_startup()
+
+    # Log validation results
+    if validation_result["info"]:
+        for info_msg in validation_result["info"]:
+            logger.info(info_msg)
+
+    if validation_result["warnings"]:
+        for warning_msg in validation_result["warnings"]:
+            logger.warning(warning_msg)
+
+    if not validation_result["valid"]:
+        logger.error("=" * 60)
+        logger.error("CONFIGURATION VALIDATION FAILED")
+        logger.error("=" * 60)
+        for error_msg in validation_result["errors"]:
+            logger.error(f"  ❌ {error_msg}")
+        logger.error("=" * 60)
+        logger.error("Please fix the configuration errors above and restart the application.")
+        sys.exit(1)
+
+    timer.end("Settings validation")
+    logger.info("[OK] Settings validation completed successfully")
+
     # Initialize database
     timer.start("Database initialization")
     logger.info("Initializing database...")
