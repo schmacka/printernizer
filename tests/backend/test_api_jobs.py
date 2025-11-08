@@ -8,17 +8,24 @@ import json
 from unittest.mock import patch, Mock
 from datetime import datetime, timedelta, timezone
 import sqlite3
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def client(test_app):
+    """Test client fixture using test_app from conftest."""
+    return TestClient(test_app)
 
 
 class TestJobAPI:
     """Test job management API endpoints"""
     
-    def test_get_jobs_empty_database(self, api_client, temp_database, test_config):
+    def test_get_jobs_empty_database(self, client, temp_database):
         """Test GET /api/v1/jobs with empty database"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value.execute.return_value.fetchall.return_value = []
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs")
+            response = client.get("/api/v1/jobs")
             
             assert response.status_code == 200
             data = response.json()
@@ -27,12 +34,12 @@ class TestJobAPI:
             assert data['active_jobs'] == 0
             assert 'pagination' in data
     
-    def test_get_jobs_with_data(self, api_client, populated_database, test_config):
+    def test_get_jobs_with_data(self, client, populated_database):
         """Test GET /api/v1/jobs with existing jobs"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs")
+            response = client.get("/api/v1/jobs")
             
             assert response.status_code == 200
             data = response.json()
@@ -51,36 +58,36 @@ class TestJobAPI:
             assert completed_job['quality_rating'] == 4
             assert completed_job['first_layer_adhesion'] == 'good'
     
-    def test_get_jobs_filter_by_status(self, api_client, populated_database, test_config):
+    def test_get_jobs_filter_by_status(self, client, populated_database):
         """Test GET /api/v1/jobs?status=printing"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs?status=printing")
+            response = client.get("/api/v1/jobs?status=printing")
             
             assert response.status_code == 200
             data = response.json()
             assert len(data['jobs']) == 1
             assert data['jobs'][0]['status'] == 'printing'
     
-    def test_get_jobs_filter_by_printer(self, api_client, populated_database, test_config):
+    def test_get_jobs_filter_by_printer(self, client, populated_database):
         """Test GET /api/v1/jobs?printer_id=bambu_a1_001"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs?printer_id=bambu_a1_001")
+            response = client.get("/api/v1/jobs?printer_id=bambu_a1_001")
             
             assert response.status_code == 200
             data = response.json()
             assert len(data['jobs']) == 1
             assert data['jobs'][0]['printer_id'] == 'bambu_a1_001'
     
-    def test_get_jobs_filter_by_business_type(self, api_client, populated_database, test_config):
+    def test_get_jobs_filter_by_business_type(self, client, populated_database):
         """Test GET /api/v1/jobs?is_business=true"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs?is_business=true")
+            response = client.get("/api/v1/jobs?is_business=true")
             
             assert response.status_code == 200
             data = response.json()
@@ -88,7 +95,7 @@ class TestJobAPI:
             assert data['jobs'][0]['is_business'] is True
             assert data['jobs'][0]['customer_name'] == 'Test Customer GmbH'
     
-    def test_get_jobs_date_range_filter(self, api_client, populated_database, test_config):
+    def test_get_jobs_date_range_filter(self, client, populated_database):
         """Test GET /api/v1/jobs with date range filtering"""
         today = datetime.now().strftime('%Y-%m-%d')
         yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -96,8 +103,8 @@ class TestJobAPI:
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(
-                f"{test_config['api_base_url']}/jobs?start_date={yesterday}&end_date={today}"
+            response = client.get(
+                "/jobs?start_date={yesterday}&end_date={today}"
             )
             
             assert response.status_code == 200
@@ -105,12 +112,12 @@ class TestJobAPI:
             # Should return jobs within date range
             assert isinstance(data['jobs'], list)
     
-    def test_get_jobs_pagination(self, api_client, populated_database, test_config):
+    def test_get_jobs_pagination(self, client, populated_database):
         """Test GET /api/v1/jobs with pagination"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs?page=1&limit=1")
+            response = client.get("/api/v1/jobs?page=1&limit=1")
             
             assert response.status_code == 200
             data = response.json()
@@ -119,7 +126,7 @@ class TestJobAPI:
             assert data['pagination']['total_pages'] == 2
             assert data['pagination']['has_next'] is True
     
-    def test_post_jobs_create_new_job(self, api_client, db_connection, test_config):
+    def test_post_jobs_create_new_job(self, client, db_connection):
         """Test POST /api/v1/jobs - Create new print job"""
         job_data = {
             'printer_id': 'bambu_a1_001',
@@ -143,8 +150,8 @@ class TestJobAPI:
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             
-            response = api_client.post(
-                f"{test_config['api_base_url']}/jobs",
+            response = client.post(
+                "/jobs",
                 json=job_data
             )
             
@@ -159,7 +166,7 @@ class TestJobAPI:
             expected_material_cost = job_data['material_estimated_usage'] * job_data['material_cost_per_gram']
             assert data['job']['material_cost'] == expected_material_cost
     
-    def test_post_jobs_validation_errors(self, api_client, test_config):
+    def test_post_jobs_validation_errors(self, client):
         """Test POST /api/v1/jobs with validation errors"""
         test_cases = [
             # Missing required fields
@@ -195,8 +202,8 @@ class TestJobAPI:
         ]
         
         for job_data, expected_status, expected_error in test_cases:
-            response = api_client.post(
-                f"{test_config['api_base_url']}/jobs",
+            response = client.post(
+                "/jobs",
                 json=job_data
             )
             
@@ -204,14 +211,14 @@ class TestJobAPI:
             if expected_status in [400, 404]:
                 assert expected_error in response.json()['error']['message']
     
-    def test_get_job_details(self, api_client, populated_database, test_config):
+    def test_get_job_details(self, client, populated_database):
         """Test GET /api/v1/jobs/{id} - Get specific job details"""
         job_id = 1  # From populated database
         
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs/{job_id}")
+            response = client.get("/api/v1/jobs/{job_id}")
             
             assert response.status_code == 200
             data = response.json()
@@ -236,14 +243,14 @@ class TestJobAPI:
             assert 'estimated_duration' in job
             assert 'created_at' in job
     
-    def test_get_job_details_not_found(self, api_client, test_config):
+    def test_get_job_details_not_found(self, client):
         """Test GET /api/v1/jobs/{id} for non-existent job"""
-        response = api_client.get(f"{test_config['api_base_url']}/jobs/99999")
+        response = client.get("/api/v1/jobs/99999")
         
         assert response.status_code == 404
         assert 'Job not found' in response.json()['error']['message']
     
-    def test_put_job_status_update(self, api_client, populated_database, test_config):
+    def test_put_job_status_update(self, client, populated_database):
         """Test PUT /api/v1/jobs/{id}/status - Update job status"""
         job_id = 1
         status_data = {
@@ -256,8 +263,8 @@ class TestJobAPI:
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.put(
-                f"{test_config['api_base_url']}/jobs/{job_id}/status",
+            response = client.put(
+                "/jobs/{job_id}/status",
                 json=status_data
             )
             
@@ -268,7 +275,7 @@ class TestJobAPI:
             assert data['job']['layer_current'] == 156
             assert data['job']['notes'] == 'Paused for material change'
     
-    def test_put_job_completion_with_quality_assessment(self, api_client, populated_database, test_config):
+    def test_put_job_completion_with_quality_assessment(self, client, populated_database):
         """Test PUT /api/v1/jobs/{id}/status - Mark job as completed with quality assessment"""
         job_id = 1
         completion_data = {
@@ -286,8 +293,8 @@ class TestJobAPI:
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.put(
-                f"{test_config['api_base_url']}/jobs/{job_id}/status",
+            response = client.put(
+                "/jobs/{job_id}/status",
                 json=completion_data
             )
             
@@ -302,7 +309,7 @@ class TestJobAPI:
             expected_actual_cost = completion_data['actual_material_usage'] * 0.05  # From fixtures
             assert abs(data['job']['material_cost'] - expected_actual_cost) < 0.01
     
-    def test_put_job_failure_handling(self, api_client, populated_database, test_config):
+    def test_put_job_failure_handling(self, client, populated_database):
         """Test PUT /api/v1/jobs/{id}/status - Handle job failure"""
         job_id = 1
         failure_data = {
@@ -318,8 +325,8 @@ class TestJobAPI:
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.put(
-                f"{test_config['api_base_url']}/jobs/{job_id}/status",
+            response = client.put(
+                "/jobs/{job_id}/status",
                 json=failure_data
             )
             
@@ -329,7 +336,7 @@ class TestJobAPI:
             assert data['job']['failure_reason'] == 'First layer adhesion failure'
             assert data['job']['quality_rating'] == 1
     
-    def test_put_job_status_invalid_transitions(self, api_client, test_config):
+    def test_put_job_status_invalid_transitions(self, client):
         """Test PUT /api/v1/jobs/{id}/status with invalid status transitions"""
         job_id = 2  # Completed job from fixtures
         
@@ -348,33 +355,33 @@ class TestJobAPI:
         ]
         
         for status_data, expected_error in test_cases:
-            response = api_client.put(
-                f"{test_config['api_base_url']}/jobs/{job_id}/status",
+            response = client.put(
+                "/jobs/{job_id}/status",
                 json=status_data
             )
             
             assert response.status_code == 400
             assert expected_error in response.json()['error']['message']
     
-    def test_delete_job(self, api_client, populated_database, test_config):
+    def test_delete_job(self, client, populated_database):
         """Test DELETE /api/v1/jobs/{id}"""
         job_id = 2  # Completed job can be deleted
         
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.delete(f"{test_config['api_base_url']}/jobs/{job_id}")
+            response = client.delete("/jobs/{job_id}")
             
             assert response.status_code == 204
     
-    def test_delete_active_job_forbidden(self, api_client, populated_database, test_config):
+    def test_delete_active_job_forbidden(self, client, populated_database):
         """Test DELETE /api/v1/jobs/{id} - Cannot delete active job"""
         job_id = 1  # Active printing job
         
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.delete(f"{test_config['api_base_url']}/jobs/{job_id}")
+            response = client.delete("/jobs/{job_id}")
             
             assert response.status_code == 409
             assert 'Cannot delete active job' in response.json()['error']['message']
@@ -484,7 +491,7 @@ class TestJobBusinessLogic:
 class TestJobAPIPerformance:
     """Test job API performance and scalability"""
     
-    def test_large_job_list_performance(self, api_client, db_connection, test_config):
+    def test_large_job_list_performance(self, client, db_connection):
         """Test API performance with large number of jobs"""
         cursor = db_connection.cursor()
         
@@ -509,7 +516,7 @@ class TestJobAPIPerformance:
         
         with patch('backend.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
-            response = api_client.get(f"{test_config['api_base_url']}/jobs")
+            response = client.get("/api/v1/jobs")
         
         end_time = time.time()
         request_time = end_time - start_time
@@ -521,7 +528,7 @@ class TestJobAPIPerformance:
         data = response.json()
         assert data['total_count'] >= 500
     
-    def test_job_filtering_performance(self, api_client, db_connection, test_config):
+    def test_job_filtering_performance(self, client, db_connection):
         """Test performance of job filtering operations"""
         # Test various filter combinations that should use database indexes
         filter_tests = [
@@ -535,7 +542,7 @@ class TestJobAPIPerformance:
         for filter_query in filter_tests:
             start_time = time.time()
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs{filter_query}")
+            response = client.get("/api/v1/jobs{filter_query}")
             
             end_time = time.time()
             request_time = end_time - start_time
@@ -543,7 +550,7 @@ class TestJobAPIPerformance:
             assert response.status_code == 200
             assert request_time < 1.0  # Each filtered query should be fast
     
-    def test_concurrent_job_updates(self, api_client, populated_database, test_config):
+    def test_concurrent_job_updates(self, client, populated_database):
         """Test concurrent job status updates"""
         import threading
         import time
@@ -552,8 +559,8 @@ class TestJobAPIPerformance:
         
         def update_job_status(job_id, status):
             try:
-                response = api_client.put(
-                    f"{test_config['api_base_url']}/jobs/{job_id}/status",
+                response = client.put(
+                    "/jobs/{job_id}/status",
                     json={'status': status, 'progress': 50.0}
                 )
                 results.append(response.status_code)
@@ -582,33 +589,33 @@ class TestJobAPIPerformance:
 class TestJobAPIErrorHandling:
     """Test error handling and edge cases for job API"""
     
-    def test_job_api_database_connection_error(self, api_client, test_config):
+    def test_job_api_database_connection_error(self, client):
         """Test job API behavior when database is unavailable"""
         with patch('backend.database.get_connection') as mock_db:
             mock_db.side_effect = sqlite3.OperationalError("database is locked")
             
-            response = api_client.get(f"{test_config['api_base_url']}/jobs")
+            response = client.get("/api/v1/jobs")
             
             assert response.status_code == 500
             error_data = response.json()
             assert 'Database error' in error_data['error']['message']
     
-    def test_job_creation_with_invalid_printer(self, api_client, test_config):
+    def test_job_creation_with_invalid_printer(self, client):
         """Test job creation with non-existent printer"""
         job_data = {
             'printer_id': 'non_existent_printer_123',
             'job_name': 'test.3mf'
         }
         
-        response = api_client.post(
-            f"{test_config['api_base_url']}/jobs",
+        response = client.post(
+            "/jobs",
             json=job_data
         )
         
         assert response.status_code == 404
         assert 'Printer not found' in response.json()['error']['message']
     
-    def test_job_update_race_condition_handling(self, api_client, populated_database, test_config):
+    def test_job_update_race_condition_handling(self, client, populated_database):
         """Test handling of race conditions in job updates"""
         job_id = 1
         
@@ -617,14 +624,14 @@ class TestJobAPIErrorHandling:
             mock_db.return_value = populated_database
             
             # First update
-            response1 = api_client.put(
-                f"{test_config['api_base_url']}/jobs/{job_id}/status",
+            response1 = client.put(
+                "/jobs/{job_id}/status",
                 json={'status': 'paused', 'progress': 30.0}
             )
             
             # Second update (simulating race condition)
-            response2 = api_client.put(
-                f"{test_config['api_base_url']}/jobs/{job_id}/status",
+            response2 = client.put(
+                "/jobs/{job_id}/status",
                 json={'status': 'printing', 'progress': 35.0}
             )
             
@@ -632,13 +639,13 @@ class TestJobAPIErrorHandling:
             assert response1.status_code in [200, 409]  # OK or Conflict
             assert response2.status_code in [200, 409]  # OK or Conflict
     
-    def test_job_deletion_safety_checks(self, api_client, populated_database, test_config):
+    def test_job_deletion_safety_checks(self, client, populated_database):
         """Test safety checks when deleting jobs"""
         # Try to delete job that doesn't exist
-        response = api_client.delete(f"{test_config['api_base_url']}/jobs/99999")
+        response = client.delete("/jobs/99999")
         assert response.status_code == 404
         
         # Try to delete active job (should be prevented)
         active_job_id = 1  # Printing job from fixtures
-        response = api_client.delete(f"{test_config['api_base_url']}/jobs/{active_job_id}")
+        response = client.delete("/jobs/{active_job_id}")
         assert response.status_code == 409
