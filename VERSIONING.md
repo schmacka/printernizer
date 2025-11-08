@@ -44,6 +44,7 @@ We follow **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
    - `get_short_version(fallback="1.5.X")`
 2. Create git tag: `git tag v1.5.X`
 3. Push tag: `git push origin v1.5.X`
+4. Create GitHub Release (see below)
 
 **For Home Assistant Add-on Changes:**
 1. Update `printernizer/config.yaml`:
@@ -53,6 +54,40 @@ We follow **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
 
 **For Changes Affecting Both:**
 - Update BOTH version numbers
+
+### Creating GitHub Releases
+
+GitHub Releases provide a user-friendly way to publish releases with release notes and allow the update-check endpoint to notify users of new versions.
+
+**Option 1: Automated Script (Recommended)**
+```bash
+# Create a single release
+./scripts/create-release.sh -v 2.4.0 -c HEAD --github
+
+# Create releases for all missing tags
+./scripts/create-missing-releases.sh
+```
+
+**Option 2: Using GitHub CLI**
+```bash
+# After creating and pushing a tag
+gh release create v2.4.0 \
+  --title "Release v2.4.0 - Feature Name" \
+  --notes "Description from CHANGELOG.md"
+```
+
+**Option 3: Manual via GitHub UI**
+1. Go to https://github.com/schmacka/printernizer/releases
+2. Click "Draft a new release"
+3. Select the tag from dropdown
+4. Add title and description from CHANGELOG.md
+5. Click "Publish release"
+
+**Benefits of GitHub Releases:**
+- Users can see release notes and download links
+- The `/api/v1/update-check` endpoint works properly
+- Notifications for watchers of the repository
+- Professional appearance for the project
 
 ### Step 1: Make Your Changes
 ```bash
@@ -235,10 +270,54 @@ git show v1.4.2
 3. Extracts `version` field from response
 4. Updates `<span id="appVersion">` in footer
 
+## Update Check Endpoint
+
+The `/api/v1/update-check` endpoint checks for new releases on GitHub and notifies users when updates are available.
+
+### How It Works
+
+1. Fetches the latest release from GitHub API: `https://api.github.com/repos/schmacka/printernizer/releases/latest`
+2. Compares the tag_name with the current application version
+3. Returns update availability status
+
+### Response Format
+
+```json
+{
+  "current_version": "2.3.0",
+  "latest_version": "2.4.0",
+  "update_available": true,
+  "release_url": "https://github.com/schmacka/printernizer/releases/tag/v2.4.0",
+  "check_failed": false,
+  "error_message": null
+}
+```
+
+### Error Handling
+
+- **404 (No Releases)**: Returns `check_failed: false` with message "No releases available yet"
+- **Network Timeout**: Returns `check_failed: true` with timeout error
+- **Other Errors**: Returns `check_failed: true` with error details
+
+### Requirements
+
+- GitHub Releases must be published (not just git tags)
+- Releases should follow semantic versioning (v2.3.0 format)
+- Release tag_name should match version format
+
+### Testing
+
+```bash
+# Check current update status
+curl http://localhost:8000/api/v1/update-check
+
+# Or use frontend - version indicator shows update status
+```
+
 ## Future Enhancements
 
 Potential improvements:
 - [ ] Pre-commit hook to remind about version tags
 - [ ] Automated changelog generation from git tags
-- [ ] Version comparison in frontend (notify about updates)
-- [ ] CI/CD integration for automatic tagging
+- [ ] CI/CD integration for automatic tagging and release creation
+- [ ] Automated GitHub Release creation in CI/CD pipeline
