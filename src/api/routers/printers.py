@@ -13,6 +13,12 @@ import structlog
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
 from src.utils.dependencies import get_printer_service
+from src.utils.errors import (
+    PrinterNotFoundError,
+    PrinterConnectionError,
+    ServiceUnavailableError,
+    success_response
+)
 
 # Optional: Discovery service requires netifaces which may not be available on Windows
 DISCOVERY_AVAILABLE = False
@@ -139,15 +145,9 @@ async def list_printers(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """List all configured printers."""
-    try:
-        printers = await printer_service.list_printers()
-        return [_printer_to_response(printer, printer_service) for printer in printers]
-    except Exception as e:
-        logger.error("Failed to list printers", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve printers"
-        )
+    # Global exception handler will catch any unexpected errors
+    printers = await printer_service.list_printers()
+    return [_printer_to_response(printer, printer_service) for printer in printers]
 
 
 @router.get("/discover")
@@ -169,55 +169,46 @@ async def discover_printers(
     Note: May require host networking mode in Docker/Home Assistant environments.
     Subnet scanning may take longer (20-30 seconds) but is more reliable for Prusa printers.
     """
-    try:
-        # Check if discovery is available
-        if not DISCOVERY_AVAILABLE:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Printer discovery unavailable (netifaces not installed)"
-            )
-
-        # Check if discovery is enabled
-        discovery_enabled = os.getenv("DISCOVERY_ENABLED", "true").lower() == "true"
-        if not discovery_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Printer discovery is disabled"
-            )
-
-        # Get timeout from config if not provided
-        if timeout is None:
-            timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
-
-        # Create discovery service
-        discovery_service = DiscoveryService(timeout=timeout)
-
-        # Get list of configured printer IPs for duplicate detection
-        printers = await printer_service.list_printers()
-        configured_ips = [p.ip_address for p in printers if p.ip_address]
-
-        # Run discovery
-        logger.info("Starting printer discovery", interface=interface, timeout=timeout, scan_subnet=scan_subnet)
-        results = await discovery_service.discover_all(
-            interface=interface,
-            configured_ips=configured_ips,
-            scan_subnet=scan_subnet
+    # Check if discovery is available
+    if not DISCOVERY_AVAILABLE:
+        raise ServiceUnavailableError(
+            service="Printer Discovery",
+            reason="netifaces library not installed"
         )
 
-        logger.info("Printer discovery completed",
-                   discovered_count=len(results['discovered']),
-                   duration_ms=results['scan_duration_ms'])
-
-        return results
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Printer discovery failed", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Printer discovery failed: {str(e)}"
+    # Check if discovery is enabled
+    discovery_enabled = os.getenv("DISCOVERY_ENABLED", "true").lower() == "true"
+    if not discovery_enabled:
+        raise ServiceUnavailableError(
+            service="Printer Discovery",
+            reason="discovery is disabled in configuration"
         )
+
+    # Get timeout from config if not provided
+    if timeout is None:
+        timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
+
+    # Create discovery service
+    discovery_service = DiscoveryService(timeout=timeout)
+
+    # Get list of configured printer IPs for duplicate detection
+    printers = await printer_service.list_printers()
+    configured_ips = [p.ip_address for p in printers if p.ip_address]
+
+    # Run discovery
+    logger.info("Starting printer discovery", interface=interface, timeout=timeout, scan_subnet=scan_subnet)
+    results = await discovery_service.discover_all(
+        interface=interface,
+        configured_ips=configured_ips,
+        scan_subnet=scan_subnet
+    )
+
+    logger.info("Printer discovery completed",
+               discovered_count=len(results['discovered']),
+               duration_ms=results['scan_duration_ms'])
+
+    # Global exception handler will catch any unexpected errors
+    return results
 
 
 @router.get("/discover/interfaces")
@@ -353,22 +344,10 @@ async def get_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Get printer details by ID."""
-    try:
-        printer = await printer_service.get_printer(printer_id)
-        if not printer:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Printer not found"
-            )
-        return _printer_to_response(printer, printer_service)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve printer"
-        )
+    printer = await printer_service.get_printer(printer_id)
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
+    return _printer_to_response(printer, printer_service)
 
 
 @router.put("/{printer_id}", response_model=PrinterResponse)
@@ -378,27 +357,11 @@ async def update_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Update printer configuration."""
-    try:
-        printer = await printer_service.update_printer(printer_id, **printer_data.model_dump(exclude_unset=True))
-        if not printer:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Printer not found"
-            )
-        return _printer_to_response(printer, printer_service)
-    except HTTPException:
-        raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error("Failed to update printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update printer"
-        )
+    # ValueError will be caught by global handler and converted to 400
+    printer = await printer_service.update_printer(printer_id, **printer_data.model_dump(exclude_unset=True))
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
+    return _printer_to_response(printer, printer_service)
 
 
 @router.delete("/{printer_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -407,21 +370,9 @@ async def delete_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Delete a printer configuration."""
-    try:
-        success = await printer_service.delete_printer(printer_id)
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Printer not found"
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to delete printer", printer_id=printer_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete printer"
-        )
+    success = await printer_service.delete_printer(printer_id)
+    if not success:
+        raise PrinterNotFoundError(printer_id)
 
 
 @router.post("/{printer_id}/connect")
