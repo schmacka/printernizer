@@ -9,6 +9,14 @@ from pydantic import BaseModel, Field
 import structlog
 import asyncio
 
+from src.utils.errors import (
+    LibraryItemNotFoundError,
+    ServiceUnavailableError,
+    FileProcessingError,
+    ValidationError as PrinternizerValidationError,
+    success_response
+)
+
 logger = structlog.get_logger()
 
 # Create router
@@ -135,7 +143,7 @@ async def get_library_service():
     """Get library service from application state."""
     from src.main import app
     if not hasattr(app.state, 'library_service'):
-        raise HTTPException(status_code=503, detail="Library service not available")
+        raise ServiceUnavailableError("Library service not available")
     return app.state.library_service
 
 
@@ -182,45 +190,40 @@ async def list_library_files(
     - `files`: Array of file objects
     - `pagination`: Pagination metadata (page, limit, total_items, total_pages)
     """
-    try:
-        # Build filters
-        filters = {}
-        if source_type:
-            filters['source_type'] = source_type
-        if file_type:
-            filters['file_type'] = file_type
-        if status:
-            filters['status'] = status
-        if search:
-            filters['search'] = search
-        if has_thumbnail is not None:
-            filters['has_thumbnail'] = has_thumbnail
-        if has_metadata is not None:
-            filters['has_metadata'] = has_metadata
-        if manufacturer:
-            filters['manufacturer'] = manufacturer
-        if printer_model:
-            filters['printer_model'] = printer_model
-        if show_duplicates is not None:
-            filters['show_duplicates'] = show_duplicates
-        if only_duplicates is not None:
-            filters['only_duplicates'] = only_duplicates
-        if sort_by:
-            filters['sort_by'] = sort_by
-        if sort_order:
-            filters['sort_order'] = sort_order
+    # Build filters
+    filters = {}
+    if source_type:
+        filters['source_type'] = source_type
+    if file_type:
+        filters['file_type'] = file_type
+    if status:
+        filters['status'] = status
+    if search:
+        filters['search'] = search
+    if has_thumbnail is not None:
+        filters['has_thumbnail'] = has_thumbnail
+    if has_metadata is not None:
+        filters['has_metadata'] = has_metadata
+    if manufacturer:
+        filters['manufacturer'] = manufacturer
+    if printer_model:
+        filters['printer_model'] = printer_model
+    if show_duplicates is not None:
+        filters['show_duplicates'] = show_duplicates
+    if only_duplicates is not None:
+        filters['only_duplicates'] = only_duplicates
+    if sort_by:
+        filters['sort_by'] = sort_by
+    if sort_order:
+        filters['sort_order'] = sort_order
 
-        # Get files from library service
-        files, pagination = await library_service.list_files(filters, page, limit)
+    # Get files from library service
+    files, pagination = await library_service.list_files(filters, page, limit)
 
-        return {
-            'files': files,
-            'pagination': pagination
-        }
-
-    except Exception as e:
-        logger.error("Failed to list library files", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to list files: {str(e)}")
+    return {
+        'files': files,
+        'pagination': pagination
+    }
 
 
 @router.get("/files/{checksum}", response_model=LibraryFileResponse)
@@ -243,22 +246,12 @@ async def get_library_file(
     - `404`: File not found in library
     - `500`: Internal server error
     """
-    try:
-        file_record = await library_service.get_file_by_checksum(checksum)
+    file_record = await library_service.get_file_by_checksum(checksum)
 
-        if not file_record:
-            raise HTTPException(
-                status_code=404,
-                detail=f"File with checksum '{checksum[:16]}...' not found in library"
-            )
+    if not file_record:
+        raise LibraryItemNotFoundError(checksum)
 
-        return file_record
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get library file", checksum=checksum[:16], error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to get file: {str(e)}")
+    return file_record
 
 
 @router.post("/files/{checksum}/reprocess", response_model=ReprocessResponse)
@@ -292,35 +285,26 @@ async def reprocess_library_file(
     - `404`: File not found
     - `500`: Failed to schedule reprocessing
     """
-    try:
-        # Check file exists
-        file_record = await library_service.get_file_by_checksum(checksum)
-        if not file_record:
-            raise HTTPException(
-                status_code=404,
-                detail=f"File with checksum '{checksum[:16]}...' not found"
-            )
+    # Check file exists
+    file_record = await library_service.get_file_by_checksum(checksum)
+    if not file_record:
+        raise LibraryItemNotFoundError(checksum)
 
-        # Schedule reprocessing
-        success = await library_service.reprocess_file(checksum)
+    # Schedule reprocessing
+    success = await library_service.reprocess_file(checksum)
 
-        if not success:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to schedule file reprocessing"
-            )
+    if not success:
+        raise FileProcessingError(
+            filename=checksum,
+            operation="reprocess",
+            reason="Failed to schedule file reprocessing"
+        )
 
-        return {
-            'success': True,
-            'checksum': checksum,
-            'message': 'Metadata extraction scheduled'
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to reprocess file", checksum=checksum[:16], error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to reprocess: {str(e)}")
+    return success_response({
+        'success': True,
+        'checksum': checksum,
+        'message': 'Metadata extraction scheduled'
+    })
 
 
 @router.delete("/files/{checksum}", response_model=DeleteResponse)
@@ -353,35 +337,26 @@ async def delete_library_file(
     - `404`: File not found
     - `500`: Deletion failed
     """
-    try:
-        # Check file exists
-        file_record = await library_service.get_file_by_checksum(checksum)
-        if not file_record:
-            raise HTTPException(
-                status_code=404,
-                detail=f"File with checksum '{checksum[:16]}...' not found"
-            )
+    # Check file exists
+    file_record = await library_service.get_file_by_checksum(checksum)
+    if not file_record:
+        raise LibraryItemNotFoundError(checksum)
 
-        # Delete file
-        success = await library_service.delete_file(checksum, delete_physical=delete_physical)
+    # Delete file
+    success = await library_service.delete_file(checksum, delete_physical=delete_physical)
 
-        if not success:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to delete file from library"
-            )
+    if not success:
+        raise FileProcessingError(
+            filename=checksum,
+            operation="delete",
+            reason="Failed to delete file from library"
+        )
 
-        return {
-            'success': True,
-            'checksum': checksum,
-            'message': 'File deleted successfully' if delete_physical else 'File record deleted (physical file preserved)'
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to delete file", checksum=checksum[:16], error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
+    return success_response({
+        'success': True,
+        'checksum': checksum,
+        'message': 'File deleted successfully' if delete_physical else 'File record deleted (physical file preserved)'
+    })
 
 
 @router.get("/statistics", response_model=LibraryStatsResponse)
@@ -408,26 +383,21 @@ async def get_library_statistics(
     - Storage management
     - Library health monitoring
     """
-    try:
-        stats = await library_service.get_library_statistics()
+    stats = await library_service.get_library_statistics()
 
-        # Convert to response model (handle missing fields)
-        return LibraryStatsResponse(
-            total_files=stats.get('total_files', 0),
-            total_size=stats.get('total_size', 0),
-            files_with_thumbnails=stats.get('files_with_thumbnails', 0),
-            files_analyzed=stats.get('files_analyzed', 0),
-            available_files=stats.get('available_files', 0),
-            processing_files=stats.get('processing_files', 0),
-            error_files=stats.get('error_files', 0),
-            unique_file_types=stats.get('unique_file_types', 0),
-            avg_file_size=stats.get('avg_file_size', 0),
-            total_material_cost=stats.get('total_material_cost', 0)
-        )
-
-    except Exception as e:
-        logger.error("Failed to get library statistics", error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+    # Convert to response model (handle missing fields)
+    return LibraryStatsResponse(
+        total_files=stats.get('total_files', 0),
+        total_size=stats.get('total_size', 0),
+        files_with_thumbnails=stats.get('files_with_thumbnails', 0),
+        files_analyzed=stats.get('files_analyzed', 0),
+        available_files=stats.get('available_files', 0),
+        processing_files=stats.get('processing_files', 0),
+        error_files=stats.get('error_files', 0),
+        unique_file_types=stats.get('unique_file_types', 0),
+        avg_file_size=stats.get('avg_file_size', 0),
+        total_material_cost=stats.get('total_material_cost', 0)
+    )
 
 
 @router.get("/health")
@@ -523,158 +493,149 @@ async def get_library_file_metadata(
     - `404`: File not found
     - `500`: Error retrieving metadata
     """
-    try:
-        logger.info("Getting library file metadata", checksum=checksum[:16], force_refresh=force_refresh)
+    logger.info("Getting library file metadata", checksum=checksum[:16], force_refresh=force_refresh)
 
-        # Get file record
+    # Get file record
+    file_record = await library_service.get_file_by_checksum(checksum)
+    if not file_record:
+        raise LibraryItemNotFoundError(checksum)
+
+    # Force re-extraction if requested
+    if force_refresh:
+        logger.info("Forcing metadata re-extraction", checksum=checksum[:16])
+        await library_service.reprocess_file(checksum)
+        # Wait a moment for processing to start
+        import asyncio
+        await asyncio.sleep(0.5)
+        # Get updated record
         file_record = await library_service.get_file_by_checksum(checksum)
-        if not file_record:
-            raise HTTPException(status_code=404, detail=f"File not found with checksum {checksum[:16]}")
 
-        # Force re-extraction if requested
-        if force_refresh:
-            logger.info("Forcing metadata re-extraction", checksum=checksum[:16])
-            await library_service.reprocess_file(checksum)
-            # Wait a moment for processing to start
-            import asyncio
-            await asyncio.sleep(0.5)
-            # Get updated record
-            file_record = await library_service.get_file_by_checksum(checksum)
+    # Build structured metadata response
+    response = {
+        'has_metadata': file_record.get('last_analyzed') is not None,
+        'last_analyzed': file_record.get('last_analyzed')
+    }
 
-        # Build structured metadata response
-        response = {
-            'has_metadata': file_record.get('last_analyzed') is not None,
-            'last_analyzed': file_record.get('last_analyzed')
+    # Physical properties
+    physical_props = {}
+    if file_record.get('model_width'):
+        physical_props['width_mm'] = file_record['model_width']
+    if file_record.get('model_depth'):
+        physical_props['depth_mm'] = file_record['model_depth']
+    if file_record.get('model_height'):
+        physical_props['height_mm'] = file_record['model_height']
+    if file_record.get('model_volume'):
+        physical_props['volume_cm3'] = file_record['model_volume']
+    if file_record.get('surface_area'):
+        physical_props['surface_area_cm2'] = file_record['surface_area']
+    if file_record.get('object_count'):
+        physical_props['object_count'] = file_record['object_count']
+    if physical_props:
+        response['physical_properties'] = physical_props
+
+    # Print settings
+    print_settings = {}
+    if file_record.get('layer_height'):
+        print_settings['layer_height_mm'] = file_record['layer_height']
+    if file_record.get('first_layer_height'):
+        print_settings['first_layer_height_mm'] = file_record['first_layer_height']
+    if file_record.get('nozzle_diameter'):
+        print_settings['nozzle_diameter_mm'] = file_record['nozzle_diameter']
+    if file_record.get('wall_count'):
+        print_settings['wall_count'] = file_record['wall_count']
+    if file_record.get('infill_density'):
+        print_settings['infill_density_percent'] = file_record['infill_density']
+    if file_record.get('infill_pattern'):
+        print_settings['infill_pattern'] = file_record['infill_pattern']
+    if file_record.get('support_used') is not None:
+        print_settings['supports_used'] = bool(file_record['support_used'])
+    if file_record.get('nozzle_temperature'):
+        print_settings['nozzle_temperature_c'] = file_record['nozzle_temperature']
+    if file_record.get('bed_temperature'):
+        print_settings['bed_temperature_c'] = file_record['bed_temperature']
+    if file_record.get('print_speed'):
+        print_settings['print_speed_mm_s'] = file_record['print_speed']
+    if file_record.get('total_layer_count'):
+        print_settings['layer_count'] = file_record['total_layer_count']
+    if print_settings:
+        response['print_settings'] = print_settings
+
+    # Material requirements
+    material_reqs = {}
+    if file_record.get('total_filament_weight'):
+        material_reqs['filament_weight_g'] = file_record['total_filament_weight']
+    if file_record.get('filament_length'):
+        material_reqs['filament_length_m'] = file_record['filament_length']
+    if file_record.get('material_types'):
+        import json
+        try:
+            material_reqs['material_types'] = json.loads(file_record['material_types'])
+        except:
+            material_reqs['material_types'] = [file_record['material_types']]
+    if file_record.get('multi_material'):
+        material_reqs['multi_material'] = bool(file_record['multi_material'])
+    if material_reqs:
+        response['material_requirements'] = material_reqs
+
+    # Cost analysis
+    cost_analysis = {}
+    if file_record.get('material_cost'):
+        cost_analysis['material_cost'] = file_record['material_cost']
+    if file_record.get('energy_cost'):
+        cost_analysis['energy_cost'] = file_record['energy_cost']
+    if file_record.get('total_cost'):
+        cost_analysis['total_cost'] = file_record['total_cost']
+    if cost_analysis:
+        response['cost_analysis'] = cost_analysis
+
+    # Quality metrics
+    quality_metrics = {}
+    if file_record.get('complexity_score'):
+        quality_metrics['complexity_score'] = file_record['complexity_score']
+    if file_record.get('difficulty_level'):
+        quality_metrics['difficulty_level'] = file_record['difficulty_level']
+    if file_record.get('success_probability'):
+        quality_metrics['success_probability'] = file_record['success_probability']
+    if file_record.get('overhang_percentage'):
+        quality_metrics['overhang_percentage'] = file_record['overhang_percentage']
+    if quality_metrics:
+        response['quality_metrics'] = quality_metrics
+
+    # Compatibility
+    compatibility = {}
+    if file_record.get('compatible_printers'):
+        import json
+        try:
+            compatibility['compatible_printers'] = json.loads(file_record['compatible_printers'])
+        except:
+            compatibility['compatible_printers'] = [file_record['compatible_printers']]
+    if file_record.get('slicer_name'):
+        compatibility['slicer_name'] = file_record['slicer_name']
+    if file_record.get('slicer_version'):
+        compatibility['slicer_version'] = file_record['slicer_version']
+    if file_record.get('profile_name'):
+        compatibility['profile_name'] = file_record['profile_name']
+    if file_record.get('bed_type'):
+        compatibility['bed_type'] = file_record['bed_type']
+    if compatibility:
+        response['compatibility'] = compatibility
+
+    # Thumbnail
+    if file_record.get('has_thumbnail'):
+        thumbnail = {
+            'has_thumbnail': True,
+            'width': file_record.get('thumbnail_width'),
+            'height': file_record.get('thumbnail_height'),
+            'format': file_record.get('thumbnail_format', 'png'),
+            'data': file_record.get('thumbnail_data')  # Base64 encoded
         }
+        response['thumbnail'] = thumbnail
 
-        # Physical properties
-        physical_props = {}
-        if file_record.get('model_width'):
-            physical_props['width_mm'] = file_record['model_width']
-        if file_record.get('model_depth'):
-            physical_props['depth_mm'] = file_record['model_depth']
-        if file_record.get('model_height'):
-            physical_props['height_mm'] = file_record['model_height']
-        if file_record.get('model_volume'):
-            physical_props['volume_cm3'] = file_record['model_volume']
-        if file_record.get('surface_area'):
-            physical_props['surface_area_cm2'] = file_record['surface_area']
-        if file_record.get('object_count'):
-            physical_props['object_count'] = file_record['object_count']
-        if physical_props:
-            response['physical_properties'] = physical_props
+    logger.info("Metadata retrieved successfully",
+               checksum=checksum[:16],
+               has_metadata=response['has_metadata'])
 
-        # Print settings
-        print_settings = {}
-        if file_record.get('layer_height'):
-            print_settings['layer_height_mm'] = file_record['layer_height']
-        if file_record.get('first_layer_height'):
-            print_settings['first_layer_height_mm'] = file_record['first_layer_height']
-        if file_record.get('nozzle_diameter'):
-            print_settings['nozzle_diameter_mm'] = file_record['nozzle_diameter']
-        if file_record.get('wall_count'):
-            print_settings['wall_count'] = file_record['wall_count']
-        if file_record.get('infill_density'):
-            print_settings['infill_density_percent'] = file_record['infill_density']
-        if file_record.get('infill_pattern'):
-            print_settings['infill_pattern'] = file_record['infill_pattern']
-        if file_record.get('support_used') is not None:
-            print_settings['supports_used'] = bool(file_record['support_used'])
-        if file_record.get('nozzle_temperature'):
-            print_settings['nozzle_temperature_c'] = file_record['nozzle_temperature']
-        if file_record.get('bed_temperature'):
-            print_settings['bed_temperature_c'] = file_record['bed_temperature']
-        if file_record.get('print_speed'):
-            print_settings['print_speed_mm_s'] = file_record['print_speed']
-        if file_record.get('total_layer_count'):
-            print_settings['layer_count'] = file_record['total_layer_count']
-        if print_settings:
-            response['print_settings'] = print_settings
-
-        # Material requirements
-        material_reqs = {}
-        if file_record.get('total_filament_weight'):
-            material_reqs['filament_weight_g'] = file_record['total_filament_weight']
-        if file_record.get('filament_length'):
-            material_reqs['filament_length_m'] = file_record['filament_length']
-        if file_record.get('material_types'):
-            import json
-            try:
-                material_reqs['material_types'] = json.loads(file_record['material_types'])
-            except:
-                material_reqs['material_types'] = [file_record['material_types']]
-        if file_record.get('multi_material'):
-            material_reqs['multi_material'] = bool(file_record['multi_material'])
-        if material_reqs:
-            response['material_requirements'] = material_reqs
-
-        # Cost analysis
-        cost_analysis = {}
-        if file_record.get('material_cost'):
-            cost_analysis['material_cost'] = file_record['material_cost']
-        if file_record.get('energy_cost'):
-            cost_analysis['energy_cost'] = file_record['energy_cost']
-        if file_record.get('total_cost'):
-            cost_analysis['total_cost'] = file_record['total_cost']
-        if cost_analysis:
-            response['cost_analysis'] = cost_analysis
-
-        # Quality metrics
-        quality_metrics = {}
-        if file_record.get('complexity_score'):
-            quality_metrics['complexity_score'] = file_record['complexity_score']
-        if file_record.get('difficulty_level'):
-            quality_metrics['difficulty_level'] = file_record['difficulty_level']
-        if file_record.get('success_probability'):
-            quality_metrics['success_probability'] = file_record['success_probability']
-        if file_record.get('overhang_percentage'):
-            quality_metrics['overhang_percentage'] = file_record['overhang_percentage']
-        if quality_metrics:
-            response['quality_metrics'] = quality_metrics
-
-        # Compatibility
-        compatibility = {}
-        if file_record.get('compatible_printers'):
-            import json
-            try:
-                compatibility['compatible_printers'] = json.loads(file_record['compatible_printers'])
-            except:
-                compatibility['compatible_printers'] = [file_record['compatible_printers']]
-        if file_record.get('slicer_name'):
-            compatibility['slicer_name'] = file_record['slicer_name']
-        if file_record.get('slicer_version'):
-            compatibility['slicer_version'] = file_record['slicer_version']
-        if file_record.get('profile_name'):
-            compatibility['profile_name'] = file_record['profile_name']
-        if file_record.get('bed_type'):
-            compatibility['bed_type'] = file_record['bed_type']
-        if compatibility:
-            response['compatibility'] = compatibility
-
-        # Thumbnail
-        if file_record.get('has_thumbnail'):
-            thumbnail = {
-                'has_thumbnail': True,
-                'width': file_record.get('thumbnail_width'),
-                'height': file_record.get('thumbnail_height'),
-                'format': file_record.get('thumbnail_format', 'png'),
-                'data': file_record.get('thumbnail_data')  # Base64 encoded
-            }
-            response['thumbnail'] = thumbnail
-
-        logger.info("Metadata retrieved successfully",
-                   checksum=checksum[:16],
-                   has_metadata=response['has_metadata'])
-
-        return response
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get library file metadata",
-                    checksum=checksum[:16],
-                    error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve metadata: {str(e)}")
+    return response
 
 
 @router.get("/files/{checksum}/thumbnail")
@@ -702,52 +663,41 @@ async def get_library_file_thumbnail(
     from fastapi.responses import Response
     import base64
 
+    # Get file record
+    file_record = await library_service.get_file_by_checksum(checksum)
+    if not file_record:
+        raise LibraryItemNotFoundError(checksum)
+
+    # Check if thumbnail exists
+    if not file_record.get('has_thumbnail') or not file_record.get('thumbnail_data'):
+        raise LibraryItemNotFoundError(checksum, details={"reason": "no_thumbnail"})
+
+    # Decode base64 thumbnail data
     try:
-        # Get file record
-        file_record = await library_service.get_file_by_checksum(checksum)
-        if not file_record:
-            raise HTTPException(status_code=404, detail=f"File not found with checksum {checksum[:16]}")
+        thumbnail_base64 = file_record['thumbnail_data']
+        # Remove data URL prefix if present
+        if ',' in thumbnail_base64:
+            thumbnail_base64 = thumbnail_base64.split(',', 1)[1]
 
-        # Check if thumbnail exists
-        if not file_record.get('has_thumbnail') or not file_record.get('thumbnail_data'):
-            raise HTTPException(
-                status_code=404,
-                detail="No thumbnail available for this file"
-            )
+        thumbnail_bytes = base64.b64decode(thumbnail_base64)
 
-        # Decode base64 thumbnail data
-        try:
-            thumbnail_base64 = file_record['thumbnail_data']
-            # Remove data URL prefix if present
-            if ',' in thumbnail_base64:
-                thumbnail_base64 = thumbnail_base64.split(',', 1)[1]
-
-            thumbnail_bytes = base64.b64decode(thumbnail_base64)
-
-            return Response(
-                content=thumbnail_bytes,
-                media_type="image/png",
-                headers={
-                    "Cache-Control": "public, max-age=3600",
-                    "Content-Disposition": f"inline; filename=\"{checksum[:16]}_thumbnail.png\""
-                }
-            )
-        except Exception as e:
-            logger.error("Failed to decode thumbnail data",
-                        checksum=checksum[:16],
-                        error=str(e))
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to decode thumbnail data"
-            )
-
-    except HTTPException:
-        raise
+        return Response(
+            content=thumbnail_bytes,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "Content-Disposition": f"inline; filename=\"{checksum[:16]}_thumbnail.png\""
+            }
+        )
     except Exception as e:
-        logger.error("Failed to get library file thumbnail",
+        logger.error("Failed to decode thumbnail data",
                     checksum=checksum[:16],
                     error=str(e))
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve thumbnail: {str(e)}")
+        raise FileProcessingError(
+            filename=checksum,
+            operation="decode_thumbnail",
+            reason="Failed to decode thumbnail data"
+        )
 
 
 @router.post("/reanalyze-all")
@@ -787,75 +737,67 @@ async def bulk_reanalyze_library(
     POST /library/reanalyze-all?file_type=.3mf&limit=100
     ```
     """
-    try:
-        logger.info("Starting bulk re-analysis", file_type=file_type, limit=limit)
+    logger.info("Starting bulk re-analysis", file_type=file_type, limit=limit)
 
-        # Build filters for files to reanalyze
-        filters = {}
-        if file_type:
-            filters['file_type'] = file_type
+    # Build filters for files to reanalyze
+    filters = {}
+    if file_type:
+        filters['file_type'] = file_type
 
-        # Get files to reanalyze
-        files, pagination = await library_service.list_files(
-            filters=filters,
-            page=1,
-            limit=limit or 10000  # Default to processing up to 10000 files
-        )
+    # Get files to reanalyze
+    files, pagination = await library_service.list_files(
+        filters=filters,
+        page=1,
+        limit=limit or 10000  # Default to processing up to 10000 files
+    )
 
-        files_to_process = []
-        file_types_set = set()
+    files_to_process = []
+    file_types_set = set()
 
-        # Filter to only files that can have metadata extracted
-        for file in files:
-            ft = file.get('file_type', '').lower()
-            if ft in ['.3mf', '.gcode', '.bgcode']:
-                files_to_process.append(file)
-                file_types_set.add(ft)
+    # Filter to only files that can have metadata extracted
+    for file in files:
+        ft = file.get('file_type', '').lower()
+        if ft in ['.3mf', '.gcode', '.bgcode']:
+            files_to_process.append(file)
+            file_types_set.add(ft)
 
-        logger.info("Files found for re-analysis",
-                   total_files=len(files),
-                   processable_files=len(files_to_process),
-                   file_types=list(file_types_set))
+    logger.info("Files found for re-analysis",
+               total_files=len(files),
+               processable_files=len(files_to_process),
+               file_types=list(file_types_set))
 
-        if not files_to_process:
-            return {
-                'success': True,
-                'files_scheduled': 0,
-                'file_types_included': [],
-                'message': 'No files found matching criteria or no files support metadata extraction'
-            }
-
-        # Schedule re-analysis for each file (fire and forget - don't await)
-        scheduled_count = 0
-        tasks = []
-        for file in files_to_process:
-            try:
-                # Create task without awaiting to schedule all files quickly
-                task = library_service.reprocess_file(file['checksum'])
-                tasks.append(task)
-            except Exception as e:
-                logger.warning("Failed to create reprocessing task",
-                             checksum=file['checksum'][:16],
-                             error=str(e))
-
-        # Await all scheduling tasks in parallel
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        scheduled_count = sum(1 for r in results if r is True)
-
-        logger.info("Bulk re-analysis scheduled",
-                   files_scheduled=scheduled_count,
-                   file_types=list(file_types_set))
-
-        return {
+    if not files_to_process:
+        return success_response({
             'success': True,
-            'files_scheduled': scheduled_count,
-            'file_types_included': list(file_types_set),
-            'message': f'Scheduled {scheduled_count} files for metadata re-extraction. Processing will happen in the background.'
-        }
+            'files_scheduled': 0,
+            'file_types_included': [],
+            'message': 'No files found matching criteria or no files support metadata extraction'
+        })
 
-    except Exception as e:
-        logger.error("Bulk re-analysis failed", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to start bulk re-analysis: {str(e)}"
-        )
+    # Schedule re-analysis for each file (fire and forget - don't await)
+    scheduled_count = 0
+    tasks = []
+    for file in files_to_process:
+        try:
+            # Create task without awaiting to schedule all files quickly
+            task = library_service.reprocess_file(file['checksum'])
+            tasks.append(task)
+        except Exception as e:
+            logger.warning("Failed to create reprocessing task",
+                         checksum=file['checksum'][:16],
+                         error=str(e))
+
+    # Await all scheduling tasks in parallel
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    scheduled_count = sum(1 for r in results if r is True)
+
+    logger.info("Bulk re-analysis scheduled",
+               files_scheduled=scheduled_count,
+               file_types=list(file_types_set))
+
+    return success_response({
+        'success': True,
+        'files_scheduled': scheduled_count,
+        'file_types_included': list(file_types_set),
+        'message': f'Scheduled {scheduled_count} files for metadata re-extraction. Processing will happen in the background.'
+    })
