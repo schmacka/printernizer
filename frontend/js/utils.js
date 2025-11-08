@@ -827,6 +827,9 @@ async function loadAppVersion() {
             // Store version globally
             window.printernizer = window.printernizer || {};
             window.printernizer.version = version;
+
+            // Check for updates
+            checkForUpdates(version);
         } else {
             console.error('[Version] Health endpoint returned non-OK status:', response.status);
             versionElement.textContent = 'error';
@@ -834,6 +837,67 @@ async function loadAppVersion() {
     } catch (error) {
         console.error('[Version] Failed to load version:', error);
         versionElement.textContent = 'error';
+    }
+}
+
+/**
+ * Check for available updates from GitHub
+ */
+async function checkForUpdates(currentVersion) {
+    console.log('[Update Check] Checking for updates...');
+
+    const updateStatusElement = document.getElementById('updateStatus');
+    if (!updateStatusElement) {
+        console.error('[Update Check] updateStatus element not found');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/update-check`, {
+            cache: 'no-cache'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('[Update Check] Update check data:', data);
+
+            if (data.check_failed) {
+                console.warn('[Update Check] Update check failed:', data.error_message);
+                // Don't show anything if check failed
+                updateStatusElement.textContent = '';
+                return;
+            }
+
+            if (data.update_available) {
+                console.log('[Update Check] Update available:', data.latest_version);
+                updateStatusElement.innerHTML = `<a href="${data.release_url || 'https://github.com/schmacka/printernizer/releases/latest'}" target="_blank" title="Update available: v${data.latest_version}">Update available</a>`;
+                updateStatusElement.className = 'update-status outdated';
+
+                // Show a notification
+                showToast(
+                    `New version available: v${data.latest_version}`,
+                    'info',
+                    {
+                        duration: 10000,
+                        action: {
+                            label: 'View Release',
+                            callback: () => {
+                                window.open(data.release_url || 'https://github.com/schmacka/printernizer/releases/latest', '_blank');
+                            }
+                        }
+                    }
+                );
+            } else {
+                console.log('[Update Check] Version is current');
+                updateStatusElement.textContent = 'Up to date';
+                updateStatusElement.className = 'update-status current';
+            }
+        } else {
+            console.error('[Update Check] Update check endpoint returned non-OK status:', response.status);
+        }
+    } catch (error) {
+        console.error('[Update Check] Failed to check for updates:', error);
+        // Silently fail - don't show error to user for update check
     }
 }
 

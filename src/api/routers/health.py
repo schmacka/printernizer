@@ -1,11 +1,13 @@
 """Health check endpoints."""
 
+import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 import structlog
+import aiohttp
 
 from src.services.config_service import ConfigService
 from src.database.database import Database
@@ -32,6 +34,16 @@ class HealthResponse(BaseModel):
     database: Dict[str, Any]
     services: Dict[str, Any]
     uptime_seconds: Optional[float] = None
+
+
+class UpdateCheckResponse(BaseModel):
+    """Update check response model."""
+    current_version: str
+    latest_version: Optional[str] = None
+    update_available: bool
+    release_url: Optional[str] = None
+    check_failed: bool = False
+    error_message: Optional[str] = None
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -174,3 +186,106 @@ async def liveness_check():
     Returns 200 when application is alive.
     """
     return {"status": "alive"}
+
+
+def _compare_versions(current: str, latest: str) -> bool:
+    """
+    Compare semantic versions to determine if update is available.
+
+    Args:
+        current: Current version string (e.g., "2.3.0" or "2.3.0-5-g1234567")
+        latest: Latest version string (e.g., "v2.4.0" or "2.4.0")
+
+    Returns:
+        True if latest version is newer than current
+    """
+    def parse_version(v: str) -> tuple:
+        """Parse version string into comparable tuple."""
+        # Remove 'v' prefix if present
+        v = v.lstrip('v')
+        # Take only the major.minor.patch part (ignore git commit info)
+        v = v.split('-')[0]
+        # Split into parts and convert to integers
+        try:
+            parts = [int(x) for x in v.split('.')]
+            # Ensure we have at least 3 parts (major, minor, patch)
+            while len(parts) < 3:
+                parts.append(0)
+            return tuple(parts[:3])
+        except (ValueError, AttributeError):
+            return (0, 0, 0)
+
+    current_parts = parse_version(current)
+    latest_parts = parse_version(latest)
+
+    return latest_parts > current_parts
+
+
+@router.get("/update-check", response_model=UpdateCheckResponse)
+async def check_for_updates():
+    """
+    Check if a newer version is available on GitHub.
+
+    Fetches the latest release from GitHub and compares with current version.
+    Returns update availability status and release information.
+    """
+    from src.main import APP_VERSION
+
+    github_api_url = "https://api.github.com/repos/schmacka/printernizer/releases/latest"
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                github_api_url,
+                timeout=aiohttp.ClientTimeout(total=10),
+                headers={"Accept": "application/vnd.github+json"}
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    latest_version = data.get("tag_name", "").lstrip('v')
+                    release_url = data.get("html_url")
+
+                    update_available = _compare_versions(APP_VERSION, latest_version)
+
+                    logger.info(
+                        "Version check completed",
+                        current_version=APP_VERSION,
+                        latest_version=latest_version,
+                        update_available=update_available
+                    )
+
+                    return UpdateCheckResponse(
+                        current_version=APP_VERSION,
+                        latest_version=latest_version,
+                        update_available=update_available,
+                        release_url=release_url,
+                        check_failed=False
+                    )
+                else:
+                    logger.warning(
+                        "GitHub API returned non-200 status",
+                        status_code=response.status
+                    )
+                    return UpdateCheckResponse(
+                        current_version=APP_VERSION,
+                        update_available=False,
+                        check_failed=True,
+                        error_message=f"GitHub API returned status {response.status}"
+                    )
+
+    except asyncio.TimeoutError:
+        logger.warning("Update check timed out")
+        return UpdateCheckResponse(
+            current_version=APP_VERSION,
+            update_available=False,
+            check_failed=True,
+            error_message="Request timed out"
+        )
+    except Exception as e:
+        logger.error("Update check failed", error=str(e), exc_info=True)
+        return UpdateCheckResponse(
+            current_version=APP_VERSION,
+            update_available=False,
+            check_failed=True,
+            error_message=str(e)
+        )
