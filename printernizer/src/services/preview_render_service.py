@@ -490,7 +490,8 @@ class PreviewRenderService:
         # Include file path, size, and modification time in cache key
         try:
             mtime = os.path.getmtime(file_path)
-        except:
+        except (OSError, FileNotFoundError):
+            # File not found or inaccessible, use 0 as fallback
             mtime = 0
 
         cache_string = f"{file_path}_{size[0]}x{size[1]}_{mtime}"

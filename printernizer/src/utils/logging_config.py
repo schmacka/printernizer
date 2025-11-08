@@ -76,3 +76,38 @@ def setup_logging(log_level: str = None, log_file: str = None):
 def get_logger(name: str = None) -> structlog.BoundLogger:
     """Get a structured logger instance."""
     return structlog.get_logger(name)
+
+
+def mask_sensitive_data(data: Any, sensitive_fields: set = None) -> Any:
+    """
+    Mask sensitive data in dictionaries before logging.
+
+    Args:
+        data: Data to mask (dict, list, or other type)
+        sensitive_fields: Set of field names to mask. If None, uses default set.
+
+    Returns:
+        Copy of data with sensitive fields masked
+
+    Example:
+        >>> config = {'name': 'Printer1', 'api_key': 'secret123', 'access_code': 'abc'}
+        >>> mask_sensitive_data(config)
+        {'name': 'Printer1', 'api_key': '***MASKED***', 'access_code': '***MASKED***'}
+    """
+    if sensitive_fields is None:
+        sensitive_fields = {'api_key', 'access_code', 'password', 'token', 'secret', 'credential'}
+
+    if isinstance(data, dict):
+        masked = {}
+        for key, value in data.items():
+            # Check if this field should be masked
+            if key.lower() in sensitive_fields or any(s in key.lower() for s in sensitive_fields):
+                masked[key] = '***MASKED***'
+            else:
+                # Recursively mask nested structures
+                masked[key] = mask_sensitive_data(value, sensitive_fields)
+        return masked
+    elif isinstance(data, (list, tuple)):
+        return type(data)(mask_sensitive_data(item, sensitive_fields) for item in data)
+    else:
+        return data

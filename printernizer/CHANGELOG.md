@@ -1,3 +1,13 @@
+## [2.2.2] - 2025-11-08
+
+- refactor: Replace bare exception handlers with specific exception types
+- feat: Add background task tracking and graceful shutdown
+- refactor: Phase 2 technical debt improvements - code quality and consistency
+- fix: Resolve 4 critical bugs identified in technical debt assessment
+- docs: Add comprehensive technical debt assessment and quick reference
+- feat: Implement unified cross-site search for local files and ideas
+- feat: Add timelapse configuration UI to Home Assistant addon
+
 ## [2.2.1] - 2025-11-08
 
 - feat: Implement unified cross-site search for local files and ideas

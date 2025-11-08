@@ -33,6 +33,8 @@ class PrinterService:
         self.monitoring_active = False
         # Track job filenames we've already attempted to auto-download to avoid loops
         self._auto_download_attempts: Dict[str, set] = {}
+        # Background task tracking for graceful shutdown
+        self._background_tasks: set = set()
         
     async def initialize(self):
         """Initialize printer service and load configured printers."""
@@ -160,9 +162,57 @@ class PrinterService:
                 if (self._is_print_file(filename_to_download) and
                     filename_to_download not in self._auto_download_attempts[printer_id]):
                     self._auto_download_attempts[printer_id].add(filename_to_download)
-                    asyncio.create_task(self._attempt_download_current_job(printer_id, filename_to_download))
+                    # Track the task for proper cleanup on shutdown
+                    self._create_background_task(self._attempt_download_current_job(printer_id, filename_to_download))
         except Exception as e:
             logger.debug("Auto-download check failed", error=str(e))
+
+    def _create_background_task(self, coro):
+        """
+        Create and track a background task for proper cleanup.
+
+        This ensures tasks are tracked and can be properly cancelled/awaited
+        during service shutdown, preventing resource leaks.
+
+        Args:
+            coro: The coroutine to run as a background task
+
+        Returns:
+            The created asyncio.Task
+        """
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
+
+    async def shutdown(self):
+        """
+        Gracefully shutdown the printer service.
+
+        Waits for all background tasks to complete or cancels them if they
+        take too long. Call this during application shutdown.
+        """
+        if self._background_tasks:
+            logger.info("Shutting down PrinterService, waiting for background tasks",
+                       task_count=len(self._background_tasks))
+
+            # Give tasks 5 seconds to complete gracefully
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*self._background_tasks, return_exceptions=True),
+                    timeout=5.0
+                )
+                logger.info("All PrinterService background tasks completed")
+            except asyncio.TimeoutError:
+                logger.warning("PrinterService background tasks timed out, cancelling",
+                             remaining_tasks=len(self._background_tasks))
+                # Cancel remaining tasks
+                for task in self._background_tasks:
+                    task.cancel()
+                # Wait for cancellation to complete
+                await asyncio.gather(*self._background_tasks, return_exceptions=True)
+
+        logger.info("PrinterService shutdown complete")
 
     def _is_print_file(self, filename: str) -> bool:
         """Heuristic: check if filename has a known printable extension."""
@@ -659,8 +709,9 @@ class PrinterService:
         existing = None
         try:
             existing = await self.file_service.find_file_by_name(filename, printer_id)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not find existing file record", filename=filename,
+                        printer_id=printer_id, error=str(e))
 
         if existing and existing.get('has_thumbnail'):
             return {

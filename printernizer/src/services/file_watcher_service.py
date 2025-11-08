@@ -181,8 +181,9 @@ class FileWatcherService:
                 if self._observer:
                     try:
                         self._observer.stop()
-                    except:
-                        pass
+                    except (RuntimeError, OSError) as stop_error:
+                        logger.debug("Failed to stop observer during cleanup",
+                                    error=str(stop_error))
                 self._observer = None
                 self._is_running = True  # Mark as running so API endpoints work
             

@@ -39,6 +39,9 @@ class FileService:
         # Thumbnail processing status tracking
         self.thumbnail_processing_log = []  # List of recent thumbnail processing attempts
         self.max_log_entries = 50  # Keep last 50 attempts
+
+        # Background task tracking for graceful shutdown
+        self._background_tasks: set = set()
         
     async def get_files(self, printer_id: Optional[str] = None,
                        include_local: bool = True,
@@ -246,7 +249,10 @@ class FileService:
                     logger.error("Failed to create downloads directory",
                                 path=str(downloads_dir), error=str(e))
                     raise ValueError(f"Cannot create downloads directory: {e}")
-                destination_path = str(downloads_dir / filename)
+
+                # Validate filename to prevent path traversal attacks
+                validated_path = self._validate_safe_path(downloads_dir, filename)
+                destination_path = str(validated_path)
             
             logger.info("Starting file download", printer_id=printer_id, filename=filename, 
                        destination=destination_path)
@@ -293,7 +299,8 @@ class FileService:
                                file_id=file_id, destination=destination_path)
 
                     # Process thumbnails asynchronously to not block download completion
-                    asyncio.create_task(self.process_file_thumbnails(destination_path, file_id))
+                    # Track the task for proper cleanup on shutdown
+                    self._create_background_task(self.process_file_thumbnails(destination_path, file_id))
 
                     # Add to library if library service is available and enabled
                     if self.library_service and self.library_service.enabled:
@@ -571,6 +578,75 @@ class FileService:
             '.ply': 'ply'
         }
         return type_map.get(ext, 'unknown')
+
+    def _validate_safe_path(self, base_dir: Path, filename: str) -> Path:
+        """
+        Ensure path is within base_dir to prevent path traversal attacks.
+
+        Args:
+            base_dir: The base directory that the file should be within
+            filename: The filename (potentially containing path components)
+
+        Returns:
+            The validated full path
+
+        Raises:
+            ValueError: If the path attempts to escape the base directory
+        """
+        full_path = (base_dir / filename).resolve()
+        base_resolved = base_dir.resolve()
+
+        if not str(full_path).startswith(str(base_resolved)):
+            raise ValueError(f"Path traversal detected: {filename}")
+
+        return full_path
+
+    def _create_background_task(self, coro):
+        """
+        Create and track a background task for proper cleanup.
+
+        This ensures tasks are tracked and can be properly cancelled/awaited
+        during service shutdown, preventing resource leaks.
+
+        Args:
+            coro: The coroutine to run as a background task
+
+        Returns:
+            The created asyncio.Task
+        """
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
+
+    async def shutdown(self):
+        """
+        Gracefully shutdown the file service.
+
+        Waits for all background tasks to complete or cancels them if they
+        take too long. Call this during application shutdown.
+        """
+        if self._background_tasks:
+            logger.info("Shutting down FileService, waiting for background tasks",
+                       task_count=len(self._background_tasks))
+
+            # Give tasks 5 seconds to complete gracefully
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*self._background_tasks, return_exceptions=True),
+                    timeout=5.0
+                )
+                logger.info("All FileService background tasks completed")
+            except asyncio.TimeoutError:
+                logger.warning("FileService background tasks timed out, cancelling",
+                             remaining_tasks=len(self._background_tasks))
+                # Cancel remaining tasks
+                for task in self._background_tasks:
+                    task.cancel()
+                # Wait for cancellation to complete
+                await asyncio.gather(*self._background_tasks, return_exceptions=True)
+
+        logger.info("FileService shutdown complete")
 
     def _extract_printer_info(self, printer: Dict[str, Any]) -> Dict[str, str]:
         """
@@ -883,17 +959,18 @@ class FileService:
                 # No embedded thumbnails - try Prusa printer API first, then generate preview
 
                 # Try to download thumbnail from Prusa printer if this is a Prusa file
-                if file_id.startswith('59dd18ca-b8c3-4a69-b00d-1931257ecbce'):  # Prusa printer ID
+                # Extract printer_id from file_id (format: printer_id_filename)
+                if '_' in file_id:
                     try:
                         import base64
-                        # Extract filename from file_id (format: printer_id_filename)
-                        filename = file_id.split('_', 1)[1] if '_' in file_id else os.path.basename(file_path)
+                        printer_id = file_id.split('_', 1)[0]
+                        filename = file_id.split('_', 1)[1]
 
                         logger.info("Attempting to download thumbnail from Prusa API",
-                                   file_id=file_id, filename=filename)
+                                   file_id=file_id, printer_id=printer_id, filename=filename)
 
                         # Get the Prusa printer instance
-                        printer_instance = self.printer_service.printers.get('59dd18ca-b8c3-4a69-b00d-1931257ecbce')
+                        printer_instance = self.printer_service.printers.get(printer_id)
                         if printer_instance and hasattr(printer_instance, 'download_thumbnail'):
                             prusa_thumb_bytes = await printer_instance.download_thumbnail(filename, size='l')
 
@@ -906,7 +983,9 @@ class FileService:
                                         width, height = struct.unpack('>II', prusa_thumb_bytes[16:24])
                                         thumbnail_width = width
                                         thumbnail_height = height
-                                    except Exception:
+                                    except (struct.error, ValueError) as e:
+                                        logger.debug("Could not parse PNG dimensions, using defaults",
+                                                    error=str(e))
                                         thumbnail_width = 200
                                         thumbnail_height = 200
                                 else:
@@ -1185,4 +1264,4 @@ class FileService:
                 
         except Exception as e:
             logger.error("Failed to extract enhanced metadata", file_id=file_id, error=str(e))
-            return None.copy()
+            return None
