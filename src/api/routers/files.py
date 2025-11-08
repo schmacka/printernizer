@@ -13,6 +13,13 @@ from src.models.file import File, FileStatus, FileSource, WatchFolderSettings, W
 from src.services.file_service import FileService
 from src.services.config_service import ConfigService
 from src.utils.dependencies import get_file_service, get_config_service
+from src.utils.errors import (
+    FileNotFoundError as PrinternizerFileNotFoundError,
+    FileDownloadError,
+    FileProcessingError,
+    ValidationError as PrinternizerValidationError,
+    success_response
+)
 
 
 logger = structlog.get_logger()
@@ -71,64 +78,57 @@ async def list_files(
     file_service: FileService = Depends(get_file_service)
 ):
     """List files from printers and local storage."""
-    try:
-        logger.info("Listing files", printer_id=printer_id, status=status, source=source,
-                   has_thumbnail=has_thumbnail, search=search, limit=limit, page=page)
+    logger.info("Listing files", printer_id=printer_id, status=status, source=source,
+               has_thumbnail=has_thumbnail, search=search, limit=limit, page=page)
 
-        # Calculate offset for database-level pagination
-        offset = (page - 1) * limit if page > 1 else 0
+    # Calculate offset for database-level pagination
+    offset = (page - 1) * limit if page > 1 else 0
 
-        # Get paginated files from service with database-level pagination
-        paginated_files = await file_service.get_files(
-            printer_id=printer_id,
-            status=status,
-            source=source,
-            has_thumbnail=has_thumbnail,
-            search=search,
-            limit=limit,
-            order_by=order_by,
-            order_dir=order_dir,
-            page=page
-        )
+    # Get paginated files from service with database-level pagination
+    paginated_files = await file_service.get_files(
+        printer_id=printer_id,
+        status=status,
+        source=source,
+        has_thumbnail=has_thumbnail,
+        search=search,
+        limit=limit,
+        order_by=order_by,
+        order_dir=order_dir,
+        page=page
+    )
 
-        # Get total count for pagination metadata
-        # TODO: Optimize by adding count-only query to avoid fetching all records
-        all_files_count = await file_service.get_files(
-            printer_id=printer_id,
-            status=status,
-            source=source,
-            has_thumbnail=has_thumbnail,
-            search=search,
-            limit=None,
-            order_by=order_by,
-            order_dir=order_dir,
-            page=1
-        )
-        total_items = len(all_files_count)
-        total_pages = max(1, (total_items + limit - 1) // limit) if limit else 1
+    # Get total count for pagination metadata
+    # TODO: Optimize by adding count-only query to avoid fetching all records
+    all_files_count = await file_service.get_files(
+        printer_id=printer_id,
+        status=status,
+        source=source,
+        has_thumbnail=has_thumbnail,
+        search=search,
+        limit=None,
+        order_by=order_by,
+        order_dir=order_dir,
+        page=1
+    )
+    total_items = len(all_files_count)
+    total_pages = max(1, (total_items + limit - 1) // limit) if limit else 1
 
-        logger.info("Got files from service", total=total_items, page_count=len(paginated_files))
+    logger.info("Got files from service", total=total_items, page_count=len(paginated_files))
 
-        file_list = [FileResponse.model_validate(file) for file in paginated_files]
+    file_list = [FileResponse.model_validate(file) for file in paginated_files]
 
-        logger.info("Validated files", count=len(file_list))
+    logger.info("Validated files", count=len(file_list))
 
-        return {
-            "files": file_list,
-            "total_count": total_items,
-            "pagination": {
-                "page": page,
-                "limit": limit,
-                "total_items": total_items,
-                "total_pages": total_pages
-            }
+    return {
+        "files": file_list,
+        "total_count": total_items,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total_items": total_items,
+            "total_pages": total_pages
         }
-    except Exception as e:
-        logger.error("Failed to list files", error=str(e), exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve files: {str(e)}"
-        )
+    }
 
 
 @router.get("/statistics")
@@ -136,18 +136,11 @@ async def get_file_statistics(
     file_service: FileService = Depends(get_file_service)
 ):
     """Get file management statistics."""
-    try:
-        stats = await file_service.get_file_statistics()
-        return {
-            "statistics": stats,
-            "timestamp": "2025-09-26T18:55:00Z"
-        }
-    except Exception as e:
-        logger.error("Failed to get file statistics", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to calculate file statistics"
-        )
+    stats = await file_service.get_file_statistics()
+    return success_response({
+        "statistics": stats,
+        "timestamp": "2025-09-26T18:55:00Z"
+    })
 
 
 @router.get("/{file_id}", response_model=FileResponse)
@@ -156,22 +149,10 @@ async def get_file_by_id(
     file_service: FileService = Depends(get_file_service)
 ):
     """Get file information by ID."""
-    try:
-        file_data = await file_service.get_file_by_id(file_id)
-        if not file_data:
-            raise HTTPException(
-                status_code=404,
-                detail="File not found"
-            )
-        return FileResponse.model_validate(file_data)
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to get file by ID", file_id=file_id, error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve file"
-        )
+    file_data = await file_service.get_file_by_id(file_id)
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+    return FileResponse.model_validate(file_data)
 
 
 @router.post("/{file_id}/download")
@@ -180,39 +161,31 @@ async def download_file(
     file_service: FileService = Depends(get_file_service)
 ):
     """Download a file from printer to local storage."""
-    try:
-        # Parse file_id to extract printer_id and filename
-        # file_id format: "{printer_id}_{filename}"
-        if "_" not in file_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid file_id format"
-            )
-
-        # Split on the first underscore to separate printer_id from filename
-        parts = file_id.split("_", 1)
-        printer_id = parts[0]
-        filename = parts[1]
-
-        logger.info("Downloading file",
-                   file_id=file_id, printer_id=printer_id, filename=filename)
-
-        result = await file_service.download_file(printer_id, filename)
-
-        if not result.get('success', False):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to download file"
-            )
-        return {"status": "downloaded"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to download file", file_id=str(file_id), error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to download file"
+    # Parse file_id to extract printer_id and filename
+    # file_id format: "{printer_id}_{filename}"
+    if "_" not in file_id:
+        raise PrinternizerValidationError(
+            field="file_id",
+            error="Invalid file_id format - expected format: {printer_id}_{filename}"
         )
+
+    # Split on the first underscore to separate printer_id from filename
+    parts = file_id.split("_", 1)
+    printer_id = parts[0]
+    filename = parts[1]
+
+    logger.info("Downloading file",
+               file_id=file_id, printer_id=printer_id, filename=filename)
+
+    result = await file_service.download_file(printer_id, filename)
+
+    if not result.get('success', False):
+        raise FileDownloadError(
+            filename=filename,
+            printer_id=printer_id,
+            reason="Download operation failed"
+        )
+    return success_response({"status": "downloaded"})
 
 
 @router.post("/sync")
@@ -587,25 +560,15 @@ async def delete_file(
     file_service: FileService = Depends(get_file_service)
 ):
     """Delete a file (for local files, also deletes physical file)."""
-    try:
-        success = await file_service.delete_file(file_id)
+    success = await file_service.delete_file(file_id)
 
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="File not found or could not be deleted"
-            )
-
-        return {"status": "deleted", "file_id": file_id}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Failed to delete file", file_id=file_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete file: {str(e)}"
+    if not success:
+        raise PrinternizerFileNotFoundError(
+            file_id=file_id,
+            details={"reason": "File not found or could not be deleted"}
         )
+
+    return success_response({"status": "deleted", "file_id": file_id})
 
 
 # Enhanced Metadata Endpoints (Issue #43 - METADATA-001)
