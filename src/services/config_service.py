@@ -60,7 +60,12 @@ class PrinterConfig:
         )
         
     def to_dict(self) -> Dict[str, Any]:
-        """Convert PrinterConfig to dictionary."""
+        """
+        Convert PrinterConfig to dictionary.
+
+        WARNING: This includes sensitive fields (api_key, access_code).
+        For logging/debugging, use to_dict_safe() instead.
+        """
         return {
             "name": self.name,
             "type": self.type,
@@ -70,6 +75,14 @@ class PrinterConfig:
             "serial_number": self.serial_number,
             "is_active": self.is_active
         }
+
+    def to_dict_safe(self) -> Dict[str, Any]:
+        """
+        Convert PrinterConfig to dictionary with sensitive fields masked.
+        Use this method for logging and debugging.
+        """
+        from src.utils.logging_config import mask_sensitive_data
+        return mask_sensitive_data(self.to_dict())
 
 
 class Settings(BaseSettings):

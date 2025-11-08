@@ -246,7 +246,10 @@ class FileService:
                     logger.error("Failed to create downloads directory",
                                 path=str(downloads_dir), error=str(e))
                     raise ValueError(f"Cannot create downloads directory: {e}")
-                destination_path = str(downloads_dir / filename)
+
+                # Validate filename to prevent path traversal attacks
+                validated_path = self._validate_safe_path(downloads_dir, filename)
+                destination_path = str(validated_path)
             
             logger.info("Starting file download", printer_id=printer_id, filename=filename, 
                        destination=destination_path)
@@ -572,6 +575,28 @@ class FileService:
         }
         return type_map.get(ext, 'unknown')
 
+    def _validate_safe_path(self, base_dir: Path, filename: str) -> Path:
+        """
+        Ensure path is within base_dir to prevent path traversal attacks.
+
+        Args:
+            base_dir: The base directory that the file should be within
+            filename: The filename (potentially containing path components)
+
+        Returns:
+            The validated full path
+
+        Raises:
+            ValueError: If the path attempts to escape the base directory
+        """
+        full_path = (base_dir / filename).resolve()
+        base_resolved = base_dir.resolve()
+
+        if not str(full_path).startswith(str(base_resolved)):
+            raise ValueError(f"Path traversal detected: {filename}")
+
+        return full_path
+
     def _extract_printer_info(self, printer: Dict[str, Any]) -> Dict[str, str]:
         """
         Extract manufacturer and printer model from printer configuration.
@@ -883,17 +908,18 @@ class FileService:
                 # No embedded thumbnails - try Prusa printer API first, then generate preview
 
                 # Try to download thumbnail from Prusa printer if this is a Prusa file
-                if file_id.startswith('59dd18ca-b8c3-4a69-b00d-1931257ecbce'):  # Prusa printer ID
+                # Extract printer_id from file_id (format: printer_id_filename)
+                if '_' in file_id:
                     try:
                         import base64
-                        # Extract filename from file_id (format: printer_id_filename)
-                        filename = file_id.split('_', 1)[1] if '_' in file_id else os.path.basename(file_path)
+                        printer_id = file_id.split('_', 1)[0]
+                        filename = file_id.split('_', 1)[1]
 
                         logger.info("Attempting to download thumbnail from Prusa API",
-                                   file_id=file_id, filename=filename)
+                                   file_id=file_id, printer_id=printer_id, filename=filename)
 
                         # Get the Prusa printer instance
-                        printer_instance = self.printer_service.printers.get('59dd18ca-b8c3-4a69-b00d-1931257ecbce')
+                        printer_instance = self.printer_service.printers.get(printer_id)
                         if printer_instance and hasattr(printer_instance, 'download_thumbnail'):
                             prusa_thumb_bytes = await printer_instance.download_thumbnail(filename, size='l')
 
@@ -1185,4 +1211,4 @@ class FileService:
                 
         except Exception as e:
             logger.error("Failed to extract enhanced metadata", file_id=file_id, error=str(e))
-            return None.copy()
+            return None
