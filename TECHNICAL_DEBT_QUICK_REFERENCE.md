@@ -3,17 +3,18 @@
 ## 📊 Overall Progress
 
 **Phase 1 (Critical):** ✅ **100% Complete** (70 minutes)
-**Phase 2 (High Priority):** 🔄 **33% Complete** (19/58 hours)
+**Phase 2 (High Priority):** 🔄 **61% Complete** (35/58 hours)
 **Phase 3 (Medium Priority):** ⏳ Pending (30-40 hours)
 
-**Total Work Completed:** ~20 hours of improvements
-**Last Updated:** After merge of commits 8cdbb1c → b1396b7
+**Total Work Completed:** ~36 hours of improvements
+**Last Updated:** After FileService refactoring
 
 ### Recent Commits
 - `8cdbb1c` - Phase 1: Critical bug fixes
 - `2d30066` - Phase 2: Code quality & pagination
 - `3ed321b` - Phase 2: Async task cleanup
 - `b1396b7` - Phase 2: Exception handling (core services)
+- *(current)* - Phase 2: FileService god class refactoring
 
 ---
 
@@ -35,16 +36,16 @@
 | Issue | File | Impact | Effort | Status |
 |-------|------|--------|--------|--------|
 | ✅ Code duplication in data transformation | `job_service.py` | 60+ duplicate LOC | 4 hours | Fixed in 2d30066 |
-| ⏳ FileService is too large (God Class) | `file_service.py` | 1,187 LOC, 22 methods | 16 hours | **PENDING** |
+| ✅ FileService is too large (God Class) | `file_service.py` | 1,187 LOC, 22 methods | 16 hours | **COMPLETED** |
 | ⏳ PrinterService is too large (God Class) | `printer_service.py` | 933 LOC, 20 methods | 12 hours | **PENDING** |
 | ✅ Bare exception handlers (core) | Multiple | Masks errors, hard to debug | 5 hours | Fixed in b1396b7 |
 | ⏳ Bare exception handlers (non-core) | FTP, monitoring, trending | 8 remaining | 3 hours | **IN PROGRESS** |
 | ✅ Inconsistent pagination | `files.py`, `jobs.py` | Scalability issue | 6 hours | Fixed in 2d30066 |
-| ⏳ Circular service dependencies | Core services | Tight coupling | 8 hours | **PENDING** |
+| ⏳ Circular service dependencies | Core services | Tight coupling | 8 hours | **IN PROGRESS** |
 | ✅ Missing async task cleanup | `file_service.py`, `printer_service.py` | Resource leaks | 4 hours | Fixed in 3ed321b |
 
-**Progress: 19 hours completed / 58 hours total (33% DONE) ✅**
-**Remaining: 39 hours (mostly large refactorings)**
+**Progress: 35 hours completed / 58 hours total (61% DONE) ✅**
+**Remaining: 23 hours (PrinterService refactoring + circular deps)**
 
 ---
 
@@ -140,15 +141,19 @@
 
 ## Impact by Service
 
-### FileService (22 methods, 1,187 LOC)
-- ❌ CRITICAL: None.copy() bug (line 1188)
-- ❌ CRITICAL: Hardcoded Prusa ID (lines 886, 896)
-- ❌ CRITICAL: Path traversal (lines 249, 844)
-- ❌ HIGH: Code duplication (5+ methods)
-- ❌ HIGH: God class (mixed concerns)
-- ❌ MEDIUM: Memory filtering (lines 118-134)
+### FileService (22 methods, 1,187 LOC) - ✅ REFACTORED
+- ✅ CRITICAL: None.copy() bug (line 1188) - Fixed in 8cdbb1c
+- ✅ CRITICAL: Hardcoded Prusa ID (lines 886, 896) - Fixed in 8cdbb1c
+- ✅ CRITICAL: Path traversal (lines 249, 844) - Fixed in 8cdbb1c
+- ✅ HIGH: Code duplication (5+ methods) - Fixed in 2d30066
+- ✅ HIGH: God class (mixed concerns) - **REFACTORED**
+- ✅ MEDIUM: Memory filtering (lines 118-134) - Fixed in 2d30066
 
-**Refactoring Opportunity:** Break into 4 specialized services
+**Refactoring Complete:** Split into 4 specialized services:
+- FileDiscoveryService (file discovery from printers)
+- FileDownloadService (download management)
+- FileThumbnailService (thumbnail processing)
+- FileMetadataService (metadata extraction)
 
 ### PrinterService (20 methods, 933 LOC)
 - ❌ HIGH: God class (mixed concerns)
