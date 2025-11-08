@@ -1,3 +1,11 @@
+## [2.3.1] - 2025-11-08
+
+- docs: Add comprehensive inline comments and algorithm documentation - Phase 3 Task 6 COMPLETE
+- feat: Implement comprehensive settings validation - Phase 3 Task 5 COMPLETE
+- docs: Add comprehensive coverage report guide - Phase 3 Task 3.6 COMPLETE
+- feat: Complete Phase 3 Task 3.5 - API endpoint tests
+- feat: Complete Phase 3 Task 3.4 - Integration tests for file workflow & printer lifecycle
+
 ## [2.3.0] - 2025-11-08 🎉 TECHNICAL DEBT REDUCTION COMPLETE
 
 **MAJOR MILESTONE**: All three phases of technical debt reduction completed (~92 hours of improvements)
