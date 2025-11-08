@@ -659,8 +659,9 @@ class PrinterService:
         existing = None
         try:
             existing = await self.file_service.find_file_by_name(filename, printer_id)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not find existing file record", filename=filename,
+                        printer_id=printer_id, error=str(e))
 
         if existing and existing.get('has_thumbnail'):
             return {

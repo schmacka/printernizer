@@ -932,7 +932,9 @@ class FileService:
                                         width, height = struct.unpack('>II', prusa_thumb_bytes[16:24])
                                         thumbnail_width = width
                                         thumbnail_height = height
-                                    except Exception:
+                                    except (struct.error, ValueError) as e:
+                                        logger.debug("Could not parse PNG dimensions, using defaults",
+                                                    error=str(e))
                                         thumbnail_width = 200
                                         thumbnail_height = 200
                                 else:
