@@ -184,6 +184,7 @@ async def lifespan(app: FastAPI):
     timer.start("File service initialization")
     logger.info("Initializing file service...")
     file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
+    await file_service.initialize()  # Initialize event subscriptions
     timer.end("File service initialization")
     logger.info("[OK] File service initialized")
 
