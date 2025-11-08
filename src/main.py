@@ -54,6 +54,7 @@ from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
 from src.services.printer_service import PrinterService
+from src.services.job_service import JobService
 from src.services.file_service import FileService
 from src.services.file_watcher_service import FileWatcherService
 from src.services.migration_service import MigrationService
@@ -168,6 +169,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
+    job_service = JobService(database, event_service)
     printer_service = PrinterService(database, event_service, config_service)
     timer.end("Core services initialization")
     logger.info("[OK] Core services initialized")
@@ -232,6 +234,10 @@ async def lifespan(app: FastAPI):
     # Set file service reference in printer service for circular dependency
     printer_service.file_service = file_service
 
+    # Set job service and config service in monitoring service for auto-job creation
+    printer_service.monitoring.set_job_service(job_service)
+    printer_service.monitoring.set_config_service(config_service)
+
     # Initialize TrendingService (re-enabled in master)
     timer.start("Trending service initialization")
     logger.info("Initializing trending service...")
@@ -242,6 +248,7 @@ async def lifespan(app: FastAPI):
 
     app.state.config_service = config_service
     app.state.event_service = event_service
+    app.state.job_service = job_service
     app.state.printer_service = printer_service
     app.state.file_service = file_service
     app.state.file_watcher_service = file_watcher_service
