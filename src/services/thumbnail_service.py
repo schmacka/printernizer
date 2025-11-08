@@ -35,7 +35,11 @@ class ThumbnailService:
         self._cache_duration = timedelta(days=30)  # Cache for 30 days
 
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create HTTP session."""
+        """Get or create HTTP session for downloading thumbnails.
+
+        Returns:
+            Configured aiohttp ClientSession instance.
+        """
         if self.session is None:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'

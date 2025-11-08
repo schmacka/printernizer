@@ -23,11 +23,21 @@ class ConnectionManager:
         self.printer_subscriptions: Dict[str, Set[WebSocket]] = {}
         
     async def connect(self, websocket: WebSocket):
+        """Accept and register a new WebSocket connection.
+
+        Args:
+            websocket: WebSocket connection to accept and register.
+        """
         await websocket.accept()
         self.active_connections.add(websocket)
         logger.info("WebSocket client connected", total_connections=len(self.active_connections))
         
     def disconnect(self, websocket: WebSocket):
+        """Unregister a WebSocket connection and clean up subscriptions.
+
+        Args:
+            websocket: WebSocket connection to disconnect and remove from all subscriptions.
+        """
         self.active_connections.discard(websocket)
         # Remove from printer subscriptions
         for printer_id, connections in self.printer_subscriptions.items():
@@ -93,7 +103,18 @@ async def websocket_endpoint(websocket: WebSocket):
     await _handle_websocket_connection(websocket, event_service)
 
 async def _handle_websocket_connection(websocket: WebSocket, event_service: EventService):
-    """Handle WebSocket connection logic."""
+    """Handle WebSocket connection lifecycle and message processing.
+
+    Manages the full lifecycle of a WebSocket connection including accepting the connection,
+    processing incoming client messages, and handling disconnection.
+
+    Args:
+        websocket: WebSocket connection to handle.
+        event_service: Event service for publishing real-time updates.
+
+    Raises:
+        WebSocketDisconnect: When the client disconnects.
+    """
     await manager.connect(websocket)
     
     try:

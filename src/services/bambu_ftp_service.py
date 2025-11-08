@@ -40,7 +40,11 @@ class BambuFTPFile:
         self.file_type = self._determine_file_type()
 
     def _determine_file_type(self) -> str:
-        """Determine file type from extension."""
+        """Determine file type from filename extension.
+
+        Returns:
+            File type string (3mf, stl, gcode, image, video, or unknown).
+        """
         ext = Path(self.name).suffix.lower()
         type_map = {
             '.3mf': '3mf',
@@ -101,7 +105,14 @@ class BambuFTPService:
                    ip=ip_address, port=port, username=self.username)
 
     def _create_ssl_context(self) -> ssl.SSLContext:
-        """Create SSL context for implicit TLS connection."""
+        """Create SSL context for implicit TLS connection.
+
+        Configures SSL context to accept self-signed certificates commonly
+        used by Bambu Lab printers.
+
+        Returns:
+            Configured SSLContext instance for FTP_TLS connection.
+        """
         ssl_context = ssl.create_default_context()
         # Bambu Lab printers typically use self-signed certificates
         ssl_context.check_hostname = False

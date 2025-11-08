@@ -73,7 +73,17 @@ class BambuLabPrinter(BasePrinter):
             self.mqtt_port = 8883
         
     def _on_connect(self, client, userdata, flags, rc):
-        """MQTT connection callback."""
+        """Handle MQTT connection event.
+
+        Called when the client connects to the MQTT broker. Subscribes to the
+        printer's status report topic on successful connection.
+
+        Args:
+            client: MQTT client instance.
+            userdata: User-defined data passed to callbacks.
+            flags: Response flags from the broker.
+            rc: Connection result code (0 = success).
+        """
         if rc == 0:
             logger.info("MQTT connected successfully", printer_id=self.printer_id)
             # Subscribe to printer status topic
@@ -84,7 +94,15 @@ class BambuLabPrinter(BasePrinter):
             logger.error("MQTT connection failed", printer_id=self.printer_id, rc=rc)
 
     def _on_message(self, client, userdata, msg):
-        """MQTT message callback."""
+        """Handle incoming MQTT messages from printer.
+
+        Parses and stores the latest printer status data from MQTT messages.
+
+        Args:
+            client: MQTT client instance.
+            userdata: User-defined data passed to callbacks.
+            msg: MQTT message containing printer status.
+        """
         try:
             payload = json.loads(msg.payload.decode())
             self.latest_data = payload
@@ -93,7 +111,13 @@ class BambuLabPrinter(BasePrinter):
             logger.warning("Failed to parse MQTT message", printer_id=self.printer_id, error=str(e))
 
     def _on_disconnect(self, client, userdata, rc):
-        """MQTT disconnect callback."""
+        """Handle MQTT disconnection event.
+
+        Args:
+            client: MQTT client instance.
+            userdata: User-defined data passed to callbacks.
+            rc: Disconnection result code.
+        """
         logger.info("MQTT disconnected", printer_id=self.printer_id, rc=rc)
 
     async def connect(self) -> bool:

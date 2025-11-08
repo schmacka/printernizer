@@ -55,6 +55,11 @@ class PrinterFile:
         return type_map.get(ext, 'unknown')
         
     def __repr__(self):
+        """Return string representation of PrinterFile.
+
+        Returns:
+            String representation with filename, size, and file type.
+        """
         return f"PrinterFile(filename='{self.filename}', size={self.size}, type='{self.file_type}')"
 
 
@@ -73,6 +78,11 @@ class JobInfo:
         self.end_time: Optional[datetime] = None
         
     def __repr__(self):
+        """Return string representation of JobInfo.
+
+        Returns:
+            String representation with job ID, name, and status.
+        """
         return f"JobInfo(id='{self.job_id}', name='{self.name}', status='{self.status}')"
 
 

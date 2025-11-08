@@ -385,7 +385,15 @@ class TrendingService:
         return trending_items
 
     def _extract_id_from_url(self, url: str, platform: str) -> Optional[str]:
-        """Extract model ID from URL."""
+        """Extract model ID from platform URL.
+
+        Args:
+            url: Model URL to parse.
+            platform: Platform identifier (makerworld or printables).
+
+        Returns:
+            Extracted model ID string, or None if not found.
+        """
         import re
 
         if platform == 'makerworld':
