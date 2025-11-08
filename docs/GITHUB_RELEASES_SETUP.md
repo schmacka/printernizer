@@ -83,17 +83,28 @@ Added comprehensive sections:
 
 ## Current State
 
+### Version Consolidation
+
+As of November 2025, Printernizer uses **unified 2.x.x versioning** across all components:
+- Application, API, Frontend: Same version from git tags
+- Home Assistant Add-on: Same version in `printernizer/config.yaml`
+- All use the same version number (e.g., v2.3.0)
+
 ### Existing Git Tags
 
 The repository has the following tags:
-- `v1.0.0` through `v1.5.9` (already pushed to GitHub)
-- `v2.1.0`, `v2.1.6`, `v2.2.0`, `v2.3.0` (created locally on feature branch)
+- `v1.0.0` through `v1.5.9` (legacy 1.x.x versions - pre-consolidation)
+- `v2.1.0`, `v2.1.6`, `v2.2.0`, `v2.3.0` (unified 2.x.x versions)
+
+**Note**: Historical 1.x.x tags remain for backwards compatibility but new releases use only 2.x.x versions.
 
 ### GitHub Releases
 
 **Currently**: No GitHub Releases exist (all return 404)
 
 **After running scripts**: All tags will have corresponding releases with proper release notes
+
+The update-check endpoint will then work properly to notify users of new versions.
 
 ## How to Enable the Update-Check Feature
 
