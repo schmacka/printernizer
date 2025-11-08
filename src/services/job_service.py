@@ -21,7 +21,35 @@ class JobService:
         """Initialize job service."""
         self.database = database
         self.event_service = event_service
-        
+
+    def _deserialize_job_data(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Deserialize job data from database format to application format.
+
+        Handles:
+        - Parsing customer_info JSON string to dict
+        - Converting datetime strings to datetime objects
+
+        Args:
+            job_data: Raw job data from database
+
+        Returns:
+            Deserialized job data ready for Job model validation
+
+        Note:
+            This method mutates the input dictionary for performance.
+        """
+        # Parse customer_info JSON if present
+        if job_data.get('customer_info'):
+            job_data['customer_info'] = json.loads(job_data['customer_info'])
+
+        # Convert datetime strings to datetime objects
+        for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
+            if job_data.get(field):
+                job_data[field] = datetime.fromisoformat(job_data[field])
+
+        return job_data
+
     async def get_jobs(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Get list of print jobs."""
         try:
@@ -46,14 +74,8 @@ class JobService:
                         skipped_count += 1
                         continue
 
-                    # Parse customer_info JSON if present
-                    if job_data.get('customer_info'):
-                        job_data['customer_info'] = json.loads(job_data['customer_info'])
-
-                    # Convert datetime strings to datetime objects
-                    for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
-                        if job_data.get(field):
-                            job_data[field] = datetime.fromisoformat(job_data[field])
+                    # Deserialize job data from database format
+                    job_data = self._deserialize_job_data(job_data)
 
                     job = Job(**job_data)
                     jobs.append(job.dict())
@@ -102,14 +124,8 @@ class JobService:
                         skipped_count += 1
                         continue
 
-                    # Parse customer_info JSON if present
-                    if job_data.get('customer_info'):
-                        job_data['customer_info'] = json.loads(job_data['customer_info'])
-
-                    # Convert datetime strings to datetime objects
-                    for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
-                        if job_data.get(field):
-                            job_data[field] = datetime.fromisoformat(job_data[field])
+                    # Deserialize job data from database format
+                    job_data = self._deserialize_job_data(job_data)
 
                     job = Job(**job_data)
                     jobs.append(job.dict())
@@ -145,15 +161,9 @@ class JobService:
             job_data = await self.database.get_job(str(job_id))
             if not job_data:
                 return None
-            
-            # Parse customer_info JSON if present
-            if job_data.get('customer_info'):
-                job_data['customer_info'] = json.loads(job_data['customer_info'])
-            
-            # Convert datetime strings to datetime objects
-            for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
-                if job_data.get(field):
-                    job_data[field] = datetime.fromisoformat(job_data[field])
+
+            # Deserialize job data from database format
+            job_data = self._deserialize_job_data(job_data)
             
             # Validate with Job model
             job = Job(**job_data)
@@ -205,15 +215,9 @@ class JobService:
             jobs = []
             for job_data in active_jobs:
                 try:
-                    # Parse customer_info JSON if present
-                    if job_data.get('customer_info'):
-                        job_data['customer_info'] = json.loads(job_data['customer_info'])
-                    
-                    # Convert datetime strings to datetime objects
-                    for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
-                        if job_data.get(field):
-                            job_data[field] = datetime.fromisoformat(job_data[field])
-                    
+                    # Deserialize job data from database format
+                    job_data = self._deserialize_job_data(job_data)
+
                     job = Job(**job_data)
                     jobs.append(job.dict())
                 except Exception as e:
@@ -397,15 +401,9 @@ class JobService:
             jobs = []
             for job_data in jobs_data:
                 try:
-                    # Parse customer_info JSON if present
-                    if job_data.get('customer_info'):
-                        job_data['customer_info'] = json.loads(job_data['customer_info'])
-                    
-                    # Convert datetime strings to datetime objects
-                    for field in ['start_time', 'end_time', 'created_at', 'updated_at']:
-                        if job_data.get(field):
-                            job_data[field] = datetime.fromisoformat(job_data[field])
-                    
+                    # Deserialize job data from database format
+                    job_data = self._deserialize_job_data(job_data)
+
                     job = Job(**job_data)
                     jobs.append(job.dict())
                 except Exception as e:

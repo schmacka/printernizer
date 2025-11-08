@@ -250,7 +250,8 @@ class UrlParserService:
             platform = self.detect_platform(url)
             return platform is not None
 
-        except Exception:
+        except (ValueError, TypeError, AttributeError):
+            # Invalid URL format
             return False
 
     def get_supported_platforms(self) -> list[str]:

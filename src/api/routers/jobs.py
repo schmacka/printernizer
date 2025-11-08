@@ -100,22 +100,29 @@ async def list_jobs(
 ):
     """List jobs with optional filtering and pagination."""
     try:
-        # Get all jobs matching filters (without pagination)
-        all_jobs = await job_service.list_jobs(
+        # Calculate offset for database-level pagination
+        offset = (page - 1) * limit
+
+        # Get paginated jobs from service with database-level pagination
+        paginated_jobs = await job_service.list_jobs(
             printer_id=printer_id,
             status=job_status,
             is_business=is_business,
-            limit=None,  # Get all matching jobs first
-            offset=0
+            limit=limit,
+            offset=offset
         )
 
-        total_items = len(all_jobs)
+        # Get total count for pagination metadata
+        # TODO: Optimize by adding count-only query to avoid fetching all records
+        all_jobs_count = await job_service.list_jobs(
+            printer_id=printer_id,
+            status=job_status,
+            is_business=is_business,
+            limit=None,
+            offset=0
+        )
+        total_items = len(all_jobs_count)
         total_pages = max(1, (total_items + limit - 1) // limit)
-
-        # Apply pagination
-        start_idx = (page - 1) * limit
-        end_idx = start_idx + limit
-        paginated_jobs = all_jobs[start_idx:end_idx]
 
         # Transform jobs to response format
         job_responses = [JobResponse.model_validate(_transform_job_to_response(job)) for job in paginated_jobs]

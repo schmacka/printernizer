@@ -4,6 +4,7 @@ Supports parsing Bambu Lab slicer generated files for thumbnails and print infor
 """
 import re
 import base64
+import binascii
 import zipfile
 import xml.etree.ElementTree as ET
 from typing import Dict, Any, Optional, List, Tuple
@@ -835,8 +836,9 @@ class BambuParser:
                 width = int.from_bytes(png_data[16:20], 'big')
                 height = int.from_bytes(png_data[20:24], 'big')
                 return width, height
-        except Exception:
-            pass
+        except (ValueError, IndexError, OverflowError) as e:
+            logger.debug("Could not parse PNG dimensions from header",
+                        data_length=len(png_data), error=str(e))
         return 200, 200  # Default fallback dimensions
 
     def _parse_thumbnail_dimensions(self, filename: str) -> Tuple[int, int]:
@@ -890,10 +892,11 @@ class BambuParser:
             # Check if string length is multiple of 4 (after padding)
             if len(s) % 4 != 0:
                 s += '=' * (4 - len(s) % 4)
-            
+
             base64.b64decode(s, validate=True)
             return True
-        except Exception:
+        except (ValueError, TypeError, binascii.Error):
+            # Not valid base64
             return False
     
     def get_largest_thumbnail(self, thumbnails: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
