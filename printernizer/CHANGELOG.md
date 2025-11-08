@@ -1,3 +1,11 @@
+## [2.2.5] - 2025-11-08
+
+- refactor: Complete PrinterService God Class decomposition (Phase 2)
+- docs: Add comprehensive FileService refactoring summary
+- refactor: Complete FileService God Class decomposition (Phase 2)
+- refactor: Complete remaining bare exception handlers in non-core services
+- docs: Update technical debt progress after merge
+
 ## [2.2.4] - 2025-11-08
 
 - docs: Add comprehensive FileService refactoring summary
