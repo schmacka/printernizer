@@ -5,13 +5,12 @@ Tests the core system health check functionality.
 import pytest
 import json
 from fastapi.testclient import TestClient
-from src.main import app
 
 
 @pytest.fixture
-def client():
-    """Test client fixture."""
-    return TestClient(app)
+def client(test_app):
+    """Test client fixture using test_app from conftest."""
+    return TestClient(test_app)
 
 
 class TestHealthEndpoint:
@@ -20,7 +19,7 @@ class TestHealthEndpoint:
     def test_health_check_success(self, client):
         """Test basic health check returns 200."""
         response = client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "status" in data
