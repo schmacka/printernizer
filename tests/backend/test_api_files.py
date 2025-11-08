@@ -9,17 +9,24 @@ import tempfile
 import hashlib
 from unittest.mock import patch, Mock, mock_open
 from datetime import datetime
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def client(test_app):
+    """Test client fixture using test_app from conftest."""
+    return TestClient(test_app)
 
 
 class TestFileAPI:
     """Test file management API endpoints"""
     
-    def test_get_files_unified_empty(self, api_client, temp_database, test_config):
+    def test_get_files_unified_empty(self, client, temp_database):
         """Test GET /api/v1/files/unified with empty database"""
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value.execute.return_value.fetchall.return_value = []
             
-            response = api_client.get(f"{test_config['api_base_url']}/files/unified")
+            response = client.get("/api/v1/files/unified")
             
             assert response.status_code == 200
             data = response.json()
@@ -29,12 +36,12 @@ class TestFileAPI:
             assert data['statistics']['downloaded'] == 0
             assert data['statistics']['local'] == 0
     
-    def test_get_files_unified_with_data(self, api_client, populated_database, test_config, sample_file_data):
+    def test_get_files_unified_with_data(self, client, populated_database, sample_file_data):
         """Test GET /api/v1/files/unified with existing files"""
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/files/unified")
+            response = client.get("/api/v1/files/unified")
             
             assert response.status_code == 200
             data = response.json()
@@ -60,43 +67,43 @@ class TestFileAPI:
             assert stats['downloaded'] == 1
             assert stats['total_size_mb'] > 0
     
-    def test_get_files_filter_by_printer(self, api_client, populated_database, test_config):
+    def test_get_files_filter_by_printer(self, client, populated_database):
         """Test GET /api/v1/files/unified?printer_id=bambu_a1_001"""
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/files/unified?printer_id=bambu_a1_001")
+            response = client.get("/api/v1/files/unified?printer_id=bambu_a1_001")
             
             assert response.status_code == 200
             data = response.json()
             assert len(data['files']) == 1
             assert data['files'][0]['printer_id'] == 'bambu_a1_001'
     
-    def test_get_files_filter_by_status(self, api_client, populated_database, test_config):
+    def test_get_files_filter_by_status(self, client, populated_database):
         """Test GET /api/v1/files/unified?status=available"""
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/files/unified?status=available")
+            response = client.get("/api/v1/files/unified?status=available")
             
             assert response.status_code == 200
             data = response.json()
             assert len(data['files']) == 1
             assert data['files'][0]['download_status'] == 'available'
     
-    def test_get_files_filter_by_type(self, api_client, populated_database, test_config):
+    def test_get_files_filter_by_type(self, client, populated_database):
         """Test GET /api/v1/files/unified?file_type=.3mf"""
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/files/unified?file_type=.3mf")
+            response = client.get("/api/v1/files/unified?file_type=.3mf")
             
             assert response.status_code == 200
             data = response.json()
             assert len(data['files']) == 1
             assert data['files'][0]['file_type'] == '.3mf'
     
-    def test_post_file_download_bambu_lab(self, api_client, populated_database, test_config, mock_bambu_api, temp_download_directory, sample_3mf_file):
+    def test_post_file_download_bambu_lab(self, client, populated_database, mock_bambu_api, temp_download_directory, sample_3mf_file):
         """Test POST /api/v1/files/{id}/download for Bambu Lab file"""
         file_id = 'file_001'
         
@@ -112,9 +119,7 @@ class TestFileAPI:
                 with patch('backend.files.get_download_directory') as mock_dir:
                     mock_dir.return_value = temp_download_directory
                     
-                    response = api_client.post(
-                        f"{test_config['api_base_url']}/files/{file_id}/download"
-                    )
+                    response = client.post(f"/api/v1/files/{file_id}/download")
                     
                     assert response.status_code == 200
                     data = response.json()
@@ -124,7 +129,7 @@ class TestFileAPI:
                     assert 'file_size' in data['download']
                     assert 'checksum' in data['download']
     
-    def test_post_file_download_prusa(self, api_client, populated_database, test_config, mock_prusa_api, temp_download_directory):
+    def test_post_file_download_prusa(self, client, populated_database, mock_prusa_api, temp_download_directory):
         """Test POST /api/v1/files/{id}/download for Prusa file"""
         file_id = 'file_002'
         mock_file_content = b"STL file content for testing"
@@ -141,30 +146,26 @@ class TestFileAPI:
                 with patch('backend.files.get_download_directory') as mock_dir:
                     mock_dir.return_value = temp_download_directory
                     
-                    response = api_client.post(
-                        f"{test_config['api_base_url']}/files/{file_id}/download"
-                    )
+                    response = client.post(f"/api/v1/files/{file_id}/download")
                     
                     assert response.status_code == 200
                     data = response.json()
                     assert data['download']['success'] is True
     
-    def test_post_file_download_already_downloaded(self, api_client, populated_database, test_config):
+    def test_post_file_download_already_downloaded(self, client, populated_database):
         """Test POST /api/v1/files/{id}/download for already downloaded file"""
         file_id = 'file_002'  # Already downloaded file from fixtures
         
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.post(
-                f"{test_config['api_base_url']}/files/{file_id}/download"
-            )
+            response = client.post(f"/api/v1/files/{file_id}/download")
             
             assert response.status_code == 409
             error_data = response.json()
             assert 'File already downloaded' in error_data['error']['message']
     
-    def test_post_file_download_printer_offline(self, api_client, populated_database, test_config):
+    def test_post_file_download_printer_offline(self, client, populated_database):
         """Test POST /api/v1/files/{id}/download when printer is offline"""
         file_id = 'file_001'
         
@@ -175,15 +176,13 @@ class TestFileAPI:
             with patch('backend.printers.get_printer_api') as mock_get_api:
                 mock_get_api.side_effect = ConnectionError("Printer not reachable")
                 
-                response = api_client.post(
-                    f"{test_config['api_base_url']}/files/{file_id}/download"
-                )
+                response = client.post(f"/api/v1/files/{file_id}/download")
                 
                 assert response.status_code == 503
                 error_data = response.json()
                 assert 'Printer not reachable' in error_data['error']['message']
     
-    def test_post_file_download_disk_space_error(self, api_client, populated_database, test_config, mock_bambu_api):
+    def test_post_file_download_disk_space_error(self, client, populated_database, mock_bambu_api):
         """Test POST /api/v1/files/{id}/download with insufficient disk space"""
         file_id = 'file_001'
         
@@ -197,15 +196,13 @@ class TestFileAPI:
                 with patch('backend.files.check_disk_space') as mock_space:
                     mock_space.return_value = False
                     
-                    response = api_client.post(
-                        f"{test_config['api_base_url']}/files/{file_id}/download"
-                    )
+                    response = client.post(f"/api/v1/files/{file_id}/download")
                     
                     assert response.status_code == 507
                     error_data = response.json()
                     assert 'Insufficient disk space' in error_data['error']['message']
     
-    def test_post_file_download_with_progress_tracking(self, api_client, populated_database, test_config, mock_bambu_api, temp_download_directory):
+    def test_post_file_download_with_progress_tracking(self, client, populated_database, mock_bambu_api, temp_download_directory):
         """Test POST /api/v1/files/{id}/download with progress tracking"""
         file_id = 'file_001'
         large_file_content = b'x' * 1024000  # 1MB file
@@ -223,16 +220,14 @@ class TestFileAPI:
                 with patch('backend.files.get_download_directory') as mock_dir:
                     mock_dir.return_value = temp_download_directory
                     
-                    response = api_client.post(
-                        f"{test_config['api_base_url']}/files/{file_id}/download?track_progress=true"
-                    )
+                    response = client.post(f"/api/v1/files/{file_id}/download?track_progress=true")
                     
                     assert response.status_code == 202  # Accepted for async download
                     data = response.json()
                     assert 'download_id' in data
                     assert data['status'] == 'started'
     
-    def test_delete_file_local(self, api_client, populated_database, test_config, temp_download_directory):
+    def test_delete_file_local(self, client, populated_database, temp_download_directory):
         """Test DELETE /api/v1/files/{id} - Delete local file"""
         file_id = 'file_002'  # Downloaded file
         
@@ -247,26 +242,26 @@ class TestFileAPI:
             with patch('backend.files.get_local_file_path') as mock_path:
                 mock_path.return_value = local_file_path
                 
-                response = api_client.delete(f"{test_config['api_base_url']}/files/{file_id}")
+                response = client.delete(f"/api/v1/files/{file_id}")
                 
                 assert response.status_code == 204
                 
                 # Verify file is deleted from filesystem
                 assert not os.path.exists(local_file_path)
     
-    def test_delete_file_available_only(self, api_client, populated_database, test_config):
+    def test_delete_file_available_only(self, client, populated_database):
         """Test DELETE /api/v1/files/{id} for file that's only available on printer"""
         file_id = 'file_001'  # Available but not downloaded
         
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.delete(f"{test_config['api_base_url']}/files/{file_id}")
+            response = client.delete(f"/api/v1/files/{file_id}")
             
             # Should just mark as deleted in database
             assert response.status_code == 204
     
-    def test_get_file_download_progress(self, api_client, test_config):
+    def test_get_file_download_progress(self, client):
         """Test GET /api/v1/files/downloads/{download_id}/progress"""
         download_id = 'test_download_123'
         
@@ -281,9 +276,7 @@ class TestFileAPI:
                 'eta_seconds': 55
             }
             
-            response = api_client.get(
-                f"{test_config['api_base_url']}/files/downloads/{download_id}/progress"
-            )
+            response = client.get(f"/api/v1/files/downloads/{download_id}/progress")
             
             assert response.status_code == 200
             data = response.json()
@@ -291,12 +284,12 @@ class TestFileAPI:
             assert data['progress']['progress_percent'] == 45.5
             assert 'eta_seconds' in data['progress']
     
-    def test_get_file_download_history(self, api_client, populated_database, test_config):
+    def test_get_file_download_history(self, client, populated_database):
         """Test GET /api/v1/files/download-history"""
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/files/download-history")
+            response = client.get("/api/v1/files/download-history")
             
             assert response.status_code == 200
             data = response.json()
@@ -304,7 +297,7 @@ class TestFileAPI:
             assert 'total_count' in data
             assert 'statistics' in data
     
-    def test_post_file_cleanup(self, api_client, populated_database, test_config):
+    def test_post_file_cleanup(self, client, populated_database):
         """Test POST /api/v1/files/cleanup - Clean up old downloaded files"""
         cleanup_data = {
             'older_than_days': 30,
@@ -323,10 +316,7 @@ class TestFileAPI:
                     'errors': []
                 }
                 
-                response = api_client.post(
-                    f"{test_config['api_base_url']}/files/cleanup",
-                    json=cleanup_data
-                )
+                response = client.post("/api/v1/files/cleanup", json=cleanup_data)
                 
                 assert response.status_code == 200
                 data = response.json()
@@ -449,7 +439,7 @@ class TestFileBusinessLogic:
 class TestFileAPIPerformance:
     """Test file API performance and large file handling"""
     
-    def test_large_file_list_performance(self, api_client, db_connection, test_config):
+    def test_large_file_list_performance(self, client, db_connection):
         """Test API performance with large number of files"""
         cursor = db_connection.cursor()
         
@@ -475,7 +465,7 @@ class TestFileAPIPerformance:
         
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = db_connection
-            response = api_client.get(f"{test_config['api_base_url']}/files/unified")
+            response = client.get("/api/v1/files/unified")
         
         end_time = time.time()
         request_time = end_time - start_time
@@ -487,7 +477,7 @@ class TestFileAPIPerformance:
         data = response.json()
         assert len(data['files']) >= 200
     
-    def test_concurrent_file_downloads(self, api_client, populated_database, test_config):
+    def test_concurrent_file_downloads(self, client, populated_database):
         """Test concurrent file download requests"""
         import threading
         
@@ -495,9 +485,7 @@ class TestFileAPIPerformance:
         
         def download_file(file_id):
             try:
-                response = api_client.post(
-                    f"{test_config['api_base_url']}/files/{file_id}/download"
-                )
+                response = client.post(f"/api/v1/files/{file_id}/download")
                 results.append(response.status_code)
             except Exception as e:
                 results.append(500)
