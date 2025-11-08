@@ -412,12 +412,215 @@ def test_utils():
 # ASYNC TEST SUPPORT
 # =====================================================
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def event_loop():
     """Create event loop for async tests"""
     loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     yield loop
     loop.close()
+
+
+# =====================================================
+# PHASE 2 REFACTORED SERVICE FIXTURES
+# =====================================================
+
+@pytest.fixture
+async def async_database():
+    """Create async test database using Phase 2 Database class."""
+    import sys
+    import os
+    # Add src to path for imports
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from database.database import Database
+
+    temp_db = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+    temp_db.close()
+
+    db = Database(temp_db.name)
+    await db.initialize()
+
+    yield db
+
+    # Cleanup
+    if db._connection:
+        await db._connection.close()
+    os.unlink(temp_db.name)
+
+
+@pytest.fixture
+def event_service():
+    """Create EventService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.event_service import EventService
+
+    return EventService()
+
+
+@pytest.fixture
+async def config_service(async_database):
+    """Create ConfigService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.config_service import ConfigService
+
+    return ConfigService(async_database)
+
+
+@pytest.fixture
+async def file_download_service(async_database, event_service):
+    """Create FileDownloadService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.file_download_service import FileDownloadService
+
+    return FileDownloadService(async_database, event_service)
+
+
+@pytest.fixture
+async def file_discovery_service(async_database, event_service):
+    """Create FileDiscoveryService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.file_discovery_service import FileDiscoveryService
+
+    return FileDiscoveryService(async_database, event_service)
+
+
+@pytest.fixture
+async def file_thumbnail_service(async_database, event_service):
+    """Create FileThumbnailService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.file_thumbnail_service import FileThumbnailService
+
+    return FileThumbnailService(async_database, event_service)
+
+
+@pytest.fixture
+async def file_metadata_service(async_database, event_service):
+    """Create FileMetadataService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.file_metadata_service import FileMetadataService
+
+    return FileMetadataService(async_database, event_service)
+
+
+@pytest.fixture
+async def printer_connection_service(async_database, event_service):
+    """Create PrinterConnectionService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.printer_connection_service import PrinterConnectionService
+
+    return PrinterConnectionService(async_database, event_service)
+
+
+@pytest.fixture
+async def printer_monitoring_service(async_database, event_service):
+    """Create PrinterMonitoringService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.printer_monitoring_service import PrinterMonitoringService
+
+    return PrinterMonitoringService(async_database, event_service)
+
+
+@pytest.fixture
+async def printer_control_service(async_database, event_service):
+    """Create PrinterControlService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.printer_control_service import PrinterControlService
+
+    return PrinterControlService(async_database, event_service)
+
+
+@pytest.fixture
+async def job_service(async_database, event_service):
+    """Create JobService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.job_service import JobService
+
+    return JobService(async_database, event_service)
+
+
+@pytest.fixture
+async def library_service(async_database, event_service):
+    """Create LibraryService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.library_service import LibraryService
+
+    return LibraryService(async_database, event_service)
+
+
+@pytest.fixture
+async def material_service(async_database, event_service):
+    """Create MaterialService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.material_service import MaterialService
+
+    return MaterialService(async_database, event_service)
+
+
+@pytest.fixture
+async def trending_service(async_database):
+    """Create TrendingService instance for testing."""
+    import sys
+    import os
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from services.trending_service import TrendingService
+
+    return TrendingService(async_database)
+
+
+@pytest.fixture
+def mock_printer_instance():
+    """Create mock printer instance for testing."""
+    printer = AsyncMock()
+    printer.printer_id = "test_printer_001"
+    printer.name = "Test Printer"
+    printer.printer_type = "bambu_lab"
+    printer.is_connected = AsyncMock(return_value=True)
+    printer.connect = AsyncMock(return_value=True)
+    printer.disconnect = AsyncMock()
+    printer.get_status = AsyncMock(return_value={
+        "status": "idle",
+        "temperature": {"nozzle": 25.0, "bed": 25.0}
+    })
+    printer.download_file = AsyncMock(return_value=b"mock file contents")
+    return printer
 
 
 # =====================================================

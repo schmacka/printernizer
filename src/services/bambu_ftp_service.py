@@ -24,6 +24,8 @@ from datetime import datetime
 import structlog
 from contextlib import asynccontextmanager
 
+from src.constants import PortConstants, NetworkConstants
+
 logger = structlog.get_logger()
 
 
@@ -40,7 +42,11 @@ class BambuFTPFile:
         self.file_type = self._determine_file_type()
 
     def _determine_file_type(self) -> str:
-        """Determine file type from extension."""
+        """Determine file type from filename extension.
+
+        Returns:
+            File type string (3mf, stl, gcode, image, video, or unknown).
+        """
         ext = Path(self.name).suffix.lower()
         type_map = {
             '.3mf': '3mf',
@@ -78,7 +84,7 @@ class BambuFTPFile:
 class BambuFTPService:
     """Service for FTP operations with Bambu Lab printers."""
 
-    def __init__(self, ip_address: str, access_code: str, port: int = 990):
+    def __init__(self, ip_address: str, access_code: str, port: int = PortConstants.BAMBU_FTP_PORT):
         """
         Initialize Bambu FTP service.
 
@@ -93,15 +99,22 @@ class BambuFTPService:
         self.username = "bblp"  # Fixed username for Bambu Lab printers
 
         # Connection settings
-        self.timeout = 30  # 30 second timeout
-        self.retry_count = 3
-        self.retry_delay = 2  # seconds
+        self.timeout = NetworkConstants.CONNECTION_TIMEOUT_SECONDS
+        self.retry_count = NetworkConstants.FTP_RETRY_COUNT
+        self.retry_delay = NetworkConstants.FTP_RETRY_DELAY_SECONDS
 
         logger.info("Initialized Bambu FTP service",
                    ip=ip_address, port=port, username=self.username)
 
     def _create_ssl_context(self) -> ssl.SSLContext:
-        """Create SSL context for implicit TLS connection."""
+        """Create SSL context for implicit TLS connection.
+
+        Configures SSL context to accept self-signed certificates commonly
+        used by Bambu Lab printers.
+
+        Returns:
+            Configured SSLContext instance for FTP_TLS connection.
+        """
         ssl_context = ssl.create_default_context()
         # Bambu Lab printers typically use self-signed certificates
         ssl_context.check_hostname = False

@@ -70,6 +70,11 @@ from src.utils.middleware import (
 )
 from src.utils.version import get_version
 from src.utils.timing import StartupTimer
+from src.constants import (
+    PortConstants,
+    TimeoutConstants,
+    ServerConstants
+)
 
 
 # Application version - Automatically extracted from git tags
@@ -270,7 +275,7 @@ async def lifespan(app: FastAPI):
 
     # Optional: Schedule automatic printer discovery to run after startup delay
     if os.getenv("DISCOVERY_RUN_ON_STARTUP", "true").lower() == "true":
-        delay_seconds = int(os.getenv("DISCOVERY_STARTUP_DELAY_SECONDS", "60"))
+        delay_seconds = int(os.getenv("DISCOVERY_STARTUP_DELAY_SECONDS", str(TimeoutConstants.DISCOVERY_STARTUP_DELAY_SECONDS)))
         logger.info(f"Automatic printer discovery scheduled to run in {delay_seconds} seconds")
 
         async def delayed_discovery():
@@ -286,7 +291,7 @@ async def lifespan(app: FastAPI):
                     from src.services.discovery_service import DiscoveryService
 
                     # Get timeout from config
-                    timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", "10"))
+                    timeout = int(os.getenv("DISCOVERY_TIMEOUT_SECONDS", str(TimeoutConstants.DISCOVERY_TIMEOUT_SECONDS)))
                     discovery_service = DiscoveryService(timeout=timeout)
 
                     # Get configured printer IPs for duplicate detection
@@ -329,7 +334,7 @@ async def lifespan(app: FastAPI):
     timer.report()
 
     # Server ready confirmation with useful connection information
-    port = os.getenv("PORT", "8000")
+    port = os.getenv("PORT", str(PortConstants.DEFAULT_API_PORT))
     logger.info("=" * 60)
     logger.info("🚀 PRINTERNIZER BACKEND READY")
     logger.info(f"Server is accepting connections at http://0.0.0.0:{port}")
@@ -343,9 +348,9 @@ async def lifespan(app: FastAPI):
     
     # Shutdown with proper error handling and timeouts
     logger.info("Shutting down Printernizer gracefully")
-    shutdown_timeout = 30  # seconds
+    shutdown_timeout = TimeoutConstants.SHUTDOWN_TIMEOUT_SECONDS  # seconds
 
-    async def shutdown_with_timeout(coro, service_name: str, timeout: float = 10):
+    async def shutdown_with_timeout(coro, service_name: str, timeout: float = TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS):
         """Execute shutdown coroutine with timeout."""
         try:
             await asyncio.wait_for(coro, timeout=timeout)
@@ -364,7 +369,7 @@ async def lifespan(app: FastAPI):
             shutdown_with_timeout(
                 app.state.printer_service.shutdown(),
                 "Printer service",
-                timeout=15
+                timeout=TimeoutConstants.PRINTER_SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )
 
@@ -374,7 +379,7 @@ async def lifespan(app: FastAPI):
             shutdown_with_timeout(
                 app.state.file_watcher_service.stop(),
                 "File watcher service",
-                timeout=5
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )
 
@@ -384,7 +389,7 @@ async def lifespan(app: FastAPI):
             shutdown_with_timeout(
                 app.state.trending_service.cleanup(),
                 "Trending service",
-                timeout=5
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )
 
@@ -394,7 +399,7 @@ async def lifespan(app: FastAPI):
             shutdown_with_timeout(
                 app.state.thumbnail_service.cleanup(),
                 "Thumbnail service",
-                timeout=5
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )
 
@@ -405,7 +410,7 @@ async def lifespan(app: FastAPI):
                 app.state.url_parser_service.close(),
 
                 "URL parser service",
-                timeout=5
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )
 
@@ -415,7 +420,7 @@ async def lifespan(app: FastAPI):
             shutdown_with_timeout(
                 app.state.timelapse_service.shutdown(),
                 "Timelapse service",
-                timeout=5
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )
 
@@ -428,7 +433,7 @@ async def lifespan(app: FastAPI):
         await shutdown_with_timeout(
             app.state.event_service.stop(),
             "Event service",
-            timeout=5
+            timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
         )
 
     # Close database connection last
@@ -436,7 +441,7 @@ async def lifespan(app: FastAPI):
         await shutdown_with_timeout(
             app.state.database.close(),
             "Database",
-            timeout=5
+            timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
         )
 
     logger.info("Printernizer shutdown complete")
@@ -632,13 +637,13 @@ if __name__ == "__main__":
     # Production server configuration
     setup_signal_handlers()
 
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", str(PortConstants.DEFAULT_API_PORT)))
     host = "0.0.0.0"
 
     config = {
         "host": host,
         "port": port,
-        "workers": 1,  # Force single worker to avoid database initialization conflicts
+        "workers": ServerConstants.UVICORN_WORKERS,  # Force single worker to avoid database initialization conflicts
         "log_level": os.getenv("LOG_LEVEL", "info").lower(),  # Normalize to lowercase for uvicorn
         "access_log": True,
         "use_colors": False,

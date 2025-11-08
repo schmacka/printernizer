@@ -47,7 +47,10 @@ class ErrorHandler:
         self.ensure_log_directory()
         
     def ensure_log_directory(self):
-        """Ensure the log directory exists."""
+        """Ensure the error log directory exists.
+
+        Creates the directory structure for error logs if it doesn't exist.
+        """
         self.error_log_path.parent.mkdir(parents=True, exist_ok=True)
     
     def handle_error(
@@ -107,11 +110,22 @@ class ErrorHandler:
         return error_info
     
     def _generate_error_id(self) -> str:
-        """Generate unique error ID."""
+        """Generate unique error identifier.
+
+        Returns:
+            Unique error ID combining timestamp and object ID.
+        """
         return f"err_{int(datetime.now().timestamp())}_{id(object())}"
     
     def _get_log_level(self, severity: ErrorSeverity) -> str:
-        """Map severity to log level."""
+        """Map error severity to appropriate logging level.
+
+        Args:
+            severity: Error severity level.
+
+        Returns:
+            Log level string (info, warning, error, or critical).
+        """
         mapping = {
             ErrorSeverity.LOW: "info",
             ErrorSeverity.MEDIUM: "warning",
@@ -121,7 +135,15 @@ class ErrorHandler:
         return mapping.get(severity, "warning")
     
     def _generate_user_message(self, category: ErrorCategory, error: Exception) -> str:
-        """Generate user-friendly error message."""
+        """Generate user-friendly error message based on category.
+
+        Args:
+            category: Error category.
+            error: The exception that occurred.
+
+        Returns:
+            User-friendly error message string.
+        """
         messages = {
             ErrorCategory.DATABASE: "Database operation failed. Please try again later.",
             ErrorCategory.API: "Service request failed. Please check your input and try again.",
@@ -138,7 +160,11 @@ class ErrorHandler:
         return messages.get(category, "An error occurred. Please try again.")
     
     def _log_to_file(self, error_info: Dict[str, Any]):
-        """Log error information to file."""
+        """Persist error information to JSON log file.
+
+        Args:
+            error_info: Error information dictionary to log.
+        """
         try:
             with open(self.error_log_path, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(error_info) + '\n')
@@ -146,7 +172,11 @@ class ErrorHandler:
             logger.error("Failed to log error to file", file_error=str(e))
     
     def _handle_critical_error(self, error_info: Dict[str, Any]):
-        """Handle critical errors with special alerting."""
+        """Handle critical errors with special logging and alerting.
+
+        Args:
+            error_info: Error information dictionary for critical error.
+        """
         logger.critical(
             "CRITICAL ERROR DETECTED",
             error_id=error_info["id"],
@@ -187,7 +217,14 @@ class ErrorHandler:
             return self._empty_stats(hours)
     
     def _empty_stats(self, hours: int) -> Dict[str, Any]:
-        """Return empty statistics structure."""
+        """Return empty statistics structure.
+
+        Args:
+            hours: Time period for statistics.
+
+        Returns:
+            Empty statistics dictionary with default values.
+        """
         return {
             "period_hours": hours,
             "total_errors": 0,
@@ -198,7 +235,15 @@ class ErrorHandler:
         }
     
     def _calculate_statistics(self, errors: list, hours: int) -> Dict[str, Any]:
-        """Calculate error statistics from error list."""
+        """Calculate error statistics from error list.
+
+        Args:
+            errors: List of error dictionaries.
+            hours: Time period for statistics.
+
+        Returns:
+            Statistics dictionary with counts by category, severity, and type.
+        """
         by_category = {}
         by_severity = {}
         by_type = {}

@@ -80,6 +80,22 @@ async def debug_file(
     file_id: str,
     include_base64_length: bool = Query(False, description="Include base64 length instead of data")
 ):
+    """Debug file record and thumbnail information.
+
+    Returns file record with thumbnail metadata for debugging purposes.
+    Excludes thumbnail data by default to reduce response size.
+
+    Args:
+        request: FastAPI request object.
+        file_id: File identifier to inspect.
+        include_base64_length: If True, includes length of base64 thumbnail data.
+
+    Returns:
+        File record dictionary with thumbnail metadata.
+
+    Raises:
+        HTTPException: 404 if file not found, 500 if file service unavailable.
+    """
     file_service = getattr(request.app.state, 'file_service', None)
     if not file_service:
         raise HTTPException(status_code=500, detail="File service unavailable")
