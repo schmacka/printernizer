@@ -1,8 +1,9 @@
 # Automated Job Creation - Design Document
 
-**Status:** Planning
+**Status:** Ready for Implementation
 **Author:** Claude & User
 **Date:** 2025-01-08
+**Updated:** 2025-01-08 (All open questions resolved)
 **Target Version:** TBD
 
 ## Overview
@@ -940,46 +941,321 @@ metrics = {
 }
 ```
 
-### 11. Open Questions
+### 11. Open Questions & Recommendations
 
 #### For Implementation
 
-1. **Bambu MQTT Fields**
-   - [ ] Test with real Bambu printer to discover exact field names
-   - [ ] Document which firmware versions support which fields
-   - [ ] Add field name mapping for different firmware versions
+##### 1. **Bambu MQTT Fields** ✅
 
-2. **Cache Cleanup**
-   - [ ] When to clean up `_print_discoveries` cache?
-   - [ ] Maximum cache size limit?
-   - [ ] Periodic cleanup task vs. on-demand?
+**Decision:**
+- Add verbose debug logging to capture all available MQTT fields during development
+- Test with real Bambu printer across different firmware versions
+- Document discovered fields in code comments with firmware version compatibility matrix
+- Use field fallback chain (try multiple field names) for robustness
 
-3. **Job Service Integration**
-   - [ ] Should JobService be required or optional dependency?
-   - [ ] How to handle JobService unavailable at runtime?
-   - [ ] Create interface/protocol for loose coupling?
+**Rationale:**
+- Existing code already stores `raw_data` for debugging purposes
+- Bambu MQTT API is reverse-engineered, so field names may vary
+- Similar pattern exists in current Bambu implementation with `mqtt_dump()` method
 
-4. **Configuration Location**
-   - [ ] Store in config.yaml or database?
-   - [ ] Allow runtime changes without restart?
-   - [ ] Validate config on startup?
+**Implementation:**
+```python
+# Priority order for elapsed time fields
+elapsed_fields = ['mc_print_time', 'print_time', 'elapsed_time']
+# Priority order for start timestamp fields
+timestamp_fields = ['gcode_start_time', 'start_time']
+```
+
+**Action Items:**
+- [x] Define field fallback chains in design
+- [ ] Test with real Bambu printer
+- [ ] Document findings in code comments
+- [ ] Add firmware version compatibility notes
+
+---
+
+##### 2. **Cache Cleanup** ✅
+
+**Decision:**
+- **When:** Clean up on print state transitions (PRINTING → ONLINE/ERROR/COMPLETED)
+- **Max Size:** Keep last 2 hours of discoveries, implement LRU eviction
+- **Periodic:** Optional background task every 30 minutes to remove stale entries
+- **On Shutdown:** Clear all caches (no persistence needed)
+
+**Rationale:**
+- Matches existing `_auto_download_attempts` cache pattern in `PrinterMonitoringService`
+- Memory efficient: ~100 bytes per entry × 50 prints = ~5KB (negligible)
+- 2-hour window handles most edge cases (restarts, network issues)
+- No need for persistent cache across application restarts
+
+**Implementation:**
+```python
+# Already shown in design doc (cleanup on state transition)
+if status.status in [PrinterStatus.ONLINE, PrinterStatus.ERROR]:
+    if status.current_job:
+        discovery_key = f"{status.printer_id}:{status.current_job}"
+        self._print_discoveries.pop(discovery_key, None)
+
+# Add periodic cleanup task
+async def _cleanup_old_discoveries(self):
+    """Remove discovery entries older than 2 hours."""
+    cutoff = datetime.now() - timedelta(hours=2)
+    self._print_discoveries = {
+        k: v for k, v in self._print_discoveries.items()
+        if v > cutoff
+    }
+```
+
+**Action Items:**
+- [x] Define cleanup strategy
+- [ ] Implement state transition cleanup
+- [ ] Add periodic cleanup task
+- [ ] Add metrics for cache size monitoring
+
+---
+
+##### 3. **Job Service Integration** ✅
+
+**Decision:**
+- **Optional dependency** - inject via constructor, handle gracefully if None
+- Use existing pattern from `PrinterMonitoringService` with `file_service`
+- Log warning if unavailable, continue monitoring without auto-creation
+- No interface needed - duck typing is sufficient for internal services
+
+**Rationale:**
+- Matches existing pattern in `printer_monitoring_service.py` (file_service handling)
+- Allows testing in isolation
+- Graceful degradation if service unavailable
+- No tight coupling needed for internal services
+
+**Implementation:**
+```python
+# In PrinterService.__init__
+def __init__(self, ..., job_service=None):
+    self.job_service = job_service
+    # ... rest of init
+
+# In monitoring code
+if self.auto_create_jobs and self.job_service:
+    await self._auto_create_job_if_needed(status)
+else:
+    logger.debug("Auto job creation disabled or JobService unavailable")
+```
+
+**Action Items:**
+- [x] Define integration pattern
+- [ ] Update PrinterService constructor
+- [ ] Add graceful degradation logic
+- [ ] Add tests for both with/without JobService
+
+---
+
+##### 4. **Configuration Location** ✅
+
+**Decision:**
+- **Phase 1:** File-based config (config.yaml) + environment variables
+- Store in `Settings` class with `job_creation_auto_create: bool = True`
+- Read once at startup, reload requires restart (acceptable for v1)
+- **Phase 2:** Consider database storage for runtime changes
+
+**Rationale:**
+- Matches existing config patterns in `config_service.py` (Settings class)
+- Home Assistant add-on already uses `config.yaml`
+- Environment variables supported (`PRINTERNIZER_*` pattern in ConfigService)
+- Simpler to implement, test, and debug
+- Restart acceptable for config changes in v1
+
+**Implementation:**
+```python
+# Add to Settings class (src/services/config_service.py)
+class Settings(BaseSettings):
+    # ... existing fields ...
+
+    # Job Creation
+    job_creation_auto_create: bool = True
+
+# Add to config.yaml (printernizer/config.yaml)
+options:
+  # ... existing options ...
+  job_creation_auto_create: true
+
+schema:
+  # ... existing schema ...
+  job_creation_auto_create: bool?
+
+# Access in code
+self.auto_create_jobs = self.config_service.settings.job_creation_auto_create
+```
+
+**Action Items:**
+- [x] Define config structure
+- [ ] Update Settings class
+- [ ] Update config.yaml schema
+- [ ] Add config validation
+- [ ] Document environment variable option
+
+---
 
 #### For Product Decisions
 
-1. **UI Workflow**
-   - Show notification when auto-job created?
-   - Allow user to immediately edit auto-created job?
-   - Prompt for business flag if uncertain?
+##### 1. **UI Workflow** ✅
 
-2. **Default Behavior**
-   - Should auto-creation be enabled by default?
-   - Opt-in vs opt-out for new users?
-   - Different defaults for business vs. hobby users?
+**Decision:**
+- **Silent creation** - no modal/blocking dialogs
+- **Event emission** - emit `job_auto_created` event for UI refresh
+- **Toast notification** - small, dismissible notification in corner
+- **Immediate editing** - clicking notification opens job edit dialog
+- **Visual indicator** - badge on job list showing "Auto" or ⚡ icon
 
-3. **Error Handling**
-   - If auto-creation fails, retry or skip?
-   - Emit events for UI notification?
-   - Log for debugging or alert user?
+**Rationale:**
+- Matches existing event-driven architecture (`event_service.emit_event`)
+- Non-intrusive UX - user can ignore if not interested
+- Event system already in place
+- Similar pattern to file auto-download notifications
+
+**Event Payload:**
+```json
+{
+  "job_id": "uuid",
+  "printer_id": "bambu_001",
+  "filename": "model.3mf",
+  "discovery_time": "2025-01-08T10:30:00",
+  "is_startup": false
+}
+```
+
+**UI Components:**
+```
+Toast Notification:
+🖨️ Auto-created job for model.3mf on Bambu A1 #01 [Edit] [Dismiss]
+
+Job List Badge:
+⚡ Auto  (with tooltip: "Auto-created at 10:30 AM")
+
+One-time Tip (first auto-created job):
+ℹ️ Jobs are now tracked automatically! You can edit details or disable
+   this in Settings > Job Creation.
+```
+
+**Action Items:**
+- [x] Define UI workflow
+- [ ] Implement event emission (already in design)
+- [ ] Create toast notification component
+- [ ] Add job list badge
+- [ ] Add one-time tip system
+- [ ] Add edit shortcut from notification
+
+---
+
+##### 2. **Default Behavior** ✅
+
+**Decision:**
+- **Enabled by default** (opt-out, not opt-in)
+- Same default for all users (business and hobby)
+- Show one-time tip on first auto-created job explaining the feature
+- Easy toggle in Settings page
+
+**Rationale:**
+- Solves primary problem: "missed jobs" issue
+- Most users benefit from automatic tracking
+- Opt-out allows power users to disable if unwanted
+- Consistent with modern UX patterns (features enabled by default)
+- Can always be disabled without data loss
+
+**Settings UI:**
+```
+Job Creation Settings
+─────────────────────
+[ ✓ ] Automatically create jobs when prints start
+
+      When enabled, Printernizer will automatically create job records when
+      a printer starts printing. Jobs are marked as non-business by default
+      and can be edited anytime.
+
+      Default: Enabled
+```
+
+**Action Items:**
+- [x] Define default behavior
+- [ ] Set default to `true` in Settings
+- [ ] Add Settings UI toggle
+- [ ] Implement one-time tip
+- [ ] Add help text explaining feature
+- [ ] Document in user guide
+
+---
+
+##### 3. **Error Handling** ✅
+
+**Decision:**
+- **Log error** at ERROR level with full context
+- **Continue monitoring** - don't crash or stop polling
+- **Emit event** for UI notification (optional display)
+- **No retry** - wait for next status update (30 seconds)
+- **User notification** - show in UI activity log, not blocking alert
+
+**Rationale:**
+- Matches existing error handling in `PrinterMonitoringService`
+- Resilient system - one failure shouldn't stop monitoring
+- Structured logging already in place (structlog)
+- Event system can route to UI notification center
+- Auto-recovery via next polling cycle
+
+**Implementation:**
+```python
+# Error handling (already in design doc)
+try:
+    job = await self.job_service.create_job(job_data)
+    logger.info("Auto-created job", job_id=job.get('id'), ...)
+    await self.event_service.emit_event("job_auto_created", {...})
+
+except Exception as e:
+    logger.error("Failed to auto-create job",
+                printer_id=status.printer_id,
+                filename=status.current_job,
+                error=str(e),
+                exc_info=True)
+
+    # Emit event for UI notification
+    await self.event_service.emit_event("job_auto_create_failed", {
+        "printer_id": status.printer_id,
+        "filename": status.current_job,
+        "error": str(e),
+        "timestamp": datetime.now().isoformat()
+    })
+
+    # Continue monitoring - will retry on next status update
+```
+
+**UI Notification:**
+```
+⚠️ Failed to auto-create job for model.3mf
+   Will retry on next update. [Details] [Dismiss]
+```
+
+**Action Items:**
+- [x] Define error handling strategy
+- [ ] Implement error logging (already in design)
+- [ ] Add error event emission
+- [ ] Create UI error notification component
+- [ ] Add activity log for errors
+- [ ] Add retry counter metrics
+
+---
+
+## Summary of Decisions
+
+| Question | Decision | Implementation | Phase |
+|----------|----------|---------------|-------|
+| **Bambu MQTT Fields** | Debug logging + field fallback | Add to Bambu integration | Phase 1 |
+| **Cache Cleanup** | 2-hour LRU + state cleanup | Add cleanup methods | Phase 1 |
+| **Job Service Integration** | Optional dependency pattern | Use existing pattern | Phase 1 |
+| **Configuration** | File-based (v1) → DB (v2) | Settings + config.yaml | Phase 1 |
+| **UI Workflow** | Silent + toast + edit shortcut | Event-driven | Phase 3 |
+| **Default Behavior** | Enabled by default (opt-out) | Settings default=true | Phase 1 |
+| **Error Handling** | Log + continue + emit event | Resilient error handling | Phase 1 |
+
+**All questions resolved and ready for implementation!** ✅
 
 ## References
 
