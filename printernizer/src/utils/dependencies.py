@@ -16,6 +16,7 @@ from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.services.material_service import MaterialService
 from src.services.timelapse_service import TimelapseService
+from src.services.search_service import SearchService
 
 
 async def get_database(request: Request) -> Database:
@@ -86,3 +87,13 @@ async def get_material_service(request: Request) -> MaterialService:
 async def get_timelapse_service(request: Request) -> TimelapseService:
     """Get timelapse service instance from app state."""
     return request.app.state.timelapse_service
+
+
+async def get_search_service(
+    database: Database = Depends(get_database),
+    request: Request = None
+) -> SearchService:
+    """Get search service instance."""
+    file_service = request.app.state.file_service if request else None
+    idea_service = IdeaService(database)
+    return SearchService(database, file_service, idea_service)

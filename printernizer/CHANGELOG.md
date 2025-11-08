@@ -1,3 +1,9 @@
+## [2.2.1] - 2025-11-08
+
+- feat: Implement unified cross-site search for local files and ideas
+- feat: Add timelapse configuration UI to Home Assistant addon
+- fix: Replace rsync with cp for Windows compatibility in sync script
+
 ## [2.1.8] - 2025-11-07
 
 - fix: Replace rsync with cp for Windows compatibility in sync script

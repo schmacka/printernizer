@@ -1486,9 +1486,289 @@ class Database:
                     )
                     logger.info("Migration 005 completed")
 
+                # Migration 006: Add FTS5 search tables and search history
+                if '006' not in applied_migrations:
+                    logger.info("Migration 006: Adding FTS5 search tables and search history")
+
+                    # Create FTS5 virtual table for files full-text search
+                    await cursor.execute("""
+                        CREATE VIRTUAL TABLE IF NOT EXISTS fts_files USING fts5(
+                            file_id UNINDEXED,
+                            filename,
+                            display_name,
+                            file_type,
+                            metadata,
+                            tokenize='porter unicode61'
+                        )
+                    """)
+
+                    # Create FTS5 virtual table for ideas full-text search
+                    await cursor.execute("""
+                        CREATE VIRTUAL TABLE IF NOT EXISTS fts_ideas USING fts5(
+                            idea_id UNINDEXED,
+                            title,
+                            description,
+                            tags,
+                            category,
+                            tokenize='porter unicode61'
+                        )
+                    """)
+
+                    # Create search history table
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS search_history (
+                            id TEXT PRIMARY KEY,
+                            query TEXT NOT NULL,
+                            filters TEXT,
+                            results_count INTEGER DEFAULT 0,
+                            sources TEXT,
+                            searched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            user_context TEXT
+                        )
+                    """)
+
+                    # Create search analytics table for tracking clicks
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS search_analytics (
+                            id TEXT PRIMARY KEY,
+                            query TEXT NOT NULL,
+                            result_id TEXT NOT NULL,
+                            result_source TEXT NOT NULL,
+                            clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            position INTEGER
+                        )
+                    """)
+
+                    # Add index for search history queries
+                    await cursor.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_search_history_query
+                        ON search_history(query)
+                    """)
+
+                    # Add index for search history timestamp
+                    await cursor.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_search_history_searched_at
+                        ON search_history(searched_at DESC)
+                    """)
+
+                    # Populate FTS tables with existing data
+                    logger.info("Migration 006: Populating FTS tables with existing data")
+
+                    # Populate fts_files from files table
+                    await cursor.execute("""
+                        INSERT INTO fts_files(file_id, filename, display_name, file_type, metadata)
+                        SELECT id, filename, display_name, file_type, metadata
+                        FROM files
+                        WHERE id IS NOT NULL
+                    """)
+
+                    # Populate fts_ideas from ideas table
+                    await cursor.execute("""
+                        INSERT INTO fts_ideas(idea_id, title, description, category)
+                        SELECT id, title, description, category
+                        FROM ideas
+                        WHERE id IS NOT NULL
+                    """)
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('006', 'Add FTS5 search tables and search history')
+                    )
+                    logger.info("Migration 006 completed")
+
                 await self._connection.commit()
                 logger.info("All database migrations completed successfully")
 
         except Exception as e:
             logger.error("Failed to run database migrations", error=str(e))
             raise
+
+    # Search-related methods
+    async def search_files_fts(self, query: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Full-text search on files using FTS5.
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results
+
+        Returns:
+            List of file IDs that match the search query
+        """
+        try:
+            sql = """
+                SELECT file_id, rank
+                FROM fts_files
+                WHERE fts_files MATCH ?
+                ORDER BY rank
+                LIMIT ?
+            """
+            rows = await self._fetch_all(sql, [query, limit])
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error("FTS search failed for files", error=str(e), query=query)
+            return []
+
+    async def search_ideas_fts(self, query: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """
+        Full-text search on ideas using FTS5.
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results
+
+        Returns:
+            List of idea IDs that match the search query
+        """
+        try:
+            sql = """
+                SELECT idea_id, rank
+                FROM fts_ideas
+                WHERE fts_ideas MATCH ?
+                ORDER BY rank
+                LIMIT ?
+            """
+            rows = await self._fetch_all(sql, [query, limit])
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error("FTS search failed for ideas", error=str(e), query=query)
+            return []
+
+    async def update_file_fts(self, file_id: str, file_data: Dict[str, Any]) -> bool:
+        """Update FTS index for a file."""
+        try:
+            # Delete existing entry
+            await self._execute_write(
+                "DELETE FROM fts_files WHERE file_id = ?",
+                (file_id,)
+            )
+            # Insert updated entry
+            metadata_str = file_data.get('metadata', '')
+            if isinstance(metadata_str, dict):
+                metadata_str = json.dumps(metadata_str)
+
+            await self._execute_write(
+                """INSERT INTO fts_files(file_id, filename, display_name, file_type, metadata)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (file_id, file_data.get('filename', ''), file_data.get('display_name', ''),
+                 file_data.get('file_type', ''), metadata_str)
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to update file FTS index", error=str(e), file_id=file_id)
+            return False
+
+    async def update_idea_fts(self, idea_id: str, idea_data: Dict[str, Any]) -> bool:
+        """Update FTS index for an idea."""
+        try:
+            # Delete existing entry
+            await self._execute_write(
+                "DELETE FROM fts_ideas WHERE idea_id = ?",
+                (idea_id,)
+            )
+            # Insert updated entry
+            tags_str = ', '.join(idea_data.get('tags', []))
+            await self._execute_write(
+                """INSERT INTO fts_ideas(idea_id, title, description, tags, category)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (idea_id, idea_data.get('title', ''), idea_data.get('description', ''),
+                 tags_str, idea_data.get('category', ''))
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to update idea FTS index", error=str(e), idea_id=idea_id)
+            return False
+
+    async def delete_file_fts(self, file_id: str) -> bool:
+        """Delete file from FTS index."""
+        try:
+            return await self._execute_write(
+                "DELETE FROM fts_files WHERE file_id = ?",
+                (file_id,)
+            )
+        except Exception as e:
+            logger.error("Failed to delete file from FTS index", error=str(e), file_id=file_id)
+            return False
+
+    async def delete_idea_fts(self, idea_id: str) -> bool:
+        """Delete idea from FTS index."""
+        try:
+            return await self._execute_write(
+                "DELETE FROM fts_ideas WHERE idea_id = ?",
+                (idea_id,)
+            )
+        except Exception as e:
+            logger.error("Failed to delete idea from FTS index", error=str(e), idea_id=idea_id)
+            return False
+
+    async def add_search_history(self, history_data: Dict[str, Any]) -> bool:
+        """Add entry to search history."""
+        try:
+            filters_json = json.dumps(history_data.get('filters')) if history_data.get('filters') else None
+            sources_json = json.dumps(history_data.get('sources')) if history_data.get('sources') else None
+
+            return await self._execute_write(
+                """INSERT INTO search_history (id, query, filters, results_count, sources, searched_at)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (history_data['id'], history_data['query'], filters_json,
+                 history_data.get('results_count', 0), sources_json,
+                 history_data.get('searched_at', datetime.now().isoformat()))
+            )
+        except Exception as e:
+            logger.error("Failed to add search history", error=str(e))
+            return False
+
+    async def get_search_history(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Get recent search history."""
+        try:
+            sql = """
+                SELECT id, query, filters, results_count, sources, searched_at
+                FROM search_history
+                ORDER BY searched_at DESC
+                LIMIT ?
+            """
+            rows = await self._fetch_all(sql, [limit])
+            results = []
+            for row in rows:
+                entry = dict(row)
+                # Parse JSON fields
+                if entry.get('filters'):
+                    try:
+                        entry['filters'] = json.loads(entry['filters'])
+                    except (json.JSONDecodeError, TypeError):
+                        entry['filters'] = None
+                if entry.get('sources'):
+                    try:
+                        entry['sources'] = json.loads(entry['sources'])
+                    except (json.JSONDecodeError, TypeError):
+                        entry['sources'] = []
+                results.append(entry)
+            return results
+        except Exception as e:
+            logger.error("Failed to get search history", error=str(e))
+            return []
+
+    async def delete_search_history(self, search_id: str) -> bool:
+        """Delete a search history entry."""
+        try:
+            return await self._execute_write(
+                "DELETE FROM search_history WHERE id = ?",
+                (search_id,)
+            )
+        except Exception as e:
+            logger.error("Failed to delete search history", error=str(e), search_id=search_id)
+            return False
+
+    async def add_search_analytics(self, analytics_data: Dict[str, Any]) -> bool:
+        """Track search result click for analytics."""
+        try:
+            return await self._execute_write(
+                """INSERT INTO search_analytics (id, query, result_id, result_source, clicked_at, position)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (analytics_data['id'], analytics_data['query'], analytics_data['result_id'],
+                 analytics_data['result_source'], analytics_data.get('clicked_at', datetime.now().isoformat()),
+                 analytics_data.get('position'))
+            )
+        except Exception as e:
+            logger.error("Failed to add search analytics", error=str(e))
+            return False
