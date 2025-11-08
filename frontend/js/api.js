@@ -411,6 +411,53 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.PRINTER_CONNECTION_STATUS(printerId));
     }
 
+    // Search Endpoints
+    /**
+     * Unified search across local files and ideas
+     * @param {string} query - Search query string
+     * @param {Object} filters - Search filters (sources, file_types, dimensions, etc.)
+     * @param {number} page - Page number (default: 1)
+     * @param {number} limit - Results per page (default: 50)
+     * @returns {Promise<Object>} Search results grouped by source
+     */
+    async unifiedSearch(query, filters = {}, page = 1, limit = 50) {
+        const params = {
+            q: query,
+            page,
+            limit,
+            ...filters
+        };
+        return this.get('/search', params);
+    }
+
+    /**
+     * Get search history
+     * @param {number} limit - Number of history entries (default: 20)
+     * @returns {Promise<Array>} Search history entries
+     */
+    async getSearchHistory(limit = 20) {
+        return this.get('/search/history', { limit });
+    }
+
+    /**
+     * Delete search history entry
+     * @param {string} searchId - Search history entry ID
+     * @returns {Promise<Object>} Deletion confirmation
+     */
+    async deleteSearchHistory(searchId) {
+        return this.delete(`/search/history/${searchId}`);
+    }
+
+    /**
+     * Get search suggestions
+     * @param {string} query - Partial query for autocomplete
+     * @param {number} limit - Number of suggestions (default: 10)
+     * @returns {Promise<Array>} Search suggestions
+     */
+    async getSearchSuggestions(query, limit = 10) {
+        return this.get('/search/suggestions', { q: query, limit });
+    }
+
     /**
      * Download file with progress tracking
      */
