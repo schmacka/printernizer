@@ -16,6 +16,24 @@ router = APIRouter(prefix="/ideas", tags=["ideas"])
 
 # Pydantic models for API
 class IdeaCreate(BaseModel):
+    """
+    Request model for creating a new idea.
+
+    Attributes:
+        title: Idea title (1-255 characters)
+        description: Optional detailed description (up to 2000 characters)
+        source_type: Type of source (default: "manual")
+        source_url: Optional URL to external source
+        category: Optional category classification
+        priority: Priority level 1-5 (default: 3)
+        is_business: Whether this is a business order (default: False)
+        estimated_print_time: Estimated print time in minutes
+        material_notes: Optional notes about materials needed
+        customer_info: Optional customer information
+        planned_date: Optional planned execution date
+        tags: List of tags for categorization
+        metadata: Additional metadata as key-value pairs
+    """
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=2000)
     source_type: str = Field(default="manual")
@@ -32,6 +50,24 @@ class IdeaCreate(BaseModel):
 
 
 class IdeaUpdate(BaseModel):
+    """
+    Request model for updating an existing idea.
+
+    All fields are optional. Only provided fields will be updated.
+
+    Attributes:
+        title: Updated title (1-255 characters)
+        description: Updated description (up to 2000 characters)
+        category: Updated category
+        priority: Updated priority level 1-5
+        is_business: Updated business flag
+        estimated_print_time: Updated print time estimate in minutes
+        material_notes: Updated material notes
+        customer_info: Updated customer information
+        planned_date: Updated planned date
+        tags: Updated list of tags
+        metadata: Updated metadata
+    """
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=2000)
     category: Optional[str] = Field(None, max_length=100)
@@ -46,10 +82,28 @@ class IdeaUpdate(BaseModel):
 
 
 class IdeaStatusUpdate(BaseModel):
+    """
+    Request model for updating idea status.
+
+    Attributes:
+        status: New status (idea|planned|printing|completed|archived)
+    """
     status: str = Field(..., pattern="^(idea|planned|printing|completed|archived)$")
 
 
 class IdeaImport(BaseModel):
+    """
+    Request model for importing an idea from external platform URL.
+
+    Attributes:
+        url: URL to import from (MakerWorld, Printables, etc.)
+        title: Optional override title
+        description: Optional override description
+        category: Optional category
+        priority: Priority level 1-5 (default: 3)
+        is_business: Whether this is a business order (default: False)
+        tags: List of tags for categorization
+    """
     url: HttpUrl = Field(..., description="URL to import from external platform")
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=2000)
@@ -60,6 +114,15 @@ class IdeaImport(BaseModel):
 
 
 class TrendingSave(BaseModel):
+    """
+    Request model for saving a trending model as a personal idea.
+
+    Attributes:
+        category: Optional category for the idea
+        priority: Priority level 1-5 (default: 3)
+        is_business: Whether this is a business order (default: False)
+        tags: List of tags for categorization
+    """
     category: Optional[str] = Field(None, max_length=100)
     priority: int = Field(default=3, ge=1, le=5)
     is_business: bool = Field(default=False)

@@ -200,7 +200,14 @@ def get_settings() -> PrinternizerSettings:
 
 
 def reload_settings() -> PrinternizerSettings:
-    """Reload settings from environment."""
+    """Reload settings from environment variables.
+
+    Forces a reload of all settings by recreating the global settings instance.
+    Useful after environment variable changes.
+
+    Returns:
+        Newly loaded PrinternizerSettings instance.
+    """
     global _settings
     _settings = PrinternizerSettings()
     return _settings

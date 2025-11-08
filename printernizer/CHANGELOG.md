@@ -1,3 +1,15 @@
+## [2.2.6] - 2025-11-08
+
+- refactor: Extract magic numbers to named constants (Task 2.1-2.3)
+- docs: Add comprehensive docstrings across codebase (Tasks 1.1-1.4)
+- test: Fix import paths in PrinterConnectionService tests (Task 3.3)
+- test: Add unit tests for PrinterConnectionService (Task 3.3)
+- test: Add comprehensive unit tests for FileDownloadService (Task 3.2)
+- test: Set up Phase 3 test infrastructure (Task 3.1)
+- docs: Add Phase 3 continuation prompt
+- docs: Complete Phase 2 - Event architecture & circular dependency resolution
+- docs: Add prompt for remaining Phase 2 work (11 hours)
+
 ## [2.2.5] - 2025-11-08
 
 - refactor: Complete PrinterService God Class decomposition (Phase 2)
