@@ -1,3 +1,10 @@
+## [2.4.1] - 2025-11-09
+
+- feat: Finalize automated job creation Phase 3 - Frontend & UX
+- feat: Add frontend UI and documentation for automated job creation
+- fix: Use proper default folders for Home Assistant addon
+- test: Add comprehensive test suite for automated job creation feature
+
 ## [2.3.9] - 2025-11-09
 
 - feat: Add frontend UI and documentation for automated job creation
