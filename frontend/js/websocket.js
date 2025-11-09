@@ -444,6 +444,9 @@ class PrinternizerWebSocketHandler {
             cooldown: 60000 // 1 minute cooldown per job
         });
 
+        // Show one-time tip for first auto-created job
+        this.showFirstAutoJobTip();
+
         // Update job lists if on jobs or dashboard page
         if (window.currentPage === 'jobs' || window.currentPage === 'dashboard') {
             // Refresh job list to show new auto-created job
@@ -456,6 +459,35 @@ class PrinternizerWebSocketHandler {
         document.dispatchEvent(new CustomEvent('jobAutoCreated', {
             detail: data
         }));
+    }
+
+    /**
+     * Show one-time tip about auto-created jobs (first time only)
+     */
+    showFirstAutoJobTip() {
+        const tipKey = 'printernizer_auto_job_tip_shown';
+
+        // Check if tip has been shown before
+        if (localStorage.getItem(tipKey) === 'true') {
+            return;
+        }
+
+        // Mark tip as shown
+        localStorage.setItem(tipKey, 'true');
+
+        // Show informative banner with longer duration
+        const tipMessage = `
+            Aufträge werden jetzt automatisch erstellt!
+            Sie finden sie mit dem ⚡ Auto Badge in der Auftragsliste.
+            Diese Funktion kann in den Einstellungen deaktiviert werden.
+        `;
+
+        showToast('info', 'ℹ️ Automatische Auftrags-Erstellung', tipMessage, 10000, {
+            uniqueKey: 'auto_job_first_tip',
+            deduplicateMode: 'ignore'
+        });
+
+        console.log('First auto-job tip shown');
     }
 
     /**
