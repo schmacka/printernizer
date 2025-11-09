@@ -178,9 +178,16 @@ class PrusaPrinter(BasePrinter):
                     # Try 'display_name' first (long filename), then fall back to 'name' (short filename)
                     current_job = file_info.get('display_name', file_info.get('name', ''))
 
+                # Extract progress - handle None values and missing fields
                 progress_info = job_data.get('progress', {})
-                if progress_info:
-                    progress = int(progress_info.get('completion', 0) or 0)
+                if progress_info is not None:
+                    completion = progress_info.get('completion')
+                    if completion is not None:
+                        progress = int(completion)
+                        logger.debug("Prusa print progress detected",
+                                   printer_id=self.printer_id,
+                                   progress=progress,
+                                   raw_completion=completion)
 
                     # Extract remaining time from Prusa API
                     print_time_left = progress_info.get('printTimeLeft')
@@ -280,9 +287,15 @@ class PrusaPrinter(BasePrinter):
                 
             file_info = job_info_data.get('file', {})
             progress_info = job_data.get('progress', {})
-            
+
             job_name = file_info.get('display_name', file_info.get('name', 'Unknown Job'))
-            progress = int(progress_info.get('completion', 0) or 0)
+
+            # Extract progress - handle None values properly
+            progress = 0
+            if progress_info:
+                completion = progress_info.get('completion')
+                if completion is not None:
+                    progress = int(completion)
             
             # Get state and map to JobStatus
             state = job_data.get('state', 'Unknown')
