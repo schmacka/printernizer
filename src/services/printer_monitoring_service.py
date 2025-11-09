@@ -800,13 +800,13 @@ class PrinterMonitoringService:
             # Actual start time from printer (if available)
             'start_time': status.print_start_time.isoformat() if status.print_start_time else None,
 
-            # Metadata
-            'customer_info': json.dumps({
+            # Metadata (as dict - job_service will serialize to JSON for database)
+            'customer_info': {
                 'auto_created': True,
                 'discovery_time': discovery_time.isoformat(),
                 'discovered_on_startup': is_startup,
                 'printer_start_time': status.print_start_time.isoformat() if status.print_start_time else None
-            }),
+            },
 
             # Optional fields
             'progress': status.progress or 0,
@@ -818,10 +818,10 @@ class PrinterMonitoringService:
             job_data['file_id'] = status.current_job_file_id
 
         try:
-            job = await self.job_service.create_job(job_data)
+            job_id = await self.job_service.create_job(job_data)
 
             logger.info("Auto-created job",
-                       job_id=job.get('id'),
+                       job_id=job_id,
                        printer_id=status.printer_id,
                        filename=status.current_job,
                        discovery_time=discovery_time.isoformat(),
@@ -830,7 +830,7 @@ class PrinterMonitoringService:
 
             # Emit event for UI updates
             await self.event_service.emit_event("job_auto_created", {
-                "job_id": job.get('id'),
+                "job_id": job_id,
                 "printer_id": status.printer_id,
                 "filename": status.current_job,
                 "discovery_time": discovery_time.isoformat()

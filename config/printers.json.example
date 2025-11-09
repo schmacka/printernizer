@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "updated_at": "2025-01-01T00:00:00.000000",
+  "printers": {
+    "example-bambu-printer": {
+      "id": "example-bambu-printer",
+      "name": "My Bambu Lab A1",
+      "type": "bambu_lab",
+      "host": "192.168.1.100",
+      "access_code": "12345678",
+      "serial": "01S00A000000000",
+      "model": "A1",
+      "enabled": true,
+      "settings": {
+        "auto_download": true,
+        "download_path": "/path/to/downloads",
+        "monitor_interval": 30
+      }
+    },
+    "example-prusa-printer": {
+      "id": "example-prusa-printer",
+      "name": "My Prusa Core One",
+      "type": "prusa",
+      "host": "192.168.1.101",
+      "api_key": "your-prusa-api-key-here",
+      "model": "Core One",
+      "enabled": true,
+      "settings": {
+        "auto_download": true,
+        "download_path": "/path/to/downloads",
+        "monitor_interval": 30
+      }
+    }
+  }
+}

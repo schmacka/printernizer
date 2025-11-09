@@ -182,27 +182,28 @@ class PrusaPrinter(BasePrinter):
                         file_info = job_info.get('file', {})
                         current_job = file_info.get('display_name', file_info.get('name', ''))
 
-                # Extract progress - PrusaLink returns progress as direct field (e.g., 42.0)
-                # OctoPrint returns it nested in progress.completion
+                # Extract progress - PrusaLink returns progress as dict with completion field
+                # OctoPrint may return it as direct number or nested
+                # Handle both dict and direct number formats
                 progress_value = job_data.get('progress')
                 if progress_value is not None:
-                    # PrusaLink style: progress is a direct number (percentage)
-                    progress = int(progress_value)
-                    logger.debug("Prusa print progress detected (direct)",
-                               printer_id=self.printer_id,
-                               progress=progress,
-                               raw_progress=progress_value)
-                else:
-                    # Fall back to OctoPrint style: progress.completion
-                    progress_info = job_data.get('progress', {})
-                    if isinstance(progress_info, dict):
-                        completion = progress_info.get('completion')
+                    if isinstance(progress_value, dict):
+                        # Dict format: extract completion field
+                        completion = progress_value.get('completion')
                         if completion is not None:
-                            progress = int(completion)
-                            logger.debug("Prusa print progress detected (nested)",
+                            # completion is usually 0.0-1.0, convert to percentage
+                            progress = int(completion * 100) if completion <= 1.0 else int(completion)
+                            logger.debug("Prusa print progress detected (dict)",
                                        printer_id=self.printer_id,
                                        progress=progress,
                                        raw_completion=completion)
+                    elif isinstance(progress_value, (int, float)):
+                        # Direct number: already a percentage
+                        progress = int(progress_value)
+                        logger.debug("Prusa print progress detected (direct)",
+                                       printer_id=self.printer_id,
+                                       progress=progress,
+                                       raw_progress=progress_value)
 
                 # Extract time information
                 # PrusaLink uses: time_remaining (seconds), time_printing (seconds)
@@ -330,19 +331,19 @@ class PrusaPrinter(BasePrinter):
             if not job_name:
                 return None  # No active job
 
-            # Extract progress - PrusaLink returns progress as direct field
+            # Extract progress - Handle both dict and direct number formats
             progress = 0
             progress_value = job_data.get('progress')
             if progress_value is not None:
-                # PrusaLink style: direct number
-                progress = int(progress_value)
-            else:
-                # Fall back to OctoPrint style: nested in progress.completion
-                progress_info = job_data.get('progress', {})
-                if isinstance(progress_info, dict):
-                    completion = progress_info.get('completion')
+                if isinstance(progress_value, dict):
+                    # Dict format: extract completion field
+                    completion = progress_value.get('completion')
                     if completion is not None:
-                        progress = int(completion)
+                        # completion is usually 0.0-1.0, convert to percentage
+                        progress = int(completion * 100) if completion <= 1.0 else int(completion)
+                elif isinstance(progress_value, (int, float)):
+                    # Direct number: already a percentage
+                    progress = int(progress_value)
 
             # Get state and map to JobStatus
             state = job_data.get('state', 'Unknown')
