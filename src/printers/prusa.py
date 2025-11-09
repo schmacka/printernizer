@@ -179,31 +179,44 @@ class PrusaPrinter(BasePrinter):
                     current_job = file_info.get('display_name', file_info.get('name', ''))
 
                 # Extract progress - handle None values and missing fields
-                progress_info = job_data.get('progress', {})
+                # PrusaLink API returns progress directly as a number: {"progress": 42.0}
+                # OctoPrint-style would be: {"progress": {"completion": 42.0}}
+                progress_info = job_data.get('progress')
                 if progress_info is not None:
-                    completion = progress_info.get('completion')
-                    if completion is not None:
-                        progress = int(completion)
-                        logger.debug("Prusa print progress detected",
+                    # Check if progress is a direct number (PrusaLink style)
+                    if isinstance(progress_info, (int, float)):
+                        progress = int(progress_info)
+                        logger.debug("Prusa print progress detected (direct value)",
                                    printer_id=self.printer_id,
                                    progress=progress,
-                                   raw_completion=completion)
+                                   raw_progress=progress_info)
+                    # Or if it's a nested dict (OctoPrint style) - for backward compatibility
+                    elif isinstance(progress_info, dict):
+                        completion = progress_info.get('completion')
+                        if completion is not None:
+                            progress = int(completion)
+                            logger.debug("Prusa print progress detected (nested completion)",
+                                       printer_id=self.printer_id,
+                                       progress=progress,
+                                       raw_completion=completion)
 
-                    # Extract remaining time from Prusa API
-                    print_time_left = progress_info.get('printTimeLeft')
-                    if print_time_left is not None and print_time_left > 0:
-                        # printTimeLeft is in seconds, convert to minutes
-                        remaining_time_minutes = int(print_time_left // 60)
-                        # Calculate estimated end time
-                        from datetime import timedelta
-                        estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
+                # Extract remaining time from Prusa API
+                # PrusaLink returns time info at root level, not nested in progress
+                print_time_left = job_data.get('time_remaining') or job_data.get('printTimeLeft')
+                if print_time_left is not None and print_time_left > 0:
+                    # time is in seconds, convert to minutes
+                    remaining_time_minutes = int(print_time_left // 60)
+                    # Calculate estimated end time
+                    from datetime import timedelta
+                    estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
 
-                    # Extract elapsed time and calculate start time
-                    print_time = progress_info.get('printTime', 0)  # Seconds since start
-                    if print_time and print_time > 0:
-                        elapsed_time_minutes = int(print_time // 60)
-                        from datetime import timedelta
-                        print_start_time = datetime.now() - timedelta(seconds=print_time)
+                # Extract elapsed time and calculate start time
+                # PrusaLink returns time info at root level
+                print_time = job_data.get('time_printing') or job_data.get('printTime', 0)
+                if print_time and print_time > 0:
+                    elapsed_time_minutes = int(print_time // 60)
+                    from datetime import timedelta
+                    print_start_time = datetime.now() - timedelta(seconds=print_time)
 
             # Lookup file information for current job
             current_job_file_id = None
@@ -286,24 +299,32 @@ class PrusaPrinter(BasePrinter):
                 return None  # No active job
                 
             file_info = job_info_data.get('file', {})
-            progress_info = job_data.get('progress', {})
+            progress_info = job_data.get('progress')
 
             job_name = file_info.get('display_name', file_info.get('name', 'Unknown Job'))
 
             # Extract progress - handle None values properly
+            # PrusaLink API returns progress directly as a number: {"progress": 42.0}
+            # OctoPrint-style would be: {"progress": {"completion": 42.0}}
             progress = 0
-            if progress_info:
-                completion = progress_info.get('completion')
-                if completion is not None:
-                    progress = int(completion)
+            if progress_info is not None:
+                # Check if progress is a direct number (PrusaLink style)
+                if isinstance(progress_info, (int, float)):
+                    progress = int(progress_info)
+                # Or if it's a nested dict (OctoPrint style) - for backward compatibility
+                elif isinstance(progress_info, dict):
+                    completion = progress_info.get('completion')
+                    if completion is not None:
+                        progress = int(completion)
             
             # Get state and map to JobStatus
             state = job_data.get('state', 'Unknown')
             job_status = self._map_job_status(state)
             
             # Time information
-            print_time = progress_info.get('printTime', 0)
-            print_time_left = progress_info.get('printTimeLeft', 0)
+            # PrusaLink returns time info at root level, not nested in progress
+            print_time = job_data.get('time_printing') or job_data.get('printTime', 0)
+            print_time_left = job_data.get('time_remaining') or job_data.get('printTimeLeft', 0)
             
             job_info = JobInfo(
                 job_id=f"{self.printer_id}_{job_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
