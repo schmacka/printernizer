@@ -79,6 +79,7 @@ PRINTER_CONFIG_PATH=/data/printernizer/printers.json
 
 # File paths (persistent storage in /data)
 LIBRARY_PATH=${LIBRARY_FOLDER}
+DOWNLOADS_PATH=/data/printernizer/printer-files
 UPLOAD_PATH=/data/printernizer/printer-files
 BACKUP_PATH=/data/printernizer/backups
 CACHE_PATH=/data/printernizer/preview-cache

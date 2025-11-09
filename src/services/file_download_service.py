@@ -350,7 +350,7 @@ class FileDownloadService:
             ValueError: If path creation fails or path traversal detected
         """
         # Get download path from configuration
-        base_download_path = "downloads"  # fallback default
+        base_download_path = "/data/printernizer/printer-files"  # fallback default for HA addon
         if self.config_service:
             try:
                 base_download_path = self.config_service.settings.downloads_path

@@ -29,7 +29,7 @@ class PrinternizerSettings(BaseSettings):
 
     # Database Configuration
     database_path: str = Field(
-        default="/app/data/printernizer.db",
+        default="/data/printernizer/printernizer.db",
         env="DATABASE_PATH",
         description="Path to SQLite database file. Parent directory must exist and be writable."
     )
@@ -85,7 +85,7 @@ class PrinternizerSettings(BaseSettings):
 
     # File Management
     downloads_path: str = Field(
-        default="downloads",
+        default="/data/printernizer/printer-files",
         env="DOWNLOADS_PATH",
         description="Directory path for downloaded files. Will be created if it doesn't exist."
     )
@@ -230,7 +230,7 @@ class PrinternizerSettings(BaseSettings):
         description="Enable library system for file organization and management."
     )
     library_path: str = Field(
-        default="/app/data/library",
+        default="/data/printernizer/library",
         env="LIBRARY_PATH",
         description="Directory path for library files. Must be absolute path. Will be created if doesn't exist."
     )
@@ -288,12 +288,12 @@ class PrinternizerSettings(BaseSettings):
         description="Enable timelapse video creation feature"
     )
     timelapse_source_folder: str = Field(
-        default="/app/data/timelapse-images",
+        default="/data/timelapse-images",
         env="TIMELAPSE_SOURCE_FOLDER",
         description="Folder to watch for timelapse image subfolders. Will be created if doesn't exist."
     )
     timelapse_output_folder: str = Field(
-        default="/app/data/timelapses",
+        default="/data/timelapses",
         env="TIMELAPSE_OUTPUT_FOLDER",
         description="Folder for completed timelapse videos. Will be created if doesn't exist."
     )
@@ -435,7 +435,7 @@ class PrinternizerSettings(BaseSettings):
     def validate_library_path(cls, v):
         """Validate library path is absolute."""
         if not v:
-            return "/app/data/library"  # Default
+            return "/data/printernizer/library"  # Default for HA addon
 
         path = Path(v)
 
