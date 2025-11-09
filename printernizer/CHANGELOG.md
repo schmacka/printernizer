@@ -1,3 +1,12 @@
+## [2.3.8] - 2025-11-09
+
+- fix: Use proper default folders for Home Assistant addon
+- fix: Resolve Prusa printer print progress not being displayed
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+
 ## [2.3.7] - 2025-11-09
 
 - fix: Resolve Prusa printer print progress not being displayed
