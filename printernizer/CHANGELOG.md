@@ -1,3 +1,10 @@
+## [2.3.9] - 2025-11-09
+
+- feat: Add frontend UI and documentation for automated job creation
+- fix: Use proper default folders for Home Assistant addon
+- test: Add comprehensive test suite for automated job creation feature
+- fix: Resolve Prusa printer print progress not being displayed
+
 ## [2.3.8] - 2025-11-09
 
 - fix: Use proper default folders for Home Assistant addon
