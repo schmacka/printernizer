@@ -1,3 +1,23 @@
+## [2.4.3] - 2025-11-09
+
+- fix: Fix automatic job creation for Prusa Core One printer
+- fix: Database persistence - use settings.database_path for proper data directory
+- fix: Correct Prusa progress display parsing
+- feat: Finalize automated job creation Phase 3 - Frontend & UX
+- feat: Add frontend UI and documentation for automated job creation
+- fix: Use proper default folders for Home Assistant addon
+- test: Add comprehensive test suite for automated job creation feature
+- fix: Resolve Prusa printer print progress not being displayed
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+- feat: Implement automated job creation for print monitoring
+- Fix test setup for test_api_jobs.py and test_api_printers.py
+- docs: Clarify open questions in automated-job-creation design
+- Fix backend test setup by using FastAPI TestClient instead of requests.Session
+- Initial plan
+
 ## [2.4.2] - 2025-11-09
 
 - fix: Correct Prusa progress display parsing
