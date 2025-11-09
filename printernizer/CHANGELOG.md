@@ -1,3 +1,10 @@
+## [2.4.2] - 2025-11-09
+
+- fix: Correct Prusa progress display parsing
+- feat: Finalize automated job creation Phase 3 - Frontend & UX
+- feat: Add frontend UI and documentation for automated job creation
+- test: Add comprehensive test suite for automated job creation feature
+
 ## [2.4.1] - 2025-11-09
 
 - feat: Finalize automated job creation Phase 3 - Frontend & UX
