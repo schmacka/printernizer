@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2025-11-09
+
 ### Added
 - **Automated Job Creation** - Automatically create job entries when prints are detected
   - **Auto-Detection**: Monitors printer status and creates jobs when prints start
@@ -16,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Visual Indicators**: Auto-created jobs display ⚡ Auto badge in job list
   - **Settings Toggle**: Enable/disable auto-creation in Settings page
   - **Toast Notifications**: Real-time notifications when jobs are auto-created
+  - **First-Time Tip**: One-time informational message explaining the auto-creation feature
   - **WebSocket Events**: `job_auto_created` event for real-time UI updates
   - **Metadata Tracking**: Stores auto-creation info in `customer_info` field
   - **Performance**: Sub-millisecond lock contention, < 100ms database queries
@@ -23,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Documentation**:
     - Design document (`docs/design/automated-job-creation.md`)
     - Testing guide (`docs/automated-job-creation-testing.md`)
+    - API documentation (`docs/api-automated-job-creation.md`)
+    - User guide (`docs/user-guide-auto-job-creation.md`)
 
 ## [2.2.0] - 2025-11-07
 
