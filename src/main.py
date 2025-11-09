@@ -149,7 +149,9 @@ async def lifespan(app: FastAPI):
     # Initialize database
     timer.start("Database initialization")
     logger.info("Initializing database...")
-    database = Database()
+    settings = get_settings()
+    logger.info(f"Database path: {settings.database_path}")
+    database = Database(db_path=settings.database_path)
     await database.initialize()
     app.state.database = database
     timer.end("Database initialization")

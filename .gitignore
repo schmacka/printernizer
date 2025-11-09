@@ -145,6 +145,10 @@ scratch*.md
 scratchpad*.md
 *notes*.md
 
+# Business strategy and confidential planning
+docs/PRO_FEATURES_STRATEGY.md
+docs/BUSINESS_*.md
+
 # Docker (Updated for multi-deployment support)
 .dockerignore
 docker-compose.override.yml
