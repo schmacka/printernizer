@@ -1,3 +1,12 @@
+## [2.3.7] - 2025-11-09
+
+- fix: Resolve Prusa printer print progress not being displayed
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+- feat: Implement automated job creation for print monitoring
+
 ## [2.3.6] - 2025-11-08
 
 - refactor: Consolidate to unified 2.x.x versioning across all components
