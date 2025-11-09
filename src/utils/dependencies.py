@@ -39,12 +39,9 @@ async def get_printer_service(request: Request) -> PrinterService:
     return request.app.state.printer_service
 
 
-async def get_job_service(
-    database: Database = Depends(get_database),
-    event_service: EventService = Depends(get_event_service)
-) -> JobService:
-    """Get job service instance."""
-    return JobService(database, event_service)
+async def get_job_service(request: Request) -> JobService:
+    """Get job service instance from app state."""
+    return request.app.state.job_service
 
 
 async def get_file_service(request: Request) -> FileService:

@@ -455,7 +455,9 @@ class BambuLabPrinter(BasePrinter):
         current_job = None
         remaining_time_minutes = None
         estimated_end_time = None
-        
+        elapsed_time_minutes = None
+        print_start_time = None
+
         try:
             # First, try to get data from MQTT dump which is most reliable
             if hasattr(self.bambu_client, 'mqtt_dump'):
@@ -466,10 +468,10 @@ class BambuLabPrinter(BasePrinter):
                         # Extract temperature data from MQTT (correct field names)
                         bed_temp = float(print_data.get('bed_temper', 0.0) or 0.0)
                         nozzle_temp = float(print_data.get('nozzle_temper', 0.0) or 0.0)
-                        
+
                         # Get layer information from MQTT
                         layer_num = int(print_data.get('layer_num', 0) or 0)
-                        
+
                         # Look for progress data in MQTT (various possible field names)
                         progress_fields = ['mc_percent', 'print_percent', 'percent', 'progress']
                         for field in progress_fields:
@@ -490,11 +492,50 @@ class BambuLabPrinter(BasePrinter):
                                     estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
                                 break
 
+                        # Extract elapsed time and start time from MQTT
+                        # Try direct elapsed time field (in seconds)
+                        elapsed_time_fields = ['mc_print_time', 'print_time', 'elapsed_time']
+                        for field in elapsed_time_fields:
+                            if field in print_data and print_data[field] is not None:
+                                elapsed_seconds = int(print_data[field])
+                                if elapsed_seconds > 0:
+                                    elapsed_time_minutes = elapsed_seconds // 60
+                                    from datetime import timedelta
+                                    print_start_time = datetime.now() - timedelta(seconds=elapsed_seconds)
+                                    logger.debug("Extracted Bambu elapsed time",
+                                               printer_id=self.printer_id,
+                                               field=field,
+                                               elapsed_minutes=elapsed_time_minutes)
+                                    break
+
+                        # Try direct start timestamp (Unix timestamp) if elapsed time not found
+                        if not elapsed_time_minutes:
+                            timestamp_fields = ['gcode_start_time', 'start_time']
+                            for field in timestamp_fields:
+                                if field in print_data and print_data[field]:
+                                    try:
+                                        start_timestamp = int(print_data[field])
+                                        if start_timestamp > 0:
+                                            print_start_time = datetime.fromtimestamp(start_timestamp)
+                                            elapsed = (datetime.now() - print_start_time).total_seconds()
+                                            elapsed_time_minutes = int(elapsed // 60)
+                                            logger.debug("Extracted Bambu start timestamp",
+                                                       printer_id=self.printer_id,
+                                                       field=field,
+                                                       start_time=print_start_time.isoformat())
+                                            break
+                                    except Exception as e:
+                                        logger.debug("Failed to parse timestamp field",
+                                                   printer_id=self.printer_id,
+                                                   field=field,
+                                                   error=str(e))
+
                         logger.debug("Got data from MQTT dump",
                                    printer_id=self.printer_id,
                                    bed_temp=bed_temp, nozzle_temp=nozzle_temp,
                                    progress=progress, layer_num=layer_num,
                                    remaining_time_minutes=remaining_time_minutes,
+                                   elapsed_time_minutes=elapsed_time_minutes,
                                    mqtt_keys=list(print_data.keys()))
 
             # If MQTT didn't provide data, use direct method calls
@@ -640,6 +681,8 @@ class BambuLabPrinter(BasePrinter):
             current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
+            elapsed_time_minutes=elapsed_time_minutes,
+            print_start_time=print_start_time,
             timestamp=datetime.now(),
             raw_data=status.__dict__ if hasattr(status, '__dict__') else {}
         )

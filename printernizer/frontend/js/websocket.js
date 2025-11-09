@@ -334,6 +334,11 @@ class PrinternizerWebSocketHandler {
             this.handleJobUpdate(data);
         });
 
+        // Auto-created job notifications
+        this.ws.on('job_auto_created', (data) => {
+            this.handleAutoJobCreated(data);
+        });
+
         // File updates
         this.ws.on(CONFIG.WS_MESSAGE_TYPES.FILE_UPDATE, (data) => {
             this.handleFileUpdate(data);
@@ -411,6 +416,44 @@ class PrinternizerWebSocketHandler {
 
         // Emit custom event
         document.dispatchEvent(new CustomEvent('jobUpdate', {
+            detail: data
+        }));
+    }
+
+    /**
+     * Handle auto-created job notification
+     */
+    handleAutoJobCreated(data) {
+        console.log('Auto-created job:', data);
+
+        // Extract job details
+        const jobName = data.job_name || data.filename || 'Unbenannter Auftrag';
+        const printerName = data.printer_id || 'Unbekannter Drucker';
+        const isStartup = data.customer_info?.discovered_on_startup;
+
+        // Build notification message
+        let message = `${jobName} auf ${printerName}`;
+        if (isStartup) {
+            message += ' (beim Start entdeckt)';
+        }
+
+        // Show toast notification
+        showToast('info', '⚡ Auftrag automatisch erstellt', message, 5000, {
+            uniqueKey: `auto_job_${data.id}`,
+            deduplicateMode: 'ignore', // Don't show duplicate for same job
+            cooldown: 60000 // 1 minute cooldown per job
+        });
+
+        // Update job lists if on jobs or dashboard page
+        if (window.currentPage === 'jobs' || window.currentPage === 'dashboard') {
+            // Refresh job list to show new auto-created job
+            if (window.jobManager) {
+                window.jobManager.loadJobs();
+            }
+        }
+
+        // Emit custom event
+        document.dispatchEvent(new CustomEvent('jobAutoCreated', {
             detail: data
         }));
     }

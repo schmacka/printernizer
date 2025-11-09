@@ -2,23 +2,25 @@
 
 ## Overview
 
-Printernizer uses **dual versioning** with two independent version numbers:
+Printernizer uses **unified versioning** starting from version 2.0.0. All components (application, API, frontend, and Home Assistant add-on) share the same version number.
 
-1. **Application Version (1.x.x)**: Core application version based on git tags
-2. **Home Assistant Add-on Version (2.x.x)**: Add-on packaging version in `printernizer/config.yaml`
+### Version Format
 
-### Why Two Versions?
-
-- **Application Version**: Tracks the core Printernizer application changes (API, backend, frontend)
-- **Add-on Version**: Tracks Home Assistant integration changes (configuration, add-on features, HA-specific updates)
-
-Both versions can be incremented independently based on what changed.
+All versions follow **Semantic Versioning** (SemVer) in the `2.x.x` range:
+- **2.x.x**: Unified version across all components
+- Based on git tags (e.g., `v2.3.0`)
+- Same version in `printernizer/config.yaml` (HA add-on)
 
 ## How It Works
 
-1. **Git Tags as Source of Truth**: Version numbers are defined by git tags (e.g., `v1.4.2`)
+1. **Git Tags as Source of Truth**: Version numbers are defined by git tags (e.g., `v2.3.0`)
 2. **Automatic Extraction**: The `src/utils/version.py` utility extracts the version using `git describe --tags`
 3. **Frontend Display**: The version is served via the `/health` API endpoint and displayed in the footer
+4. **Consistent Everywhere**: Same version shown in app, API, and Home Assistant add-on
+
+### Historical Note
+
+Prior to v2.0.0, the project used dual versioning with separate 1.x.x (application) and 2.x.x (add-on) versions. This was consolidated to a single 2.x.x version scheme for clarity.
 
 ## Versioning Scheme
 
@@ -29,30 +31,79 @@ We follow **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
 - **PATCH**: Bug fixes and small improvements
 
 ### Examples
-- `1.0.0` - Initial release
-- `1.1.0` - Added new feature
-- `1.1.1` - Bug fix
-- `2.0.0` - Major refactoring with breaking changes
+- `2.0.0` - Initial unified release
+- `2.1.0` - Added new feature (Timelapse Management)
+- `2.1.6` - Bug fix (Timelapse page refresh)
+- `2.3.0` - Major improvements (Technical debt reduction)
 
 ## Creating a New Release
 
 ### Quick Reference: Where to Update Versions
 
-**For Core Application Changes (API, Backend, Frontend):**
-1. Update fallback in `src/utils/version.py`:
-   - `get_version(fallback="1.5.X")`
-   - `get_short_version(fallback="1.5.X")`
-2. Create git tag: `git tag v1.5.X`
-3. Push tag: `git push origin v1.5.X`
+**For Any Release (Unified Version - Everything Must Match):**
 
-**For Home Assistant Add-on Changes:**
-1. Update `printernizer/config.yaml`:
-   - `version: "2.0.X"`
-2. Commit the change
-3. Push to repository
+1. **Update CHANGELOG.md** with the new version `[2.X.X]` and changes
 
-**For Changes Affecting Both:**
-- Update BOTH version numbers
+2. **Update all version references to match:**
+   - `printernizer/config.yaml`: `version: "2.X.X"`
+   - `src/utils/version.py`:
+     - `get_version(fallback="2.X.X")`
+     - `get_short_version(fallback="2.X.X")`
+
+3. **Commit the version bump:**
+   ```bash
+   git add CHANGELOG.md printernizer/config.yaml src/utils/version.py
+   git commit -m "chore: Version bump to 2.X.X"
+   ```
+
+4. **Create git tag:**
+   ```bash
+   git tag v2.X.X
+   ```
+
+5. **Push everything:**
+   ```bash
+   git push origin main  # or master
+   git push origin v2.X.X
+   ```
+
+6. **Create GitHub Release** (see below)
+
+**⚠️ Important:** All version numbers must match across config.yaml, version.py fallback, git tags, and CHANGELOG.md. This ensures consistency across all deployment methods.
+
+### Creating GitHub Releases
+
+GitHub Releases provide a user-friendly way to publish releases with release notes and allow the update-check endpoint to notify users of new versions.
+
+**Option 1: Automated Script (Recommended)**
+```bash
+# Create a single release
+./scripts/create-release.sh -v 2.4.0 -c HEAD --github
+
+# Create releases for all missing tags
+./scripts/create-missing-releases.sh
+```
+
+**Option 2: Using GitHub CLI**
+```bash
+# After creating and pushing a tag
+gh release create v2.4.0 \
+  --title "Release v2.4.0 - Feature Name" \
+  --notes "Description from CHANGELOG.md"
+```
+
+**Option 3: Manual via GitHub UI**
+1. Go to https://github.com/schmacka/printernizer/releases
+2. Click "Draft a new release"
+3. Select the tag from dropdown
+4. Add title and description from CHANGELOG.md
+5. Click "Publish release"
+
+**Benefits of GitHub Releases:**
+- Users can see release notes and download links
+- The `/api/v1/update-check` endpoint works properly
+- Notifications for watchers of the repository
+- Professional appearance for the project
 
 ### Step 1: Make Your Changes
 ```bash
@@ -63,22 +114,22 @@ git commit -m "fix: Your bug fix description"
 
 ### Step 2: Update Versions
 
-**Application Version (Git Tag):**
+**Creating Git Tags:**
 ```bash
 # For a patch release (bug fixes)
-git tag -a v1.4.3 -m "Release v1.4.3 - Bug fixes
+git tag -a v2.3.1 -m "Release v2.3.1 - Bug fixes
 
 - Fixed issue A
 - Fixed issue B"
 
 # For a minor release (new features)
-git tag -a v1.5.0 -m "Release v1.5.0 - New features
+git tag -a v2.4.0 -m "Release v2.4.0 - New features
 
 - Added feature X
 - Added feature Y"
 
-# For a major release (breaking changes)
-git tag -a v2.0.0 -m "Release v2.0.0 - Major update
+# For a major release (breaking changes in the future)
+git tag -a v3.0.0 -m "Release v3.0.0 - Major update
 
 - Breaking: Changed API structure
 - New: Complete UI overhaul"
@@ -235,10 +286,54 @@ git show v1.4.2
 3. Extracts `version` field from response
 4. Updates `<span id="appVersion">` in footer
 
+## Update Check Endpoint
+
+The `/api/v1/update-check` endpoint checks for new releases on GitHub and notifies users when updates are available.
+
+### How It Works
+
+1. Fetches the latest release from GitHub API: `https://api.github.com/repos/schmacka/printernizer/releases/latest`
+2. Compares the tag_name with the current application version
+3. Returns update availability status
+
+### Response Format
+
+```json
+{
+  "current_version": "2.3.0",
+  "latest_version": "2.4.0",
+  "update_available": true,
+  "release_url": "https://github.com/schmacka/printernizer/releases/tag/v2.4.0",
+  "check_failed": false,
+  "error_message": null
+}
+```
+
+### Error Handling
+
+- **404 (No Releases)**: Returns `check_failed: false` with message "No releases available yet"
+- **Network Timeout**: Returns `check_failed: true` with timeout error
+- **Other Errors**: Returns `check_failed: true` with error details
+
+### Requirements
+
+- GitHub Releases must be published (not just git tags)
+- Releases should follow semantic versioning (v2.3.0 format)
+- Release tag_name should match version format
+
+### Testing
+
+```bash
+# Check current update status
+curl http://localhost:8000/api/v1/update-check
+
+# Or use frontend - version indicator shows update status
+```
+
 ## Future Enhancements
 
 Potential improvements:
 - [ ] Pre-commit hook to remind about version tags
 - [ ] Automated changelog generation from git tags
-- [ ] Version comparison in frontend (notify about updates)
-- [ ] CI/CD integration for automatic tagging
+- [ ] CI/CD integration for automatic tagging and release creation
+- [ ] Automated GitHub Release creation in CI/CD pipeline

@@ -76,19 +76,25 @@ class PrinterService:
         self.file_service = file_service
 
         # Initialize specialized services
-        self.connection = PrinterConnectionService(
-            database=database,
-            event_service=event_service,
-            config_service=config_service,
-            file_service=file_service
-        )
-
+        # Create monitoring service first (no connection service yet to avoid circular ref)
         self.monitoring = PrinterMonitoringService(
             database=database,
             event_service=event_service,
             file_service=file_service,
-            connection_service=self.connection
+            connection_service=None  # Will be set after connection service is created
         )
+
+        # Create connection service with monitoring service reference
+        self.connection = PrinterConnectionService(
+            database=database,
+            event_service=event_service,
+            config_service=config_service,
+            file_service=file_service,
+            monitoring_service=self.monitoring
+        )
+
+        # Set connection service reference in monitoring service
+        self.monitoring.connection_service = self.connection
 
         self.control = PrinterControlService(
             event_service=event_service,

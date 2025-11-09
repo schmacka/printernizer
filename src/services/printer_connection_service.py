@@ -49,7 +49,8 @@ class PrinterConnectionService:
         database: Database,
         event_service: EventService,
         config_service: ConfigService,
-        file_service=None
+        file_service=None,
+        monitoring_service=None
     ):
         """
         Initialize printer connection service.
@@ -59,11 +60,13 @@ class PrinterConnectionService:
             event_service: Event service for emitting connection events
             config_service: Config service for loading printer configurations
             file_service: Optional file service (injected to printer instances)
+            monitoring_service: Optional monitoring service for auto-job creation on startup
         """
         self.database = database
         self.event_service = event_service
         self.config_service = config_service
         self.file_service = file_service
+        self.monitoring_service = monitoring_service
 
         # Printer instance management
         self.printer_instances: Dict[str, BasePrinter] = {}
@@ -340,6 +343,24 @@ class PrinterConnectionService:
                         "message": f"Connected in {round(connect_duration, 1)}s",
                         "duration_seconds": round(connect_duration, 2)
                     })
+
+                    # Check if printer is already printing (startup detection)
+                    if self.monitoring_service:
+                        try:
+                            status = await instance.get_status()
+                            if status.status.value == 'printing' and status.current_job:
+                                logger.info("Detected print in progress on startup",
+                                           printer_id=printer_id,
+                                           filename=status.current_job,
+                                           progress=status.progress)
+
+                                # Auto-create job with is_startup=True flag
+                                if hasattr(self.monitoring_service, '_auto_create_job_if_needed'):
+                                    await self.monitoring_service._auto_create_job_if_needed(status, is_startup=True)
+                        except Exception as e:
+                            logger.warning("Failed to check for active print on startup",
+                                         printer_id=printer_id,
+                                         error=str(e))
                 else:
                     logger.warning("[TIMING] Printer connection failed",
                                   printer_id=printer_id,

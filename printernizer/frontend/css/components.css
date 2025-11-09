@@ -1992,6 +1992,21 @@
     color: var(--color-gray-700);
 }
 
+/* Auto-job creation badge */
+.status-badge.badge-auto {
+    background: var(--color-purple-100);
+    color: var(--color-purple-700);
+    border: 1px solid var(--color-purple-200);
+    font-weight: var(--font-semibold);
+}
+
+.status-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    align-items: center;
+}
+
 /* Manufacturer icon styles */
 .manufacturer-icon {
     width: 32px;

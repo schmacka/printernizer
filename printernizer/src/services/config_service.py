@@ -124,7 +124,10 @@ class Settings(BaseSettings):
     # Monitoring
     monitoring_interval: int = 30  # seconds
     connection_timeout: int = 10  # seconds
-    
+
+    # Job Creation
+    job_creation_auto_create: bool = True  # Auto-create jobs when prints start
+
     def get_cors_origins(self) -> List[str]:
         """Parse CORS origins from comma-separated string."""
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

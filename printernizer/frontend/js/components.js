@@ -574,7 +574,10 @@ class JobListItem {
 
                 <div class="data-item-meta">
                     <div class="data-item-meta-label">Status</div>
-                    <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
+                    <div class="status-badges">
+                        <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
+                        ${this.renderAutoJobBadge()}
+                    </div>
                 </div>
 
                 ${this.renderProgress()}
@@ -675,6 +678,37 @@ class JobListItem {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Render auto-job creation badge
+     */
+    renderAutoJobBadge() {
+        // Check if job was auto-created
+        if (this.job.customer_info && this.job.customer_info.auto_created) {
+            const discoveryTime = this.job.customer_info.discovery_time;
+            const printerStartTime = this.job.customer_info.printer_start_time;
+            const wasStartup = this.job.customer_info.discovered_on_startup;
+
+            // Build tooltip text
+            let tooltipText = 'Automatisch erstellt';
+            if (wasStartup) {
+                tooltipText += ' (beim Start entdeckt)';
+            }
+            if (discoveryTime) {
+                tooltipText += `\nEntdeckt: ${formatDateTime(discoveryTime)}`;
+            }
+            if (printerStartTime) {
+                tooltipText += `\nDrucker-Start: ${formatDateTime(printerStartTime)}`;
+            }
+
+            return `
+                <span class="status-badge badge-auto" title="${escapeHtml(tooltipText)}">
+                    ⚡ Auto
+                </span>
+            `;
+        }
+        return '';
     }
 
     /**

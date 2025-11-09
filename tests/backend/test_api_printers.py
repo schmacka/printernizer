@@ -8,18 +8,25 @@ import json
 import sqlite3
 from unittest.mock import patch, Mock
 from datetime import datetime, timezone
+from fastapi.testclient import TestClient
+
+
+@pytest.fixture
+def client(test_app):
+    """Test client fixture using test_app from conftest."""
+    return TestClient(test_app)
 
 
 class TestPrinterAPI:
     """Test printer management API endpoints"""
     
-    def test_get_printers_empty_database(self, api_client, temp_database, test_config):
+    def test_get_printers_empty_database(self, client, temp_database):
         """Test GET /api/v1/printers with empty database"""
         # Mock the database instance's list_printers method to return empty list
         with patch('src.database.database.Database.list_printers') as mock_list_printers:
             mock_list_printers.return_value = []
 
-            response = api_client.get(f"{test_config['api_base_url']}/printers")
+            response = client.get("/api/v1/printers")
 
             assert response.status_code == 200
             data = response.json()
@@ -27,12 +34,12 @@ class TestPrinterAPI:
             assert data['total_count'] == 0
             assert 'pagination' in data
     
-    def test_get_printers_with_data(self, api_client, populated_database, test_config, sample_printer_data):
+    def test_get_printers_with_data(self, client, populated_database, sample_printer_data):
         """Test GET /api/v1/printers with existing printers"""
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/printers")
+            response = client.get("/api/v1/printers")
             
             assert response.status_code == 200
             data = response.json()
@@ -50,31 +57,31 @@ class TestPrinterAPI:
             assert prusa_printer['name'] == 'Prusa Core One #1'
             assert prusa_printer['model'] == 'Core One'
     
-    def test_get_printers_filter_by_type(self, api_client, populated_database, test_config):
+    def test_get_printers_filter_by_type(self, client, populated_database):
         """Test GET /api/v1/printers?type=bambu_lab"""
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/printers?type=bambu_lab")
+            response = client.get("/api/v1/printers?type=bambu_lab")
             
             assert response.status_code == 200
             data = response.json()
             assert len(data['printers']) == 1
             assert data['printers'][0]['type'] == 'bambu_lab'
     
-    def test_get_printers_filter_by_active_status(self, api_client, populated_database, test_config):
+    def test_get_printers_filter_by_active_status(self, client, populated_database):
         """Test GET /api/v1/printers?active=true"""
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.get(f"{test_config['api_base_url']}/printers?active=true")
+            response = client.get("/api/v1/printers?active=true")
             
             assert response.status_code == 200
             data = response.json()
             for printer in data['printers']:
                 assert printer['is_active'] is True
     
-    def test_post_printers_bambu_lab(self, api_client, db_connection, test_config):
+    def test_post_printers_bambu_lab(self, client, db_connection):
         """Test POST /api/v1/printers - Add Bambu Lab printer"""
         printer_data = {
             'name': 'New Bambu Lab A1',
@@ -91,8 +98,8 @@ class TestPrinterAPI:
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             
-            response = api_client.post(
-                f"{test_config['api_base_url']}/printers",
+            response = client.post(
+                "/printers",
                 json=printer_data
             )
             
@@ -103,7 +110,7 @@ class TestPrinterAPI:
             assert 'id' in data['printer']
             assert data['printer']['is_active'] is True
     
-    def test_post_printers_prusa(self, api_client, db_connection, test_config):
+    def test_post_printers_prusa(self, client, db_connection):
         """Test POST /api/v1/printers - Add Prusa printer"""
         printer_data = {
             'name': 'New Prusa Core One',
@@ -116,8 +123,8 @@ class TestPrinterAPI:
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             
-            response = api_client.post(
-                f"{test_config['api_base_url']}/printers",
+            response = client.post(
+                "/printers",
                 json=printer_data
             )
             
@@ -127,7 +134,7 @@ class TestPrinterAPI:
             assert data['printer']['type'] == 'prusa'
             assert data['printer']['api_key'] == printer_data['api_key']
     
-    def test_post_printers_validation_errors(self, api_client, test_config):
+    def test_post_printers_validation_errors(self, client):
         """Test POST /api/v1/printers with validation errors"""
         test_cases = [
             # Missing required fields
@@ -165,8 +172,8 @@ class TestPrinterAPI:
         ]
         
         for printer_data, expected_status, expected_error in test_cases:
-            response = api_client.post(
-                f"{test_config['api_base_url']}/printers",
+            response = client.post(
+                "/printers",
                 json=printer_data
             )
             
@@ -174,15 +181,15 @@ class TestPrinterAPI:
             if expected_status == 400:
                 assert expected_error in response.json()['error']['message']
     
-    def test_get_printer_status_bambu_lab(self, api_client, populated_database, test_config, mock_bambu_api):
+    def test_get_printer_status_bambu_lab(self, client, populated_database, mock_bambu_api):
         """Test GET /api/v1/printers/{id}/status for Bambu Lab printer"""
         printer_id = 'bambu_a1_001'
         
         with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
             mock_api_class.return_value = mock_bambu_api
             
-            response = api_client.get(
-                f"{test_config['api_base_url']}/printers/{printer_id}/status"
+            response = client.get(
+                "/printers/{printer_id}/status"
             )
             
             assert response.status_code == 200
@@ -206,15 +213,15 @@ class TestPrinterAPI:
             assert temps['bed']['current'] == 60.2
             assert temps['chamber']['current'] == 28.5
     
-    def test_get_printer_status_prusa(self, api_client, populated_database, test_config, mock_prusa_api):
+    def test_get_printer_status_prusa(self, client, populated_database, mock_prusa_api):
         """Test GET /api/v1/printers/{id}/status for Prusa printer"""
         printer_id = 'prusa_core_001'
         
         with patch('backend.printers.prusa.PrusaLinkAPI') as mock_api_class:
             mock_api_class.return_value = mock_prusa_api
             
-            response = api_client.get(
-                f"{test_config['api_base_url']}/printers/{printer_id}/status"
+            response = client.get(
+                "/printers/{printer_id}/status"
             )
             
             assert response.status_code == 200
@@ -230,15 +237,15 @@ class TestPrinterAPI:
             assert temps['nozzle']['current'] == 25.0
             assert temps['bed']['current'] == 25.0
     
-    def test_get_printer_status_offline(self, api_client, test_config):
+    def test_get_printer_status_offline(self, client):
         """Test GET /api/v1/printers/{id}/status for offline printer"""
         printer_id = 'offline_printer'
         
         with patch('backend.printers.get_printer_api') as mock_get_api:
             mock_get_api.side_effect = ConnectionError("Printer not reachable")
             
-            response = api_client.get(
-                f"{test_config['api_base_url']}/printers/{printer_id}/status"
+            response = client.get(
+                "/printers/{printer_id}/status"
             )
             
             assert response.status_code == 200
@@ -246,16 +253,16 @@ class TestPrinterAPI:
             assert data['status'] == 'offline'
             assert data['error'] == 'Printer not reachable'
     
-    def test_get_printer_status_not_found(self, api_client, test_config):
+    def test_get_printer_status_not_found(self, client):
         """Test GET /api/v1/printers/{id}/status for non-existent printer"""
-        response = api_client.get(
-            f"{test_config['api_base_url']}/printers/non_existent/status"
+        response = client.get(
+            "/printers/non_existent/status"
         )
         
         assert response.status_code == 404
         assert 'Printer not found' in response.json()['error']['message']
     
-    def test_put_printers_update_config(self, api_client, populated_database, test_config):
+    def test_put_printers_update_config(self, client, populated_database):
         """Test PUT /api/v1/printers/{id} - Update printer configuration"""
         printer_id = 'bambu_a1_001'
         update_data = {
@@ -267,8 +274,8 @@ class TestPrinterAPI:
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.put(
-                f"{test_config['api_base_url']}/printers/{printer_id}",
+            response = client.put(
+                "/printers/{printer_id}",
                 json=update_data
             )
             
@@ -278,7 +285,7 @@ class TestPrinterAPI:
             assert data['printer']['ip_address'] == update_data['ip_address']
             assert data['printer']['is_active'] is False
     
-    def test_put_printers_invalid_update(self, api_client, test_config):
+    def test_put_printers_invalid_update(self, client):
         """Test PUT /api/v1/printers/{id} with invalid data"""
         printer_id = 'bambu_a1_001'
         
@@ -294,23 +301,23 @@ class TestPrinterAPI:
         ]
         
         for update_data, expected_error in test_cases:
-            response = api_client.put(
-                f"{test_config['api_base_url']}/printers/{printer_id}",
+            response = client.put(
+                "/printers/{printer_id}",
                 json=update_data
             )
             
             assert response.status_code == 400
             assert expected_error in response.json()['error']['message']
     
-    def test_delete_printers(self, api_client, populated_database, test_config):
+    def test_delete_printers(self, client, populated_database):
         """Test DELETE /api/v1/printers/{id}"""
         printer_id = 'prusa_core_001'
         
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.delete(
-                f"{test_config['api_base_url']}/printers/{printer_id}"
+            response = client.delete(
+                "/printers/{printer_id}"
             )
             
             assert response.status_code == 204
@@ -322,22 +329,22 @@ class TestPrinterAPI:
             assert result is not None  # Printer still exists
             assert result[0] == 0  # But is marked inactive
     
-    def test_delete_printer_with_active_jobs(self, api_client, populated_database, test_config):
+    def test_delete_printer_with_active_jobs(self, client, populated_database):
         """Test DELETE /api/v1/printers/{id} with active print jobs"""
         printer_id = 'bambu_a1_001'  # This printer has an active printing job
         
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            response = api_client.delete(
-                f"{test_config['api_base_url']}/printers/{printer_id}"
+            response = client.delete(
+                "/printers/{printer_id}"
             )
             
             assert response.status_code == 409
             error_data = response.json()
             assert 'Cannot delete printer with active jobs' in error_data['error']['message']
     
-    def test_printer_connection_test(self, api_client, test_config, mock_bambu_api):
+    def test_printer_connection_test(self, client, mock_bambu_api):
         """Test POST /api/v1/printers/{id}/test-connection"""
         printer_id = 'bambu_a1_001'
         
@@ -345,8 +352,8 @@ class TestPrinterAPI:
             mock_api_class.return_value = mock_bambu_api
             mock_bambu_api.test_connection.return_value = True
             
-            response = api_client.post(
-                f"{test_config['api_base_url']}/printers/{printer_id}/test-connection"
+            response = client.post(
+                "/printers/{printer_id}/test-connection"
             )
             
             assert response.status_code == 200
@@ -354,15 +361,15 @@ class TestPrinterAPI:
             assert data['connection_test']['success'] is True
             assert 'response_time_ms' in data['connection_test']
     
-    def test_printer_connection_test_failed(self, api_client, test_config):
+    def test_printer_connection_test_failed(self, client):
         """Test POST /api/v1/printers/{id}/test-connection with failed connection"""
         printer_id = 'offline_printer'
         
         with patch('backend.printers.get_printer_api') as mock_get_api:
             mock_get_api.side_effect = ConnectionError("Connection timeout")
             
-            response = api_client.post(
-                f"{test_config['api_base_url']}/printers/{printer_id}/test-connection"
+            response = client.post(
+                "/printers/{printer_id}/test-connection"
             )
             
             assert response.status_code == 200
@@ -462,7 +469,7 @@ def generate_printer_id(name, printer_type):
 class TestPrinterAPIEdgeCases:
     """Test edge cases and error conditions for printer API"""
     
-    def test_concurrent_printer_requests(self, api_client, test_config, populated_database):
+    def test_concurrent_printer_requests(self, client, populated_database):
         """Test concurrent requests to printer API"""
         import threading
         import time
@@ -470,7 +477,7 @@ class TestPrinterAPIEdgeCases:
         results = []
         
         def make_request():
-            response = api_client.get(f"{test_config['api_base_url']}/printers")
+            response = client.get("/api/v1/printers")
             results.append(response.status_code)
         
         # Create multiple threads
@@ -491,7 +498,7 @@ class TestPrinterAPIEdgeCases:
         assert all(status == 200 for status in results)
         assert len(results) == 10
     
-    def test_large_printer_list_performance(self, api_client, test_config, db_connection):
+    def test_large_printer_list_performance(self, client, db_connection):
         """Test API performance with large number of printers"""
         # Insert many printers for performance testing
         cursor = db_connection.cursor()
@@ -517,7 +524,7 @@ class TestPrinterAPIEdgeCases:
         
         with patch('src.database.database.get_connection') as mock_db:
             mock_db.return_value = db_connection
-            response = api_client.get(f"{test_config['api_base_url']}/printers")
+            response = client.get("/api/v1/printers")
         
         end_time = time.time()
         request_time = end_time - start_time
@@ -529,26 +536,26 @@ class TestPrinterAPIEdgeCases:
         data = response.json()
         assert len(data['printers']) == 102  # 100 test + 2 from fixtures
     
-    def test_printer_api_rate_limiting(self, api_client, test_config):
+    def test_printer_api_rate_limiting(self, client):
         """Test API rate limiting for printer endpoints"""
         # This test would implement rate limiting checks
         # For now, just verify the endpoint handles multiple rapid requests
         
         responses = []
         for i in range(50):
-            response = api_client.get(f"{test_config['api_base_url']}/printers")
+            response = client.get("/api/v1/printers")
             responses.append(response.status_code)
         
         # Should not have any 429 (Too Many Requests) responses in normal testing
         success_responses = [r for r in responses if r == 200]
         assert len(success_responses) >= 45  # Allow for some potential failures
     
-    def test_invalid_json_handling(self, api_client, test_config):
+    def test_invalid_json_handling(self, client):
         """Test handling of invalid JSON in POST requests"""
         invalid_json_data = '{"name": "Test", "type": "bambu_lab", invalid}'
         
-        response = api_client.post(
-            f"{test_config['api_base_url']}/printers",
+        response = client.post(
+            "/printers",
             data=invalid_json_data,
             headers={'Content-Type': 'application/json'}
         )
@@ -557,7 +564,7 @@ class TestPrinterAPIEdgeCases:
         error_data = response.json()
         assert 'Invalid JSON' in error_data['error']['message']
     
-    def test_oversized_request_handling(self, api_client, test_config):
+    def test_oversized_request_handling(self, client):
         """Test handling of oversized requests"""
         # Create oversized printer data
         oversized_data = {
@@ -567,8 +574,8 @@ class TestPrinterAPIEdgeCases:
             'notes': 'x' * 10000  # 10KB of notes
         }
         
-        response = api_client.post(
-            f"{test_config['api_base_url']}/printers",
+        response = client.post(
+            "/printers",
             json=oversized_data
         )
         

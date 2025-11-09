@@ -1,3 +1,49 @@
+## [2.3.9] - 2025-11-09
+
+- feat: Add frontend UI and documentation for automated job creation
+- fix: Use proper default folders for Home Assistant addon
+- test: Add comprehensive test suite for automated job creation feature
+- fix: Resolve Prusa printer print progress not being displayed
+
+## [2.3.8] - 2025-11-09
+
+- fix: Use proper default folders for Home Assistant addon
+- fix: Resolve Prusa printer print progress not being displayed
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+
+## [2.3.7] - 2025-11-09
+
+- fix: Resolve Prusa printer print progress not being displayed
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+- feat: Implement automated job creation for print monitoring
+
+## [2.3.6] - 2025-11-08
+
+- refactor: Consolidate to unified 2.x.x versioning across all components
+- docs: Add comprehensive GitHub Releases setup guide
+- feat: Implement complete GitHub Releases workflow and automation
+- fix: Improve GitHub API 404 handling in update-check endpoint
+- feat: Implement automated job creation for print monitoring
+- Fix test setup for test_api_jobs.py and test_api_printers.py
+- docs: Clarify open questions in automated-job-creation design
+- Fix backend test setup by using FastAPI TestClient instead of requests.Session
+- Initial plan
+
+## [2.3.5] - 2025-11-08
+
+- feat: Implement automated job creation for print monitoring
+- Fix test setup for test_api_jobs.py and test_api_printers.py
+- docs: Clarify open questions in automated-job-creation design
+- Fix backend test setup by using FastAPI TestClient instead of requests.Session
+- Initial plan
+- fix: Fix backend test failures due to pytest version and middleware issues
+
 ## [2.3.4] - 2025-11-08
 
 - fix: Fix backend test failures due to pytest version and middleware issues

@@ -7,8 +7,9 @@ auto-download logic for current print jobs, and managing background tasks.
 Part of PrinterService refactoring - Phase 2 technical debt reduction.
 """
 import asyncio
+import json
 from typing import Dict, Any, Optional, List, Set
-from datetime import datetime
+from datetime import datetime, timedelta
 import structlog
 
 from src.database.database import Database
@@ -46,7 +47,9 @@ class PrinterMonitoringService:
         database: Database,
         event_service: EventService,
         file_service=None,
-        connection_service=None
+        connection_service=None,
+        job_service=None,
+        config_service=None
     ):
         """
         Initialize printer monitoring service.
@@ -56,11 +59,15 @@ class PrinterMonitoringService:
             event_service: Event service for emitting status events
             file_service: Optional file service for auto-downloads
             connection_service: Optional connection service to get printer instances
+            job_service: Optional job service for auto-creating jobs
+            config_service: Optional config service for reading settings
         """
         self.database = database
         self.event_service = event_service
         self.file_service = file_service
         self.connection_service = connection_service
+        self.job_service = job_service
+        self.config_service = config_service
 
         # Monitoring state
         self.monitoring_active = False
@@ -70,6 +77,12 @@ class PrinterMonitoringService:
 
         # Background task tracking for graceful shutdown
         self._background_tasks: set = set()
+
+        # Auto-job creation tracking
+        self._print_discoveries: Dict[str, datetime] = {}  # "printer_id:filename" -> discovery_time
+        self._auto_job_cache: Dict[str, Set[str]] = {}    # printer_id -> {job_keys}
+        self._job_creation_lock = asyncio.Lock()
+        self.auto_create_jobs = True  # Will be read from config
 
         logger.info("PrinterMonitoringService initialized")
 
@@ -102,6 +115,7 @@ class PrinterMonitoringService:
         1. Storing in database
         2. Emitting events for real-time updates
         3. Triggering auto-download if applicable
+        4. Auto-creating jobs if needed
 
         Args:
             status: PrinterStatusUpdate object with current status
@@ -130,6 +144,16 @@ class PrinterMonitoringService:
 
         # Auto-download & process current job file if needed
         await self._check_auto_download(status)
+
+        # Auto-create job if needed
+        if self.auto_create_jobs and self.job_service:
+            await self._auto_create_job_if_needed(status)
+
+        # Clean up discovery tracking when print ends
+        if status.status in [PrinterStatus.ONLINE, PrinterStatus.ERROR]:
+            if status.current_job:
+                discovery_key = f"{status.printer_id}:{status.current_job}"
+                self._print_discoveries.pop(discovery_key, None)
 
     async def _check_auto_download(self, status: PrinterStatusUpdate):
         """
@@ -622,6 +646,229 @@ class PrinterMonitoringService:
 
         logger.info("PrinterMonitoringService shutdown complete")
 
+    async def _auto_create_job_if_needed(self, status: PrinterStatusUpdate, is_startup: bool = False):
+        """
+        Auto-create job record if printer is printing.
+
+        Args:
+            status: Current printer status
+            is_startup: True if this is called during system startup/reconnection
+        """
+        # Only create for printing status with a known file
+        if status.status != PrinterStatus.PRINTING or not status.current_job:
+            return
+
+        printer_id = status.printer_id
+        filename = status.current_job
+
+        # Track when we FIRST discovered this print
+        discovery_key = f"{printer_id}:{filename}"
+
+        if discovery_key not in self._print_discoveries:
+            # First time seeing this print!
+            discovery_time = datetime.now()
+            self._print_discoveries[discovery_key] = discovery_time
+
+            logger.info("Discovered new print",
+                       printer_id=printer_id,
+                       filename=filename,
+                       discovery_time=discovery_time.isoformat(),
+                       is_startup=is_startup)
+        else:
+            # We've seen this print before (subsequent status updates)
+            discovery_time = self._print_discoveries[discovery_key]
+
+        # Generate deduplication key using discovery time
+        job_key = self._make_job_key(printer_id, filename, discovery_time)
+
+        # Thread-safe check and create
+        async with self._job_creation_lock:
+            # Check in-memory cache first (fast path)
+            if printer_id not in self._auto_job_cache:
+                self._auto_job_cache[printer_id] = set()
+
+            if job_key in self._auto_job_cache[printer_id]:
+                logger.debug("Job already created (in cache)", job_key=job_key)
+                return
+
+            # Check database (handles restarts, cache misses)
+            existing = await self._find_existing_job(printer_id, filename, discovery_time)
+            if existing:
+                logger.info("Job already exists in database", job_id=existing['id'])
+                self._auto_job_cache[printer_id].add(job_key)
+                return
+
+            # Create the job!
+            await self._create_auto_job(status, discovery_time, is_startup)
+            self._auto_job_cache[printer_id].add(job_key)
+
+    def _make_job_key(self, printer_id: str, filename: str, discovery_time: datetime) -> str:
+        """
+        Generate unique job key for deduplication.
+
+        Uses discovery time rounded to minute to handle polling jitter.
+        Format: "printer_id:filename:YYYY-MM-DDTHH:MM"
+        """
+        # Round to minute to handle 30-second polling jitter
+        discovery_minute = discovery_time.replace(second=0, microsecond=0)
+
+        # Clean filename for key (remove cache/ prefix if present)
+        clean_filename = filename
+        if clean_filename.startswith('cache/'):
+            clean_filename = clean_filename[6:]
+
+        return f"{printer_id}:{clean_filename}:{discovery_minute.isoformat()}"
+
+    async def _find_existing_job(self, printer_id: str, filename: str,
+                                discovery_time: datetime) -> Optional[Dict[str, Any]]:
+        """
+        Check database for existing job near this discovery time.
+
+        Looks for jobs created within ±2 minutes to handle:
+        - System restarts
+        - Network reconnections
+        - Clock drift
+        """
+        # Search window: ±2 minutes
+        start_window = discovery_time - timedelta(minutes=2)
+        end_window = discovery_time + timedelta(minutes=2)
+
+        # Get recent jobs for this printer
+        jobs = await self.database.list_jobs(
+            printer_id=printer_id,
+            status='running',
+            limit=20  # Reasonable limit for active jobs
+        )
+
+        # Clean filename for comparison
+        clean_filename = filename
+        if clean_filename.startswith('cache/'):
+            clean_filename = clean_filename[6:]
+
+        for job in jobs:
+            job_filename = job.get('filename', '')
+            if job_filename.startswith('cache/'):
+                job_filename = job_filename[6:]
+
+            created_at = datetime.fromisoformat(job['created_at'])
+
+            if (job_filename == clean_filename and
+                start_window <= created_at <= end_window):
+                logger.debug("Found existing job in database",
+                            job_id=job['id'],
+                            created_at=job['created_at'],
+                            discovery_time=discovery_time.isoformat())
+                return job
+
+        return None
+
+    async def _create_auto_job(self, status: PrinterStatusUpdate,
+                              discovery_time: datetime, is_startup: bool):
+        """
+        Create auto job record.
+
+        Args:
+            status: Current printer status with all available data
+            discovery_time: When we first discovered this print
+            is_startup: Whether this is during system startup
+        """
+        if not self.job_service:
+            logger.error("Cannot create auto job - JobService not available")
+            return
+
+        # Clean filename for job name
+        job_name = self._clean_filename(status.current_job)
+
+        # Get printer type
+        printer_type = 'unknown'
+        if self.connection_service:
+            printer_instance = self.connection_service.printer_instances.get(status.printer_id)
+            if printer_instance:
+                printer_type = 'bambu_lab' if 'Bambu' in type(printer_instance).__name__ else 'prusa_core'
+
+        # Build job data
+        job_data = {
+            'printer_id': status.printer_id,
+            'printer_type': printer_type,
+            'job_name': job_name,
+            'filename': status.current_job,
+            'status': 'running',  # Already in progress!
+
+            # Discovery time (when we first saw it)
+            'created_at': discovery_time.isoformat(),
+
+            # Actual start time from printer (if available)
+            'start_time': status.print_start_time.isoformat() if status.print_start_time else None,
+
+            # Metadata
+            'customer_info': json.dumps({
+                'auto_created': True,
+                'discovery_time': discovery_time.isoformat(),
+                'discovered_on_startup': is_startup,
+                'printer_start_time': status.print_start_time.isoformat() if status.print_start_time else None
+            }),
+
+            # Optional fields
+            'progress': status.progress or 0,
+            'is_business': False,  # Default, user can update later
+        }
+
+        # Try to link to file if it exists
+        if status.current_job_file_id:
+            job_data['file_id'] = status.current_job_file_id
+
+        try:
+            job = await self.job_service.create_job(job_data)
+
+            logger.info("Auto-created job",
+                       job_id=job.get('id'),
+                       printer_id=status.printer_id,
+                       filename=status.current_job,
+                       discovery_time=discovery_time.isoformat(),
+                       printer_start_time=status.print_start_time.isoformat() if status.print_start_time else 'unknown',
+                       is_startup=is_startup)
+
+            # Emit event for UI updates
+            await self.event_service.emit_event("job_auto_created", {
+                "job_id": job.get('id'),
+                "printer_id": status.printer_id,
+                "filename": status.current_job,
+                "discovery_time": discovery_time.isoformat()
+            })
+
+        except Exception as e:
+            logger.error("Failed to auto-create job",
+                        printer_id=status.printer_id,
+                        filename=status.current_job,
+                        error=str(e),
+                        exc_info=True)
+
+    def _clean_filename(self, filename: str) -> str:
+        """
+        Clean filename for job name.
+
+        Removes:
+        - cache/ prefix (Bambu Lab)
+        - File extensions (.gcode, .3mf, .bgcode)
+        - Extra whitespace
+        """
+        clean = filename
+
+        # Remove cache/ prefix
+        if clean.startswith('cache/'):
+            clean = clean[6:]
+
+        # Remove common extensions
+        for ext in ['.gcode', '.bgcode', '.3mf', '.stl']:
+            if clean.lower().endswith(ext):
+                clean = clean[:-len(ext)]
+                break
+
+        # Clean whitespace
+        clean = clean.strip()
+
+        return clean
+
     def set_file_service(self, file_service):
         """
         Set file service dependency.
@@ -645,3 +892,32 @@ class PrinterMonitoringService:
         """
         self.connection_service = connection_service
         logger.debug("Connection service set in PrinterMonitoringService")
+
+    def set_job_service(self, job_service):
+        """
+        Set job service dependency.
+
+        This allows for late binding to resolve circular dependencies.
+
+        Args:
+            job_service: JobService instance
+        """
+        self.job_service = job_service
+        logger.debug("Job service set in PrinterMonitoringService")
+
+    def set_config_service(self, config_service):
+        """
+        Set config service dependency and load auto-creation setting.
+
+        This allows for late binding to resolve circular dependencies.
+
+        Args:
+            config_service: ConfigService instance
+        """
+        self.config_service = config_service
+        # Load auto-creation config
+        if config_service and hasattr(config_service, 'settings'):
+            self.auto_create_jobs = config_service.settings.job_creation_auto_create
+            logger.info("Auto job creation configured", enabled=self.auto_create_jobs)
+        else:
+            logger.debug("Config service set in PrinterMonitoringService")
