@@ -339,8 +339,6 @@ const CONFIG = {
 
         // Real-time Printer Status
         PRINTER_STATUS: (id) => `printers/${id}/status`,
-        PRINTER_STATUS_HISTORY: (id) => `printers/${id}/status/history`,
-        PRINTER_CONNECTION_STATUS: (id) => `printers/${id}/connection`,
 
         // Real-time Monitoring
         PRINTER_MONITORING_START: (id) => `printers/${id}/monitoring/start`,
@@ -357,11 +355,7 @@ const CONFIG = {
         // Thumbnail Processing Endpoints
         FILE_EXTRACT_THUMBNAIL: (fileId) => `files/${fileId}/thumbnail/extract`,
         FILE_GENERATE_THUMBNAIL: (fileId) => `files/${fileId}/thumbnail/generate`,
-        FILE_ANALYZE_GCODE: (fileId) => `files/${fileId}/analyze/gcode`,
-
-        // Enhanced Job Management
-        PRINTER_CURRENT_JOB: (id) => `printers/${id}/jobs/current`,
-        PRINTER_SYNC_JOBS: (id) => `printers/${id}/jobs/sync`
+        FILE_ANALYZE_GCODE: (fileId) => `files/${fileId}/analyze/gcode`
     },
 
     // WebSocket Message Types

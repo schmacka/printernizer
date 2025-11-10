@@ -365,6 +365,60 @@ async def delete_printer(
         raise PrinterNotFoundError(printer_id)
 
 
+@router.get("/{printer_id}/status")
+async def get_printer_status(
+    printer_id: str,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """
+    Get lightweight printer status for real-time monitoring.
+
+    Returns current status, job progress, and temperatures without full printer details.
+    Optimized for frequent polling.
+    """
+    printer = await printer_service.get_printer(printer_id)
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
+
+    # Get current status from printer instance
+    instance = printer_service.printer_instances.get(printer_id)
+
+    response = {
+        "id": printer.id,
+        "name": printer.name,
+        "status": printer.status.value,
+        "current_job": None,
+        "temperatures": None,
+        "timestamp": datetime.now().isoformat()
+    }
+
+    if instance and instance.last_status:
+        status = instance.last_status
+
+        # Get current job info
+        if status.current_job:
+            response["current_job"] = {
+                "name": status.current_job,
+                "progress": status.progress,
+                "remaining_time": status.remaining_time
+            }
+
+        # Get temperatures
+        if status.bed_temperature is not None or status.nozzle_temperature is not None:
+            response["temperatures"] = {
+                "bed": {
+                    "current": status.bed_temperature,
+                    "target": status.bed_target_temperature
+                },
+                "nozzle": {
+                    "current": status.nozzle_temperature,
+                    "target": status.nozzle_target_temperature
+                }
+            }
+
+    return response
+
+
 @router.post("/{printer_id}/connect")
 async def connect_printer(
     printer_id: str,

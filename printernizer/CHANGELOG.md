@@ -1,3 +1,10 @@
+## [2.4.7] - 2025-11-10
+
+- fix: Add missing API endpoints and cleanup unused code
+- docs: Add comprehensive frontend button & API endpoint review
+- fix: Remove outdated database schema init - fixes fresh install crash
+- fix: Critical database migration system - auto-execute SQL migrations
+
 ## [2.4.6] - 2025-11-10
 
 - fix: Remove outdated database schema init - fixes fresh install crash
