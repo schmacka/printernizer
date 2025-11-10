@@ -132,7 +132,9 @@ FROM files_backup;
 -- Drop backup table
 DROP TABLE files_backup;
 
--- Recreate indexes
+-- Recreate all indexes for files table
+-- These were previously in database.py but moved here to avoid schema issues
+CREATE INDEX IF NOT EXISTS idx_files_printer_id ON files(printer_id);
 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
 CREATE INDEX IF NOT EXISTS idx_files_source ON files(source);
 CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path);
