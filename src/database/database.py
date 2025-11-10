@@ -95,10 +95,8 @@ class Database:
             
             # Add indexes for better query performance
             # Note: idx_files_source and idx_files_watch_folder are created in migrations 001/013
+            # Note: idx_files_status is created in migration 014
             # to avoid errors on databases that don't have those columns yet
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
-            """)
 
             # Ideas table for print idea management
             await cursor.execute("""
@@ -1609,6 +1607,31 @@ class Database:
                         ('013', 'Ensure source column and indexes exist in files table')
                     )
                     logger.info("Migration 013 completed")
+
+                # Migration 014: Add status column to files table (for very old databases)
+                if '014' not in applied_migrations:
+                    logger.info("Migration 014: Ensuring status column exists in files table")
+
+                    await cursor.execute("PRAGMA table_info(files)")
+                    columns = await cursor.fetchall()
+                    column_names = [col['name'] for col in columns]
+
+                    # Add status column if it doesn't exist
+                    if 'status' not in column_names:
+                        logger.info("Migration 014: Adding status column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN status TEXT DEFAULT 'available'")
+                        logger.info("Migration 014: Status column created")
+                    else:
+                        logger.info("Migration 014: Status column already exists")
+
+                    # Ensure status index exists
+                    await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)")
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('014', 'Add status column to files table')
+                    )
+                    logger.info("Migration 014 completed")
 
                 await self._connection.commit()
                 logger.info("All database migrations completed successfully")
