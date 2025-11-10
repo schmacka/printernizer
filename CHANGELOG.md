@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.5] - 2025-11-10
+
+### Fixed
+- **CRITICAL: Home Assistant Add-on Fresh Install** - Fixed schema conflict on fresh installs
+  - Removed outdated `database_schema.sql` initialization from run.sh script
+  - Fresh installs now use Python code to create database schema (single source of truth)
+  - Eliminates schema mismatch between SQL file (old schema with `download_status`) and Python code (new schema with `status`)
+  - Fixes "no such column: status" error on fresh Home Assistant add-on installations
+  - Database creation and migrations now fully handled by Python application
+
+### Technical Details
+- run.sh no longer initializes database with sqlite3 command
+- Python application creates all tables with correct schema via `_create_tables()`
+- Migrations system then applies any additional schema updates
+- Ensures consistency between fresh installs and upgraded installations
+
 ## [2.4.4] - 2025-11-10
 
 ### Fixed

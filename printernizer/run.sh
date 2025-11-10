@@ -117,19 +117,9 @@ EOF
 
 bashio::log.info "Environment configuration created"
 
-# Initialize database if it doesn't exist
-DATABASE_PATH="/data/printernizer/printernizer.db"
-if [ ! -f "$DATABASE_PATH" ]; then
-    bashio::log.info "Initializing database..."
-    if [ -f "/app/database_schema.sql" ]; then
-        sqlite3 "$DATABASE_PATH" < /app/database_schema.sql
-        bashio::log.info "Database initialized successfully"
-    else
-        bashio::log.warning "Database schema not found, will be created by application"
-    fi
-else
-    bashio::log.info "Database already exists"
-fi
+# Database initialization is handled by the Python application
+# The application will create tables and run migrations automatically
+bashio::log.info "Database will be initialized by application on startup"
 
 # Parse and log printer configuration
 PRINTER_COUNT=$(bashio::config 'printers | length' '0')
