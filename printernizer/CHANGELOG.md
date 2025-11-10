@@ -1,3 +1,9 @@
+## [2.4.6] - 2025-11-10
+
+- fix: Remove all files table index creation from database.py
+- fix: Add missing database migration for files table columns
+- fix: Improve Home Assistant Ingress detection using pathname instead of port
+
 ## [2.4.5] - 2025-11-10
 
 - fix: Add missing database migration for files table columns

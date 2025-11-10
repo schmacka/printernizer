@@ -93,12 +93,8 @@ class Database:
                 )
             """)
             
-            # Add indexes for better query performance
-            # Note: idx_files_source and idx_files_watch_folder are created in migration 013
-            # to avoid issues with existing databases that don't have those columns yet
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
-            """)
+            # Note: All files table indexes are created in migration 013_add_files_source_column.sql
+            # This avoids issues with existing databases that may have incomplete schema
 
             # Ideas table for print idea management
             await cursor.execute("""
@@ -181,8 +177,7 @@ class Database:
             # Create indexes for performance
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_printer_id ON jobs(printer_id)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
-            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_printer_id ON files(printer_id)")
-            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)")
+            # Note: Files table indexes are created in migration 013_add_files_source_column.sql
             
         await self._connection.commit()
         logger.info("Database tables created successfully")
