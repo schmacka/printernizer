@@ -1,3 +1,9 @@
+## [2.4.7] - 2025-11-10
+
+- fix: Make migration 006 FTS population defensive for missing columns
+- fix: Remove all files table index creation from database.py
+- fix: Add missing database migration for files table columns
+
 ## [2.4.6] - 2025-11-10
 
 - fix: Remove all files table index creation from database.py
