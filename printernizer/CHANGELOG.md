@@ -1,3 +1,10 @@
+## [2.4.4] - 2025-11-10
+
+- Reset to commit c3f209164af39f0e9ea186f960ef2629bdbbd053
+- Initial plan
+- fix: Add migration 014 to handle missing status column in files table
+- docs: Add comprehensive 3D model platform API research
+
 ## [2.4.3] - 2025-11-09
 
 - fix: Fix automatic job creation for Prusa Core One printer
