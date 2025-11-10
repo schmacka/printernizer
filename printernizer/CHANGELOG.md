@@ -1,3 +1,9 @@
+## [2.4.10] - 2025-11-10
+
+- fix: Implement safe migrations for source and watch folder columns
+- fix: Rollback problematic database migrations that broke add-on startup
+- fix: Add migration to remove printer type CHECK constraint
+
 ## [2.4.9] - 2025-11-10
 
 - fix: Rollback problematic database migrations that broke add-on startup

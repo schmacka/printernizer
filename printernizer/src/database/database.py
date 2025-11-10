@@ -94,14 +94,10 @@ class Database:
             """)
             
             # Add indexes for better query performance
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)
-            """)
+            # Note: idx_files_source and idx_files_watch_folder are created in migrations 001/013
+            # to avoid errors on databases that don't have those columns yet
             await cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
-            """)
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)
             """)
 
             # Ideas table for print idea management
@@ -186,7 +182,7 @@ class Database:
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_printer_id ON jobs(printer_id)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_printer_id ON files(printer_id)")
-            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)")
+            # Note: idx_files_status already created above after files table definition
             
         await self._connection.commit()
         logger.info("Database tables created successfully")
@@ -1419,6 +1415,11 @@ class Database:
                     columns = await cursor.fetchall()
                     column_names = [col['name'] for col in columns]
 
+                    # Add source column if it doesn't exist
+                    if 'source' not in column_names:
+                        logger.info("Migration 001: Adding source column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN source TEXT DEFAULT 'printer'")
+
                     # Add watch_folder_path column if it doesn't exist
                     if 'watch_folder_path' not in column_names:
                         logger.info("Migration 001: Adding watch_folder_path column to files table")
@@ -1434,9 +1435,13 @@ class Database:
                         logger.info("Migration 001: Adding modified_time column to files table")
                         await cursor.execute("ALTER TABLE files ADD COLUMN modified_time TIMESTAMP")
 
+                    # Create indexes for new columns
+                    await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)")
+                    await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)")
+
                     await cursor.execute(
                         "INSERT INTO migrations (version, description) VALUES (?, ?)",
-                        ('001', 'Add watch folder columns to files table')
+                        ('001', 'Add watch folder and source columns to files table')
                     )
                     logger.info("Migration 001 completed")
 
@@ -1575,6 +1580,35 @@ class Database:
                         ('006', 'Add FTS5 search tables and search history')
                     )
                     logger.info("Migration 006 completed")
+
+                # Migration 013: Ensure source column exists (for databases where migration 001 ran before source was added)
+                if '013' not in applied_migrations:
+                    logger.info("Migration 013: Ensuring source column exists in files table")
+
+                    await cursor.execute("PRAGMA table_info(files)")
+                    columns = await cursor.fetchall()
+                    column_names = [col['name'] for col in columns]
+
+                    # Add source column if it doesn't exist
+                    if 'source' not in column_names:
+                        logger.info("Migration 013: Adding source column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN source TEXT DEFAULT 'printer'")
+                        # Create index for source column
+                        await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)")
+                        logger.info("Migration 013: Source column and index created")
+                    else:
+                        logger.info("Migration 013: Source column already exists, ensuring index exists")
+                        # Make sure index exists even if column was already there
+                        await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)")
+
+                    # Ensure watch folder index exists as well
+                    await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)")
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('013', 'Ensure source column and indexes exist in files table')
+                    )
+                    logger.info("Migration 013 completed")
 
                 await self._connection.commit()
                 logger.info("All database migrations completed successfully")
