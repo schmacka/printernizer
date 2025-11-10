@@ -1,3 +1,9 @@
+## [2.4.6] - 2025-11-10
+
+- fix: Remove outdated database schema init - fixes fresh install crash
+- fix: Critical database migration system - auto-execute SQL migrations
+- docs: Add CURRENT_STATE documentation
+
 ## [2.4.5] - 2025-11-10
 
 - fix: Critical database migration system - auto-execute SQL migrations
