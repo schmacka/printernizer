@@ -1,3 +1,9 @@
+## [2.4.11] - 2025-11-10
+
+- fix: Add migration 014 to handle missing status column in files table
+- docs: Add comprehensive 3D model platform API research
+- fix: Implement safe migrations for source and watch folder columns
+
 ## [2.4.10] - 2025-11-10
 
 - fix: Implement safe migrations for source and watch folder columns
