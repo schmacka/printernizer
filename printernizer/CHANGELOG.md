@@ -1,3 +1,11 @@
+## [2.4.4] - 2025-11-10
+
+- fix: Improve Home Assistant Ingress detection using pathname instead of port
+- fix: Add missing database migration for files table columns (source, watch_folder_path, etc.)
+- fix: Remove all files table index creation from database.py to prevent schema conflicts
+- fix: Make migration 006 FTS population defensive for missing columns
+- fix: Add migration to remove printer type CHECK constraint and normalize printer types
+
 ## [2.4.3] - 2025-11-09
 
 - fix: Fix automatic job creation for Prusa Core One printer
