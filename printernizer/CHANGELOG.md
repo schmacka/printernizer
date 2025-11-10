@@ -1,3 +1,9 @@
+## [2.4.5] - 2025-11-10
+
+- fix: Add missing database migration for files table columns
+- fix: Improve Home Assistant Ingress detection using pathname instead of port
+- docs: Add CURRENT_STATE documentation
+
 ## [2.4.4] - 2025-11-10
 
 - fix: Improve Home Assistant Ingress detection using pathname instead of port
