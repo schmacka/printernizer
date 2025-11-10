@@ -93,8 +93,16 @@ class Database:
                 )
             """)
             
-            # Note: All files table indexes are created in migration 013_add_files_source_column.sql
-            # This avoids issues with existing databases that may have incomplete schema
+            # Add indexes for better query performance
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)
+            """)
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
+            """)
+            await cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)
+            """)
 
             # Ideas table for print idea management
             await cursor.execute("""
@@ -177,7 +185,8 @@ class Database:
             # Create indexes for performance
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_printer_id ON jobs(printer_id)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
-            # Note: Files table indexes are created in migration 013_add_files_source_column.sql
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_printer_id ON files(printer_id)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)")
             
         await self._connection.commit()
         logger.info("Database tables created successfully")
@@ -1546,29 +1555,20 @@ class Database:
                     logger.info("Migration 006: Populating FTS tables with existing data")
 
                     # Populate fts_files from files table
-                    # Use try-except to handle databases where display_name column doesn't exist yet
-                    try:
-                        await cursor.execute("""
-                            INSERT INTO fts_files(file_id, filename, display_name, file_type, metadata)
-                            SELECT id, filename, COALESCE(display_name, filename), file_type, metadata
-                            FROM files
-                            WHERE id IS NOT NULL
-                        """)
-                    except sqlite3.OperationalError as e:
-                        # Column doesn't exist yet - skip FTS population, will be populated later
-                        logger.info(f"Migration 006: Skipping FTS files population (columns not available yet): {e}")
+                    await cursor.execute("""
+                        INSERT INTO fts_files(file_id, filename, display_name, file_type, metadata)
+                        SELECT id, filename, display_name, file_type, metadata
+                        FROM files
+                        WHERE id IS NOT NULL
+                    """)
 
                     # Populate fts_ideas from ideas table
-                    try:
-                        await cursor.execute("""
-                            INSERT INTO fts_ideas(idea_id, title, description, category)
-                            SELECT id, title, description, category
-                            FROM ideas
-                            WHERE id IS NOT NULL
-                        """)
-                    except sqlite3.OperationalError as e:
-                        # Table might not exist yet or columns missing - skip
-                        logger.info(f"Migration 006: Skipping FTS ideas population (table/columns not available yet): {e}")
+                    await cursor.execute("""
+                        INSERT INTO fts_ideas(idea_id, title, description, category)
+                        SELECT id, title, description, category
+                        FROM ideas
+                        WHERE id IS NOT NULL
+                    """)
 
                     await cursor.execute(
                         "INSERT INTO migrations (version, description) VALUES (?, ?)",
