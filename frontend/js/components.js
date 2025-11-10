@@ -1926,14 +1926,21 @@ class StatusHistoryChart {
 
     /**
      * Load historical data and update chart
+     * Note: Status history feature is not yet implemented in the backend
      */
     async loadData(hours = 24) {
-        try {
-            const data = await api.getPrinterStatusHistory(this.printerId, hours);
-            this.updateChart(data);
-        } catch (error) {
-            console.error('Failed to load status history:', error);
-            this.showError('Fehler beim Laden der Verlaufsdaten');
+        // Status history tracking is not yet implemented in backend
+        // Display a message instead of attempting to load data
+        const canvas = this.container.querySelector(`#temperature-chart-${this.printerId}`);
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#6b7280';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Statusverlauf noch nicht verfügbar', canvas.width / 2, canvas.height / 2 - 10);
+            ctx.font = '14px Arial';
+            ctx.fillText('Diese Funktion wird in einer zukünftigen Version hinzugefügt', canvas.width / 2, canvas.height / 2 + 15);
         }
     }
 
