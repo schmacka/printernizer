@@ -364,10 +364,6 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.PRINTER_STATUS(printerId));
     }
 
-    async getPrinterStatusHistory(printerId, hours = 24) {
-        return this.get(CONFIG.ENDPOINTS.PRINTER_STATUS_HISTORY(printerId), { hours });
-    }
-
     // Real-time Monitoring Endpoints
     async startPrinterMonitoring(printerId) {
         return this.post(CONFIG.ENDPOINTS.PRINTER_MONITORING_START(printerId));
@@ -395,20 +391,6 @@ class ApiClient {
 
     async getPrinterFileDownloadStatus(printerId, filename) {
         return this.get(CONFIG.ENDPOINTS.PRINTER_FILE_DOWNLOAD_STATUS(printerId, filename));
-    }
-
-    // Enhanced Job Endpoints
-    async getCurrentJob(printerId) {
-        return this.get(CONFIG.ENDPOINTS.PRINTER_CURRENT_JOB(printerId));
-    }
-
-    async syncJobHistory(printerId) {
-        return this.post(CONFIG.ENDPOINTS.PRINTER_SYNC_JOBS(printerId));
-    }
-
-    // Connection Status Endpoint
-    async getPrinterConnectionStatus(printerId) {
-        return this.get(CONFIG.ENDPOINTS.PRINTER_CONNECTION_STATUS(printerId));
     }
 
     // Search Endpoints

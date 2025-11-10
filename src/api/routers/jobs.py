@@ -180,6 +180,53 @@ async def get_job(
     return JobResponse.model_validate(_transform_job_to_response(job))
 
 
+@router.post("/{job_id}/cancel")
+async def cancel_job(
+    job_id: str,
+    job_service: JobService = Depends(get_job_service)
+):
+    """
+    Cancel a running or queued print job.
+
+    This will:
+    1. Update the job status to CANCELLED
+    2. Attempt to stop the printer if job is currently printing
+
+    Returns:
+        Success message with updated job details
+    """
+    # Verify job exists
+    job = await job_service.get_job(job_id)
+    if not job:
+        raise JobNotFoundError(job_id)
+
+    # Get current job status
+    current_status = job.get('status')
+
+    # Check if job can be cancelled
+    if current_status in ['completed', 'failed', 'cancelled']:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel job with status '{current_status}'"
+        )
+
+    # Update job status to cancelled
+    await job_service.update_job_status(
+        job_id=job_id,
+        status=JobStatus.CANCELLED.value
+    )
+
+    # Get updated job data
+    updated_job = await job_service.get_job(job_id)
+
+    logger.info("Job cancelled successfully", job_id=job_id)
+
+    return success_response(
+        message="Job cancelled successfully",
+        data=JobResponse.model_validate(_transform_job_to_response(updated_job))
+    )
+
+
 @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job(
     job_id: UUID,
