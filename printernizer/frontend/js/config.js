@@ -21,11 +21,10 @@ const getApiBaseUrl = () => {
 
     debugLog('Detecting API Base URL', { host, port, protocol, pathname, href });
 
-    // Detect Home Assistant Ingress mode by checking pathname
-    // This is more reliable than port detection as it works with reverse proxies and custom ports
-    const isIngressMode = pathname.includes('/api/hassio_ingress/');
-
-    if (isIngressMode) {
+    // If accessed through HA Ingress (no port in URL) or on port 8123, use absolute-path-relative URLs
+    // Home Assistant Ingress proxies requests through /api/hassio_ingress/<token>/
+    // We extract the base path and construct absolute-path-relative URLs (starting with /)
+    if (!port || port === '8123') {
         // Extract the ingress base path from pathname
         // Pathname will be like: /api/hassio_ingress/<token>/ or /api/hassio_ingress/<token>/index.html
         // We need to preserve the base path including the trailing slash
@@ -47,7 +46,7 @@ const getApiBaseUrl = () => {
             apiUrl,
             pathname,
             basePath,
-            detection: 'pathname contains /api/hassio_ingress/',
+            reason: !port ? 'no port' : 'port 8123',
             note: 'Absolute-path-relative URL includes ingress proxy path'
         });
 
@@ -68,11 +67,10 @@ const getWebSocketUrl = () => {
 
     debugLog('Detecting WebSocket URL', { host, port, protocol, pathname });
 
-    // Detect Home Assistant Ingress mode by checking pathname
-    // This is more reliable than port detection as it works with reverse proxies and custom ports
-    const isIngressMode = pathname.includes('/api/hassio_ingress/');
-
-    if (isIngressMode) {
+    // If accessed through HA Ingress (no port in URL) or on port 8123, use absolute-path-relative WebSocket path
+    // Home Assistant Ingress proxies WebSocket connections through /api/hassio_ingress/<token>/
+    // We extract the base path and construct the WebSocket URL with full absolute path
+    if (!port || port === '8123') {
         // Extract the ingress base path from pathname
         let basePath = pathname;
 
@@ -93,7 +91,6 @@ const getWebSocketUrl = () => {
             wsUrl,
             pathname,
             basePath,
-            detection: 'pathname contains /api/hassio_ingress/',
             note: 'WebSocket URL with absolute path includes ingress proxy path'
         });
 
