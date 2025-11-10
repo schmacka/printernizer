@@ -1,3 +1,10 @@
+## [2.4.4] - 2025-11-10
+
+- fix: Improve Home Assistant Ingress detection using pathname instead of port
+- docs: Add CURRENT_STATE documentation
+- fix: Fix automatic job creation for Prusa Core One printer
+- fix: Database persistence - use settings.database_path for proper data directory
+
 ## [2.4.3] - 2025-11-09
 
 - fix: Fix automatic job creation for Prusa Core One printer
