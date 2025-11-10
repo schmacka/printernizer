@@ -94,9 +94,7 @@ class Database:
             """)
             
             # Add indexes for better query performance
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)
-            """)
+            # Note: idx_files_source created in migration 001 after source column is added
             await cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
             """)
@@ -1395,6 +1393,101 @@ class Database:
 
         return success
 
+    async def _run_sql_migrations(self, cursor, applied_migrations: set):
+        """
+        Run SQL migration files from migrations/ directory.
+
+        This method scans the migrations directory for .sql files and executes them in order.
+        It handles errors gracefully (e.g., if a column already exists) and tracks which
+        migrations have been applied.
+
+        Args:
+            cursor: Database cursor
+            applied_migrations: Set of already applied migration versions
+        """
+        try:
+            from pathlib import Path
+            import re
+
+            # Get migrations directory
+            migrations_dir = Path(__file__).parent.parent.parent / "migrations"
+
+            if not migrations_dir.exists():
+                logger.debug("Migrations directory not found, skipping SQL migrations")
+                return
+
+            # Get all SQL migration files
+            migration_files = sorted(migrations_dir.glob("[0-9][0-9][0-9]_*.sql"))
+
+            for migration_file in migration_files:
+                # Extract version number from filename (e.g., "001" from "001_add_column.sql")
+                match = re.match(r'^(\d{3})_', migration_file.name)
+                if not match:
+                    continue
+
+                version = match.group(1)
+
+                # Skip if already applied
+                if version in applied_migrations:
+                    continue
+
+                logger.info(f"Running SQL migration {version}: {migration_file.name}")
+
+                try:
+                    # Read migration file
+                    with open(migration_file, 'r', encoding='utf-8') as f:
+                        migration_sql = f.read()
+
+                    # Remove comments and split into statements
+                    statements = []
+                    for line in migration_sql.split('\n'):
+                        # Skip comment lines
+                        line = line.strip()
+                        if line.startswith('--') or not line:
+                            continue
+                        statements.append(line)
+
+                    # Rejoin and split by semicolons
+                    full_sql = ' '.join(statements)
+                    sql_statements = [s.strip() for s in full_sql.split(';') if s.strip()]
+
+                    # Execute each statement
+                    for statement in sql_statements:
+                        # Skip migration tracking inserts (we'll add our own)
+                        if 'INSERT INTO schema_migrations' in statement or 'INSERT INTO migrations' in statement:
+                            continue
+
+                        try:
+                            await cursor.execute(statement)
+                        except sqlite3.OperationalError as e:
+                            error_msg = str(e).lower()
+                            # Ignore "duplicate column" and "already exists" errors
+                            if 'duplicate column' in error_msg or 'already exists' in error_msg:
+                                logger.debug(f"Skipping statement (already applied): {e}")
+                                continue
+                            # Ignore "no such table: configuration" errors (table may not exist yet)
+                            elif 'no such table' in error_msg:
+                                logger.debug(f"Skipping statement (table not found): {e}")
+                                continue
+                            else:
+                                raise
+
+                    # Mark migration as completed
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        (version, f"SQL migration: {migration_file.name}")
+                    )
+
+                    logger.info(f"Migration {version} completed successfully")
+
+                except Exception as e:
+                    logger.error(f"Failed to run migration {version}", error=str(e), migration_file=str(migration_file))
+                    # Don't mark as completed if it failed
+                    # Continue with other migrations
+
+        except Exception as e:
+            logger.error("Failed to run SQL migrations", error=str(e))
+
     async def _run_migrations(self):
         """Run database migrations to update schema."""
         try:
@@ -1413,12 +1506,26 @@ class Database:
                 await cursor.execute("SELECT version FROM migrations")
                 applied_migrations = {row['version'] for row in await cursor.fetchall()}
 
+                # Run SQL migration files from migrations/ directory
+                await self._run_sql_migrations(cursor, applied_migrations)
+
+                # CRITICAL: Always check for source column (safety check for broken migrations)
+                # This ensures databases from failed/partial migrations get fixed
+                await cursor.execute("PRAGMA table_info(files)")
+                columns = await cursor.fetchall()
+                column_names = [col['name'] for col in columns] if columns else []
+
+                if 'source' not in column_names:
+                    logger.warning("CRITICAL: 'source' column missing from files table, adding it now")
+                    try:
+                        await cursor.execute("ALTER TABLE files ADD COLUMN source TEXT DEFAULT 'printer'")
+                        logger.info("Successfully added missing 'source' column to files table")
+                    except sqlite3.OperationalError as e:
+                        if 'duplicate column' not in str(e).lower():
+                            raise
+
                 # Migration 001: Add watch folder columns to files table
                 if '001' not in applied_migrations:
-                    await cursor.execute("PRAGMA table_info(files)")
-                    columns = await cursor.fetchall()
-                    column_names = [col['name'] for col in columns]
-
                     # Add watch_folder_path column if it doesn't exist
                     if 'watch_folder_path' not in column_names:
                         logger.info("Migration 001: Adding watch_folder_path column to files table")
@@ -1434,9 +1541,13 @@ class Database:
                         logger.info("Migration 001: Adding modified_time column to files table")
                         await cursor.execute("ALTER TABLE files ADD COLUMN modified_time TIMESTAMP")
 
+                    # Create index on source column
+                    logger.info("Migration 001: Creating index on source column")
+                    await cursor.execute("CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)")
+
                     await cursor.execute(
                         "INSERT INTO migrations (version, description) VALUES (?, ?)",
-                        ('001', 'Add watch folder columns to files table')
+                        ('001', 'Add watch folder columns and source to files table')
                     )
                     logger.info("Migration 001 completed")
 

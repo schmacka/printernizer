@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.4] - 2025-11-10
+
+### Fixed
+- **CRITICAL: Database Migration System** - Fixed broken migration system affecting fresh installs and reinstalls
+  - Added proper SQL migration runner that executes all migration files from `migrations/` directory
+  - Implemented automatic discovery and execution of numbered SQL migration files (001-013)
+  - Added safety check that always ensures `source` column exists in files table (prevents "no such column: source" error)
+  - Graceful error handling for duplicate columns and missing tables during migrations
+  - Fixes issue where migrations 002-013 were never executed despite SQL files existing
+  - Ensures databases from failed/partial migrations get properly repaired on next startup
+  - Migration tracking now properly records all executed SQL migrations
+
+### Technical Details
+- Migration system now scans `migrations/` directory for `[0-9][0-9][0-9]_*.sql` files
+- Executes migrations in numerical order (001, 002, 003, etc.)
+- Skips already-applied migrations based on `migrations` table
+- Handles SQLite limitations (no IF NOT EXISTS for ALTER TABLE) with try/catch
+- Backward compatible with existing migration tracking
+
 ## [2.4.0] - 2025-11-09
 
 ### Added
