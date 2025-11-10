@@ -1,3 +1,9 @@
+## [2.4.9] - 2025-11-10
+
+- fix: Rollback problematic database migrations that broke add-on startup
+- fix: Add migration to remove printer type CHECK constraint
+- fix: Make migration 006 FTS population defensive for missing columns
+
 ## [2.4.7] - 2025-11-10
 
 - fix: Make migration 006 FTS population defensive for missing columns
