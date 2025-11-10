@@ -94,14 +94,10 @@ class Database:
             """)
             
             # Add indexes for better query performance
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_source ON files(source)
-            """)
+            # Note: idx_files_source and idx_files_watch_folder are created in migration 013
+            # to avoid issues with existing databases that don't have those columns yet
             await cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_files_status ON files(status)
-            """)
-            await cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_files_watch_folder ON files(watch_folder_path)
             """)
 
             # Ideas table for print idea management
