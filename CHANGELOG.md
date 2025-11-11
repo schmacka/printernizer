@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2025-11-11
+
+### Added
+- **Drag-and-Drop File Upload** - Enhanced library management with drag-and-drop support
+  - Intuitive drag-and-drop interface for library file uploads
+  - Visual hover feedback with border highlighting
+  - Seamless integration with existing upload functionality
+
+### Fixed
+- **Docker Deployment** - Resolved critical Docker startup and configuration issues
+  - Fixed entrypoint.sh not found error during Docker startup
+  - Configured proper environment variables for Docker containers
+  - Improved database initialization in Docker environments
+- **API Completeness** - Added missing API endpoints and cleaned up unused code
+  - Ensured all frontend buttons have corresponding backend endpoints
+  - Comprehensive frontend button & API endpoint review completed
+
 ## [2.4.5] - 2025-11-10
 
 ### Fixed
