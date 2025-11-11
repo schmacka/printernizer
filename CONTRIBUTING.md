@@ -138,6 +138,14 @@ When adding support for new 3D printers:
 - Report security issues privately to sebastian@porcus3d.de
 - Use environment variables for configuration
 
+## Release Process
+
+For maintainers creating releases:
+
+- See [RELEASE.md](RELEASE.md) for the complete release workflow
+- Includes versioning standards, tagging, and automated GitHub releases
+- GitHub Actions automatically creates releases when tags are pushed
+
 ## Getting Help
 
 - **Documentation**: Check the `docs/` directory
