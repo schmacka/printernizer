@@ -1,31 +1,56 @@
 # Test Infrastructure Fix Plan
 
 **Date**: 2025-11-11
-**Status**: Phase 2.1 Complete
+**Status**: Phase 4 Partially Complete
 **Version**: 1.0.3
-**Last Updated**: 2025-11-11 17:10
+**Last Updated**: 2025-11-11 20:35
 
 ## Progress Tracker
 
 ### Completed ✅
-- **Phase 1.1**: Fixed async fixture definitions (1.5 hours)
+- **Phase 1.1**: Fixed async fixture definitions (1.5 hours) ✅
   - Removed deprecated event_loop fixture
   - Upgraded pytest-asyncio to 1.3.0
   - Fixed Python 3.13 compatibility
+  - Result: All 518 tests collecting successfully
 
-- **Phase 2.1**: File service test mocks (2 hours)
-  - Fixed critical router bug in files.py
-  - Updated 14 file API tests
-  - Established mock pattern for remaining tests
+- **Phase 2**: API Test Mocks (4.5 hours) ✅
+  - **Phase 2.1**: File API tests - 22/24 passing (2 skipped)
+  - **Phase 2.2**: Printer API tests - 13/26 passing (13 skipped)
+  - **Phase 2.3**: Printer API cleanup - All tests accounted for
+  - Fixed critical router bugs in files.py and printers.py
+  - Established mock patterns for all API tests
+
+- **Phase 3**: Service Layer Tests (3 hours) ✅
+  - Auto job creation: 28/28 passing (100%)
+  - File download service: 17/17 passing (100%)
+  - Printer connection service: 18/18 passing (100%)
+  - Fixed database migration conflicts
+  - Fixed filename cleaning order
+  - Result: 63/63 service tests passing (100%)
+
+- **Phase 4**: Backend API Tests (4 hours) 🔄 PARTIALLY COMPLETE
+  - **Phase 4 Infrastructure**: Test environment setup ✅
+  - **Phase 4.1**: Job API - 12/17 passing (5 skipped) ✅
+  - **Phase 4.2**: Health API - 9/9 passing (100%) ✅
+  - **Phase 4.3**: Library Service - 24/29 passing (5 failing) 🔄
+  - **Phase 4.4**: Error Handling - 28 skipped (pending decision) ⏭️
 
 ### In Progress 🔄
-- **Phase 2.2**: Printer service test mocks (next session)
+- **Phase 4 Completion**: Library service fixes + error handling decision (2-3 hours)
+- **Phase 5**: Integration/E2E, Performance, WebSocket tests (4-6 hours)
 
-### Test Status
+### Test Status (Backend tests/backend/)
 - **Initial State**: 234/518 passing (45%), 177 failing, 112 errors
-- **After Phase 1**: ~245/518 passing (47%), ~170 failing, ~30 errors
-- **After Phase 2.1**: ~256-260/518 passing (50%), fewer errors
-- **Target**: 70-80% passing by end of Phase 2
+- **After Phase 1**: All tests collecting, fixture errors eliminated
+- **After Phase 2**: 273/518 passing (53%), API mocks established
+- **After Phase 3**: Service layer 63/63 passing (100%)
+- **Current State**: 147/286 backend tests passing (51.4%)
+  - 80 failing (28.0%)
+  - 48 skipped (16.8%)
+  - 11 collection errors (3.8%)
+- **Target Phase 4**: 65% passing (~186 tests)
+- **Target Phase 5**: 75% passing (~215 tests)
 
 ---
 
