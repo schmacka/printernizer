@@ -1,3 +1,11 @@
+## [2.5.11] - 2025-11-11
+
+- fix(tests): Phase 3 complete - Service layer tests 100% passing
+- docs: Add Phase 2 session summary
+- fix(tests): Phase 2.3 complete - Printer API tests 100% accounted for
+- fix(tests): Phase 2.3a - Fix 3 additional printer API tests
+- fix(tests): Phase 2.2 - Fix printer API tests and router bug
+
 ## [2.5.10] - 2025-11-11
 
 - fix(tests): Phase 2.3a - Fix 3 additional printer API tests
