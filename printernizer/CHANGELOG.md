@@ -1,3 +1,10 @@
+## [2.4.9] - 2025-11-11
+
+- fix: Configure Docker environment variables and database initialization
+- fix: Correct drag-and-drop hover feedback for library file upload
+- fix: Resolve Docker startup 'entrypoint.sh not found' error
+- feat: Add drag-and-drop file upload to library
+
 ## [2.4.8] - 2025-11-11
 
 - feat: Add drag-and-drop file upload to library
