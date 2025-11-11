@@ -1,3 +1,8 @@
+## [2.5.5] - 2025-11-11
+
+- fix(ci): Fix CI/CD pipeline failures and enhance deployment resilience
+- docs: Add release process reminders and checklist
+
 ## [2.5.4] - 2025-11-11
 
 - feat: Add missing thumbnail processing API endpoints for Auto-Download System
