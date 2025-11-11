@@ -187,8 +187,6 @@ jobs:
         name: backend-coverage
 
   # Frontend Testing Job
-  # TODO: Frontend tests exist in tests/frontend/ but need Node.js setup
-  # Frontend is static HTML/CSS/JS - no package.json currently exists
   test-frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest
@@ -197,11 +195,122 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Skip frontend tests (no package.json setup yet)
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        cache-dependency-path: tests/frontend/package.json
+
+    - name: Install frontend test dependencies
+      working-directory: tests/frontend
       run: |
-        echo "Frontend is static HTML/CSS/JS without Node.js build system"
-        echo "Frontend tests exist in tests/frontend/ but require Node.js setup"
-        echo "Skipping for now - to be configured in future PR"
+        npm ci
+
+    - name: Run frontend tests with coverage
+      working-directory: tests/frontend
+      continue-on-error: true
+      run: |
+        npm run test:coverage -- \
+          --ci \
+          --reporters=default \
+          --reporters=jest-junit \
+          --maxWorkers=2
+      env:
+        JEST_JUNIT_OUTPUT_DIR: ./
+        JEST_JUNIT_OUTPUT_NAME: test-results.xml
+
+    - name: Generate test summary
+      if: always()
+      working-directory: tests/frontend
+      run: |
+        cat > parse_results.py << 'PYTHON_SCRIPT'
+        import xml.etree.ElementTree as ET
+        import sys
+        try:
+            tree = ET.parse('test-results.xml')
+            root = tree.getroot()
+            tests = int(root.get('tests', 0))
+            failures = int(root.get('failures', 0))
+            errors = int(root.get('errors', 0))
+            skipped = int(root.get('skipped', 0))
+            passed = tests - failures - errors - skipped
+            pass_rate = (passed * 100 // tests) if tests > 0 else 0
+            print(f"**Total Tests**: {tests}")
+            print(f"**Passed**: {passed} ({pass_rate}%)")
+            print(f"**Failed**: {failures}")
+            print(f"**Errors**: {errors}")
+            print(f"**Skipped**: {skipped}")
+            print()
+            print(f"**Pass Rate**: {pass_rate}%")
+        except Exception as e:
+            print(f"Could not parse test results: {e}")
+        PYTHON_SCRIPT
+
+        echo "## Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f test-results.xml ]; then
+          python3 parse_results.py >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️  No test results file found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📦 Test artifacts uploaded for detailed review" >> $GITHUB_STEP_SUMMARY
+        rm -f parse_results.py
+
+    - name: Check test pass rate
+      if: always()
+      working-directory: tests/frontend
+      run: |
+        cat > check_pass_rate.py << 'PYTHON_SCRIPT'
+        import xml.etree.ElementTree as ET
+        import sys
+        try:
+            tree = ET.parse('test-results.xml')
+            root = tree.getroot()
+            tests = int(root.get('tests', 0))
+            failures = int(root.get('failures', 0))
+            errors = int(root.get('errors', 0))
+            skipped = int(root.get('skipped', 0))
+            passed = tests - failures - errors - skipped
+            pass_rate = (passed * 100 / tests) if tests > 0 else 0
+            print(f"Pass rate: {pass_rate:.1f}%")
+            # Require high pass rate for frontend tests (95%+)
+            if pass_rate < 95:
+                print(f"FAIL: Pass rate {pass_rate:.1f}% is below minimum 95%")
+                sys.exit(1)
+            else:
+                print(f"PASS: Pass rate {pass_rate:.1f}% meets minimum threshold")
+                sys.exit(0)
+        except FileNotFoundError:
+            print("⚠️  No test results found, failing build")
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error parsing results: {e}")
+            sys.exit(1)
+        PYTHON_SCRIPT
+
+        python3 check_pass_rate.py
+        exit_code=$?
+        rm -f check_pass_rate.py
+        exit $exit_code
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-test-results
+        path: |
+          tests/frontend/test-results.xml
+          tests/frontend/coverage/
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: always()
+      with:
+        directory: tests/frontend/coverage
+        flags: frontend
+        name: frontend-coverage
 
   # Security Scanning Job
   security-scan:

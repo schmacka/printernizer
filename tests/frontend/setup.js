@@ -2,9 +2,9 @@
  * Jest setup file for frontend tests
  * Configures testing environment, polyfills, and global mocks
  */
-import '@testing-library/jest-dom';
-import { TextEncoder, TextDecoder } from 'util';
-import fetchMock from 'fetch-mock';
+require('@testing-library/jest-dom');
+const { TextEncoder, TextDecoder } = require('util');
+const fetchMock = require('fetch-mock');
 
 // Polyfills for Node.js environment
 global.TextEncoder = TextEncoder;
