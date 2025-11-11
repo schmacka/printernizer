@@ -325,7 +325,8 @@ class TestSourceTracking:
             'checksum': checksum,
             'sources': json.dumps([source1])
         }
-        mock_database.get_library_file_by_checksum.return_value = existing_file
+        # Pre-populate the database with existing file
+        mock_database._created_files[checksum] = existing_file
 
         await library_service.add_file_source(checksum, source2)
 
@@ -350,7 +351,8 @@ class TestSourceTracking:
             'checksum': checksum,
             'sources': json.dumps([source_info])
         }
-        mock_database.get_library_file_by_checksum.return_value = existing_file
+        # Pre-populate the database with existing file
+        mock_database._created_files[checksum] = existing_file
 
         await library_service.add_file_source(checksum, source_info)
 
@@ -375,7 +377,8 @@ class TestFileDeletion:
             'library_path': f"models/a3/{SAMPLE_FILE_CHECKSUM}.3mf",
             'filename': 'test.3mf'
         }
-        mock_database.get_library_file_by_checksum.return_value = file_record
+        # Pre-populate the database with existing file
+        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = file_record
 
         result = await library_service.delete_file(SAMPLE_FILE_CHECKSUM, delete_physical=True)
 
@@ -396,7 +399,8 @@ class TestFileDeletion:
             'library_path': f"models/a3/{SAMPLE_FILE_CHECKSUM}.3mf",
             'filename': 'test.3mf'
         }
-        mock_database.get_library_file_by_checksum.return_value = file_record
+        # Pre-populate the database with existing file
+        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = file_record
 
         result = await library_service.delete_file(SAMPLE_FILE_CHECKSUM, delete_physical=False)
 
@@ -450,7 +454,8 @@ class TestReprocessing:
             'checksum': SAMPLE_FILE_CHECKSUM,
             'filename': 'test.3mf'
         }
-        mock_database.get_library_file_by_checksum.return_value = file_record
+        # Pre-populate the database with existing file
+        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = file_record
 
         result = await library_service.reprocess_file(SAMPLE_FILE_CHECKSUM)
 
