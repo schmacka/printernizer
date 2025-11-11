@@ -1,3 +1,10 @@
+## [2.5.13] - 2025-11-11
+
+- fix: Add missing global functions for library page UI interactions
+- fix(ci): Allow test step to continue on error, rely on pass rate check
+- feat(ci): Configure GitHub Actions for stable test execution (Phase 6)
+- fix: Correct database method calls in file_upload_service
+
 ## [2.5.12] - 2025-11-11
 
 - fix(ci): Allow test step to continue on error, rely on pass rate check
