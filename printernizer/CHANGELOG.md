@@ -1,3 +1,10 @@
+## [2.5.8] - 2025-11-11
+
+- fix(tests): Phase 2.1 complete - File API tests and router bug fixed
+- fix: Reduce Prusa connection timeout from 38s to ~12s
+- fix(tests): Replace all backend.* imports with correct src.* paths
+- docs: Add comprehensive CI/CD test fix plan for remaining work
+
 ## [2.5.7] - 2025-11-11
 
 - fix: Reduce Prusa connection timeout from 38s to ~12s
