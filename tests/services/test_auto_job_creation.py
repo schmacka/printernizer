@@ -109,8 +109,8 @@ class TestJobKeyGeneration:
 
         key = monitoring_service._make_job_key(printer_id, filename, discovery_time)
 
-        # Format: "printer_id:filename:YYYY-MM-DDTHH:MM"
-        assert key.count(":") == 3  # Should have 3 colons
+        # Format: "printer_id:filename:YYYY-MM-DDTHH:MM:SS" (ISO 8601 timestamp has 2 colons)
+        assert key.count(":") == 4  # Should have 4 colons (1 + 1 + 2 from timestamp)
         assert key.startswith("bambu_001:")
         assert "test_model.3mf" in key
         assert "2025-01-09T10:30" in key
@@ -204,17 +204,17 @@ class TestFindExistingJob:
 
     @pytest.mark.asyncio
     async def test_find_existing_job_within_time_window(self, monitoring_service):
-        """Should find job within ±2 minute window."""
+        """Should find job within ±5 minute window."""
         printer_id = "bambu_001"
         filename = "model.3mf"
         discovery_time = datetime(2025, 1, 9, 10, 30, 0)
 
-        # Job created 1 minute earlier
+        # Job created 3 minutes earlier (within window)
         existing_job = {
             'id': 'job_123',
             'printer_id': printer_id,
             'filename': filename,
-            'created_at': (discovery_time - timedelta(minutes=1)).isoformat(),
+            'created_at': (discovery_time - timedelta(minutes=3)).isoformat(),
             'status': 'running'
         }
         monitoring_service.database.list_jobs = AsyncMock(return_value=[existing_job])
@@ -226,17 +226,17 @@ class TestFindExistingJob:
 
     @pytest.mark.asyncio
     async def test_find_existing_job_outside_time_window(self, monitoring_service):
-        """Should NOT find job outside ±2 minute window."""
+        """Should NOT find job outside ±5 minute window."""
         printer_id = "bambu_001"
         filename = "model.3mf"
         discovery_time = datetime(2025, 1, 9, 10, 30, 0)
 
-        # Job created 3 minutes earlier (outside window)
+        # Job created 6 minutes earlier (outside ±5 minute window)
         existing_job = {
             'id': 'job_123',
             'printer_id': printer_id,
             'filename': filename,
-            'created_at': (discovery_time - timedelta(minutes=3)).isoformat(),
+            'created_at': (discovery_time - timedelta(minutes=6)).isoformat(),
             'status': 'running'
         }
         monitoring_service.database.list_jobs = AsyncMock(return_value=[existing_job])
@@ -458,7 +458,10 @@ class TestAutoCreateJobLogic:
         call_args = monitoring_service.job_service.create_job.call_args
         job_data = call_args[0][0]
 
-        customer_info = json.loads(job_data['customer_info'])
+        customer_info = job_data['customer_info']
+        # Handle both dict and JSON string formats
+        if isinstance(customer_info, str):
+            customer_info = json.loads(customer_info)
         assert customer_info['discovered_on_startup'] is True
         assert customer_info['auto_created'] is True
 

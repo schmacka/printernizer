@@ -1455,8 +1455,11 @@ class Database:
 
                 version = match.group(1)
 
+                # Use SQL- prefix to avoid conflicts with Python migrations
+                sql_version = f"SQL-{version}"
+
                 # Skip if already applied
-                if version in applied_migrations:
+                if sql_version in applied_migrations:
                     continue
 
                 logger.info(f"Running SQL migration {version}: {migration_file.name}")
@@ -1500,10 +1503,10 @@ class Database:
                             else:
                                 raise
 
-                    # Mark migration as completed
+                    # Mark migration as completed (with SQL- prefix)
                     await cursor.execute(
                         "INSERT INTO migrations (version, description) VALUES (?, ?)",
-                        (version, f"SQL migration: {migration_file.name}")
+                        (sql_version, f"SQL migration: {migration_file.name}")
                     )
 
                     logger.info(f"Migration {version} completed successfully")
