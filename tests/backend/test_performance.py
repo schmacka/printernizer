@@ -315,7 +315,7 @@ class TestAPIPerformance(PerformanceTestBase):
         
         async def api_request():
             """Simulate API request"""
-            with patch('backend.database.get_connection') as mock_db:
+            with patch('src.database.database.Database.get_connection') as mock_db:
                 mock_db.return_value = populated_database
                 
                 try:

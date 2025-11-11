@@ -24,7 +24,7 @@ class TestE2EPrinterSetupWorkflow:
     @pytest.mark.asyncio
     async def test_complete_bambu_lab_setup(self, api_client, temp_database, test_config, mock_bambu_api):
         """Test complete Bambu Lab printer setup workflow"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             conn = sqlite3.connect(temp_database)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
@@ -43,9 +43,9 @@ class TestE2EPrinterSetupWorkflow:
                 'has_ams': True
             }
             
-            with patch('backend.services.bambu_service.test_connection') as mock_test:
+            with patch('src.services.bambu_service.test_connection') as mock_test:
                 mock_test.return_value = True
-                with patch('backend.services.bambu_service.initialize_monitoring') as mock_monitor:
+                with patch('src.services.bambu_service.initialize_monitoring') as mock_monitor:
                     mock_monitor.return_value = True
                     
                     response = api_client.post(f"{base_url}/printers", json=printer_data)
@@ -74,7 +74,7 @@ class TestE2EPrinterSetupWorkflow:
             assert added_printer['status'] in ['online', 'connecting']
             
             # Step 3: Check initial status
-            with patch('backend.services.bambu_service.get_status') as mock_status:
+            with patch('src.services.bambu_service.get_status') as mock_status:
                 mock_status.return_value = {
                     'status': 'online',
                     'print_status': 'idle',
@@ -115,7 +115,7 @@ class TestE2EPrinterSetupWorkflow:
     @pytest.mark.asyncio
     async def test_complete_prusa_setup(self, api_client, temp_database, test_config, mock_prusa_api):
         """Test complete Prusa Core One printer setup workflow"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             conn = sqlite3.connect(temp_database)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
@@ -133,7 +133,7 @@ class TestE2EPrinterSetupWorkflow:
                 'supports_remote_control': True
             }
             
-            with patch('backend.services.prusa_service.test_connection') as mock_test:
+            with patch('src.services.prusa_service.test_connection') as mock_test:
                 mock_test.return_value = True
                 
                 response = api_client.post(f"{base_url}/printers", json=printer_data)
@@ -142,7 +142,7 @@ class TestE2EPrinterSetupWorkflow:
                 printer_id = response.json()['id']
             
             # Step 2: Verify status monitoring
-            with patch('backend.services.prusa_service.get_status') as mock_status:
+            with patch('src.services.prusa_service.get_status') as mock_status:
                 mock_status.return_value = {
                     'printer': {
                         'state': 'Operational',
@@ -172,7 +172,7 @@ class TestE2EJobManagementWorkflow:
     async def test_complete_print_job_lifecycle(self, api_client, populated_database, test_config, 
                                                german_business_config, mock_bambu_api):
         """Test complete print job from creation to completion with German business logic"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -244,7 +244,7 @@ class TestE2EJobManagementWorkflow:
                 'completed_at': datetime.now(timezone.utc).isoformat()
             }
             
-            with patch('backend.services.business_service.calculate_job_costs') as mock_calc:
+            with patch('src.services.business_service.calculate_job_costs') as mock_calc:
                 # Mock German business cost calculation
                 mock_calc.return_value = {
                     'material_cost_eur': 1.71,  # 34.2g * 0.05
@@ -289,7 +289,7 @@ class TestE2EJobManagementWorkflow:
     @pytest.mark.asyncio
     async def test_job_failure_and_recovery(self, api_client, populated_database, test_config):
         """Test job failure scenarios and recovery workflow"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -354,13 +354,13 @@ class TestE2EFileManagementWorkflow:
     async def test_complete_file_download_workflow(self, api_client, populated_database, 
                                                  test_config, temp_download_directory):
         """Test complete file discovery, download, and organization workflow"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
             
             # Step 1: Discover files on printers
-            with patch('backend.services.file_service.scan_printer_files') as mock_scan:
+            with patch('src.services.file_service.scan_printer_files') as mock_scan:
                 mock_scan.return_value = {
                     'bambu_a1_001': [
                         {
@@ -402,7 +402,7 @@ class TestE2EFileManagementWorkflow:
             # Step 3: Download first file
             file_to_download = available_files[0]
             
-            with patch('backend.services.file_service.download_from_printer') as mock_download:
+            with patch('src.services.file_service.download_from_printer') as mock_download:
                 mock_download.return_value = {
                     'success': True,
                     'local_path': f'{temp_download_directory}/bambu_a1_001/2025-09-03/{file_to_download["filename"]}',
@@ -434,7 +434,7 @@ class TestE2EFileManagementWorkflow:
                 'organize_by': 'printer_date'  # Organize by printer and date
             }
             
-            with patch('backend.services.file_service.batch_download') as mock_batch:
+            with patch('src.services.file_service.batch_download') as mock_batch:
                 mock_batch.return_value = {
                     'success': True,
                     'downloaded_files': len(remaining_files),
@@ -464,7 +464,7 @@ class TestE2EFileManagementWorkflow:
     @pytest.mark.asyncio
     async def test_file_cleanup_workflow(self, api_client, populated_database, test_config):
         """Test file cleanup and management workflow"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -491,7 +491,7 @@ class TestE2EFileManagementWorkflow:
                 'preserve_recent_business_files': True
             }
             
-            with patch('backend.services.file_service.cleanup_files') as mock_cleanup:
+            with patch('src.services.file_service.cleanup_files') as mock_cleanup:
                 mock_cleanup.return_value = {
                     'files_deleted': 1,
                     'space_recovered_mb': 100.0,
@@ -517,7 +517,7 @@ class TestE2EDashboardWorkflow:
     async def test_complete_dashboard_monitoring(self, api_client, populated_database, test_config, 
                                                german_business_config):
         """Test complete dashboard monitoring with German business reporting"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -547,7 +547,7 @@ class TestE2EDashboardWorkflow:
                 'format': 'detailed'
             }
             
-            with patch('backend.services.reporting_service.generate_business_report') as mock_report:
+            with patch('src.services.reporting_service.generate_business_report') as mock_report:
                 mock_report.return_value = {
                     'report_period': 'September 2025',
                     'summary': {
@@ -606,7 +606,7 @@ class TestE2EDashboardWorkflow:
     @pytest.mark.asyncio
     async def test_real_time_dashboard_updates(self, api_client, populated_database, test_config, mock_websocket):
         """Test real-time dashboard updates via WebSocket"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -686,7 +686,7 @@ class TestE2EGermanBusinessCompliance:
     async def test_complete_vat_compliance_workflow(self, api_client, temp_database, test_config, 
                                                   german_business_config):
         """Test complete German VAT compliance workflow"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             conn = sqlite3.connect(temp_database)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
@@ -741,7 +741,7 @@ class TestE2EGermanBusinessCompliance:
                     'labor_cost_eur': business_jobs[i]['labor_cost_eur']
                 }
                 
-                with patch('backend.services.business_service.calculate_vat') as mock_vat:
+                with patch('src.services.business_service.calculate_vat') as mock_vat:
                     subtotal = completion_data['material_cost_eur'] + completion_data['labor_cost_eur']
                     vat_amount = round(subtotal * 0.19, 2)
                     total_with_vat = subtotal + vat_amount
@@ -764,7 +764,7 @@ class TestE2EGermanBusinessCompliance:
                 'report_type': 'vat_summary'
             }
             
-            with patch('backend.services.tax_service.generate_vat_report') as mock_vat_report:
+            with patch('src.services.tax_service.generate_vat_report') as mock_vat_report:
                 mock_vat_report.return_value = {
                     'period': 'September 2025',
                     'total_net_sales_eur': 53.50,  # 20.00 + 33.50

@@ -91,10 +91,10 @@ class TestFileAPI:
             # Mock file download from Bambu Lab
             mock_bambu_api.download_file.return_value = sample_3mf_file
             
-            with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
+            with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
                 mock_api_class.return_value = mock_bambu_api
                 
-                with patch('backend.files.get_download_directory') as mock_dir:
+                with patch('src.services.file_service.get_download_directory') as mock_dir:
                     mock_dir.return_value = temp_download_directory
                     
                     response = client.post(f"/api/v1/files/{file_id}/download")
@@ -118,10 +118,10 @@ class TestFileAPI:
             # Mock file download from Prusa
             mock_prusa_api.download_file.return_value = mock_file_content
             
-            with patch('backend.printers.prusa.PrusaLinkAPI') as mock_api_class:
+            with patch('src.printers.prusa.PrusaPrinter') as mock_api_class:
                 mock_api_class.return_value = mock_prusa_api
                 
-                with patch('backend.files.get_download_directory') as mock_dir:
+                with patch('src.services.file_service.get_download_directory') as mock_dir:
                     mock_dir.return_value = temp_download_directory
                     
                     response = client.post(f"/api/v1/files/{file_id}/download")
@@ -151,7 +151,7 @@ class TestFileAPI:
             mock_db.return_value = populated_database
             
             # Mock printer API to raise connection error
-            with patch('backend.printers.get_printer_api') as mock_get_api:
+            with patch('src.printers.get_printer_api') as mock_get_api:
                 mock_get_api.side_effect = ConnectionError("Printer not reachable")
                 
                 response = client.post(f"/api/v1/files/{file_id}/download")
@@ -167,11 +167,11 @@ class TestFileAPI:
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
+            with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
                 mock_api_class.return_value = mock_bambu_api
                 
                 # Mock disk space check to fail
-                with patch('backend.files.check_disk_space') as mock_space:
+                with patch('src.services.file_service.check_disk_space') as mock_space:
                     mock_space.return_value = False
                     
                     response = client.post(f"/api/v1/files/{file_id}/download")
@@ -192,10 +192,10 @@ class TestFileAPI:
             mock_bambu_api.download_file_with_progress = Mock()
             mock_bambu_api.download_file_with_progress.return_value = large_file_content
             
-            with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
+            with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
                 mock_api_class.return_value = mock_bambu_api
                 
-                with patch('backend.files.get_download_directory') as mock_dir:
+                with patch('src.services.file_service.get_download_directory') as mock_dir:
                     mock_dir.return_value = temp_download_directory
                     
                     response = client.post(f"/api/v1/files/{file_id}/download?track_progress=true")
@@ -217,7 +217,7 @@ class TestFileAPI:
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            with patch('backend.files.get_local_file_path') as mock_path:
+            with patch('src.services.file_service.get_local_file_path') as mock_path:
                 mock_path.return_value = local_file_path
                 
                 response = client.delete(f"/api/v1/files/{file_id}")
@@ -243,7 +243,7 @@ class TestFileAPI:
         """Test GET /api/v1/files/downloads/{download_id}/progress"""
         download_id = 'test_download_123'
         
-        with patch('backend.files.get_download_progress') as mock_progress:
+        with patch('src.services.file_service.get_download_progress') as mock_progress:
             mock_progress.return_value = {
                 'download_id': download_id,
                 'status': 'downloading',
@@ -285,7 +285,7 @@ class TestFileAPI:
         with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
-            with patch('backend.files.cleanup_old_files') as mock_cleanup:
+            with patch('src.services.file_service.cleanup_old_files') as mock_cleanup:
                 mock_cleanup.return_value = {
                     'files_deleted': 5,
                     'space_freed_mb': 125.5,

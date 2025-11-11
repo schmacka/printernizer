@@ -185,7 +185,7 @@ class TestPrinterAPI:
         """Test GET /api/v1/printers/{id}/status for Bambu Lab printer"""
         printer_id = 'bambu_a1_001'
         
-        with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
+        with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
             mock_api_class.return_value = mock_bambu_api
             
             response = client.get(
@@ -217,7 +217,7 @@ class TestPrinterAPI:
         """Test GET /api/v1/printers/{id}/status for Prusa printer"""
         printer_id = 'prusa_core_001'
         
-        with patch('backend.printers.prusa.PrusaLinkAPI') as mock_api_class:
+        with patch('src.printers.prusa.PrusaPrinter') as mock_api_class:
             mock_api_class.return_value = mock_prusa_api
             
             response = client.get(
@@ -241,7 +241,7 @@ class TestPrinterAPI:
         """Test GET /api/v1/printers/{id}/status for offline printer"""
         printer_id = 'offline_printer'
         
-        with patch('backend.printers.get_printer_api') as mock_get_api:
+        with patch('src.printers.get_printer_api') as mock_get_api:
             mock_get_api.side_effect = ConnectionError("Printer not reachable")
             
             response = client.get(
@@ -348,7 +348,7 @@ class TestPrinterAPI:
         """Test POST /api/v1/printers/{id}/test-connection"""
         printer_id = 'bambu_a1_001'
         
-        with patch('backend.printers.bambu.BambuLabAPI') as mock_api_class:
+        with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
             mock_api_class.return_value = mock_bambu_api
             mock_bambu_api.test_connection.return_value = True
             
@@ -365,7 +365,7 @@ class TestPrinterAPI:
         """Test POST /api/v1/printers/{id}/test-connection with failed connection"""
         printer_id = 'offline_printer'
         
-        with patch('backend.printers.get_printer_api') as mock_get_api:
+        with patch('src.printers.get_printer_api') as mock_get_api:
             mock_get_api.side_effect = ConnectionError("Connection timeout")
             
             response = client.post(
