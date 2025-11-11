@@ -673,13 +673,18 @@ class PrinterMonitoringService:
                        printer_id=printer_id,
                        filename=filename,
                        discovery_time=discovery_time.isoformat(),
+                       print_start_time=status.print_start_time.isoformat() if status.print_start_time else 'unknown',
                        is_startup=is_startup)
         else:
             # We've seen this print before (subsequent status updates)
             discovery_time = self._print_discoveries[discovery_key]
 
-        # Generate deduplication key using discovery time
-        job_key = self._make_job_key(printer_id, filename, discovery_time)
+        # Use printer's actual start time for deduplication (stable across restarts)
+        # Fall back to discovery_time if printer doesn't report start time
+        deduplication_time = status.print_start_time if status.print_start_time else discovery_time
+
+        # Generate deduplication key using the stable start time
+        job_key = self._make_job_key(printer_id, filename, deduplication_time)
 
         # Thread-safe check and create
         async with self._job_creation_lock:
@@ -692,9 +697,13 @@ class PrinterMonitoringService:
                 return
 
             # Check database (handles restarts, cache misses)
-            existing = await self._find_existing_job(printer_id, filename, discovery_time)
+            # Use print_start_time for lookup to find jobs across restarts
+            existing = await self._find_existing_job(printer_id, filename, deduplication_time)
             if existing:
-                logger.info("Job already exists in database", job_id=existing['id'])
+                logger.info("Job already exists in database",
+                           job_id=existing['id'],
+                           existing_start_time=existing.get('start_time'),
+                           search_time=deduplication_time.isoformat())
                 self._auto_job_cache[printer_id].add(job_key)
                 return
 
@@ -702,42 +711,59 @@ class PrinterMonitoringService:
             await self._create_auto_job(status, discovery_time, is_startup)
             self._auto_job_cache[printer_id].add(job_key)
 
-    def _make_job_key(self, printer_id: str, filename: str, discovery_time: datetime) -> str:
+    def _make_job_key(self, printer_id: str, filename: str, reference_time: datetime) -> str:
         """
         Generate unique job key for deduplication.
 
-        Uses discovery time rounded to minute to handle polling jitter.
+        Uses reference time (print_start_time or discovery_time) rounded to minute
+        to handle polling jitter and slight calculation variations.
         Format: "printer_id:filename:YYYY-MM-DDTHH:MM"
+
+        Args:
+            printer_id: Printer identifier
+            filename: Job filename
+            reference_time: Print start time from printer (preferred) or discovery time (fallback)
         """
-        # Round to minute to handle 30-second polling jitter
-        discovery_minute = discovery_time.replace(second=0, microsecond=0)
+        # Round to minute to handle 30-second polling jitter and calculation drift
+        reference_minute = reference_time.replace(second=0, microsecond=0)
 
         # Clean filename for key (remove cache/ prefix if present)
         clean_filename = filename
         if clean_filename.startswith('cache/'):
             clean_filename = clean_filename[6:]
 
-        return f"{printer_id}:{clean_filename}:{discovery_minute.isoformat()}"
+        return f"{printer_id}:{clean_filename}:{reference_minute.isoformat()}"
 
     async def _find_existing_job(self, printer_id: str, filename: str,
-                                discovery_time: datetime) -> Optional[Dict[str, Any]]:
+                                reference_time: datetime) -> Optional[Dict[str, Any]]:
         """
-        Check database for existing job near this discovery time.
+        Check database for existing job with matching start time.
 
-        Looks for jobs created within ±2 minutes to handle:
-        - System restarts
+        Uses the printer's actual print_start_time for comparison (stable across restarts).
+        Searches within a ±5 minute window to handle:
+        - System restarts (discovery time changes but start time stays the same)
+        - Clock drift between printer and server
+        - Slight calculation variations in start_time (datetime.now() - elapsed_time)
         - Network reconnections
-        - Clock drift
-        """
-        # Search window: ±2 minutes
-        start_window = discovery_time - timedelta(minutes=2)
-        end_window = discovery_time + timedelta(minutes=2)
 
-        # Get recent jobs for this printer
+        Args:
+            printer_id: Printer identifier
+            filename: Job filename
+            reference_time: Print start time from printer (preferred) or discovery time (fallback)
+
+        Returns:
+            Existing job dict if found, None otherwise
+        """
+        # Wider search window: ±5 minutes to handle restarts and clock drift
+        start_window = reference_time - timedelta(minutes=5)
+        end_window = reference_time + timedelta(minutes=5)
+
+        # Get recent jobs for this printer - search ALL statuses
+        # (don't filter by 'running' since job status may have changed)
         jobs = await self.database.list_jobs(
             printer_id=printer_id,
-            status='running',
-            limit=20  # Reasonable limit for active jobs
+            status=None,  # Search all statuses
+            limit=100  # Increased limit to ensure we find jobs across restarts
         )
 
         # Clean filename for comparison
@@ -750,15 +776,46 @@ class PrinterMonitoringService:
             if job_filename.startswith('cache/'):
                 job_filename = job_filename[6:]
 
-            created_at = datetime.fromisoformat(job['created_at'])
+            # Match by filename first
+            if job_filename != clean_filename:
+                continue
 
-            if (job_filename == clean_filename and
-                start_window <= created_at <= end_window):
-                logger.debug("Found existing job in database",
-                            job_id=job['id'],
-                            created_at=job['created_at'],
-                            discovery_time=discovery_time.isoformat())
-                return job
+            # Try to match by start_time (most reliable - stable across restarts)
+            start_time_str = job.get('start_time')
+            if start_time_str:
+                try:
+                    job_start_time = datetime.fromisoformat(start_time_str)
+                    if start_window <= job_start_time <= end_window:
+                        logger.debug("Found existing job by start_time",
+                                    job_id=job['id'],
+                                    job_start_time=start_time_str,
+                                    reference_time=reference_time.isoformat(),
+                                    match_type='start_time')
+                        return job
+                except (ValueError, TypeError) as e:
+                    logger.debug("Failed to parse job start_time",
+                                job_id=job['id'],
+                                start_time=start_time_str,
+                                error=str(e))
+
+            # Fallback: match by created_at (less reliable - changes on restart)
+            # Only used if start_time is not available
+            created_at_str = job.get('created_at')
+            if created_at_str:
+                try:
+                    created_at = datetime.fromisoformat(created_at_str)
+                    if start_window <= created_at <= end_window:
+                        logger.debug("Found existing job by created_at (fallback)",
+                                    job_id=job['id'],
+                                    created_at=created_at_str,
+                                    reference_time=reference_time.isoformat(),
+                                    match_type='created_at')
+                        return job
+                except (ValueError, TypeError) as e:
+                    logger.debug("Failed to parse job created_at",
+                                job_id=job['id'],
+                                created_at=created_at_str,
+                                error=str(e))
 
         return None
 
@@ -837,11 +894,19 @@ class PrinterMonitoringService:
             })
 
         except Exception as e:
-            logger.error("Failed to auto-create job",
-                        printer_id=status.printer_id,
-                        filename=status.current_job,
-                        error=str(e),
-                        exc_info=True)
+            # Check if this is a duplicate job error (expected after restart)
+            error_msg = str(e).lower()
+            if 'duplicate' in error_msg:
+                logger.info("Job already exists (duplicate prevented)",
+                           printer_id=status.printer_id,
+                           filename=status.current_job,
+                           start_time=status.print_start_time.isoformat() if status.print_start_time else 'unknown')
+            else:
+                logger.error("Failed to auto-create job",
+                            printer_id=status.printer_id,
+                            filename=status.current_job,
+                            error=str(e),
+                            exc_info=True)
 
     def _clean_filename(self, filename: str) -> str:
         """
