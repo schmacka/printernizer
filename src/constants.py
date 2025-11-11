@@ -19,10 +19,10 @@ class NetworkConstants:
     CONNECTION_TIMEOUT_SECONDS: int = 30
     """General connection timeout for printer connections"""
 
-    PRUSA_CONNECT_TIMEOUT_SECONDS: int = 10
+    PRUSA_CONNECT_TIMEOUT_SECONDS: int = 5
     """Prusa printer connection-specific timeout"""
 
-    THUMBNAIL_DOWNLOAD_TIMEOUT_SECONDS: int = 30
+    THUMBNAIL_DOWNLOAD_TIMEOUT_SECONDS: int = 15
     """HTTP timeout for thumbnail downloads"""
 
     SNAPSHOT_TIMEOUT_SECONDS: int = 10
@@ -54,7 +54,7 @@ class NetworkConstants:
     FTP_RETRY_DELAY_SECONDS: int = 2
     """Delay between FTP retry attempts"""
 
-    PRUSA_MAX_RETRIES: int = 3
+    PRUSA_MAX_RETRIES: int = 2
     """Maximum connection retry attempts for Prusa"""
 
     PRUSA_RETRY_BACKOFF_MULTIPLIER: int = 2
