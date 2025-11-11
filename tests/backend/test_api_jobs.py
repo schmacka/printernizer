@@ -415,13 +415,13 @@ class TestJobBusinessLogic:
         # Total with VAT
         total_with_vat = round(subtotal + vat_amount, 2)
         
-        # Verify calculations
-        assert material_cost == 1.275  # 25.5g * 0.05 EUR/g
-        assert power_cost == 0.225     # 2.5h * 0.3kWh * 0.30 EUR/kWh  
-        assert labor_cost == 7.5       # 0.5h * 15.0 EUR/h
-        assert subtotal == 9.0         # Sum of above
-        assert vat_amount == 1.71      # 19% of 9.0 EUR
-        assert total_with_vat == 10.71 # 9.0 + 1.71 EUR
+        # Verify calculations (using pytest.approx for floating point comparisons)
+        assert material_cost == pytest.approx(1.275, abs=0.01)  # 25.5g * 0.05 EUR/g
+        assert power_cost == pytest.approx(0.225, abs=0.01)     # 2.5h * 0.3kWh * 0.30 EUR/kWh
+        assert labor_cost == pytest.approx(7.5, abs=0.01)       # 0.5h * 15.0 EUR/h
+        assert subtotal == pytest.approx(9.0, abs=0.01)         # Sum of above
+        assert vat_amount == pytest.approx(1.71, abs=0.01)      # 19% of 9.0 EUR
+        assert total_with_vat == pytest.approx(10.71, abs=0.01) # 9.0 + 1.71 EUR
     
     def test_business_vs_private_job_classification(self, populated_database):
         """Test business vs private job classification"""

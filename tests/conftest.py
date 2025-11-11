@@ -748,6 +748,15 @@ def test_app():
     mock_session.closed = False  # Session is not closed
     mock_trending_service.session = mock_session  # Has active HTTP session
 
+    # Create mock job service with async methods
+    mock_job_service = MagicMock()
+    mock_job_service.list_jobs = AsyncMock(return_value=[])  # Returns empty list of jobs
+    mock_job_service.get_jobs = AsyncMock(return_value={'status': 'success', 'data': [], 'total_count': 0})
+    mock_job_service.get_job_by_id = AsyncMock(return_value={'status': 'success', 'data': None})
+    mock_job_service.create_job = AsyncMock(return_value={'status': 'success', 'data': {}})
+    mock_job_service.update_job = AsyncMock(return_value={'status': 'success', 'data': {}})
+    mock_job_service.delete_job = AsyncMock(return_value={'status': 'success'})
+
     # Initialize minimal app state for tests
     app.state.database = mock_db
     app.state.config_service = mock_config
@@ -755,5 +764,6 @@ def test_app():
     app.state.file_service = mock_file_service
     app.state.trending_service = mock_trending_service
     app.state.event_service = mock_event_service
+    app.state.job_service = mock_job_service
 
     return app
