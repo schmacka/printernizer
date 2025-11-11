@@ -30,6 +30,15 @@ services:
       # Database
       - DATABASE_PATH=/app/data/printernizer.db
 
+      # File paths
+      - DOWNLOADS_PATH=/app/printer-files
+      - LIBRARY_PATH=/app/data/library
+
+      # Timelapse paths
+      - TIMELAPSE_ENABLED=false
+      - TIMELAPSE_SOURCE_FOLDER=/app/data/timelapse-images
+      - TIMELAPSE_OUTPUT_FOLDER=/app/data/timelapses
+
       # CORS (add your domains)
       - CORS_ORIGINS=http://localhost:3000,http://localhost:8000
 

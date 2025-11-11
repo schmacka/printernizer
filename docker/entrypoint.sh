@@ -37,13 +37,7 @@ mkdir -p /app/data/preview-cache
 # Database initialization
 DATABASE_PATH=${DATABASE_PATH:-/app/data/printernizer.db}
 if [ ! -f "$DATABASE_PATH" ]; then
-    echo -e "${YELLOW}🗄️  Initializing database...${NC}"
-    if [ -f "/app/database_schema.sql" ]; then
-        sqlite3 "$DATABASE_PATH" < /app/database_schema.sql
-        echo -e "${GREEN}✅ Database initialized successfully${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Database schema file not found, will be created by application${NC}"
-    fi
+    echo -e "${YELLOW}🗄️  Database will be initialized by application...${NC}"
 else
     echo -e "${GREEN}✅ Database already exists${NC}"
 fi
