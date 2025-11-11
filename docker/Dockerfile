@@ -1,5 +1,18 @@
 # Printernizer - Standalone Docker Deployment
 # Multi-stage build for optimized production container
+#
+# ⚠️  IMPORTANT: Build Context Requirements
+# This Dockerfile MUST be built with the repository root as the build context.
+#
+# Correct build commands:
+#   From repo root: docker build -f docker/Dockerfile -t printernizer .
+#   Using script:   ./build-docker.sh
+#   Using compose:  cd docker && docker-compose up -d
+#
+# ❌ INCORRECT (will fail with "entrypoint.sh not found"):
+#   cd docker && docker build -t printernizer .
+#
+# The build context must include: src/, frontend/, database_schema.sql, docker/
 
 # Stage 1: Builder
 FROM python:3.11-slim as builder
