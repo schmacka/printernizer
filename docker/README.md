@@ -11,10 +11,32 @@ This directory contains everything needed to run Printernizer as a standalone Do
 
 ### Start Printernizer
 
+**Option 1: Using Docker Compose (Recommended)**
 ```bash
 # From project root
 cd docker
 docker-compose up -d
+```
+
+**Option 2: Using Build Script**
+```bash
+# From project root
+./build-docker.sh
+docker run -d -p 8000:8000 --name printernizer printernizer:latest
+```
+
+**Option 3: Manual Docker Build**
+```bash
+# IMPORTANT: Build from repository root with correct context
+cd /path/to/printernizer  # Must be repo root
+docker build -f docker/Dockerfile -t printernizer:latest .
+docker run -d -p 8000:8000 --name printernizer printernizer:latest
+```
+
+⚠️ **Common Error**: Do NOT build from inside the `docker/` directory like this:
+```bash
+cd docker
+docker build -t printernizer .  # ❌ WRONG - Will fail with "entrypoint.sh not found"
 ```
 
 Access the application:
@@ -152,6 +174,28 @@ docker-compose exec printernizer bash
 ```
 
 ## 🔍 Troubleshooting
+
+### "exec /app/entrypoint.sh: no such file or directory"
+
+This error occurs when the Docker image was built with an incorrect build context.
+
+**Solution:**
+```bash
+# Stop and remove any existing containers
+docker-compose down
+docker rm -f printernizer 2>/dev/null || true
+
+# Rebuild with correct context using docker-compose
+cd docker
+docker-compose build --no-cache
+docker-compose up -d
+
+# OR use the build script from repo root
+cd ..
+./build-docker.sh
+```
+
+**Root Cause**: The Dockerfile requires the repository root as the build context because it needs to access `src/`, `frontend/`, `database_schema.sql`, and `docker/entrypoint.sh`. Building from inside the `docker/` directory will fail.
 
 ### Container Won't Start
 

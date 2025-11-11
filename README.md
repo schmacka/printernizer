@@ -149,6 +149,7 @@ python -m http.server 3000
 
 Run Printernizer in a Docker container for production deployments:
 
+**Using Docker Compose (Recommended):**
 ```bash
 # From project root
 cd docker
@@ -164,6 +165,15 @@ docker-compose logs -f
 # Stop
 docker-compose down
 ```
+
+**Using Build Script:**
+```bash
+# From project root
+./build-docker.sh
+docker run -d -p 8000:8000 --name printernizer printernizer:latest
+```
+
+⚠️ **Important**: If building manually, you must use the repository root as the build context. See [docker/README.md](docker/README.md) for details.
 
 **Features:**
 - Persistent data storage via Docker volumes
