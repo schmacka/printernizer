@@ -919,18 +919,18 @@ class PrinterMonitoringService:
         """
         clean = filename
 
+        # Clean whitespace first (important for extension detection)
+        clean = clean.strip()
+
         # Remove cache/ prefix
         if clean.startswith('cache/'):
-            clean = clean[6:]
+            clean = clean[6:].strip()
 
         # Remove common extensions
         for ext in ['.gcode', '.bgcode', '.3mf', '.stl']:
             if clean.lower().endswith(ext):
                 clean = clean[:-len(ext)]
                 break
-
-        # Clean whitespace
-        clean = clean.strip()
 
         return clean
 
