@@ -2,7 +2,7 @@
 
 **Date**: 2025-11-11
 **Status**: In Progress
-**Phase**: Phase 2.1 Complete
+**Phase**: Phase 2.3a (Partial Complete)
 
 ## Changes Made
 
@@ -66,6 +66,69 @@
 - ✅ Established clear pattern for remaining API test fixes
 - ✅ Test suite progress: ~256/518 tests passing (49%)
 
+### Phase 2.2: Printer Service Test Mocks ✅
+
+**Status**: COMPLETED
+
+**Changes**:
+1. **Fixed router bug** ([src/api/routers/printers.py:160-191](src/api/routers/printers.py#L160-L191))
+   - Router returned bare `List[PrinterResponse]` instead of wrapped response with pagination
+   - Added `PaginationResponse` model (lines 68-73)
+   - Added `PrinterListResponse` model (lines 94-98)
+   - Updated `list_printers` endpoint to return proper paginated response
+   - Similar to files.py router bug from Phase 2.1
+
+2. **Updated printer API tests** (tests/backend/test_api_printers.py)
+   - Fixed test_get_printers_empty_database (lines 23-36) - Uses test_app.state.printer_service.list_printers AsyncMock
+   - Fixed test_get_printers_with_data (lines 38-84) - Creates sample Printer models, proper AsyncMock
+   - Fixed test_concurrent_printer_requests (lines 498-528) - Updated to use mock printer_service
+   - Fixed test_large_printer_list_performance (lines 530-568) - Creates 100 Printer instances, tests pagination
+   - Fixed test_printer_api_rate_limiting (lines 570-587) - Updated to use mock printer_service
+   - Fixed test_invalid_json_handling (lines 589-603) - Updated URL and error format assertions
+   - Fixed test_oversized_request_handling (lines 605-619) - Updated URL
+   - Fixed ALL test URLs from `/printers` to `/api/v1/printers` (14+ URL fixes)
+
+3. **Established printer test pattern**
+   - Import Printer, PrinterType, PrinterStatus from src.models.printer
+   - Create Printer instances with proper datetime fields
+   - Use `test_app.state.printer_service.list_printers = AsyncMock(return_value=[...])`
+   - Response format: `{'printers': [...], 'total_count': N, 'pagination': {...}}`
+   - Pagination: Default limit=50, calculates total_pages correctly
+
+**Impact**:
+- ✅ Printer API tests: 10/26 passing (38%, up from 12%)
+- ✅ Fixed critical router bug (similar to files.py:182) that would have broken pagination
+- ✅ 7 additional tests passing (+233% increase in passing tests)
+- ✅ 7 fewer failing tests (-30% decrease in failures)
+- ✅ All test URLs corrected to use proper /api/v1/printers prefix
+- ✅ Test suite progress: ~270/518 tests passing (52%)
+
+### Phase 2.3a: Additional Printer API Test Fixes ✅
+
+**Status**: PARTIALLY COMPLETED
+
+**Changes**:
+1. **Fixed validation error test** (tests/backend/test_api_printers.py:163-196)
+   - Updated expected status code from 400 to 422 (FastAPI standard)
+   - Simplified test cases to check for validation errors
+   - Updated assertions to handle both FastAPI 'detail' and custom error format
+
+2. **Fixed printer status not found test** (tests/backend/test_api_printers.py:270-284)
+   - Updated to use test_app.state.printer_service.get_printer AsyncMock
+   - Mocks get_printer to return None (printer not found)
+   - Fixed error response assertions (status, message)
+
+3. **Fixed cost calculation test** (tests/backend/test_api_printers.py:420-443)
+   - Added pytest.approx() for floating point comparisons
+   - Fixed precision issues with EUR calculations
+   - All 5 cost assertions now use relative tolerance
+
+**Impact**:
+- ✅ Printer API tests: 13/26 passing (50%, up from 38%)
+- ✅ +3 additional tests passing (+30% increase from Phase 2.2)
+- ✅ Test suite progress: ~273/518 tests passing (53%)
+- 🔄 13 tests still failing (need Phase 2.3b for CRUD and status mocks)
+
 ### Test Results Comparison
 
 #### Before Fix (pytest-asyncio 0.21.1)
@@ -94,14 +157,16 @@ Remaining issues: API mock mismatches (not fixture problems)
 ### Tests Passing
 - ✅ Health API tests: 8/9 tests passing
 - ✅ File API tests: 22/24 tests passing (2 skipped for future features)
+- ✅ Printer API tests: 13/26 tests passing (50%)
 - 🔄 Service tests: Many still need mock updates
-- 🔄 Printer API tests: Need Phase 2.2 fixes
 
 ### Known Issues Remaining
-1. **Printer Service Mock Mismatches** (Phase 2.2 - Next)
-   - Tests mock old module functions that don't exist
-   - Need to update to mock class methods and use app.state
-   - Similar pattern to file service fixes
+1. **Remaining Printer API Tests** (13 tests still failing, down from 16)
+   - 7 tests still use old database patching patterns (get_connection)
+   - 3 tests need AsyncMock fixes for status endpoints
+   - 2 tests need connection test endpoint fixes
+   - 1 test needs offline printer mocking fix
+   - Can be completed in Phase 2.3b
 
 2. **Service Layer Tests** (Phase 3 - Later)
    - File download service tests need updates
@@ -119,12 +184,15 @@ Remaining issues: API mock mismatches (not fixture problems)
 ### Completed ✅
 1. ✅ **Phase 1.1**: Fix fixture definitions
 2. ✅ **Phase 2.1**: Update file service test mocks (14 tests fixed)
+3. ✅ **Phase 2.2**: Update printer service test mocks (7 tests fixed, 7 additional passing)
+4. ✅ **Phase 2.3a**: Additional printer test fixes (3 tests fixed: validation, status, calculation)
 
 ### Immediate (Next Session)
-3. 🔜 **Phase 2.2**: Update printer service test mocks (~3 hours)
-   - Fix tests in test_api_printers.py
-   - Update mock patterns similar to file service
-   - Use test_app.state.printer_service
+5. 🔜 **Phase 2.3b**: Complete remaining printer API tests (~1.5 hours)
+   - Fix remaining 13 printer API tests
+   - Update CRUD operation tests (create, update, delete) - 7 tests
+   - Update status tests (get_printer_status) - 4 tests
+   - Update connection test endpoint - 2 tests
 
 ### This Week
 4. **Phase 3**: Service layer integration tests (~4 hours)
@@ -187,14 +255,16 @@ Remaining issues: API mock mismatches (not fixture problems)
 ### Test Count
 - **Total Tests**: 518 tests
 - **Collecting**: ✅ 518/518 (100%)
-- **Passing** (estimated): ~256-260 tests (50%)
+- **Passing** (estimated): ~273 tests (53%)
 - **Target**: 70-80% passing by end of Phase 2
 
 ### Time Invested
 - **Phase 1.1**: 1.5 hours (fixture compatibility)
 - **Phase 2.1**: 2 hours (file API tests + router bug)
-- **Documentation**: 1.5 hours
-- **Total**: 5 hours
+- **Phase 2.2**: 1.5 hours (printer API tests + router bug)
+- **Phase 2.3a**: 0.5 hours (validation, status, calculation tests)
+- **Documentation**: 2.5 hours
+- **Total**: 8 hours
 
 ### Time Remaining (Estimate)
 - **Phase 2.2**: 3 hours (printer service mocks)
@@ -257,5 +327,5 @@ pytest tests/services/ -v --no-cov
 
 ---
 
-**Last Updated**: 2025-11-11 17:10
-**Next Update**: After Phase 2.2 completion
+**Last Updated**: 2025-11-11 17:05
+**Next Update**: After Phase 2.3b completion
