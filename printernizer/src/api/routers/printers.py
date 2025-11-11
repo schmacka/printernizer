@@ -65,6 +65,14 @@ class PrinterUpdateRequest(BaseModel):
     is_enabled: Optional[bool] = None
 
 
+class PaginationResponse(BaseModel):
+    """Pagination information."""
+    page: int
+    limit: int
+    total_items: int
+    total_pages: int
+
+
 class PrinterResponse(BaseModel):
     """Response model for printer data."""
     id: str
@@ -81,6 +89,13 @@ class PrinterResponse(BaseModel):
     temperatures: Optional[dict] = None
     created_at: str
     updated_at: str
+
+
+class PrinterListResponse(BaseModel):
+    """Response model for printer list with pagination."""
+    printers: List[PrinterResponse]
+    total_count: int
+    pagination: PaginationResponse
 
 
 def _printer_to_response(printer: Printer, printer_service: PrinterService = None) -> PrinterResponse:
@@ -142,14 +157,38 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
     )
 
 
-@router.get("", response_model=List[PrinterResponse])
+@router.get("", response_model=PrinterListResponse)
 async def list_printers(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=100, description="Items per page"),
     printer_service: PrinterService = Depends(get_printer_service)
 ):
-    """List all configured printers."""
+    """List all configured printers with pagination."""
     # Global exception handler will catch any unexpected errors
     printers = await printer_service.list_printers()
-    return [_printer_to_response(printer, printer_service) for printer in printers]
+
+    # Convert to response objects
+    printer_responses = [_printer_to_response(printer, printer_service) for printer in printers]
+
+    # Calculate pagination
+    total_count = len(printer_responses)
+    total_pages = (total_count + limit - 1) // limit if limit > 0 else 1
+
+    # Apply pagination
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_printers = printer_responses[start_idx:end_idx]
+
+    return PrinterListResponse(
+        printers=paginated_printers,
+        total_count=total_count,
+        pagination=PaginationResponse(
+            page=page,
+            limit=limit,
+            total_items=total_count,
+            total_pages=total_pages
+        )
+    )
 
 
 @router.get("/discover")

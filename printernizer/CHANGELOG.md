@@ -1,3 +1,10 @@
+## [2.5.10] - 2025-11-11
+
+- fix(tests): Phase 2.3a - Fix 3 additional printer API tests
+- fix(tests): Phase 2.2 - Fix printer API tests and router bug
+- fix(tests): Phase 2.1 complete - File API tests and router bug fixed
+- feat: Add manual upload button to library section
+
 ## [2.5.9] - 2025-11-11
 
 - fix(tests): Phase 2.1 complete - File API tests and router bug fixed
