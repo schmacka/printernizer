@@ -1274,17 +1274,19 @@ libraryManager.init = function() {
 };
 
 // Global function to trigger file upload picker
-function triggerFileUpload() {
+// Explicitly attach to window object to ensure it's available globally
+window.triggerFileUpload = function() {
     const fileInput = document.getElementById('libraryFileInput');
     if (fileInput) {
         fileInput.click();
     } else {
         console.error('File input not found');
     }
-}
+};
 
 // Global function to handle manual file upload
-async function handleManualFileUpload(event) {
+// Explicitly attach to window object to ensure it's available globally
+window.handleManualFileUpload = async function(event) {
     const files = Array.from(event.target.files);
     if (files.length > 0) {
         console.log('Files selected for upload:', files.length);
@@ -1293,4 +1295,31 @@ async function handleManualFileUpload(event) {
         // Reset the file input so the same files can be selected again if needed
         event.target.value = '';
     }
-}
+};
+
+// Global function to refresh the library
+// Explicitly attach to window object to ensure it's available globally
+window.refreshLibrary = async function() {
+    console.log('Refreshing library...');
+    await libraryManager.loadFiles();
+};
+
+// Global function to clear library search
+// Explicitly attach to window object to ensure it's available globally
+window.clearLibrarySearch = function() {
+    const searchInput = document.getElementById('librarySearchInput');
+    const clearButton = document.querySelector('.search-clear-btn');
+
+    if (searchInput) {
+        searchInput.value = '';
+    }
+
+    if (clearButton) {
+        clearButton.style.display = 'none';
+    }
+
+    // Clear the search filter and reload
+    libraryManager.filters.search = null;
+    libraryManager.currentPage = 1;
+    libraryManager.loadFiles();
+};
