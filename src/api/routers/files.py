@@ -3,7 +3,7 @@
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File as FastAPIFile, Form
 from fastapi.responses import Response
 from pydantic import BaseModel
 import structlog
@@ -196,6 +196,71 @@ async def sync_printer_files(
     """Synchronize file list with printers."""
     await file_service.sync_printer_files(printer_id)
     return success_response({"status": "synced"})
+
+
+@router.post("/upload", status_code=status.HTTP_201_CREATED)
+async def upload_files(
+    files: List[UploadFile] = FastAPIFile(..., description="Files to upload"),
+    is_business: bool = Form(False, description="Mark files as business orders"),
+    notes: Optional[str] = Form(None, description="Optional notes for uploaded files"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Upload files to the library via drag-and-drop or file picker.
+
+    Accepts multiple files and validates:
+    - File type (must be .3mf, .stl, .gcode, .obj, or .ply)
+    - File size (max configurable via MAX_UPLOAD_SIZE_MB)
+    - Duplicate filenames (rejects if exists)
+
+    After upload, automatically:
+    - Extracts thumbnails
+    - Extracts metadata
+    - Adds to library
+
+    Returns:
+        Upload results with successful and failed files
+    """
+    logger.info(
+        "Upload request received",
+        file_count=len(files),
+        is_business=is_business,
+        has_notes=notes is not None
+    )
+
+    # Validate that uploads are enabled
+    if not file_service.settings.enable_upload:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="File uploads are disabled on this server"
+        )
+
+    # Call file service to handle upload
+    result = await file_service.upload_files(
+        files=files,
+        is_business=is_business,
+        notes=notes
+    )
+
+    # Check if any files were uploaded successfully
+    if result["success_count"] == 0:
+        # All uploads failed
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "All file uploads failed",
+                "failed_files": result["failed_files"]
+            }
+        )
+
+    # Return results (partial success is OK)
+    return {
+        "message": f"Uploaded {result['success_count']} of {result['total_count']} files",
+        "uploaded_files": result["uploaded_files"],
+        "failed_files": result["failed_files"],
+        "success_count": result["success_count"],
+        "failure_count": result["failure_count"]
+    }
 
 
 @router.get("/{file_id}/thumbnail")

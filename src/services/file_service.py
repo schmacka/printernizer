@@ -25,7 +25,9 @@ from src.services.file_discovery_service import FileDiscoveryService
 from src.services.file_download_service import FileDownloadService
 from src.services.file_thumbnail_service import FileThumbnailService
 from src.services.file_metadata_service import FileMetadataService
+from src.services.file_upload_service import FileUploadService
 from src.utils.exceptions import NotFoundError
+from src.utils.config import get_settings
 
 logger = structlog.get_logger()
 
@@ -38,6 +40,7 @@ class FileService:
     delegating to specialized services:
     - Discovery: FileDiscoveryService
     - Downloads: FileDownloadService
+    - Uploads: FileUploadService
     - Thumbnails: FileThumbnailService
     - Metadata: FileMetadataService
 
@@ -53,6 +56,7 @@ class FileService:
         >>> file_service = FileService(database, event_service, ...)
         >>> files = await file_service.get_files(printer_id="bambu_001")
         >>> result = await file_service.download_file("bambu_001", "model.3mf")
+        >>> result = await file_service.upload_files([file1, file2])
     """
 
     def __init__(
@@ -108,12 +112,24 @@ class FileService:
             event_service=event_service
         )
 
+        self.uploader = FileUploadService(
+            database=database,
+            event_service=event_service,
+            thumbnail_service=self.thumbnail,
+            metadata_service=self.metadata,
+            library_service=library_service
+        )
+
+        # Settings access
+        self.settings = get_settings()
+
         # Background task tracking for graceful shutdown
         self._background_tasks: set = set()
 
         logger.info("FileService initialized with specialized sub-services",
                    discovery=True,
                    downloader=True,
+                   uploader=True,
                    thumbnail=True,
                    metadata=True)
 
@@ -528,6 +544,36 @@ class FileService:
     def download_status(self) -> Dict[str, str]:
         """Access download status from downloader (backward compatibility)."""
         return self.downloader.download_status
+
+    # ========================================================================
+    # DELEGATION TO FileUploadService
+    # ========================================================================
+
+    async def upload_files(
+        self,
+        files: List,
+        is_business: bool = False,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Upload files to the library. Delegates to FileUploadService.
+
+        ⭐ PRIMARY FILE UPLOAD METHOD - Always use this for file uploads.
+
+        Args:
+            files: List of UploadFile objects
+            is_business: Whether these are business order files
+            notes: Optional notes to attach to files
+
+        Returns:
+            Dict with upload results:
+                - uploaded_files: List of successfully uploaded file info
+                - failed_files: List of failed uploads with errors
+                - total_count: Total files processed
+                - success_count: Number of successful uploads
+                - failure_count: Number of failed uploads
+        """
+        return await self.uploader.upload_files(files, is_business, notes)
 
     # ========================================================================
     # DELEGATION TO FileThumbnailService

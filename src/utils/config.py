@@ -111,6 +111,25 @@ class PrinternizerSettings(BaseSettings):
         le=300
     )
 
+    # File Upload Settings
+    enable_upload: bool = Field(
+        default=True,
+        env="ENABLE_UPLOAD",
+        description="Enable drag-and-drop file upload feature in the library."
+    )
+    max_upload_size_mb: int = Field(
+        default=500,
+        env="MAX_UPLOAD_SIZE_MB",
+        description="Maximum file size in MB for uploads. Must be between 1 and 5000 MB.",
+        ge=1,
+        le=5000
+    )
+    allowed_upload_extensions: str = Field(
+        default=".3mf,.stl,.gcode,.obj,.ply",
+        env="ALLOWED_UPLOAD_EXTENSIONS",
+        description="Comma-separated list of allowed file extensions for upload (with leading dot)."
+    )
+
     # Watch Folders Settings
     watch_folders: str = Field(
         default="",
@@ -501,7 +520,14 @@ class PrinternizerSettings(BaseSettings):
         if not self.watch_folders:
             return []
         return [folder.strip() for folder in self.watch_folders.split(",") if folder.strip()]
-    
+
+    @property
+    def allowed_upload_extensions_list(self) -> List[str]:
+        """Get allowed upload extensions as list."""
+        if not self.allowed_upload_extensions:
+            return []
+        return [ext.strip().lower() for ext in self.allowed_upload_extensions.split(",") if ext.strip()]
+
     @property
     def is_homeassistant_addon(self) -> bool:
         """Check if running as Home Assistant addon."""

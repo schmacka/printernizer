@@ -747,3 +747,178 @@
     white-space: nowrap;
     border-width: 0;
 }
+
+/* ============ Drag and Drop Upload ============ */
+
+/* Drag-over highlight effect */
+#libraryGrid.drag-over {
+    position: relative;
+    border: 3px dashed #667eea;
+    background-color: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+#libraryGrid.drag-over::before {
+    content: '⬆️ Drop files here to upload';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: 600;
+    color: #667eea;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px 50px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    pointer-events: none;
+}
+
+/* Upload overlay */
+.upload-overlay {
+    position: fixed;
+    top: 0;
+    right: -450px;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.upload-overlay.visible {
+    right: 0;
+}
+
+.upload-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px;
+}
+
+.upload-header {
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.upload-header h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #2d3748;
+    font-weight: 600;
+}
+
+.upload-files {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.upload-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.upload-file-name {
+    flex: 1;
+    font-size: 14px;
+    color: #2d3748;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 10px;
+}
+
+.upload-file-size {
+    font-size: 12px;
+    color: #718096;
+    margin-right: 10px;
+}
+
+.upload-spinner {
+    font-size: 16px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Toast animations */
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+/* Dark theme support for upload UI */
+@media (prefers-color-scheme: dark) {
+    #libraryGrid.drag-over {
+        border-color: #818cf8;
+        background-color: rgba(129, 140, 248, 0.05);
+    }
+
+    #libraryGrid.drag-over::before {
+        color: #818cf8;
+        background: rgba(30, 41, 59, 0.95);
+    }
+
+    .upload-overlay {
+        background: #1e293b;
+    }
+
+    .upload-header {
+        border-bottom-color: #334155;
+    }
+
+    .upload-header h3 {
+        color: #f1f5f9;
+    }
+
+    .upload-file-item {
+        background: #334155;
+        border-left-color: #818cf8;
+    }
+
+    .upload-file-name {
+        color: #f1f5f9;
+    }
+
+    .upload-file-size {
+        color: #94a3b8;
+    }
+}

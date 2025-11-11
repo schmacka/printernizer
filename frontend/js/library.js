@@ -95,6 +95,9 @@ class LibraryManager {
                 this.closeFileDetailModal();
             }
         });
+
+        // Setup drag-and-drop upload
+        this.setupDragAndDrop();
     }
 
     /**
@@ -1018,6 +1021,240 @@ class LibraryManager {
             'upload': 'Upload'
         };
         return types[type] || type;
+    }
+
+    /**
+     * Setup drag-and-drop upload functionality
+     */
+    setupDragAndDrop() {
+        const libraryGrid = document.getElementById('libraryGrid');
+        if (!libraryGrid) {
+            console.warn('Library grid not found, drag-and-drop disabled');
+            return;
+        }
+
+        // Allowed file extensions
+        this.allowedExtensions = ['.3mf', '.stl', '.gcode', '.obj', '.ply'];
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            libraryGrid.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+        });
+
+        // Highlight drop zone when dragging over
+        libraryGrid.addEventListener('dragenter', () => {
+            libraryGrid.classList.add('drag-over');
+        });
+
+        libraryGrid.addEventListener('dragleave', (e) => {
+            // Only remove highlight if leaving the grid entirely
+            if (e.target === libraryGrid) {
+                libraryGrid.classList.remove('drag-over');
+            }
+        });
+
+        // Handle file drop
+        libraryGrid.addEventListener('drop', async (e) => {
+            libraryGrid.classList.remove('drag-over');
+
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                await this.handleFileDrop(files);
+            }
+        });
+
+        console.log('Drag-and-drop upload enabled');
+    }
+
+    /**
+     * Handle dropped files
+     */
+    async handleFileDrop(files) {
+        console.log('Files dropped:', files.length);
+
+        // Validate files
+        const validFiles = [];
+        const invalidFiles = [];
+
+        files.forEach(file => {
+            const ext = this.getFileExtension(file.name);
+            if (this.allowedExtensions.includes(ext)) {
+                validFiles.push(file);
+            } else {
+                invalidFiles.push({
+                    name: file.name,
+                    error: `Invalid file type: ${ext}`
+                });
+            }
+        });
+
+        // Show errors for invalid files
+        if (invalidFiles.length > 0) {
+            const errorMsg = `Invalid file types:\n${invalidFiles.map(f => `- ${f.name} (${f.error})`).join('\n')}`;
+            this.showToast(errorMsg, 'error');
+        }
+
+        // Upload valid files
+        if (validFiles.length > 0) {
+            await this.uploadFiles(validFiles);
+        }
+    }
+
+    /**
+     * Get file extension (lowercase with dot)
+     */
+    getFileExtension(filename) {
+        const lastDot = filename.lastIndexOf('.');
+        if (lastDot === -1) return '';
+        return filename.substring(lastDot).toLowerCase();
+    }
+
+    /**
+     * Upload files to the server
+     */
+    async uploadFiles(files) {
+        console.log('Uploading files:', files.length);
+
+        // Show upload overlay
+        this.showUploadOverlay(files);
+
+        // Create FormData
+        const formData = new FormData();
+        files.forEach(file => {
+            formData.append('files', file);
+        });
+        formData.append('is_business', 'false');
+
+        try {
+            // Upload files
+            const response = await fetch('/api/v1/files/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail?.message || 'Upload failed');
+            }
+
+            const result = await response.json();
+            console.log('Upload result:', result);
+
+            // Show success message
+            if (result.success_count > 0) {
+                this.showToast(
+                    `Successfully uploaded ${result.success_count} file(s)`,
+                    'success'
+                );
+            }
+
+            // Show errors for failed uploads
+            if (result.failed_files && result.failed_files.length > 0) {
+                result.failed_files.forEach(failed => {
+                    this.showToast(`Failed: ${failed.filename} - ${failed.error}`, 'error');
+                });
+            }
+
+            // Refresh library
+            await this.loadFiles();
+            await this.loadStatistics();
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.showToast(`Upload failed: ${error.message}`, 'error');
+        } finally {
+            this.hideUploadOverlay();
+        }
+    }
+
+    /**
+     * Show upload progress overlay
+     */
+    showUploadOverlay(files) {
+        let overlay = document.getElementById('uploadOverlay');
+        if (!overlay) {
+            // Create overlay if it doesn't exist
+            overlay = document.createElement('div');
+            overlay.id = 'uploadOverlay';
+            overlay.className = 'upload-overlay';
+            overlay.innerHTML = `
+                <div class="upload-content">
+                    <div class="upload-header">
+                        <h3>⬆️ Uploading Files</h3>
+                    </div>
+                    <div class="upload-files" id="uploadFilesList">
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+
+        // Add file list
+        const filesList = document.getElementById('uploadFilesList');
+        filesList.innerHTML = files.map(file => `
+            <div class="upload-file-item">
+                <span class="upload-file-name">${file.name}</span>
+                <span class="upload-file-size">${this.formatFileSize(file.size)}</span>
+                <span class="upload-spinner">⏳</span>
+            </div>
+        `).join('');
+
+        overlay.classList.add('visible');
+    }
+
+    /**
+     * Hide upload progress overlay
+     */
+    hideUploadOverlay() {
+        const overlay = document.getElementById('uploadOverlay');
+        if (overlay) {
+            overlay.classList.remove('visible');
+            setTimeout(() => {
+                overlay.remove();
+            }, 300);
+        }
+    }
+
+    /**
+     * Show toast notification
+     */
+    showToast(message, type = 'info') {
+        // Check if notification manager exists
+        if (window.notificationManager) {
+            window.notificationManager.showToast(message, type);
+            return;
+        }
+
+        // Fallback to simple alert
+        console.log(`[${type.toUpperCase()}] ${message}`);
+
+        // Create simple toast
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+            color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10000;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
     }
 }
 
