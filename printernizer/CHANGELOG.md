@@ -1,3 +1,8 @@
+## [2.5.2] - 2025-11-11
+
+- docs: Add comprehensive release process documentation and automation
+- fix: Correct attribute name for remaining time in printer status endpoint
+
 ## [2.5.1] - 2025-11-11
 
 - fix: Configure Docker environment variables and database initialization
