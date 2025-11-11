@@ -400,7 +400,7 @@ async def get_printer_status(
             response["current_job"] = {
                 "name": status.current_job,
                 "progress": status.progress,
-                "remaining_time": status.remaining_time
+                "remaining_time": status.remaining_time_minutes
             }
 
         # Get temperatures
