@@ -1,3 +1,10 @@
+## [2.4.8] - 2025-11-11
+
+- feat: Add drag-and-drop file upload to library
+- fix: Add missing API endpoints and cleanup unused code
+- docs: Add comprehensive frontend button & API endpoint review
+- fix: Remove outdated database schema init - fixes fresh install crash
+
 ## [2.4.7] - 2025-11-10
 
 - fix: Add missing API endpoints and cleanup unused code

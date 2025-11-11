@@ -26,6 +26,7 @@ class FileSource(str, Enum):
     LOCAL = "local"            # Local file upload
     IMPORTED = "imported"      # Imported from external source
     LOCAL_WATCH = "local_watch" # File discovered in watch folder
+    UPLOAD = "upload"          # File uploaded via drag-and-drop
 
 
 # Enhanced metadata models for Issue #43
