@@ -35,11 +35,30 @@ For detailed information on specific topics, see the Claude Code Skills in `.cla
 ### Version Management
 
 **Version Files** (keep synchronized):
-- `src/api/routers/health.py` - API version
-- `printernizer/config.yaml` - Home Assistant add-on version
-- `printernizer/CHANGELOG.md` - Version history
+- `src/main.py` - `APP_VERSION = get_version(fallback="X.Y.Z")` (line 90)
+- `printernizer/config.yaml` - `version: "X.Y.Z"` (line 2)
+- `CHANGELOG.md` - Version history with release notes
+
+**CRITICAL**: Always keep these three files synchronized!
 
 See [Development Workflow](.claude/skills/printernizer-development-workflow.md) for versioning standards.
+
+### Creating Releases
+
+**When ready to release a new version:**
+
+1. **Update CHANGELOG.md** - Add version section with release notes
+2. **Update version files** - Sync `src/main.py` and `printernizer/config.yaml`
+3. **Commit**: `git commit -m "chore: Bump version to X.Y.Z"`
+4. **Tag**: `git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"`
+5. **Push**: `git push origin master && git push --tags`
+
+**GitHub Actions will automatically:**
+- Create GitHub release from tag
+- Extract release notes from CHANGELOG.md
+- Mark appropriate version as "latest"
+
+See [RELEASE.md](RELEASE.md) for complete release workflow and troubleshooting.
 
 ## Quick Start
 

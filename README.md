@@ -87,7 +87,12 @@ Printernizer is a **complete production-ready** 3D printer management system tha
    - Setup time: 10 minutes
    - [Add-on Guide](printernizer/README.md)
 
-## ✅ Current Status: **PRODUCTION READY v2.0.0**
+## ✅ Current Status: **PRODUCTION READY**
+
+[![GitHub Release](https://img.shields.io/github/v/release/schmacka/printernizer)](https://github.com/schmacka/printernizer/releases/latest)
+[![GitHub commits since latest release](https://img.shields.io/github/commits-since/schmacka/printernizer/latest)](https://github.com/schmacka/printernizer/commits/master)
+
+**Check your version**: Visit `/api/v1/update-check` endpoint or check `/api/v1/health` for current version info.
 
 **Core functionality implemented and tested:**
 - ✅ Complete backend with FastAPI + async SQLite
