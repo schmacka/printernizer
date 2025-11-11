@@ -709,12 +709,17 @@ def test_app():
     mock_db = MagicMock(spec=Database)
     mock_db.health_check = AsyncMock(return_value=True)
 
-    # Create mock config service
+    # Create mock config service with async methods
     mock_config = MagicMock(spec=ConfigService)
     # Add settings attribute with environment
     mock_settings = MagicMock()
-    mock_settings.environment = "test"
+    mock_settings.environment = "testing"  # Fixed to match valid environment
     mock_config.settings = mock_settings
+    # Configure async methods
+    mock_config.get_watch_folders = AsyncMock(return_value=[])
+    mock_config.get_watch_folder_settings = AsyncMock(return_value={})
+    mock_config.add_watch_folder = AsyncMock(return_value=True)
+    mock_config.remove_watch_folder = AsyncMock(return_value=True)
 
     # Override dependencies
     app.dependency_overrides[get_database] = lambda: mock_db
@@ -725,7 +730,24 @@ def test_app():
     mock_printer_service = MagicMock()
     mock_printer_service._printers = []  # Empty printer list
     mock_printer_service._monitoring_active = False
+
+    # Create mock file service with async methods properly configured
     mock_file_service = MagicMock()
+    # Configure async methods to return AsyncMock instances
+    mock_file_service.get_files = AsyncMock(return_value=[])
+    mock_file_service.get_file_by_id = AsyncMock(return_value=None)
+    mock_file_service.get_file_statistics = AsyncMock(return_value={
+        'total_files': 0,
+        'available': 0,
+        'downloaded': 0,
+        'local': 0,
+        'total_size_mb': 0
+    })
+    mock_file_service.get_local_files = AsyncMock(return_value=[])
+    mock_file_service.get_watch_status = AsyncMock(return_value={})
+    mock_file_service.download_file = AsyncMock(return_value=None)
+    mock_file_service.delete_file = AsyncMock(return_value=True)
+
     mock_trending_service = MagicMock()
     mock_session = MagicMock()
     mock_session.closed = False  # Session is not closed
