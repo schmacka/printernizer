@@ -22,7 +22,7 @@ class TestGermanCurrencyHandling:
     
     def test_eur_currency_formatting(self, german_business_config):
         """Test EUR currency formatting according to German standards"""
-        from backend.services.business_service import format_currency
+        from src.services.business_service import format_currency
         
         test_cases = [
             (0, "0,00 EUR"),
@@ -37,7 +37,7 @@ class TestGermanCurrencyHandling:
             (1000000, "1.000.000,00 EUR")
         ]
         
-        with patch('backend.services.business_service.format_currency') as mock_format:
+        with patch('src.services.business_service.format_currency') as mock_format:
             for amount, expected in test_cases:
                 mock_format.return_value = expected
                 result = mock_format(amount, 'EUR', 'de_DE')
@@ -45,9 +45,9 @@ class TestGermanCurrencyHandling:
     
     def test_currency_precision(self):
         """Test currency precision handling for German EUR"""
-        from backend.services.business_service import round_currency
+        from src.services.business_service import round_currency
         
-        with patch('backend.services.business_service.round_currency') as mock_round:
+        with patch('src.services.business_service.round_currency') as mock_round:
             # Test rounding to 2 decimal places (EUR standard)
             test_cases = [
                 (1.234, Decimal('1.23')),
@@ -65,9 +65,9 @@ class TestGermanCurrencyHandling:
     
     def test_currency_conversion_edge_cases(self):
         """Test edge cases in currency handling"""
-        from backend.services.business_service import handle_currency
+        from src.services.business_service import handle_currency
         
-        with patch('backend.services.business_service.handle_currency') as mock_handle:
+        with patch('src.services.business_service.handle_currency') as mock_handle:
             # Test very small amounts
             mock_handle.return_value = Decimal('0.01')
             result = mock_handle(Decimal('0.009'))
@@ -89,9 +89,9 @@ class TestGermanVATCalculations:
     
     def test_standard_vat_rate_19_percent(self, german_business_config):
         """Test standard German VAT rate of 19%"""
-        from backend.services.business_service import calculate_vat
+        from src.services.business_service import calculate_vat
         
-        with patch('backend.services.business_service.calculate_vat') as mock_vat:
+        with patch('src.services.business_service.calculate_vat') as mock_vat:
             test_cases = [
                 # (net_amount, expected_vat, expected_gross)
                 (Decimal('10.00'), Decimal('1.90'), Decimal('11.90')),
@@ -119,9 +119,9 @@ class TestGermanVATCalculations:
     
     def test_reverse_vat_calculation(self):
         """Test calculating net amount from gross amount including VAT"""
-        from backend.services.business_service import calculate_net_from_gross
+        from src.services.business_service import calculate_net_from_gross
         
-        with patch('backend.services.business_service.calculate_net_from_gross') as mock_reverse:
+        with patch('src.services.business_service.calculate_net_from_gross') as mock_reverse:
             test_cases = [
                 # (gross_amount, expected_net, expected_vat)
                 (Decimal('11.90'), Decimal('10.00'), Decimal('1.90')),
@@ -145,9 +145,9 @@ class TestGermanVATCalculations:
     
     def test_vat_exemption_cases(self):
         """Test VAT exemption cases (e.g., exports, certain services)"""
-        from backend.services.business_service import calculate_vat_exempt
+        from src.services.business_service import calculate_vat_exempt
         
-        with patch('backend.services.business_service.calculate_vat_exempt') as mock_exempt:
+        with patch('src.services.business_service.calculate_vat_exempt') as mock_exempt:
             mock_exempt.return_value = {
                 'net_amount_eur': Decimal('100.00'),
                 'vat_rate': Decimal('0.00'),
@@ -164,7 +164,7 @@ class TestGermanVATCalculations:
     
     def test_complex_invoice_vat_calculation(self):
         """Test VAT calculation for complex invoices with multiple line items"""
-        from backend.services.business_service import calculate_invoice_vat
+        from src.services.business_service import calculate_invoice_vat
         
         line_items = [
             {'description': 'PLA Filament usage', 'net_amount_eur': Decimal('5.50')},
@@ -173,7 +173,7 @@ class TestGermanVATCalculations:
             {'description': 'Material handling', 'net_amount_eur': Decimal('2.50')}
         ]
         
-        with patch('backend.services.business_service.calculate_invoice_vat') as mock_invoice:
+        with patch('src.services.business_service.calculate_invoice_vat') as mock_invoice:
             mock_invoice.return_value = {
                 'line_items': line_items,
                 'subtotal_net_eur': Decimal('48.00'),
@@ -199,10 +199,10 @@ class TestGermanTimezoneHandling:
     
     def test_berlin_timezone_conversion(self):
         """Test conversion to/from Berlin timezone"""
-        from backend.services.business_service import to_berlin_timezone, from_berlin_timezone
+        from src.services.business_service import to_berlin_timezone, from_berlin_timezone
         
-        with patch('backend.services.business_service.to_berlin_timezone') as mock_to_berlin:
-            with patch('backend.services.business_service.from_berlin_timezone') as mock_from_berlin:
+        with patch('src.services.business_service.to_berlin_timezone') as mock_to_berlin:
+            with patch('src.services.business_service.from_berlin_timezone') as mock_from_berlin:
                 # Test UTC to Berlin conversion
                 utc_time = datetime(2025, 9, 3, 12, 0, 0, tzinfo=timezone.utc)
                 berlin_time = datetime(2025, 9, 3, 14, 0, 0, tzinfo=pytz.timezone('Europe/Berlin'))
@@ -222,9 +222,9 @@ class TestGermanTimezoneHandling:
     
     def test_daylight_saving_time_transitions(self):
         """Test DST transitions in Germany"""
-        from backend.services.business_service import handle_dst_transition
+        from src.services.business_service import handle_dst_transition
         
-        with patch('backend.services.business_service.handle_dst_transition') as mock_dst:
+        with patch('src.services.business_service.handle_dst_transition') as mock_dst:
             # Test spring forward (last Sunday in March)
             spring_transition = datetime(2025, 3, 30, 2, 0, 0)  # 2 AM becomes 3 AM
             mock_dst.return_value = {
@@ -255,12 +255,12 @@ class TestGermanTimezoneHandling:
     
     def test_business_hours_calculation(self, german_business_config):
         """Test German business hours calculation"""
-        from backend.services.business_service import is_business_hours, calculate_business_duration
+        from src.services.business_service import is_business_hours, calculate_business_duration
         
         berlin_tz = pytz.timezone('Europe/Berlin')
         
-        with patch('backend.services.business_service.is_business_hours') as mock_hours:
-            with patch('backend.services.business_service.calculate_business_duration') as mock_duration:
+        with patch('src.services.business_service.is_business_hours') as mock_hours:
+            with patch('src.services.business_service.calculate_business_duration') as mock_duration:
                 # Test weekday during business hours
                 monday_10am = berlin_tz.localize(datetime(2025, 9, 1, 10, 0, 0))  # Monday 10 AM
                 mock_hours.return_value = True
@@ -292,9 +292,9 @@ class TestGermanDateTimeFormatting:
     
     def test_german_date_formatting(self):
         """Test German date formatting (DD.MM.YYYY)"""
-        from backend.services.business_service import format_german_date
+        from src.services.business_service import format_german_date
         
-        with patch('backend.services.business_service.format_german_date') as mock_format:
+        with patch('src.services.business_service.format_german_date') as mock_format:
             test_cases = [
                 (datetime(2025, 9, 3), "03.09.2025"),
                 (datetime(2025, 12, 25), "25.12.2025"),
@@ -309,9 +309,9 @@ class TestGermanDateTimeFormatting:
     
     def test_german_time_formatting(self):
         """Test German time formatting (24-hour format)"""
-        from backend.services.business_service import format_german_time
+        from src.services.business_service import format_german_time
         
-        with patch('backend.services.business_service.format_german_time') as mock_format:
+        with patch('src.services.business_service.format_german_time') as mock_format:
             test_cases = [
                 (datetime(2025, 9, 3, 9, 30, 0), "09:30"),
                 (datetime(2025, 9, 3, 14, 45, 30), "14:45"),
@@ -326,9 +326,9 @@ class TestGermanDateTimeFormatting:
     
     def test_german_datetime_formatting(self):
         """Test combined German date-time formatting"""
-        from backend.services.business_service import format_german_datetime
+        from src.services.business_service import format_german_datetime
         
-        with patch('backend.services.business_service.format_german_datetime') as mock_format:
+        with patch('src.services.business_service.format_german_datetime') as mock_format:
             test_datetime = datetime(2025, 9, 3, 14, 30, 45)
             expected_formats = {
                 'short': "03.09.2025 14:30",
@@ -347,9 +347,9 @@ class TestGermanAccountingStandards:
     
     def test_hgb_compliance(self):
         """Test compliance with German Commercial Code (HGB)"""
-        from backend.services.accounting_service import validate_hgb_compliance
+        from src.services.accounting_service import validate_hgb_compliance
         
-        with patch('backend.services.accounting_service.validate_hgb_compliance') as mock_validate:
+        with patch('src.services.accounting_service.validate_hgb_compliance') as mock_validate:
             invoice_data = {
                 'invoice_number': 'INV-2025-001',
                 'date': datetime(2025, 9, 3),
@@ -380,9 +380,9 @@ class TestGermanAccountingStandards:
     
     def test_gob_electronic_records(self):
         """Test compliance with German Digital Records Act (GoBD)"""
-        from backend.services.accounting_service import ensure_gobd_compliance
+        from src.services.accounting_service import ensure_gobd_compliance
         
-        with patch('backend.services.accounting_service.ensure_gobd_compliance') as mock_gobd:
+        with patch('src.services.accounting_service.ensure_gobd_compliance') as mock_gobd:
             transaction_data = {
                 'id': 'TXN-2025-001',
                 'timestamp': datetime(2025, 9, 3, 14, 30, 0, tzinfo=pytz.timezone('Europe/Berlin')),
@@ -411,10 +411,10 @@ class TestGermanAccountingStandards:
     
     def test_invoice_numbering_sequence(self):
         """Test German invoice numbering requirements (consecutive, no gaps)"""
-        from backend.services.accounting_service import generate_invoice_number, validate_sequence
+        from src.services.accounting_service import generate_invoice_number, validate_sequence
         
-        with patch('backend.services.accounting_service.generate_invoice_number') as mock_generate:
-            with patch('backend.services.accounting_service.validate_sequence') as mock_validate:
+        with patch('src.services.accounting_service.generate_invoice_number') as mock_generate:
+            with patch('src.services.accounting_service.validate_sequence') as mock_validate:
                 # Test sequential numbering
                 expected_sequence = ['2025-001', '2025-002', '2025-003', '2025-004', '2025-005']
                 
@@ -442,9 +442,9 @@ class TestGermanTaxReporting:
     
     def test_ustva_vat_return_format(self):
         """Test German VAT return (USt-VA) format"""
-        from backend.services.tax_service import generate_ustva_report
+        from src.services.tax_service import generate_ustva_report
         
-        with patch('backend.services.tax_service.generate_ustva_report') as mock_ustva:
+        with patch('src.services.tax_service.generate_ustva_report') as mock_ustva:
             reporting_period = {
                 'year': 2025,
                 'month': 9,
@@ -480,9 +480,9 @@ class TestGermanTaxReporting:
     
     def test_annual_tax_declaration(self):
         """Test annual German tax declaration preparation"""
-        from backend.services.tax_service import prepare_annual_declaration
+        from src.services.tax_service import prepare_annual_declaration
         
-        with patch('backend.services.tax_service.prepare_annual_declaration') as mock_annual:
+        with patch('src.services.tax_service.prepare_annual_declaration') as mock_annual:
             annual_data = {
                 'year': 2025,
                 'business_type': 'Einzelunternehmen',  # Sole proprietorship
@@ -511,9 +511,9 @@ class TestGermanTaxReporting:
     
     def test_elster_xml_export(self):
         """Test ELSTER XML export format for electronic tax filing"""
-        from backend.services.tax_service import generate_elster_xml
+        from src.services.tax_service import generate_elster_xml
         
-        with patch('backend.services.tax_service.generate_elster_xml') as mock_elster:
+        with patch('src.services.tax_service.generate_elster_xml') as mock_elster:
             tax_data = {
                 'form_type': 'USt-VA',
                 'period': '2025-09',
@@ -563,9 +563,9 @@ class TestGermanBusinessWorkflows:
     
     def test_b2b_invoice_workflow(self, german_business_config):
         """Test complete B2B invoice workflow with German requirements"""
-        from backend.services.invoice_service import create_b2b_invoice
+        from src.services.invoice_service import create_b2b_invoice
         
-        with patch('backend.services.invoice_service.create_b2b_invoice') as mock_b2b:
+        with patch('src.services.invoice_service.create_b2b_invoice') as mock_b2b:
             invoice_request = {
                 'customer': {
                     'name': 'Test Engineering GmbH',
@@ -635,9 +635,9 @@ class TestGermanBusinessWorkflows:
     
     def test_kleinunternehmer_exemption(self):
         """Test Kleinunternehmer (small business) VAT exemption"""
-        from backend.services.business_service import apply_kleinunternehmer_exemption
+        from src.services.business_service import apply_kleinunternehmer_exemption
         
-        with patch('backend.services.business_service.apply_kleinunternehmer_exemption') as mock_exempt:
+        with patch('src.services.business_service.apply_kleinunternehmer_exemption') as mock_exempt:
             # Test annual revenue threshold (€22,000 in previous year, €50,000 in current year)
             business_data = {
                 'annual_revenue_previous_year_eur': Decimal('18000.00'),

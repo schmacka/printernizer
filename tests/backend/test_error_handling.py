@@ -40,7 +40,7 @@ class TestNetworkErrorHandling:
         }
         
         # Mock connection timeout
-        with patch('backend.services.bambu_service.test_connection') as mock_connect:
+        with patch('src.services.bambu_service.test_connection') as mock_connect:
             mock_connect.side_effect = requests.exceptions.ConnectTimeout("Connection timed out")
             
             response = api_client.post(f"{base_url}/printers", json=printer_data)
@@ -53,13 +53,13 @@ class TestNetworkErrorHandling:
     
     def test_network_interruption_during_operation(self, api_client, populated_database, test_config):
         """Test handling of network interruptions during ongoing operations"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
             
             # Simulate network interruption during status check
-            with patch('backend.services.bambu_service.get_status') as mock_status:
+            with patch('src.services.bambu_service.get_status') as mock_status:
                 mock_status.side_effect = requests.exceptions.ConnectionError("Network unreachable")
                 
                 response = api_client.get(f"{base_url}/printers/bambu_a1_001/status")
@@ -79,7 +79,7 @@ class TestNetworkErrorHandling:
             'api_key': 'test_key'
         }
         
-        with patch('backend.services.prusa_service.test_connection') as mock_connect:
+        with patch('src.services.prusa_service.test_connection') as mock_connect:
             mock_connect.side_effect = requests.exceptions.ConnectionError(
                 "Failed to resolve 'non-existent-printer.local'"
             )
@@ -101,7 +101,7 @@ class TestNetworkErrorHandling:
             'use_https': True
         }
         
-        with patch('backend.services.prusa_service.test_connection') as mock_connect:
+        with patch('src.services.prusa_service.test_connection') as mock_connect:
             mock_connect.side_effect = requests.exceptions.SSLError(
                 "SSL certificate verify failed"
             )
@@ -168,7 +168,7 @@ class TestDataValidationErrors:
         ]
         
         for invalid_data in invalid_printer_data_cases:
-            with patch('backend.services.validation.validate_printer_data') as mock_validate:
+            with patch('src.services.validation.validate_printer_data') as mock_validate:
                 mock_validate.return_value = {
                     'is_valid': False,
                     'errors': [
@@ -202,7 +202,7 @@ class TestDataValidationErrors:
             'material_cost_per_gram': -1.0  # Negative cost
         }
         
-        with patch('backend.services.validation.validate_job_data') as mock_validate:
+        with patch('src.services.validation.validate_job_data') as mock_validate:
             mock_validate.return_value = {
                 'is_valid': False,
                 'errors': [
@@ -238,7 +238,7 @@ class TestDataValidationErrors:
                 **test_case
             }
             
-            with patch('backend.services.validation.validate_string_fields') as mock_validate:
+            with patch('src.services.validation.validate_string_fields') as mock_validate:
                 mock_validate.return_value = {
                     'is_valid': False,
                     'errors': [{
@@ -259,7 +259,7 @@ class TestDatabaseErrorHandling:
         """Test handling when database is unavailable"""
         base_url = test_config['api_base_url']
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.side_effect = sqlite3.OperationalError("database is locked")
             
             response = api_client.get(f"{base_url}/printers")
@@ -276,7 +276,7 @@ class TestDatabaseErrorHandling:
         with open(temp_database, 'wb') as f:
             f.write(b'corrupted database content')
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.side_effect = sqlite3.DatabaseError("file is not a database")
             
             response = api_client.get(f"{test_config['api_base_url']}/printers")
@@ -288,7 +288,7 @@ class TestDatabaseErrorHandling:
     
     def test_constraint_violations(self, api_client, populated_database, test_config):
         """Test handling of database constraint violations"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -300,7 +300,7 @@ class TestDatabaseErrorHandling:
                 'type': 'bambu_lab'
             }
             
-            with patch('backend.database.insert_printer') as mock_insert:
+            with patch('src.database.database.Database.insert_printer') as mock_insert:
                 mock_insert.side_effect = sqlite3.IntegrityError("UNIQUE constraint failed: printers.id")
                 
                 response = api_client.post(f"{base_url}/printers", json=duplicate_printer)
@@ -312,7 +312,7 @@ class TestDatabaseErrorHandling:
     
     def test_transaction_rollback_on_error(self, api_client, populated_database, test_config):
         """Test that database transactions are properly rolled back on errors"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -324,8 +324,8 @@ class TestDatabaseErrorHandling:
                 'material_type': 'PLA'
             }
             
-            with patch('backend.database.insert_job') as mock_insert_job:
-                with patch('backend.database.insert_job_files') as mock_insert_files:
+            with patch('src.database.database.Database.insert_job') as mock_insert_job:
+                with patch('src.database.database.Database.insert_job_files') as mock_insert_files:
                     # First insert succeeds, second fails
                     mock_insert_job.return_value = 'test_job_id'
                     mock_insert_files.side_effect = sqlite3.Error("Simulated error")
@@ -349,7 +349,7 @@ class TestFileSystemErrorHandling:
         base_url = test_config['api_base_url']
         file_id = 'large_file_001'
         
-        with patch('backend.services.file_service.check_disk_space') as mock_space:
+        with patch('src.services.file_service.check_disk_space') as mock_space:
             mock_space.return_value = {
                 'available_mb': 100,
                 'required_mb': 500,
@@ -369,7 +369,7 @@ class TestFileSystemErrorHandling:
         base_url = test_config['api_base_url']
         file_id = 'permission_test_001'
         
-        with patch('backend.services.file_service.download_from_printer') as mock_download:
+        with patch('src.services.file_service.download_from_printer') as mock_download:
             mock_download.side_effect = PermissionError("Permission denied: /restricted/path")
             
             response = api_client.post(f"{base_url}/files/{file_id}/download")
@@ -384,8 +384,8 @@ class TestFileSystemErrorHandling:
         base_url = test_config['api_base_url']
         file_id = 'corruption_test_001'
         
-        with patch('backend.services.file_service.download_from_printer') as mock_download:
-            with patch('backend.services.file_service.verify_file_integrity') as mock_verify:
+        with patch('src.services.file_service.download_from_printer') as mock_download:
+            with patch('src.services.file_service.verify_file_integrity') as mock_verify:
                 mock_download.return_value = {
                     'success': True,
                     'local_path': '/tmp/corrupted_file.3mf',
@@ -411,7 +411,7 @@ class TestFileSystemErrorHandling:
         base_url = test_config['api_base_url']
         
         # Test missing file on printer
-        with patch('backend.services.file_service.get_printer_file') as mock_get_file:
+        with patch('src.services.file_service.get_printer_file') as mock_get_file:
             mock_get_file.return_value = None
             
             response = api_client.post(f"{base_url}/files/nonexistent_file/download")
@@ -434,7 +434,7 @@ class TestConcurrencyErrorHandling:
     
     def test_concurrent_resource_access(self, api_client, populated_database, test_config):
         """Test handling of concurrent access to the same resource"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -444,7 +444,7 @@ class TestConcurrencyErrorHandling:
             update_data_1 = {'name': 'Update 1'}
             update_data_2 = {'name': 'Update 2'}
             
-            with patch('backend.database.update_printer') as mock_update:
+            with patch('src.database.database.Database.update_printer') as mock_update:
                 # First update succeeds, second fails due to version conflict
                 mock_update.side_effect = [
                     {'success': True, 'version': 2},
@@ -480,7 +480,7 @@ class TestConcurrencyErrorHandling:
     
     def test_race_condition_in_job_creation(self, api_client, populated_database, test_config):
         """Test race conditions during job creation"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -492,11 +492,11 @@ class TestConcurrencyErrorHandling:
                 'material_type': 'PLA'
             }
             
-            with patch('backend.services.printer_service.is_printer_available') as mock_available:
+            with patch('src.services.printer_service.is_printer_available') as mock_available:
                 # Simulate race condition: printer appears available to both requests
                 mock_available.return_value = True
                 
-                with patch('backend.database.insert_job') as mock_insert:
+                with patch('src.database.database.Database.insert_job') as mock_insert:
                     # First job creation succeeds, second fails (printer now busy)
                     mock_insert.side_effect = [
                         'job_001',
@@ -549,7 +549,7 @@ class TestSecurityErrorHandling:
                 'ip_address': '192.168.1.100'
             }
             
-            with patch('backend.services.validation.sanitize_input') as mock_sanitize:
+            with patch('src.services.validation.sanitize_input') as mock_sanitize:
                 mock_sanitize.return_value = {
                     'is_safe': False,
                     'detected_threats': ['sql_injection'],
@@ -583,7 +583,7 @@ class TestSecurityErrorHandling:
                 'material_type': 'PLA'
             }
             
-            with patch('backend.services.validation.validate_file_path') as mock_validate:
+            with patch('src.services.validation.validate_file_path') as mock_validate:
                 mock_validate.return_value = {
                     'is_safe': False,
                     'error': 'Path traversal attempt detected',
@@ -617,7 +617,7 @@ class TestSecurityErrorHandling:
                 'ip_address': '192.168.1.100'
             }
             
-            with patch('backend.services.validation.sanitize_html') as mock_sanitize:
+            with patch('src.services.validation.sanitize_html') as mock_sanitize:
                 mock_sanitize.return_value = {
                     'sanitized_value': 'alert(xss)',  # HTML tags removed
                     'threats_removed': ['script_tag', 'event_handler'],
@@ -645,7 +645,7 @@ class TestResourceExhaustionHandling:
         base_url = test_config['api_base_url']
         
         # Simulate memory exhaustion during large file processing
-        with patch('backend.services.file_service.process_large_file') as mock_process:
+        with patch('src.services.file_service.process_large_file') as mock_process:
             mock_process.side_effect = MemoryError("Cannot allocate memory")
             
             response = api_client.post(f"{base_url}/files/large_file_001/process")
@@ -661,7 +661,7 @@ class TestResourceExhaustionHandling:
         base_url = test_config['api_base_url']
         
         # Simulate rate limiting
-        with patch('backend.middleware.rate_limiter.check_rate_limit') as mock_rate_limit:
+        with patch('src.api.middleware.rate_limiter.check_rate_limit') as mock_rate_limit:
             mock_rate_limit.return_value = {
                 'allowed': False,
                 'reason': 'Too many requests',
@@ -683,7 +683,7 @@ class TestResourceExhaustionHandling:
         """Test handling when disk space is exhausted"""
         base_url = test_config['api_base_url']
         
-        with patch('backend.services.file_service.download_from_printer') as mock_download:
+        with patch('src.services.file_service.download_from_printer') as mock_download:
             mock_download.side_effect = OSError("No space left on device")
             
             response = api_client.post(f"{base_url}/files/test_file/download")
@@ -760,7 +760,7 @@ class TestEdgeCaseScenarios:
         """Test handling of operations that take a very long time"""
         base_url = test_config['api_base_url']
         
-        with patch('backend.services.file_service.download_large_file') as mock_download:
+        with patch('src.services.file_service.download_large_file') as mock_download:
             # Simulate very long operation (would timeout)
             import time
             
@@ -771,7 +771,7 @@ class TestEdgeCaseScenarios:
             mock_download.side_effect = slow_download
             
             # Should timeout gracefully
-            with patch('backend.config.REQUEST_TIMEOUT', 30):  # 30 second timeout
+            with patch('src.constants.REQUEST_TIMEOUT', 30):  # 30 second timeout
                 response = api_client.post(f"{base_url}/files/slow_file/download")
                 
                 assert response.status_code == 504  # Gateway Timeout

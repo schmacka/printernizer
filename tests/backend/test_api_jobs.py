@@ -22,7 +22,7 @@ class TestJobAPI:
     
     def test_get_jobs_empty_database(self, client, temp_database):
         """Test GET /api/v1/jobs with empty database"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value.execute.return_value.fetchall.return_value = []
             
             response = client.get("/api/v1/jobs")
@@ -36,7 +36,7 @@ class TestJobAPI:
     
     def test_get_jobs_with_data(self, client, populated_database):
         """Test GET /api/v1/jobs with existing jobs"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get("/api/v1/jobs")
@@ -60,7 +60,7 @@ class TestJobAPI:
     
     def test_get_jobs_filter_by_status(self, client, populated_database):
         """Test GET /api/v1/jobs?status=printing"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get("/api/v1/jobs?status=printing")
@@ -72,7 +72,7 @@ class TestJobAPI:
     
     def test_get_jobs_filter_by_printer(self, client, populated_database):
         """Test GET /api/v1/jobs?printer_id=bambu_a1_001"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get("/api/v1/jobs?printer_id=bambu_a1_001")
@@ -84,7 +84,7 @@ class TestJobAPI:
     
     def test_get_jobs_filter_by_business_type(self, client, populated_database):
         """Test GET /api/v1/jobs?is_business=true"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get("/api/v1/jobs?is_business=true")
@@ -100,7 +100,7 @@ class TestJobAPI:
         today = datetime.now().strftime('%Y-%m-%d')
         yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get(
@@ -114,7 +114,7 @@ class TestJobAPI:
     
     def test_get_jobs_pagination(self, client, populated_database):
         """Test GET /api/v1/jobs with pagination"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get("/api/v1/jobs?page=1&limit=1")
@@ -147,7 +147,7 @@ class TestJobAPI:
             'customer_order_id': 'ORD-2025-001'
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             
             response = client.post(
@@ -215,7 +215,7 @@ class TestJobAPI:
         """Test GET /api/v1/jobs/{id} - Get specific job details"""
         job_id = 1  # From populated database
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.get("/api/v1/jobs/{job_id}")
@@ -260,7 +260,7 @@ class TestJobAPI:
             'notes': 'Paused for material change'
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.put(
@@ -290,7 +290,7 @@ class TestJobAPI:
             'notes': 'Perfect print quality achieved'
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.put(
@@ -322,7 +322,7 @@ class TestJobAPI:
             'first_layer_adhesion': 'poor'
         }
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.put(
@@ -367,7 +367,7 @@ class TestJobAPI:
         """Test DELETE /api/v1/jobs/{id}"""
         job_id = 2  # Completed job can be deleted
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.delete("/jobs/{job_id}")
@@ -378,7 +378,7 @@ class TestJobAPI:
         """Test DELETE /api/v1/jobs/{id} - Cannot delete active job"""
         job_id = 1  # Active printing job
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             response = client.delete("/jobs/{job_id}")
@@ -514,7 +514,7 @@ class TestJobAPIPerformance:
         import time
         start_time = time.time()
         
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = db_connection
             response = client.get("/api/v1/jobs")
         
@@ -591,7 +591,7 @@ class TestJobAPIErrorHandling:
     
     def test_job_api_database_connection_error(self, client):
         """Test job API behavior when database is unavailable"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.side_effect = sqlite3.OperationalError("database is locked")
             
             response = client.get("/api/v1/jobs")
@@ -620,7 +620,7 @@ class TestJobAPIErrorHandling:
         job_id = 1
         
         # Simulate concurrent updates by patching the database update
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             # First update

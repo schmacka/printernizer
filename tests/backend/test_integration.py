@@ -20,7 +20,7 @@ class TestAPIIntegration:
     
     def test_complete_printer_lifecycle(self, api_client, temp_database, test_config):
         """Test complete printer lifecycle: add -> configure -> monitor -> remove"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             conn = sqlite3.connect(temp_database)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
@@ -39,14 +39,14 @@ class TestAPIIntegration:
                 'has_ams': True
             }
             
-            with patch('backend.services.printer_service.test_connection') as mock_test:
+            with patch('src.services.printer_service.test_connection') as mock_test:
                 mock_test.return_value = True
                 response = api_client.post(f"{base_url}/printers", json=printer_data)
                 assert response.status_code == 201
                 printer_id = response.json()['id']
             
             # Step 2: Get printer status
-            with patch('backend.services.bambu_service.get_status') as mock_status:
+            with patch('src.services.bambu_service.get_status') as mock_status:
                 mock_status.return_value = {
                     'status': 'online',
                     'print_status': 'idle',
@@ -83,7 +83,7 @@ class TestAPIIntegration:
     
     def test_complete_job_workflow(self, api_client, populated_database, test_config, mock_bambu_api):
         """Test complete job workflow: create -> monitor -> complete -> export"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -119,7 +119,7 @@ class TestAPIIntegration:
             assert response.status_code == 200
             
             # Step 3: Monitor job progress
-            with patch('backend.services.bambu_service.get_job_status') as mock_job_status:
+            with patch('src.services.bambu_service.get_job_status') as mock_job_status:
                 mock_job_status.return_value = {
                     'status': 'printing',
                     'progress': 67.5,
@@ -169,13 +169,13 @@ class TestAPIIntegration:
     
     def test_file_management_workflow(self, api_client, populated_database, test_config, temp_download_directory):
         """Test complete file management workflow: list -> download -> organize"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
             
             # Step 1: Get unified file listing
-            with patch('backend.services.file_service.get_printer_files') as mock_printer_files:
+            with patch('src.services.file_service.get_printer_files') as mock_printer_files:
                 mock_printer_files.return_value = [
                     {
                         'id': 'remote_file_001',
@@ -200,7 +200,7 @@ class TestAPIIntegration:
             
             # Step 2: Download file from printer
             file_id = 'remote_file_001'
-            with patch('backend.services.file_service.download_from_printer') as mock_download:
+            with patch('src.services.file_service.download_from_printer') as mock_download:
                 mock_download.return_value = {
                     'success': True,
                     'local_path': f'{temp_download_directory}/bambu_a1_001/2025-09-03/test_model.3mf',
@@ -230,7 +230,7 @@ class TestAPIIntegration:
     
     def test_dashboard_real_time_updates(self, api_client, populated_database, test_config):
         """Test dashboard statistics and real-time updates"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -277,7 +277,7 @@ class TestWebSocketIntegration:
         mock_websocket.send = mock_send
         
         # Simulate job status update
-        with patch('backend.services.websocket_service.broadcast_job_update') as mock_broadcast:
+        with patch('src.services.websocket_service.broadcast_job_update') as mock_broadcast:
             job_update = {
                 'job_id': 'test_job_001',
                 'printer_id': 'bambu_a1_001',
@@ -308,7 +308,7 @@ class TestWebSocketIntegration:
         mock_websocket.send = mock_send
         
         # Simulate printer status change
-        with patch('backend.services.websocket_service.broadcast_printer_status') as mock_broadcast:
+        with patch('src.services.websocket_service.broadcast_printer_status') as mock_broadcast:
             printer_status = {
                 'printer_id': 'bambu_a1_001',
                 'status': 'online',
@@ -339,7 +339,7 @@ class TestWebSocketIntegration:
         mock_websocket.send = mock_send
         
         # Simulate file download progress
-        with patch('backend.services.websocket_service.broadcast_download_progress') as mock_broadcast:
+        with patch('src.services.websocket_service.broadcast_download_progress') as mock_broadcast:
             download_progress = {
                 'file_id': 'download_test_001',
                 'filename': 'large_model.3mf',
@@ -359,10 +359,10 @@ class TestGermanBusinessLogic:
     
     def test_vat_calculations(self, german_business_config, sample_cost_calculations):
         """Test German VAT calculations for print jobs"""
-        from backend.services.business_service import calculate_job_costs
+        from src.services.business_service import calculate_job_costs
         
         # Mock cost calculation
-        with patch('backend.services.business_service.calculate_job_costs') as mock_calc:
+        with patch('src.services.business_service.calculate_job_costs') as mock_calc:
             mock_calc.return_value = {
                 'material_cost_eur': Decimal('1.28'),
                 'power_cost_eur': Decimal('0.09'),
@@ -391,10 +391,10 @@ class TestGermanBusinessLogic:
     
     def test_berlin_timezone_handling(self, test_utils):
         """Test Berlin timezone handling for German business operations"""
-        from backend.services.business_service import get_business_timestamp
+        from src.services.business_service import get_business_timestamp
         
         # Mock timezone handling
-        with patch('backend.services.business_service.get_business_timestamp') as mock_timestamp:
+        with patch('src.services.business_service.get_business_timestamp') as mock_timestamp:
             berlin_tz = pytz.timezone('Europe/Berlin')
             test_time = berlin_tz.localize(datetime(2025, 9, 3, 14, 30, 0))
             mock_timestamp.return_value = test_time
@@ -414,9 +414,9 @@ class TestGermanBusinessLogic:
     
     def test_business_hours_validation(self, german_business_config):
         """Test German business hours validation"""
-        from backend.services.business_service import is_business_hours
+        from src.services.business_service import is_business_hours
         
-        with patch('backend.services.business_service.is_business_hours') as mock_hours:
+        with patch('src.services.business_service.is_business_hours') as mock_hours:
             # Test business hours (Monday 10:00 AM Berlin time)
             berlin_tz = pytz.timezone('Europe/Berlin')
             business_time = berlin_tz.localize(datetime(2025, 9, 1, 10, 0, 0))  # Monday
@@ -434,7 +434,7 @@ class TestGermanBusinessLogic:
     
     def test_export_data_format(self, api_client, populated_database, test_config):
         """Test German accounting software export format"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             mock_db.return_value = populated_database
             
             base_url = test_config['api_base_url']
@@ -470,7 +470,7 @@ class TestErrorHandlingIntegration:
             'access_code': 'test_code'
         }
         
-        with patch('backend.services.printer_service.test_connection') as mock_test:
+        with patch('src.services.printer_service.test_connection') as mock_test:
             mock_test.side_effect = ConnectionError("Cannot reach printer")
             
             response = api_client.post(f"{base_url}/printers", json=printer_data)
@@ -480,7 +480,7 @@ class TestErrorHandlingIntegration:
     
     def test_database_transaction_rollback(self, api_client, temp_database, test_config):
         """Test database transaction rollback on errors"""
-        with patch('backend.database.get_connection') as mock_db:
+        with patch('src.database.database.Database.get_connection') as mock_db:
             conn = sqlite3.connect(temp_database)
             mock_db.return_value = conn
             
@@ -514,8 +514,8 @@ class TestErrorHandlingIntegration:
         async def mock_disconnect():
             connection_states.append('disconnected')
         
-        with patch('backend.services.websocket_service.connect') as mock_conn:
-            with patch('backend.services.websocket_service.disconnect') as mock_disc:
+        with patch('src.services.websocket_service.connect') as mock_conn:
+            with patch('src.services.websocket_service.disconnect') as mock_disc:
                 mock_conn.side_effect = mock_connect
                 mock_disc.side_effect = mock_disconnect
                 
@@ -529,7 +529,7 @@ class TestErrorHandlingIntegration:
         file_id = 'large_file_001'
         
         # Test partial download and resume
-        with patch('backend.services.file_service.download_from_printer') as mock_download:
+        with patch('src.services.file_service.download_from_printer') as mock_download:
             # First attempt - interrupted
             mock_download.side_effect = ConnectionError("Download interrupted")
             
