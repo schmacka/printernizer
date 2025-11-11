@@ -1027,7 +1027,7 @@ class LibraryManager {
      * Setup drag-and-drop upload functionality
      */
     setupDragAndDrop() {
-        const libraryGrid = document.getElementById('libraryGrid');
+        const libraryGrid = document.getElementById('libraryFilesGrid');
         if (!libraryGrid) {
             console.warn('Library grid not found, drag-and-drop disabled');
             return;
@@ -1035,6 +1035,9 @@ class LibraryManager {
 
         // Allowed file extensions
         this.allowedExtensions = ['.3mf', '.stl', '.gcode', '.obj', '.ply'];
+
+        // Counter to track nested drag events
+        let dragCounter = 0;
 
         // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -1045,19 +1048,22 @@ class LibraryManager {
         });
 
         // Highlight drop zone when dragging over
-        libraryGrid.addEventListener('dragenter', () => {
+        libraryGrid.addEventListener('dragenter', (e) => {
+            dragCounter++;
             libraryGrid.classList.add('drag-over');
         });
 
         libraryGrid.addEventListener('dragleave', (e) => {
-            // Only remove highlight if leaving the grid entirely
-            if (e.target === libraryGrid) {
+            dragCounter--;
+            // Only remove highlight if we've left all nested elements
+            if (dragCounter === 0) {
                 libraryGrid.classList.remove('drag-over');
             }
         });
 
         // Handle file drop
         libraryGrid.addEventListener('drop', async (e) => {
+            dragCounter = 0;
             libraryGrid.classList.remove('drag-over');
 
             const files = Array.from(e.dataTransfer.files);
@@ -1066,7 +1072,7 @@ class LibraryManager {
             }
         });
 
-        console.log('Drag-and-drop upload enabled');
+        console.log('Drag-and-drop upload enabled for library grid');
     }
 
     /**

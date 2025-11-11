@@ -751,7 +751,7 @@
 /* ============ Drag and Drop Upload ============ */
 
 /* Drag-over highlight effect */
-#libraryGrid.drag-over {
+#libraryFilesGrid.drag-over {
     position: relative;
     border: 3px dashed #667eea;
     background-color: rgba(102, 126, 234, 0.05);
@@ -759,7 +759,7 @@
     transition: all 0.3s ease;
 }
 
-#libraryGrid.drag-over::before {
+#libraryFilesGrid.drag-over::before {
     content: '⬆️ Drop files here to upload';
     position: absolute;
     top: 50%;
@@ -887,12 +887,12 @@
 
 /* Dark theme support for upload UI */
 @media (prefers-color-scheme: dark) {
-    #libraryGrid.drag-over {
+    #libraryFilesGrid.drag-over {
         border-color: #818cf8;
         background-color: rgba(129, 140, 248, 0.05);
     }
 
-    #libraryGrid.drag-over::before {
+    #libraryFilesGrid.drag-over::before {
         color: #818cf8;
         background: rgba(30, 41, 59, 0.95);
     }
