@@ -1,3 +1,8 @@
+## [2.5.4] - 2025-11-11
+
+- feat: Add missing thumbnail processing API endpoints for Auto-Download System
+- fix: Correct attribute name for remaining time in printer status endpoint
+
 ## [2.5.3] - 2025-11-11
 
 - feat: Add missing thumbnail processing API endpoints for Auto-Download System
