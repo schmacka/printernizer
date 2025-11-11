@@ -1,3 +1,10 @@
+## [2.5.7] - 2025-11-11
+
+- fix: Reduce Prusa connection timeout from 38s to ~12s
+- fix(tests): Replace all backend.* imports with correct src.* paths
+- docs: Add comprehensive CI/CD test fix plan for remaining work
+- fix: Prevent duplicate job discovery after app restart
+
 ## [2.5.6] - 2025-11-11
 
 - fix(tests): Fix test mock configuration and API endpoint URLs
