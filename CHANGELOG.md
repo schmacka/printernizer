@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Auto-Download System API Completion** - Added missing thumbnail processing endpoints
+  - `POST /api/v1/files/{file_id}/thumbnail/extract` - Extract embedded thumbnails from 3MF/BGCode/G-code files
+  - `POST /api/v1/files/{file_id}/thumbnail/generate` - Generate thumbnails for STL/OBJ 3D models
+  - `POST /api/v1/files/{file_id}/analyze/gcode` - Analyze G-code files to extract metadata and print settings
+  - Completes the Auto-Download System frontend-backend integration
+  - Enables manual thumbnail processing through the management UI
+
 ## [2.5.0] - 2025-11-11
 
 ### Added

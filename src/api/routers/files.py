@@ -361,6 +361,311 @@ async def process_file_thumbnails(
         )
 
 
+@router.post("/{file_id}/thumbnail/extract")
+async def extract_file_thumbnail(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Extract embedded thumbnail from file (3MF, BGCode, G-code).
+
+    This endpoint specifically extracts thumbnails that are embedded in the file
+    itself, such as those in 3MF or BGCode files. It does not generate thumbnails.
+
+    Supported formats:
+    - 3MF files (embedded PNG thumbnails)
+    - BGCode files (embedded thumbnails)
+    - G-code files (Base64 encoded thumbnails in comments)
+    """
+    file_data = await file_service.get_file_by_id(file_id)
+
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+
+    file_path = file_data.get('file_path')
+    if not file_path:
+        raise PrinternizerValidationError(
+            field="file_path",
+            error="File not available locally for thumbnail extraction"
+        )
+
+    # Get the thumbnail service from file service
+    thumbnail_service = file_service.thumbnail_service
+    if not thumbnail_service:
+        raise FileProcessingError(
+            filename=file_id,
+            operation="extract_thumbnail",
+            reason="Thumbnail service not available"
+        )
+
+    # Use the BambuParser to extract embedded thumbnails
+    try:
+        from src.services.bambu_parser import BambuParser
+        parser = BambuParser()
+        parse_result = await parser.parse_file(file_path)
+
+        if not parse_result['success']:
+            raise FileProcessingError(
+                filename=file_id,
+                operation="extract_thumbnail",
+                reason=parse_result.get('error', 'Failed to parse file')
+            )
+
+        thumbnails = parse_result['thumbnails']
+
+        if not thumbnails:
+            return success_response({
+                "success": False,
+                "method": "extracted",
+                "message": "No embedded thumbnails found in file"
+            })
+
+        # Get best thumbnail and update database
+        best_thumbnail = parser.get_thumbnail_by_size(thumbnails, (200, 200))
+
+        if best_thumbnail:
+            update_data = {
+                'has_thumbnail': True,
+                'thumbnail_data': best_thumbnail['data'],
+                'thumbnail_width': best_thumbnail['width'],
+                'thumbnail_height': best_thumbnail['height'],
+                'thumbnail_format': best_thumbnail.get('format', 'png'),
+                'thumbnail_source': 'embedded'
+            }
+
+            await file_service.database.update_file(file_id, update_data)
+
+            return success_response({
+                "success": True,
+                "method": "extracted",
+                "thumbnail_url": f"/api/v1/files/{file_id}/thumbnail",
+                "thumbnail_count": len(thumbnails),
+                "dimensions": {
+                    "width": best_thumbnail['width'],
+                    "height": best_thumbnail['height']
+                },
+                "message": f"Successfully extracted {len(thumbnails)} thumbnail(s) from file"
+            })
+        else:
+            raise FileProcessingError(
+                filename=file_id,
+                operation="extract_thumbnail",
+                reason="Failed to select best thumbnail from extracted thumbnails"
+            )
+
+    except Exception as e:
+        logger.error("Failed to extract thumbnail", file_id=file_id, error=str(e))
+        raise FileProcessingError(
+            filename=file_id,
+            operation="extract_thumbnail",
+            reason=str(e)
+        )
+
+
+@router.post("/{file_id}/thumbnail/generate")
+async def generate_file_thumbnail(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Generate thumbnail for 3D model files (STL, OBJ).
+
+    This endpoint generates a rendered preview thumbnail for 3D model files
+    that don't have embedded thumbnails. Uses 3D rendering to create a preview.
+
+    Supported formats:
+    - STL files (3D mesh rendering)
+    - OBJ files (3D mesh rendering)
+    """
+    file_data = await file_service.get_file_by_id(file_id)
+
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+
+    file_path = file_data.get('file_path')
+    if not file_path:
+        raise PrinternizerValidationError(
+            field="file_path",
+            error="File not available locally for thumbnail generation"
+        )
+
+    # Get the thumbnail service from file service
+    thumbnail_service = file_service.thumbnail_service
+    if not thumbnail_service:
+        raise FileProcessingError(
+            filename=file_id,
+            operation="generate_thumbnail",
+            reason="Thumbnail service not available"
+        )
+
+    # Generate preview thumbnail
+    try:
+        from pathlib import Path
+        file_path_obj = Path(file_path)
+
+        # Check file type
+        file_ext = file_path_obj.suffix.lower()
+        if file_ext not in ['.stl', '.obj']:
+            raise PrinternizerValidationError(
+                field="file_type",
+                error=f"Thumbnail generation not supported for {file_ext} files. Supported: .stl, .obj"
+            )
+
+        # Use preview render service to generate thumbnail
+        thumbnail_result = await thumbnail_service._generate_preview_thumbnail(file_path)
+
+        if thumbnail_result:
+            update_data = {
+                'has_thumbnail': True,
+                'thumbnail_data': thumbnail_result['data'],
+                'thumbnail_width': thumbnail_result['width'],
+                'thumbnail_height': thumbnail_result['height'],
+                'thumbnail_format': thumbnail_result['format'],
+                'thumbnail_source': 'generated'
+            }
+
+            await file_service.database.update_file(file_id, update_data)
+
+            return success_response({
+                "success": True,
+                "method": "generated",
+                "thumbnail_url": f"/api/v1/files/{file_id}/thumbnail",
+                "dimensions": {
+                    "width": thumbnail_result['width'],
+                    "height": thumbnail_result['height']
+                },
+                "message": "Successfully generated thumbnail from 3D model"
+            })
+        else:
+            raise FileProcessingError(
+                filename=file_id,
+                operation="generate_thumbnail",
+                reason="Preview rendering returned no thumbnail"
+            )
+
+    except PrinternizerValidationError:
+        raise
+    except Exception as e:
+        logger.error("Failed to generate thumbnail", file_id=file_id, error=str(e))
+        raise FileProcessingError(
+            filename=file_id,
+            operation="generate_thumbnail",
+            reason=str(e)
+        )
+
+
+@router.post("/{file_id}/analyze/gcode")
+async def analyze_gcode_file(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Analyze G-code file to extract metadata and print settings.
+
+    This endpoint parses G-code files to extract comprehensive metadata including:
+    - Print settings (layer height, infill, speeds)
+    - Material requirements (filament type, weight, length)
+    - Time estimates
+    - Machine settings
+    - Slicer information
+
+    Supported formats:
+    - G-code files (.gcode, .gco)
+    - BGCode files (Prusa binary G-code)
+    """
+    file_data = await file_service.get_file_by_id(file_id)
+
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+
+    file_path = file_data.get('file_path')
+    if not file_path:
+        raise PrinternizerValidationError(
+            field="file_path",
+            error="File not available locally for G-code analysis"
+        )
+
+    # Get the thumbnail service from file service
+    thumbnail_service = file_service.thumbnail_service
+    if not thumbnail_service:
+        raise FileProcessingError(
+            filename=file_id,
+            operation="analyze_gcode",
+            reason="Thumbnail service not available"
+        )
+
+    # Parse G-code for metadata
+    try:
+        from src.services.bambu_parser import BambuParser
+        from pathlib import Path
+
+        parser = BambuParser()
+        file_path_obj = Path(file_path)
+
+        # Check file type
+        file_ext = file_path_obj.suffix.lower()
+        if file_ext not in ['.gcode', '.gco', '.bgcode']:
+            raise PrinternizerValidationError(
+                field="file_type",
+                error=f"G-code analysis not supported for {file_ext} files. Supported: .gcode, .gco, .bgcode"
+            )
+
+        parse_result = await parser.parse_file(file_path)
+
+        if not parse_result['success']:
+            raise FileProcessingError(
+                filename=file_id,
+                operation="analyze_gcode",
+                reason=parse_result.get('error', 'Failed to parse G-code file')
+            )
+
+        metadata = parse_result['metadata']
+        thumbnails = parse_result['thumbnails']
+
+        # Update file record with metadata
+        update_data = {'metadata': metadata}
+
+        # If thumbnails were found during analysis, store them too
+        if thumbnails:
+            best_thumbnail = parser.get_thumbnail_by_size(thumbnails, (200, 200))
+            if best_thumbnail:
+                update_data.update({
+                    'has_thumbnail': True,
+                    'thumbnail_data': best_thumbnail['data'],
+                    'thumbnail_width': best_thumbnail['width'],
+                    'thumbnail_height': best_thumbnail['height'],
+                    'thumbnail_format': best_thumbnail.get('format', 'png'),
+                    'thumbnail_source': 'embedded'
+                })
+
+        await file_service.database.update_file(file_id, update_data)
+
+        response_data = {
+            "success": True,
+            "method": "analyzed",
+            "metadata": metadata,
+            "metadata_keys": list(metadata.keys()),
+            "metadata_count": len(metadata),
+            "message": f"Successfully analyzed G-code file and extracted {len(metadata)} metadata fields"
+        }
+
+        # Add thumbnail info if found
+        if thumbnails:
+            response_data["thumbnails_found"] = len(thumbnails)
+            response_data["thumbnail_url"] = f"/api/v1/files/{file_id}/thumbnail"
+
+        return success_response(response_data)
+
+    except PrinternizerValidationError:
+        raise
+    except Exception as e:
+        logger.error("Failed to analyze G-code", file_id=file_id, error=str(e))
+        raise FileProcessingError(
+            filename=file_id,
+            operation="analyze_gcode",
+            reason=str(e)
+        )
+
 
 # Watch Folder Management Endpoints
 
