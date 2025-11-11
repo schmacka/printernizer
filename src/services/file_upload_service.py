@@ -5,6 +5,7 @@ This service is responsible for validating, saving, and processing uploaded file
 managing upload state, and integrating with the library system.
 """
 import os
+import json
 import hashlib
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -135,13 +136,15 @@ class FileUploadService:
         """
         try:
             # Query database for existing file with same filename and upload source
-            existing = await self.database.fetch_one(
+            conn = self.database.get_connection()
+            async with conn.execute(
                 """
                 SELECT id FROM files
                 WHERE filename = ? AND source = 'upload'
                 """,
                 (filename,)
-            )
+            ) as cursor:
+                existing = await cursor.fetchone()
             return existing is not None
         except Exception as e:
             logger.error("Error checking for duplicate file", filename=filename, error=str(e))
@@ -257,28 +260,24 @@ class FileUploadService:
         except Exception as e:
             logger.warning("Failed to calculate file hash", error=str(e))
 
-        # Insert into database
-        await self.database.execute(
-            """
-            INSERT INTO files (
-                id, printer_id, filename, file_path, file_size, file_type,
-                status, source, downloaded_at, created_at, metadata
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                file_id,
-                "upload",  # Use "upload" as pseudo printer_id
-                filename,
-                file_path,
-                file_size,
-                file_type,
-                FileStatus.DOWNLOADED.value,
-                FileSource.UPLOAD.value,
-                datetime.now().isoformat(),
-                datetime.now().isoformat(),
-                str(metadata)
-            )
-        )
+        # Prepare file data for database
+        file_data = {
+            'id': file_id,
+            'printer_id': "upload",  # Use "upload" as pseudo printer_id
+            'filename': filename,
+            'file_path': file_path,
+            'file_size': file_size,
+            'file_type': file_type,
+            'status': FileStatus.DOWNLOADED.value,
+            'source': FileSource.UPLOAD.value,
+            'metadata': json.dumps(metadata)
+        }
+
+        # Insert into database using the create_file method
+        success = await self.database.create_file(file_data)
+
+        if not success:
+            raise Exception("Failed to create file record in database")
 
         logger.info(
             "File record created",
