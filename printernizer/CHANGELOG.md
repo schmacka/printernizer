@@ -1,3 +1,9 @@
+## [2.5.1] - 2025-11-11
+
+- fix: Configure Docker environment variables and database initialization
+- fix: Correct drag-and-drop hover feedback for library file upload
+- fix: Resolve Docker startup 'entrypoint.sh not found' error
+
 ## [2.4.9] - 2025-11-11
 
 - fix: Configure Docker environment variables and database initialization
