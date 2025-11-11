@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.4] - 2025-11-11
+
+### Fixed
+- **CI/CD Pipeline** - Fixed GitHub Actions workflow failures
+  - Fixed environment validation error: Changed `ENVIRONMENT: test` to `ENVIRONMENT: testing` to match config validation
+  - Removed deprecated `actions/create-release@v1` step (handled by separate Create Release workflow)
+  - Added conditional checks for optional Kubernetes deployment files to prevent failures when files don't exist
+  - Added conditional checks for optional performance test files
+  - Improved deployment robustness with graceful handling of missing configuration files
+
+### Changed
+- **CI/CD Workflow** - Enhanced production deployment resilience
+  - All Kubernetes manifest files (security policies, file storage, WebSocket load balancer) now optional
+  - Deployment script execution now conditional on file existence
+  - Performance tests gracefully skip when test files are not present
+  - Better error messages and warnings for missing optional components
+
 ## [2.5.3] - 2025-11-11
 
 ### Added
