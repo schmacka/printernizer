@@ -1,3 +1,10 @@
+## [2.5.6] - 2025-11-11
+
+- fix(tests): Fix test mock configuration and API endpoint URLs
+- fix: Prevent duplicate job discovery after app restart
+- fix(ci): Add master branch to CI/CD workflow triggers
+- fix(ci): Fix CI/CD pipeline failures and enhance deployment resilience
+
 ## [2.5.5] - 2025-11-11
 
 - fix(ci): Fix CI/CD pipeline failures and enhance deployment resilience

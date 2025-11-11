@@ -234,29 +234,61 @@ class JobService:
     async def create_job(self, job_data: Dict[str, Any]) -> str:
         """Create a new print job."""
         try:
-            # Validate input data with JobCreate model
-            if isinstance(job_data, dict):
-                job_create = JobCreate(**job_data)
+            # Check if this is an auto-created job (has all fields already)
+            # or a user-created job (needs validation with JobCreate model)
+            is_auto_created = 'printer_type' in job_data and 'created_at' in job_data
+
+            if not is_auto_created:
+                # Validate input data with JobCreate model for user-created jobs
+                if isinstance(job_data, dict):
+                    job_create = JobCreate(**job_data)
+                else:
+                    job_create = job_data
+
+                # Generate unique job ID - ensure it's never NULL
+                job_id = str(uuid.uuid4())
+                if not job_id or job_id == '':
+                    raise ValueError("Generated job ID is empty")
+
+                # Prepare job data for database
+                db_job_data = {
+                    'id': job_id,
+                    'printer_id': job_create.printer_id,
+                    'printer_type': 'unknown',  # This should be determined from printer service
+                    'job_name': job_create.job_name,
+                    'filename': job_create.filename,
+                    'status': JobStatus.PENDING,
+                    'estimated_duration': job_create.estimated_duration,
+                    'is_business': job_create.is_business,
+                    'customer_info': json.dumps(job_create.customer_info) if job_create.customer_info else None
+                }
             else:
-                job_create = job_data
+                # Auto-created job - already has all fields
+                job_id = str(uuid.uuid4())
+                if not job_id or job_id == '':
+                    raise ValueError("Generated job ID is empty")
 
-            # Generate unique job ID - ensure it's never NULL
-            job_id = str(uuid.uuid4())
-            if not job_id or job_id == '':
-                raise ValueError("Generated job ID is empty")
-
-            # Prepare job data for database
-            db_job_data = {
-                'id': job_id,
-                'printer_id': job_create.printer_id,
-                'printer_type': 'unknown',  # This should be determined from printer service
-                'job_name': job_create.job_name,
-                'filename': job_create.filename,
-                'status': JobStatus.PENDING,
-                'estimated_duration': job_create.estimated_duration,
-                'is_business': job_create.is_business,
-                'customer_info': json.dumps(job_create.customer_info) if job_create.customer_info else None
-            }
+                # Pass through all fields from auto-creation
+                db_job_data = {
+                    'id': job_id,
+                    'printer_id': job_data['printer_id'],
+                    'printer_type': job_data.get('printer_type', 'unknown'),
+                    'job_name': job_data['job_name'],
+                    'filename': job_data.get('filename'),
+                    'status': job_data.get('status', JobStatus.PENDING),
+                    'start_time': job_data.get('start_time'),  # From printer
+                    'end_time': job_data.get('end_time'),
+                    'estimated_duration': job_data.get('estimated_duration'),
+                    'actual_duration': job_data.get('actual_duration'),
+                    'progress': job_data.get('progress', 0),
+                    'material_used': job_data.get('material_used'),
+                    'material_cost': job_data.get('material_cost'),
+                    'power_cost': job_data.get('power_cost'),
+                    'is_business': job_data.get('is_business', False),
+                    'customer_info': json.dumps(job_data.get('customer_info')) if job_data.get('customer_info') else None,
+                    'created_at': job_data.get('created_at'),  # Discovery time
+                    'updated_at': job_data.get('updated_at')
+                }
 
             # Validate all required fields are present before database insert
             required_fields = ['id', 'printer_id', 'printer_type', 'job_name']
@@ -268,21 +300,36 @@ class JobService:
             success = await self.database.create_job(db_job_data)
 
             if success:
-                logger.info("Job created successfully", job_id=job_id, job_name=job_create.job_name)
+                logger.info("Job created successfully",
+                           job_id=job_id,
+                           job_name=db_job_data['job_name'],
+                           start_time=db_job_data.get('start_time'),
+                           is_auto_created=is_auto_created)
 
                 # Emit event for job creation
                 await self.event_service.emit_event('job_created', {
                     'job_id': job_id,
-                    'printer_id': job_create.printer_id,
-                    'job_name': job_create.job_name,
-                    'is_business': job_create.is_business,
+                    'printer_id': db_job_data['printer_id'],
+                    'job_name': db_job_data['job_name'],
+                    'is_business': db_job_data.get('is_business', False),
                     'timestamp': datetime.now().isoformat()
                 })
 
                 return job_id
             else:
-                logger.error("Failed to create job in database", data=job_data)
-                raise Exception("Database operation failed")
+                # Job creation failed - likely duplicate (UNIQUE constraint violation)
+                if is_auto_created and db_job_data.get('start_time'):
+                    logger.info("Duplicate job detected (likely from restart)",
+                               printer_id=db_job_data['printer_id'],
+                               filename=db_job_data.get('filename'),
+                               start_time=db_job_data.get('start_time'))
+                    # Don't raise exception for duplicate auto-created jobs
+                    # Return a special marker or re-query for the existing job
+                    # For now, we'll raise to maintain the existing behavior
+                    raise Exception("Duplicate job detected by database constraint")
+                else:
+                    logger.error("Failed to create job in database", data=job_data)
+                    raise Exception("Database operation failed")
 
         except Exception as e:
             logger.error("Failed to create job", error=str(e), error_type=type(e).__name__, data=job_data)

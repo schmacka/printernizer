@@ -353,8 +353,10 @@ class Database:
         try:
             return await self._execute_write(
                 """INSERT INTO jobs (id, printer_id, printer_type, job_name, filename, status,
-                                estimated_duration, is_business, customer_info)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                start_time, end_time, estimated_duration, actual_duration, progress,
+                                material_used, material_cost, power_cost, is_business, customer_info,
+                                created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     job_data['id'],
                     job_data['printer_id'],
@@ -362,11 +364,37 @@ class Database:
                     job_data['job_name'],
                     job_data.get('filename'),
                     job_data.get('status', 'pending'),
+                    job_data.get('start_time'),
+                    job_data.get('end_time'),
                     job_data.get('estimated_duration'),
+                    job_data.get('actual_duration'),
+                    job_data.get('progress', 0),
+                    job_data.get('material_used'),
+                    job_data.get('material_cost'),
+                    job_data.get('power_cost'),
                     job_data.get('is_business', False),
-                    job_data.get('customer_info')
+                    job_data.get('customer_info'),
+                    job_data.get('created_at'),
+                    job_data.get('updated_at')
                 )
             )
+        except sqlite3.IntegrityError as e:
+            # Handle unique constraint violations gracefully
+            error_msg = str(e).lower()
+            if 'unique' in error_msg or 'idx_jobs_unique_print' in error_msg:
+                logger.info("Duplicate job detected (UNIQUE constraint)",
+                           printer_id=job_data.get('printer_id'),
+                           filename=job_data.get('filename'),
+                           start_time=job_data.get('start_time'),
+                           error=str(e))
+                # Return False to indicate the job already exists
+                return False
+            else:
+                # Other integrity errors (e.g., foreign key violations)
+                logger.error("Database integrity error creating job",
+                            error=str(e),
+                            job_data=job_data)
+                return False
         except Exception as e:  # pragma: no cover
             logger.error("Failed to create job", error=str(e))
             return False
