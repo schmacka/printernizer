@@ -29,8 +29,20 @@ def temp_library_path():
 def mock_database():
     """Mock database for library service testing"""
     db = Mock()
-    db.create_library_file = AsyncMock(return_value=True)
-    db.get_library_file_by_checksum = AsyncMock(return_value=None)
+
+    # Make database stateful - store files that are created
+    # Store as attribute so tests can pre-populate it
+    db._created_files = {}
+
+    async def create_file(file_record):
+        db._created_files[file_record['checksum']] = file_record
+        return True
+
+    async def get_file(checksum):
+        return db._created_files.get(checksum, None)
+
+    db.create_library_file = AsyncMock(side_effect=create_file)
+    db.get_library_file_by_checksum = AsyncMock(side_effect=get_file)
     db.update_library_file = AsyncMock(return_value=True)
     db.create_library_file_source = AsyncMock(return_value=True)
     db.delete_library_file = AsyncMock(return_value=True)
@@ -148,8 +160,7 @@ class TestLibraryPathGeneration:
         )
 
         assert 'models' in str(path)
-        assert 'a3' in str(path)  # First 2 chars for sharding
-        assert checksum in str(path)
+        assert 'benchy.3mf' in str(path)  # Uses natural filename
         assert path.suffix == '.3mf'
 
     def test_printer_path_generation(self, library_service):
@@ -161,9 +172,7 @@ class TestLibraryPathGeneration:
 
         assert 'printers' in str(path)
         assert 'bambu_a1' in str(path)
-        assert 'b7' in str(path)  # Sharding
-        assert checksum in str(path)
-        assert 'benchy.gcode' in str(path)
+        assert 'benchy.gcode' in str(path)  # Uses natural filename
 
     def test_upload_path_generation(self, library_service):
         """Test path generation for uploaded files"""
@@ -173,12 +182,11 @@ class TestLibraryPathGeneration:
         )
 
         assert 'uploads' in str(path)
-        assert 'c4' in str(path)  # Sharding
-        assert checksum in str(path)
+        assert 'model.stl' in str(path)  # Uses natural filename
         assert path.suffix == '.stl'
 
     def test_path_sharding_distribution(self, library_service):
-        """Test that path sharding distributes files across directories"""
+        """Test that files from same source type go to same directory (no sharding)"""
         checksums = [
             "a0" + "0" * 62,
             "b1" + "0" * 62,
@@ -191,9 +199,10 @@ class TestLibraryPathGeneration:
             for c in checksums
         ]
 
-        # Each should be in a different shard
+        # All should be in the same directory (models) - no sharding
         shards = [p.parent.name for p in paths]
-        assert len(set(shards)) == len(checksums)  # All unique
+        assert len(set(shards)) == 1  # All same
+        assert shards[0] == 'models'
 
 
 class TestFileAddition:
@@ -219,13 +228,16 @@ class TestFileAddition:
 
     @pytest.mark.asyncio
     async def test_add_duplicate_file_adds_source(self, library_service, sample_test_file, mock_database):
-        """Test that adding duplicate file adds source instead of creating new entry"""
+        """Test that adding duplicate file creates new record marked as duplicate"""
         existing_file = {
             'id': 'existing-uuid',
             'checksum': SAMPLE_FILE_CHECKSUM,
-            'filename': 'existing.3mf'
+            'filename': 'existing.3mf',
+            'sources': '[]',  # Add sources field for the update logic
+            'duplicate_count': 0
         }
-        mock_database.get_library_file_by_checksum.return_value = existing_file
+        # Pre-populate the database with existing file
+        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = existing_file
 
         source_info = {
             'type': 'watch_folder',
@@ -237,8 +249,12 @@ class TestFileAddition:
             sample_test_file, source_info, copy_file=True
         )
 
-        assert result == existing_file
-        mock_database.create_library_file.assert_not_called()
+        # Should create a new file record for the duplicate (with modified checksum)
+        assert result is not None
+        assert result['is_duplicate'] is True
+        assert result['duplicate_of_checksum'] == SAMPLE_FILE_CHECKSUM
+        assert SAMPLE_FILE_CHECKSUM in result['checksum']  # Modified checksum includes original
+        mock_database.create_library_file.assert_called_once()
         mock_database.create_library_file_source.assert_called()
 
     @pytest.mark.asyncio

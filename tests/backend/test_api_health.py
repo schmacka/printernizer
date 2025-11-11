@@ -30,14 +30,15 @@ class TestHealthEndpoint:
     def test_health_check_includes_system_info(self, client):
         """Test health check includes essential system information."""
         response = client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Essential system info
         assert "database" in data
         assert "services" in data
-        assert data["database"]["status"] in ["connected", "disconnected"]
+        assert "healthy" in data["database"]
+        assert isinstance(data["database"]["healthy"], bool)
 
     def test_health_check_response_format(self, client):
         """Test health response follows expected format."""
