@@ -1,3 +1,11 @@
+## [2.5.12] - 2025-11-11
+
+- fix(ci): Allow test step to continue on error, rely on pass rate check
+- feat(ci): Configure GitHub Actions for stable test execution (Phase 6)
+- fix: Correct database method calls in file_upload_service
+- feat: Complete Phase 4 - Library service tests 29/29 passing, error handling strategic decision
+- docs: Resolve all 11 backend test collection errors
+
 ## [2.5.11] - 2025-11-11
 
 - fix(tests): Phase 3 complete - Service layer tests 100% passing
