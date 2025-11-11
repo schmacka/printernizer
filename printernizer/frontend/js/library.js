@@ -1272,3 +1272,25 @@ libraryManager.init = function() {
     console.log('Library page initialized');
     this.initialize();
 };
+
+// Global function to trigger file upload picker
+function triggerFileUpload() {
+    const fileInput = document.getElementById('libraryFileInput');
+    if (fileInput) {
+        fileInput.click();
+    } else {
+        console.error('File input not found');
+    }
+}
+
+// Global function to handle manual file upload
+async function handleManualFileUpload(event) {
+    const files = Array.from(event.target.files);
+    if (files.length > 0) {
+        console.log('Files selected for upload:', files.length);
+        await libraryManager.handleFileDrop(files);
+
+        // Reset the file input so the same files can be selected again if needed
+        event.target.value = '';
+    }
+}

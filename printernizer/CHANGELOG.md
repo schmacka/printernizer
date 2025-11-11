@@ -1,3 +1,9 @@
+## [2.5.9] - 2025-11-11
+
+- fix(tests): Phase 2.1 complete - File API tests and router bug fixed
+- feat: Add manual upload button to library section
+- fix: Reduce Prusa connection timeout from 38s to ~12s
+
 ## [2.5.8] - 2025-11-11
 
 - fix(tests): Phase 2.1 complete - File API tests and router bug fixed

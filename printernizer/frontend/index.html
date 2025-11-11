@@ -500,12 +500,24 @@
                                     aria-label="Suche löschen">✕</button>
                         </div>
                     </div>
+                    <button class="btn btn-primary" onclick="triggerFileUpload()">
+                        <span class="btn-icon">📤</span>
+                        Hochladen
+                    </button>
                     <button class="btn btn-secondary" onclick="refreshLibrary()">
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
                     </button>
                 </div>
             </div>
+
+            <!-- Hidden file input for manual upload -->
+            <input type="file"
+                   id="libraryFileInput"
+                   style="display: none;"
+                   multiple
+                   accept=".3mf,.stl,.gcode,.obj,.ply"
+                   onchange="handleManualFileUpload(event)">
 
             <!-- Library Statistics -->
             <div class="library-stats-container" id="libraryStats">
