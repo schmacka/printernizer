@@ -412,13 +412,8 @@ def test_utils():
 # ASYNC TEST SUPPORT
 # =====================================================
 
-@pytest.fixture(scope="function")
-def event_loop():
-    """Create event loop for async tests"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
+# NOTE: event_loop fixture removed - pytest-asyncio 0.21+ provides this built-in
+# Using asyncio_mode = auto in pytest.ini for automatic async test detection
 
 
 # =====================================================

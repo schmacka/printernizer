@@ -179,13 +179,13 @@ async def download_file(
 
     result = await file_service.download_file(printer_id, filename)
 
-    if not result.get('success', False):
+    if result.get('status') != 'success':
         raise FileDownloadError(
             filename=filename,
             printer_id=printer_id,
-            reason="Download operation failed"
+            reason=result.get('message', 'Download operation failed')
         )
-    return success_response({"status": "downloaded"})
+    return success_response({"status": "downloaded", "local_path": result.get('local_path')})
 
 
 @router.post("/sync")
