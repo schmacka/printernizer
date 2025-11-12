@@ -13,8 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: printernizer-backend
-  IMAGE_NAME_FRONTEND: printernizer-frontend
+  IMAGE_NAME: printernizer
   PYTHON_VERSION: '3.11'
   NODE_VERSION: '18'
 
@@ -361,9 +360,9 @@ jobs:
           trivy-results.sarif
           bandit-report.json
 
-  # Build and Push Docker Images
-  build-images:
-    name: Build Docker Images
+  # Build and Push Docker Image
+  build-image:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [test-backend, test-frontend, security-scan, printer-integration-test]
     if: github.event_name != 'pull_request'
@@ -373,10 +372,8 @@ jobs:
       packages: write
 
     outputs:
-      backend-image: ${{ steps.meta-backend.outputs.tags }}
-      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
-      backend-digest: ${{ steps.build-backend.outputs.digest }}
-      frontend-digest: ${{ steps.build-frontend.outputs.digest }}
+      image: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
 
     steps:
     - name: Checkout code
@@ -392,12 +389,12 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    # Backend image
-    - name: Extract backend metadata
-      id: meta-backend
+    # Extract metadata for the image
+    - name: Extract image metadata
+      id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
@@ -405,42 +402,17 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Build and push backend image
-      id: build-backend
+    # Build and push the monolithic image (includes both backend and frontend)
+    - name: Build and push image
+      id: build
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./Dockerfile
+        file: ./docker/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
-        tags: ${{ steps.meta-backend.outputs.tags }}
-        labels: ${{ steps.meta-backend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    # Frontend image
-    - name: Extract frontend metadata
-      id: meta-frontend
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Build and push frontend image
-      id: build-frontend
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile.frontend
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta-frontend.outputs.tags }}
-        labels: ${{ steps.meta-frontend.outputs.labels }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -448,7 +420,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build-images]
+    needs: [build-image]
     if: github.ref == 'refs/heads/develop'
     environment: staging
 
@@ -458,9 +430,8 @@ jobs:
 
     - name: Deploy to staging environment
       run: |
-        echo "Deploying to staging with images:"
-        echo "Backend: ${{ needs.build-images.outputs.backend-image }}"
-        echo "Frontend: ${{ needs.build-images.outputs.frontend-image }}"
+        echo "Deploying to staging with image:"
+        echo "Image: ${{ needs.build-image.outputs.image }}"
         # Add staging deployment logic here
         # This could use kubectl, docker-compose, or deployment tools
 
@@ -468,7 +439,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-images]
+    needs: [build-image]
     if: startsWith(github.ref, 'refs/tags/v')
     environment: production
 
@@ -492,18 +463,15 @@ jobs:
     - name: Deploy to production environment
       env:
         VERSION: ${{ github.ref_name }}
-        BACKEND_IMAGE: ${{ needs.build-images.outputs.backend-image }}
-        FRONTEND_IMAGE: ${{ needs.build-images.outputs.frontend-image }}
+        IMAGE: ${{ needs.build-image.outputs.image }}
       run: |
         echo "Deploying Printernizer $VERSION"
-        echo "Backend: $BACKEND_IMAGE"
-        echo "Frontend: $FRONTEND_IMAGE"
+        echo "Image: $IMAGE"
 
         # Update image tags in production manifest (if exists)
         if [ -f production.yml ]; then
           echo "Updating production.yml with new image tags..."
-          sed -i "s|ghcr.io/porcus3d/printernizer-backend:latest|$BACKEND_IMAGE|g" production.yml
-          sed -i "s|ghcr.io/porcus3d/printernizer-frontend:latest|$FRONTEND_IMAGE|g" production.yml
+          sed -i "s|ghcr.io/porcus3d/printernizer:latest|$IMAGE|g" production.yml
         else
           echo "⚠️  production.yml not found - skipping manifest update"
         fi
@@ -550,8 +518,7 @@ jobs:
 
         # Wait for deployment to be ready
         echo "Checking deployment status..."
-        kubectl wait --for=condition=available --timeout=600s deployment/printernizer-backend -n printernizer 2>/dev/null || echo "⚠️  Backend deployment not found or not ready"
-        kubectl wait --for=condition=available --timeout=600s deployment/printernizer-frontend -n printernizer 2>/dev/null || echo "⚠️  Frontend deployment not found or not ready"
+        kubectl wait --for=condition=available --timeout=600s deployment/printernizer -n printernizer 2>/dev/null || echo "⚠️  Deployment not found or not ready"
 
         echo "✅ Deployment process completed!"
 
@@ -559,8 +526,8 @@ jobs:
       run: |
         # Health check with retry logic
         for i in {1..10}; do
-          if kubectl exec -n printernizer deployment/printernizer-backend -- curl -f http://localhost:8000/api/v1/health; then
-            echo "✅ Backend health check passed"
+          if kubectl exec -n printernizer deployment/printernizer -- curl -f http://localhost:8000/api/v1/health; then
+            echo "✅ Health check passed"
             break
           else
             echo "⏳ Health check attempt $i failed, retrying in 30s..."
@@ -575,15 +542,15 @@ jobs:
         
         # Printer integration health checks
         echo "🔌 Testing printer connectivity endpoints..."
-        kubectl exec -n printernizer deployment/printernizer-backend -- curl -f http://localhost:8000/api/v1/printers/status || echo "⚠️  Printer endpoints not yet configured"
+        kubectl exec -n printernizer deployment/printernizer -- curl -f http://localhost:8000/api/v1/printers/status || echo "⚠️  Printer endpoints not yet configured"
         
         # WebSocket health check
         echo "🌐 Testing WebSocket endpoints..."
-        kubectl exec -n printernizer deployment/printernizer-backend -- curl -f http://localhost:8000/ws/health || echo "⚠️  WebSocket endpoints ready for configuration"
+        kubectl exec -n printernizer deployment/printernizer -- curl -f http://localhost:8000/ws/health || echo "⚠️  WebSocket endpoints ready for configuration"
         
         # File storage health check
         echo "📁 Testing file storage..."
-        kubectl exec -n printernizer deployment/printernizer-backend -- ls -la /app/printer-files/ || echo "⚠️  File storage mounted and ready"
+        kubectl exec -n printernizer deployment/printernizer -- ls -la /app/printer-files/ || echo "⚠️  File storage mounted and ready"
         
         echo "🎉 All health checks passed for Milestone 1.2!"
 
