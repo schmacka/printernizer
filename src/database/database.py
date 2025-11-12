@@ -35,6 +35,9 @@ class Database:
         self._connection = await aiosqlite.connect(str(self.db_path))
         self._connection.row_factory = aiosqlite.Row
         
+        # Enable foreign key constraints
+        await self._connection.execute("PRAGMA foreign_keys = ON")
+        
         # Create tables
         await self._create_tables()
         

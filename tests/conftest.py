@@ -42,6 +42,8 @@ def db_connection(temp_database):
     """Database connection fixture"""
     conn = sqlite3.connect(temp_database)
     conn.row_factory = sqlite3.Row
+    # Enable foreign key constraints
+    conn.execute("PRAGMA foreign_keys = ON")
     yield conn
     conn.close()
 

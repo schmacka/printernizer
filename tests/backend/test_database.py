@@ -180,7 +180,8 @@ class TestDatabaseSchema:
         updated_time = datetime.fromisoformat(updated_time_str)
         
         # updated_at should be newer than when we started
-        assert updated_time >= original_time
+        # Note: SQLite CURRENT_TIMESTAMP has second precision, so compare at second level
+        assert updated_time.replace(microsecond=0) >= original_time.replace(microsecond=0)
     
     def test_job_status_change_trigger(self, populated_database):
         """Test job status change trigger creates system events"""
@@ -221,12 +222,22 @@ class TestDatabaseSchema:
         # Enable foreign key checks
         cursor.execute("PRAGMA foreign_keys = ON")
         
-        # Try to delete printer with dependent jobs
-        with pytest.raises(sqlite3.IntegrityError):
-            cursor.execute("DELETE FROM printers WHERE id = 'bambu_a1_001'")
-            populated_database.commit()
+        # Test CASCADE delete: deleting printer should cascade delete jobs
+        # First, verify jobs exist for this printer
+        cursor.execute("SELECT COUNT(*) FROM jobs WHERE printer_id = 'bambu_a1_001'")
+        job_count_before = cursor.fetchone()[0]
+        assert job_count_before > 0, "Test requires jobs for bambu_a1_001"
         
-        # Try to insert job with non-existent printer
+        # Delete printer (should cascade to jobs)
+        cursor.execute("DELETE FROM printers WHERE id = 'bambu_a1_001'")
+        populated_database.commit()
+        
+        # Verify jobs were also deleted (CASCADE behavior)
+        cursor.execute("SELECT COUNT(*) FROM jobs WHERE printer_id = 'bambu_a1_001'")
+        job_count_after = cursor.fetchone()[0]
+        assert job_count_after == 0, "Jobs should be cascade deleted when printer is deleted"
+        
+        # Try to insert job with non-existent printer (should fail)
         with pytest.raises(sqlite3.IntegrityError):
             cursor.execute("""
                 INSERT INTO jobs (printer_id, job_name, status)
