@@ -96,6 +96,8 @@ Create a pull request on GitHub with:
 - Test error handling and edge cases
 - Maintain good test coverage
 
+**💡 Tip**: Use the GitHub Copilot Custom Agent for test setup and execution! See [`.github/COPILOT_AGENT_SETUP.md`](.github/COPILOT_AGENT_SETUP.md) for details.
+
 ### Documentation
 - Update README.md if needed
 - Add docstrings to new functions
