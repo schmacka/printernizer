@@ -635,6 +635,8 @@ python -m pytest --cov=src tests/
 python -m pytest tests/backend/
 ```
 
+**💡 GitHub Copilot Users**: We have a custom agent for test setup and execution! See [`.github/COPILOT_AGENT_SETUP.md`](.github/COPILOT_AGENT_SETUP.md) for details on creating a specialized test agent.
+
 ### Code Quality
 ```bash
 # Format code
