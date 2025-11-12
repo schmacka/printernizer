@@ -172,6 +172,84 @@ class Database:
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_trending_platform ON trending_cache(platform)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_trending_expires ON trending_cache(expires_at)")
 
+            # Library files table for unified file management with deduplication
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS library_files (
+                    id TEXT PRIMARY KEY,
+                    checksum TEXT UNIQUE NOT NULL,
+                    filename TEXT NOT NULL,
+                    display_name TEXT,
+                    library_path TEXT NOT NULL,
+                    file_size INTEGER,
+                    file_type TEXT,
+                    sources TEXT, -- JSON array of sources
+                    status TEXT DEFAULT 'available',
+                    added_to_library TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_modified TIMESTAMP,
+                    last_analyzed TIMESTAMP,
+                    search_index TEXT,
+                    is_duplicate BOOLEAN DEFAULT 0,
+                    duplicate_of_checksum TEXT,
+                    duplicate_count INTEGER DEFAULT 0,
+                    has_thumbnail BOOLEAN DEFAULT 0,
+                    thumbnail_data BLOB,
+                    thumbnail_width INTEGER,
+                    thumbnail_height INTEGER,
+                    thumbnail_format TEXT,
+                    thumbnail_source TEXT,
+                    metadata TEXT, -- JSON metadata
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Library file sources table for tracking multiple sources per file
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS library_file_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_checksum TEXT NOT NULL,
+                    source_type TEXT NOT NULL, -- printer, watch_folder, upload
+                    source_id TEXT, -- printer ID or watch folder ID
+                    source_name TEXT, -- Human-readable source name
+                    original_path TEXT,
+                    original_filename TEXT,
+                    discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    metadata TEXT, -- JSON metadata specific to this source
+                    manufacturer TEXT, -- For filtering by manufacturer
+                    printer_model TEXT, -- For filtering by printer model
+                    FOREIGN KEY (file_checksum) REFERENCES library_files(checksum) ON DELETE CASCADE,
+                    UNIQUE(file_checksum, source_type, source_id, original_path)
+                )
+            """)
+
+            # Library statistics table
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS library_stats (
+                    id INTEGER PRIMARY KEY CHECK (id = 1), -- Singleton table
+                    total_files INTEGER DEFAULT 0,
+                    total_size INTEGER DEFAULT 0,
+                    unique_files INTEGER DEFAULT 0,
+                    duplicate_files INTEGER DEFAULT 0,
+                    files_with_thumbnails INTEGER DEFAULT 0,
+                    files_analyzed INTEGER DEFAULT 0,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Insert default stats record
+            await cursor.execute("""
+                INSERT OR IGNORE INTO library_stats (id, total_files, total_size, unique_files, duplicate_files)
+                VALUES (1, 0, 0, 0, 0)
+            """)
+
+            # Create indexes for library tables
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_files_checksum ON library_files(checksum)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_files_status ON library_files(status)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_files_file_type ON library_files(file_type)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_files_is_duplicate ON library_files(is_duplicate)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_files_added ON library_files(added_to_library)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_sources_checksum ON library_file_sources(file_checksum)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_library_sources_type ON library_file_sources(source_type)")
+
             # Printers table - Enhanced configuration
             await cursor.execute("""
                 CREATE TABLE IF NOT EXISTS printers (
