@@ -1,3 +1,10 @@
+## [2.5.15] - 2025-11-12
+
+- fix: Prevent double slash in API URLs when accessing via root path
+- fix: Support Home Assistant ingress paths in frontend
+- fix(ci): Add required permissions for CodeQL Action v3
+- chore(ci): Update CodeQL Action from v2 to v3
+
 ## [2.5.14] - 2025-11-12
 
 - fix: Support Home Assistant ingress paths in frontend
