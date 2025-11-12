@@ -258,7 +258,7 @@ class CameraManager {
                 ${snapshots.map(snapshot => `
                     <div class="snapshot-item">
                         <div class="snapshot-preview">
-                            <img src="${CONFIG.BASE_PATH}/api/v1/snapshots/${snapshot.id}/download"
+                            <img src="${api.baseURL}/snapshots/${snapshot.id}/download"
                                  alt="Snapshot"
                                  onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjNmNGY2Ii8+CjxwYXRoIGQ9Im03NSA2MCA2IDAgMCAxIDEyIDAgNiA2IDAgMCAxIDAgMTIgNiA2IDAgMCAxLTEyIDAgNiA2IDAgMCAxIDAtMTJaTTk5IDkwbC0zNi0zNiA5LTkgMjcgMjcgNjMtNjMgOS05LTcyIDcyWiIgZmlsbD0iIzZiNzI4MCIvPgo8L3N2Zz4K';">
                         </div>
@@ -269,7 +269,7 @@ class CameraManager {
                             ${snapshot.notes ? `<div class="snapshot-notes">${escapeHtml(snapshot.notes)}</div>` : ''}
                         </div>
                         <div class="snapshot-actions">
-                            <a href="${CONFIG.BASE_PATH}/api/v1/snapshots/${snapshot.id}/download"
+                            <a href="${api.baseURL}/snapshots/${snapshot.id}/download"
                                class="btn btn-sm btn-secondary"
                                download="${snapshot.filename}"
                                title="Herunterladen">

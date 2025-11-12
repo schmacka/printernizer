@@ -1135,8 +1135,10 @@ class LibraryManager {
         formData.append('is_business', 'false');
 
         try {
-            // Upload files
-            const response = await fetch(`${CONFIG.BASE_PATH}/api/v1/files/upload`, {
+            // Upload files - use direct fetch since FormData requires custom handling
+            // Note: Cannot use api.post() because it sets Content-Type to application/json
+            // FormData needs browser to set multipart/form-data with boundary automatically
+            const response = await fetch(`${api.baseURL}/files/upload`, {
                 method: 'POST',
                 body: formData
             });
