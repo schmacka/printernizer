@@ -351,32 +351,44 @@ class Database:
     async def create_job(self, job_data: Dict[str, Any]) -> bool:
         """Create a new job record."""
         try:
+            # Build dynamic INSERT query based on which fields are provided
+            # This allows database DEFAULT values to be used for created_at/updated_at
+            columns = ['id', 'printer_id', 'printer_type', 'job_name', 'filename', 'status',
+                      'start_time', 'end_time', 'estimated_duration', 'actual_duration', 'progress',
+                      'material_used', 'material_cost', 'power_cost', 'is_business', 'customer_info']
+            values = [
+                job_data['id'],
+                job_data['printer_id'],
+                job_data['printer_type'],
+                job_data['job_name'],
+                job_data.get('filename'),
+                job_data.get('status', 'pending'),
+                job_data.get('start_time'),
+                job_data.get('end_time'),
+                job_data.get('estimated_duration'),
+                job_data.get('actual_duration'),
+                job_data.get('progress', 0),
+                job_data.get('material_used'),
+                job_data.get('material_cost'),
+                job_data.get('power_cost'),
+                job_data.get('is_business', False),
+                job_data.get('customer_info')
+            ]
+            
+            # Only include created_at/updated_at if explicitly provided (not None)
+            if job_data.get('created_at') is not None:
+                columns.append('created_at')
+                values.append(job_data['created_at'])
+            if job_data.get('updated_at') is not None:
+                columns.append('updated_at')
+                values.append(job_data['updated_at'])
+            
+            placeholders = ', '.join(['?' for _ in columns])
+            column_str = ', '.join(columns)
+            
             return await self._execute_write(
-                """INSERT INTO jobs (id, printer_id, printer_type, job_name, filename, status,
-                                start_time, end_time, estimated_duration, actual_duration, progress,
-                                material_used, material_cost, power_cost, is_business, customer_info,
-                                created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    job_data['id'],
-                    job_data['printer_id'],
-                    job_data['printer_type'],
-                    job_data['job_name'],
-                    job_data.get('filename'),
-                    job_data.get('status', 'pending'),
-                    job_data.get('start_time'),
-                    job_data.get('end_time'),
-                    job_data.get('estimated_duration'),
-                    job_data.get('actual_duration'),
-                    job_data.get('progress', 0),
-                    job_data.get('material_used'),
-                    job_data.get('material_cost'),
-                    job_data.get('power_cost'),
-                    job_data.get('is_business', False),
-                    job_data.get('customer_info'),
-                    job_data.get('created_at'),
-                    job_data.get('updated_at')
-                )
+                f"INSERT INTO jobs ({column_str}) VALUES ({placeholders})",
+                tuple(values)
             )
         except sqlite3.IntegrityError as e:
             # Handle unique constraint violations gracefully
@@ -1469,23 +1481,73 @@ class Database:
                     with open(migration_file, 'r', encoding='utf-8') as f:
                         migration_sql = f.read()
 
-                    # Remove comments and split into statements
-                    statements = []
-                    for line in migration_sql.split('\n'):
-                        # Skip comment lines
+                    # Smart SQL statement parser that handles:
+                    # - Comments (-- and /* */)
+                    # - Multi-line statements
+                    # - CREATE TRIGGER blocks with BEGIN/END
+                    # - CREATE VIEW statements
+                    # - Nested parentheses
+                    
+                    sql_statements = []
+                    current_statement = []
+                    in_trigger_block = False
+                    paren_depth = 0
+                    
+                    lines = migration_sql.split('\n')
+                    for line in lines:
+                        # Remove inline comments
+                        if '--' in line:
+                            line = line[:line.index('--')]
+                        
                         line = line.strip()
-                        if line.startswith('--') or not line:
+                        if not line:
                             continue
-                        statements.append(line)
-
-                    # Rejoin and split by semicolons
-                    full_sql = ' '.join(statements)
-                    sql_statements = [s.strip() for s in full_sql.split(';') if s.strip()]
+                        
+                        current_statement.append(line)
+                        line_upper = line.upper()
+                        
+                        # Track if we're in a CREATE TRIGGER block (has BEGIN/END)
+                        if 'CREATE TRIGGER' in line_upper:
+                            in_trigger_block = True
+                        
+                        # Track parentheses depth for nested expressions (e.g., in CREATE VIEW)
+                        paren_depth += line.count('(') - line.count(')')
+                        
+                        # Check for END keyword in trigger blocks
+                        # In triggers, END; marks the end of the block, but it's not the end
+                        # if we're still in nested parentheses
+                        if in_trigger_block and 'END' in line_upper and line.endswith(';'):
+                            # This is END; - marks end of trigger
+                            in_trigger_block = False
+                        
+                        # Check if statement is complete
+                        # A statement is complete when:
+                        # 1. Line ends with semicolon
+                        # 2. We're not in a trigger block
+                        # 3. All parentheses are balanced
+                        if line.endswith(';') and not in_trigger_block and paren_depth == 0:
+                            # Complete statement found
+                            stmt = ' '.join(current_statement)
+                            if stmt.strip():
+                                sql_statements.append(stmt.strip())
+                            current_statement = []
+                    
+                    # Add any remaining statement
+                    if current_statement:
+                        stmt = ' '.join(current_statement)
+                        if stmt.strip():
+                            sql_statements.append(stmt.strip())
 
                     # Execute each statement
                     for statement in sql_statements:
                         # Skip migration tracking inserts (we'll add our own)
                         if 'INSERT INTO schema_migrations' in statement or 'INSERT INTO migrations' in statement:
+                            continue
+                        
+                        # Skip transaction control statements (we manage transactions ourselves)
+                        statement_upper = statement.upper().strip()
+                        if statement_upper in ('BEGIN TRANSACTION;', 'BEGIN;', 'COMMIT;', 'ROLLBACK;'):
+                            logger.debug(f"Skipping transaction control statement: {statement_upper}")
                             continue
 
                         try:
