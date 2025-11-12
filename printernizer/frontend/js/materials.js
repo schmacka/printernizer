@@ -40,18 +40,8 @@ class MaterialsManager {
 
     async loadEnums() {
         try {
-            const response = await fetch(`${CONFIG.BASE_PATH}/api/v1/materials/types`);
-            if (!response.ok) {
-                console.error('Failed to load material types: HTTP', response.status);
-                // Set default enums if API fails
-                this.enums = {
-                    types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
-                    brands: [],
-                    colors: []
-                };
-                return;
-            }
-            this.enums = await response.json();
+            // Use ApiClient which properly handles ingress paths
+            this.enums = await api.get('materials/types');
         } catch (error) {
             console.error('Failed to load material types:', error);
             // Set default enums if fetch fails
@@ -161,8 +151,8 @@ class MaterialsManager {
 
     async updateStats() {
         try {
-            const response = await fetch(`${CONFIG.BASE_PATH}/api/v1/materials/stats`);
-            const stats = await response.json();
+            // Use ApiClient which properly handles ingress paths
+            const stats = await api.get('materials/stats');
 
             // Update stat cards
             const statTotalSpools = document.getElementById('statTotalSpools');

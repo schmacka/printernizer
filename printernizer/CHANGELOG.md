@@ -1,3 +1,11 @@
+## [2.5.16] - 2025-11-12
+
+- fix: Use ApiClient instead of raw fetch to properly handle ingress paths
+- fix(ci): Make SARIF upload gracefully handle missing Advanced Security
+- fix(ci): Update printer integration test path to use existing test files
+- Initial plan
+- fix: Prevent double slash in API URLs when accessing via root path
+
 ## [2.5.15] - 2025-11-12
 
 - fix: Prevent double slash in API URLs when accessing via root path
