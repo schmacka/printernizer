@@ -1,3 +1,19 @@
+## [2.5.17] - 2025-11-12
+
+- Enable foreign key constraints and fix database tests
+- Fix migration parser and job creation validation errors
+- Initial plan
+- docs: Add comprehensive test status summary document
+- fix(tests): Fix test imports, API paths, and performance thresholds
+- Initial plan
+- Revise agent name and description for clarity
+- Add references to GitHub Copilot Custom Agent in documentation
+- Add setup guide for GitHub Copilot Custom Agent
+- Add GitHub Copilot Custom Agent prompt for test setup and execution
+- Initial plan
+- Fix all 5 printer integration test failures
+- Initial plan
+
 ## [2.5.16] - 2025-11-12
 
 - fix: Use ApiClient instead of raw fetch to properly handle ingress paths
