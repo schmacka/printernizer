@@ -34,34 +34,59 @@ npm install
 
 ### Running Tests
 
-#### Complete Test Suite
+#### Complete Test Suite (Matches CI/CD)
 ```bash
+# Run all 397 Python tests (same as CI/CD backend test job)
+python -m pytest tests/backend/ tests/services/ tests/integration/ \
+  tests/test_essential_config.py \
+  tests/test_essential_integration.py \
+  tests/test_essential_models.py \
+  tests/test_infrastructure.py \
+  tests/test_printer_interface_conformance.py \
+  tests/test_sync_consistency.py \
+  --cov=src --cov-report=html --cov-report=term-missing -v
+```
+
+#### Using Test Runner (Legacy)
+```bash
+# Note: test_runner.py only runs tests/backend/ - use pytest directly for full coverage
 python tests/test_runner.py --full-suite
 ```
 
 #### Backend Tests Only
 ```bash
-python tests/test_runner.py --backend
+python -m pytest tests/backend/ -v
+```
+
+#### Service Layer Tests
+```bash
+python -m pytest tests/services/ -v
+```
+
+#### Integration Tests
+```bash
+python -m pytest tests/integration/ -v
 ```
 
 #### Frontend Tests Only
 ```bash
-python tests/test_runner.py --frontend
+cd tests/frontend
+npm test
 ```
 
 #### Specific Test Categories
 ```bash
 # German business logic tests
-python tests/test_runner.py --backend --type german
-
-# Integration tests
-python tests/test_runner.py --backend --type integration
+python -m pytest tests/backend/test_german_business.py -v
 
 # Performance benchmarks
-python tests/test_runner.py --performance
+python -m pytest tests/backend/test_performance.py -v
 
 # Error handling tests
-python tests/test_runner.py --backend --type errors
+python -m pytest tests/backend/test_error_handling.py -v
+
+# Auto-job creation logic
+python -m pytest tests/services/test_auto_job_creation.py -v
 ```
 
 ## 📊 Coverage Requirements
@@ -125,29 +150,53 @@ open coverage/frontend/index.html
 ### Directory Structure
 ```
 tests/
-├── __init__.py                 # Test package initialization
-├── conftest.py                 # Shared fixtures and configuration
-├── test_runner.py              # Main test execution script
-├── requirements-test.txt       # Python test dependencies
-├── backend/                    # Backend Python tests
+├── __init__.py                          # Test package initialization
+├── conftest.py                          # Shared fixtures and configuration
+├── test_runner.py                       # Legacy test execution script
+├── requirements-test.txt                # Python test dependencies
+├── backend/                             # Backend API tests (259 tests)
 │   ├── __init__.py
-│   ├── test_api_printers.py    # Printer management API tests
-│   ├── test_api_jobs.py        # Job management API tests
-│   ├── test_api_files.py       # File management API tests
-│   ├── test_database.py        # Database operation tests
-│   ├── test_websocket.py       # WebSocket communication tests
-│   ├── test_integration.py     # Integration workflow tests
-│   ├── test_end_to_end.py      # Complete user workflow tests
-│   ├── test_german_business.py # German business logic tests
-│   ├── test_performance.py     # Performance and load tests
-│   └── test_error_handling.py  # Error scenarios and edge cases
-└── frontend/                   # Frontend JavaScript tests
-    ├── package.json            # Node.js dependencies and scripts
-    ├── setup.js                # Jest test environment setup
-    ├── api.test.js             # API service layer tests
-    ├── dashboard.test.js       # Dashboard component tests
-    └── websocket.test.js       # WebSocket integration tests
+│   ├── test_api_printers.py             # Printer management API (26 tests)
+│   ├── test_api_jobs.py                 # Job management API (29 tests)
+│   ├── test_api_files.py                # File management API (24 tests)
+│   ├── test_api_health.py               # Health check endpoints (9 tests)
+│   ├── test_database.py                 # Database operations (18 tests)
+│   ├── test_websocket.py                # WebSocket communication (21 tests)
+│   ├── test_integration.py              # Integration workflow (16 tests)
+│   ├── test_end_to_end.py               # Complete workflows (9 tests)
+│   ├── test_german_business.py          # German compliance (21 tests)
+│   ├── test_performance.py              # Performance benchmarks (11 tests)
+│   ├── test_error_handling.py           # Error scenarios (28 tests)
+│   ├── test_auto_job_performance.py     # Auto-job performance (13 tests)
+│   ├── test_job_null_fix.py             # Job null handling (5 tests)
+│   └── test_library_service.py          # Library/file storage (29 tests)
+├── services/                            # Service layer tests (63 tests)
+│   ├── __init__.py
+│   ├── test_auto_job_creation.py        # Auto-job logic (28 tests)
+│   ├── test_file_download_service.py    # File downloads (17 tests)
+│   └── test_printer_connection_service.py # Connections (18 tests)
+├── integration/                         # Integration tests (14 tests)
+│   ├── __init__.py
+│   └── test_auto_job_integration.py     # Auto-job workflows (14 tests)
+├── test_essential_config.py             # Configuration tests (15 tests)
+├── test_essential_integration.py        # Essential workflows (17 tests)
+├── test_essential_models.py             # Data models (16 tests)
+├── test_essential_printer_api.py        # Printer API validation (11 tests)
+├── test_essential_printer_drivers.py    # Printer drivers (11 tests)
+├── test_infrastructure.py               # Infrastructure setup (5 tests)
+├── test_printer_interface_conformance.py # Interface compliance (3 tests)
+├── test_sync_consistency.py             # Code sync validation (5 tests)
+└── frontend/                            # Frontend tests (JavaScript/Jest)
+    ├── package.json                     # Node.js dependencies
+    ├── setup.js                         # Jest environment setup
+    ├── api.test.js                      # API service layer
+    ├── dashboard.test.js                # Dashboard components
+    ├── websocket.test.js                # WebSocket integration
+    ├── test_essential_forms.js          # Form validation
+    └── test_essential_printer_monitoring.js # Printer monitoring UI
 ```
+
+**Total: 419 tests** (397 Python + ~22 JavaScript)
 
 ### Test Fixtures and Mocks
 
@@ -276,6 +325,54 @@ python tests/test_runner.py --coverage-only
 
 ## 📈 Continuous Integration
 
+### CI/CD Test Coverage
+
+The CI/CD workflow (`.github/workflows/ci-cd.yml`) runs **all 419 tests** organized into three jobs:
+
+#### Backend Test Job (`test-backend`)
+Runs **397 Python tests** with coverage:
+```bash
+python -m pytest tests/backend/ tests/services/ tests/integration/ \
+  tests/test_essential_config.py \
+  tests/test_essential_integration.py \
+  tests/test_essential_models.py \
+  tests/test_infrastructure.py \
+  tests/test_printer_interface_conformance.py \
+  tests/test_sync_consistency.py \
+  --cov=src --cov-report=xml --cov-report=html
+```
+
+**Coverage Requirements:**
+- Minimum: 85% overall code coverage
+- Critical modules: 90%+ (printer service, job service)
+- German business logic: 100%
+
+**Quality Gates:**
+- Pass rate threshold: 45% minimum (baseline)
+- Max failures: 20 (fail-fast)
+- Test timeout: 300 seconds
+
+#### Frontend Test Job (`test-frontend`)
+Runs JavaScript tests with Jest:
+```bash
+cd tests/frontend
+npm run test:coverage -- --ci
+```
+
+**Quality Gates:**
+- Pass rate threshold: 95% minimum
+- Coverage: 85%+ for functions, lines, statements
+
+#### Printer Integration Test Job (`printer-integration-test`)
+Runs on non-PR builds only (redundant validation):
+- test_essential_printer_drivers.py
+- test_essential_printer_api.py
+- test_api_printers.py
+
+**Note:** These tests are already included in the main backend test job. This job provides extra validation on pushes to main/develop branches.
+
+For complete CI/CD test documentation, see: [`docs/CI_CD_TEST_COVERAGE.md`](../docs/CI_CD_TEST_COVERAGE.md)
+
 ### Pre-commit Hooks
 ```bash
 # Install pre-commit hooks
@@ -288,7 +385,7 @@ pre-commit run --all-files
 
 ### CI Pipeline Requirements
 1. All tests must pass (exit code 0)
-2. Coverage thresholds must be met
+2. Coverage thresholds must be met (85% overall)
 3. German business logic tests are mandatory
 4. Performance benchmarks within acceptable limits
 5. Security validation tests must pass
