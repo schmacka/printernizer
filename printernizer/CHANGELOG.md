@@ -1,3 +1,16 @@
+## [2.5.18] - 2025-11-12
+
+- fix: Initialize allowedExtensions in LibraryManager constructor
+- Fix Docker build: use correct Dockerfile path and single image architecture
+- Initial plan
+- Add printer-test-results.xml to .gitignore
+- Final verification - all printer integration tests passing
+- Fix printer integration test failures - correct constructor parameters and enum references
+- Initial plan
+- Enable foreign key constraints and fix database tests
+- Fix migration parser and job creation validation errors
+- Initial plan
+
 ## [2.5.17] - 2025-11-12
 
 - Enable foreign key constraints and fix database tests
