@@ -12,7 +12,7 @@ DROP VIEW IF EXISTS v_snapshots_with_context;
 -- Create new jobs table with proper constraints
 CREATE TABLE IF NOT EXISTS jobs_new (
     id TEXT PRIMARY KEY NOT NULL CHECK(length(id) > 0),
-    printer_id TEXT NOT NULL,
+    printer_id TEXT NOT NULL REFERENCES printers(id) ON DELETE CASCADE,
     printer_type TEXT NOT NULL,
     job_name TEXT NOT NULL,
     filename TEXT,

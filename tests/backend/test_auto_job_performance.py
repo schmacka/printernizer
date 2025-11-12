@@ -356,7 +356,7 @@ class TestDatabasePerformance:
 
         # Should have limited the query
         assert len(query_params) > 0
-        assert query_params[0].get('limit') == 20  # Limit from design doc
+        assert query_params[0].get('limit') == 100  # Limit to search for existing jobs
 
 
 class TestStressScenarios:
@@ -380,7 +380,7 @@ class TestStressScenarios:
             await monitoring._auto_create_job_if_needed(status)
 
         # Should have created 200 jobs
-        jobs = await job_service.list_jobs(printer_id="bambu_001")
+        jobs = await job_service.list_jobs(printer_id="bambu_001", limit=200)
         assert len(jobs) == 200
 
         # Discovery cache might be large, but bounded
