@@ -40,7 +40,7 @@ class MaterialsManager {
 
     async loadEnums() {
         try {
-            const response = await fetch('/api/v1/materials/types');
+            const response = await fetch(`${CONFIG.BASE_PATH}/api/v1/materials/types`);
             if (!response.ok) {
                 console.error('Failed to load material types: HTTP', response.status);
                 // Set default enums if API fails
@@ -161,7 +161,7 @@ class MaterialsManager {
 
     async updateStats() {
         try {
-            const response = await fetch('/api/v1/materials/stats');
+            const response = await fetch(`${CONFIG.BASE_PATH}/api/v1/materials/stats`);
             const stats = await response.json();
 
             // Update stat cards

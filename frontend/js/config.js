@@ -59,17 +59,14 @@ const getApiBaseUrl = () => {
     return apiUrl;
 };
 
-const getWebSocketUrl = () => {
-    const host = window.location.hostname;
+const getBasePath = () => {
     const port = window.location.port;
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const pathname = window.location.pathname;
 
-    debugLog('Detecting WebSocket URL', { host, port, protocol, pathname });
+    debugLog('Detecting Base Path', { port, pathname });
 
-    // If accessed through HA Ingress (no port in URL) or on port 8123, use absolute-path-relative WebSocket path
-    // Home Assistant Ingress proxies WebSocket connections through /api/hassio_ingress/<token>/
-    // We extract the base path and construct the WebSocket URL with full absolute path
+    // If accessed through HA Ingress (no port in URL) or on port 8123, extract the ingress base path
+    // Home Assistant Ingress uses paths like /api/hassio_ingress/<token>/
     if (!port || port === '8123') {
         // Extract the ingress base path from pathname
         let basePath = pathname;
@@ -84,12 +81,34 @@ const getWebSocketUrl = () => {
             basePath += '/';
         }
 
+        // Remove trailing slash for consistency
+        basePath = basePath.replace(/\/$/, '');
+
+        debugLog('HA Ingress base path', { basePath, pathname });
+        return basePath;
+    }
+
+    // Direct access mode: no base path needed
+    debugLog('Direct access mode - no base path');
+    return '';
+};
+
+const getWebSocketUrl = () => {
+    const host = window.location.hostname;
+    const port = window.location.port;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const basePath = getBasePath();
+
+    debugLog('Detecting WebSocket URL', { host, port, protocol, basePath });
+
+    // If accessed through HA Ingress (no port in URL) or on port 8123, use absolute-path-relative WebSocket path
+    // Home Assistant Ingress proxies WebSocket connections through /api/hassio_ingress/<token>/
+    if (!port || port === '8123') {
         // Build WebSocket URL with absolute-path-relative path
-        const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${basePath}ws`;
+        const wsUrl = `${protocol}//${host}${port ? ':' + port : ''}${basePath}/ws`;
 
         debugLog('HA Ingress WebSocket mode - using absolute-path-relative URL', {
             wsUrl,
-            pathname,
             basePath,
             note: 'WebSocket URL with absolute path includes ingress proxy path'
         });
@@ -107,6 +126,7 @@ const CONFIG = {
     // API Configuration - Dynamic URLs for network access
     API_BASE_URL: getApiBaseUrl(),
     WEBSOCKET_URL: getWebSocketUrl(),
+    BASE_PATH: getBasePath(), // Base ingress path for non-API URLs (e.g., /api/hassio_ingress/<token> or empty)
 
     // Application Settings
     APP_NAME: 'Printernizer',
@@ -431,6 +451,7 @@ const CONFIG = {
 debugLog('Final Configuration', {
     API_BASE_URL: CONFIG.API_BASE_URL,
     WEBSOCKET_URL: CONFIG.WEBSOCKET_URL,
+    BASE_PATH: CONFIG.BASE_PATH,
     location: {
         href: window.location.href,
         pathname: window.location.pathname,
@@ -454,6 +475,7 @@ window.PrinternizerDebug = {
     getConfig: () => ({
         API_BASE_URL: CONFIG.API_BASE_URL,
         WEBSOCKET_URL: CONFIG.WEBSOCKET_URL,
+        BASE_PATH: CONFIG.BASE_PATH,
         location: {
             href: window.location.href,
             pathname: window.location.pathname,
