@@ -46,6 +46,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 test-results.xml
+printer-test-results.xml
 *.cover
 *.py,cover
 .hypothesis/
