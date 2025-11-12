@@ -1,3 +1,11 @@
+## [2.5.19] - 2025-11-12
+
+- feat: Add library tables schema for unified file management
+- fix: Add database migration for thumbnail columns
+- fix: Initialize allowedExtensions in LibraryManager constructor
+- Fix Docker build: use correct Dockerfile path and single image architecture
+- Initial plan
+
 ## [2.5.18] - 2025-11-12
 
 - fix: Initialize allowedExtensions in LibraryManager constructor
