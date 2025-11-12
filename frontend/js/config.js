@@ -65,32 +65,33 @@ const getBasePath = () => {
 
     debugLog('Detecting Base Path', { port, pathname });
 
-    // If accessed through HA Ingress (no port in URL) or on port 8123, extract the ingress base path
-    // Home Assistant Ingress uses paths like /api/hassio_ingress/<token>/
-    if (!port || port === '8123') {
-        // Extract the ingress base path from pathname
-        let basePath = pathname;
-
-        // Remove any file name (index.html, etc.) but keep the directory path
-        if (basePath.includes('.')) {
-            basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
-        }
-
-        // Ensure trailing slash
-        if (!basePath.endsWith('/')) {
-            basePath += '/';
-        }
-
-        // Remove trailing slash for consistency
-        basePath = basePath.replace(/\/$/, '');
-
-        debugLog('HA Ingress base path', { basePath, pathname });
-        return basePath;
+    // Direct access mode (with port) - no base path needed
+    if (port && port !== '8123' && port !== '80' && port !== '443') {
+        debugLog('Direct access mode - no base path');
+        return '';
     }
 
-    // Direct access mode: no base path needed
-    debugLog('Direct access mode - no base path');
-    return '';
+    // HA Ingress or Nabu Casa - extract the ingress base path
+    // Home Assistant Ingress uses paths like /api/hassio_ingress/<token>/
+    // Nabu Casa cloud serves at root: /
+    let basePath = pathname;
+
+    // Remove any file name (index.html, debug.html, etc.) but keep the directory path
+    if (basePath.includes('.')) {
+        basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
+    }
+
+    // Remove trailing slash
+    basePath = basePath.replace(/\/+$/, '');
+
+    // If basePath is exactly "/" (root), return empty string to prevent double slash
+    if (basePath === '' || basePath === '/') {
+        debugLog('Root path detected - returning empty base path');
+        return '';
+    }
+
+    debugLog('HA Ingress base path detected', { basePath, pathname });
+    return basePath;
 };
 
 const getWebSocketUrl = () => {
@@ -122,11 +123,28 @@ const getWebSocketUrl = () => {
     return wsUrl;
 };
 
+/**
+ * Safely join path segments, preventing double slashes
+ * @param {...string} parts - Path segments to join
+ * @returns {string} - Joined path
+ */
+const joinPath = (...parts) => {
+    return parts
+        .filter(Boolean)
+        .map(part => String(part).replace(/^\/+|\/+$/g, '')) // Remove leading/trailing slashes
+        .join('/')
+        .replace(/\/+/g, '/') // Collapse multiple slashes
+        .replace(/^(?!\/)/, '/'); // Ensure leading slash
+};
+
 const CONFIG = {
     // API Configuration - Dynamic URLs for network access
     API_BASE_URL: getApiBaseUrl(),
     WEBSOCKET_URL: getWebSocketUrl(),
     BASE_PATH: getBasePath(), // Base ingress path for non-API URLs (e.g., /api/hassio_ingress/<token> or empty)
+
+    // Path helper function
+    joinPath: joinPath, // Helper to safely join paths (prevents double slashes)
 
     // Application Settings
     APP_NAME: 'Printernizer',
