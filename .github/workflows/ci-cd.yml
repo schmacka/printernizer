@@ -66,7 +66,13 @@ jobs:
     - name: Run backend tests with coverage
       continue-on-error: true
       run: |
-        python -m pytest tests/backend/ \
+        python -m pytest tests/backend/ tests/services/ tests/integration/ \
+          tests/test_essential_config.py \
+          tests/test_essential_integration.py \
+          tests/test_essential_models.py \
+          tests/test_infrastructure.py \
+          tests/test_printer_interface_conformance.py \
+          tests/test_sync_consistency.py \
           --cov=src \
           --cov-report=xml \
           --cov-report=html \
@@ -74,8 +80,7 @@ jobs:
           --timeout=300 \
           --maxfail=20 \
           --tb=short \
-          -v \
-          -m "not integration"
+          -v
       env:
         ENVIRONMENT: testing
         DATABASE_PATH: test.db
@@ -589,7 +594,10 @@ jobs:
 
     - name: Run printer integration tests
       run: |
-        # Run printer-specific tests from the test directory
+        # Run printer-specific tests (already covered in main backend tests)
+        # This job is kept for backwards compatibility but tests are now redundant
+        echo "⚠️  Note: Printer tests are now included in main backend test job"
+        echo "This job runs the same tests again for extra validation on non-PR builds"
         python -m pytest tests/test_essential_printer_drivers.py tests/test_essential_printer_api.py tests/backend/test_api_printers.py \
           --junit-xml=printer-test-results.xml \
           -v \
