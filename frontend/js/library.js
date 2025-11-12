@@ -22,6 +22,7 @@ class LibraryManager {
         };
         this.selectedFile = null;
         this.isLoading = false;
+        this.allowedExtensions = ['.3mf', '.stl', '.gcode', '.obj', '.ply'];
     }
 
     /**
