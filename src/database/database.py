@@ -91,6 +91,12 @@ class Database:
                     watch_folder_path TEXT, -- Path to watch folder for local files
                     relative_path TEXT, -- Relative path within watch folder
                     modified_time TIMESTAMP, -- File modification time
+                    has_thumbnail BOOLEAN DEFAULT 0, -- Whether file has thumbnail
+                    thumbnail_data BLOB, -- Thumbnail image data
+                    thumbnail_width INTEGER, -- Thumbnail width in pixels
+                    thumbnail_height INTEGER, -- Thumbnail height in pixels
+                    thumbnail_format TEXT, -- Thumbnail format (png, jpg, etc.)
+                    thumbnail_source TEXT, -- Thumbnail source (extracted, generated, etc.)
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(printer_id, filename)
                 )
@@ -1782,6 +1788,51 @@ class Database:
                         ('006', 'Add FTS5 search tables and search history')
                     )
                     logger.info("Migration 006 completed")
+
+                # Migration 007: Add thumbnail columns to files table
+                if '007' not in applied_migrations:
+                    logger.info("Migration 007: Adding thumbnail columns to files table")
+
+                    # Refresh column list
+                    await cursor.execute("PRAGMA table_info(files)")
+                    columns = await cursor.fetchall()
+                    column_names = [col['name'] for col in columns] if columns else []
+
+                    # Add has_thumbnail column if it doesn't exist
+                    if 'has_thumbnail' not in column_names:
+                        logger.info("Migration 007: Adding has_thumbnail column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN has_thumbnail BOOLEAN DEFAULT 0")
+
+                    # Add thumbnail_data column if it doesn't exist
+                    if 'thumbnail_data' not in column_names:
+                        logger.info("Migration 007: Adding thumbnail_data column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN thumbnail_data BLOB")
+
+                    # Add thumbnail_width column if it doesn't exist
+                    if 'thumbnail_width' not in column_names:
+                        logger.info("Migration 007: Adding thumbnail_width column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN thumbnail_width INTEGER")
+
+                    # Add thumbnail_height column if it doesn't exist
+                    if 'thumbnail_height' not in column_names:
+                        logger.info("Migration 007: Adding thumbnail_height column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN thumbnail_height INTEGER")
+
+                    # Add thumbnail_format column if it doesn't exist
+                    if 'thumbnail_format' not in column_names:
+                        logger.info("Migration 007: Adding thumbnail_format column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN thumbnail_format TEXT")
+
+                    # Add thumbnail_source column if it doesn't exist
+                    if 'thumbnail_source' not in column_names:
+                        logger.info("Migration 007: Adding thumbnail_source column to files table")
+                        await cursor.execute("ALTER TABLE files ADD COLUMN thumbnail_source TEXT")
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('007', 'Add thumbnail columns to files table')
+                    )
+                    logger.info("Migration 007 completed")
 
                 await self._connection.commit()
                 logger.info("All database migrations completed successfully")
