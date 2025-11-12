@@ -1,3 +1,10 @@
+## [2.5.14] - 2025-11-12
+
+- fix: Support Home Assistant ingress paths in frontend
+- fix(ci): Add required permissions for CodeQL Action v3
+- chore(ci): Update CodeQL Action from v2 to v3
+- feat(ci): Enable frontend test execution in CI/CD pipeline
+
 ## [2.5.13] - 2025-11-11
 
 - fix: Add missing global functions for library page UI interactions

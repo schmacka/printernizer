@@ -1136,7 +1136,7 @@ class LibraryManager {
 
         try {
             // Upload files
-            const response = await fetch('/api/v1/files/upload', {
+            const response = await fetch(`${CONFIG.BASE_PATH}/api/v1/files/upload`, {
                 method: 'POST',
                 body: formData
             });
