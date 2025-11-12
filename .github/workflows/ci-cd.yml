@@ -334,8 +334,12 @@ jobs:
         format: 'sarif'
         output: 'trivy-results.sarif'
 
+    # Upload SARIF results to GitHub Security tab
+    # Note: Requires GitHub Advanced Security to be enabled
+    # Will fail gracefully if not available
     - name: Upload Trivy scan results
       uses: github/codeql-action/upload-sarif@v3
+      continue-on-error: true
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
@@ -618,10 +622,10 @@ jobs:
 
     - name: Run printer integration tests
       run: |
-        python -m pytest tests/backend/test_printers/ \
+        # Run printer-specific tests from the test directory
+        python -m pytest tests/test_essential_printer_drivers.py tests/test_essential_printer_api.py tests/backend/test_api_printers.py \
           --junit-xml=printer-test-results.xml \
           -v \
-          -m "integration" \
           --timeout=120
       env:
         ENVIRONMENT: testing
