@@ -101,6 +101,14 @@ class PrinternizerApp {
             this.showPage(page, false);
         });
 
+        // Handle hash changes (for direct navigation and E2E tests)
+        window.addEventListener('hashchange', () => {
+            const newHash = window.location.hash.slice(1);
+            if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(newHash)) {
+                this.showPage(newHash);
+            }
+        });
+
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
         if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
@@ -136,11 +144,17 @@ class PrinternizerApp {
         });
         
         // Show selected page
-        const pageElement = document.getElementById(pageName);
+        // Try page-prefixed ID first (for E2E test compatibility), then fall back to pageName
+        let pageElement = document.getElementById(`page-${pageName}`);
+        if (!pageElement) {
+            pageElement = document.getElementById(pageName);
+        }
         const navElement = document.querySelector(`[data-page="${pageName}"]`);
         
         if (pageElement) {
             pageElement.classList.add('active');
+        } else {
+            console.error(`Could not find page element for: ${pageName}`);
         }
         
         if (navElement) {

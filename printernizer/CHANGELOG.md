@@ -1,3 +1,11 @@
+## [2.6.5] - 2025-11-13
+
+- feat: Add multi-angle animated GIF previews for 3D models
+- Fix Docker build: Switch to Alpine base image and add Brotli support
+- Fix E2E test failures: add missing script closing tag and hashchange handler
+- Add debugging logs to troubleshoot E2E test routing issue
+- Initial plan
+
 ## [2.6.4] - 2025-11-13
 
 - feat: Add multi-angle animated GIF previews for 3D models
