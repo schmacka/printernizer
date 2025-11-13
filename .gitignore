@@ -108,7 +108,11 @@ temp/
 backups/
 
 # Development files
-test_*.py
+# Note: Actual test suite files (tests/test_*.py) should be tracked in git
+# Only exclude temporary test files used during development
+scratch_test_*.py
+temp_test_*.py
+manual_test_*.py
 test_*.html
 test_*.bat
 test_*.sh

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **CI/CD Test Coverage** - Fixed critical test coverage gap in GitHub Actions workflow
+  - Removed blanket `test_*.py` exclusion from `.gitignore` that prevented proper test file tracking
+  - Replaced explicit test file listing with pytest discovery pattern in CI/CD workflow
+  - Added comprehensive E2E test job with Playwright for frontend validation
+  - Test coverage increased from 68.3% (28/41 files) to 100% (39/39 files)
+  - Added 44 E2E tests that were previously not running in CI/CD
+  - Total test count increased from 518 to 562 tests (+8.5%)
+
+### Changed
+- **Test Infrastructure** - Modernized test execution approach
+  - CI/CD now uses `pytest tests/ --ignore=tests/e2e --ignore=tests/frontend` for automatic test discovery
+  - No longer requires manual workflow updates when adding new test files
+  - E2E tests run in dedicated job with full Playwright browser automation
+  - Security scan job now waits for E2E tests to complete
+
 ## [2.5.4] - 2025-11-11
 
 ### Fixed

@@ -66,13 +66,9 @@ jobs:
     - name: Run backend tests with coverage
       continue-on-error: true
       run: |
-        python -m pytest tests/backend/ tests/services/ tests/integration/ \
-          tests/test_essential_config.py \
-          tests/test_essential_integration.py \
-          tests/test_essential_models.py \
-          tests/test_infrastructure.py \
-          tests/test_printer_interface_conformance.py \
-          tests/test_sync_consistency.py \
+        python -m pytest tests/ \
+          --ignore=tests/e2e \
+          --ignore=tests/frontend \
           --cov=src \
           --cov-report=xml \
           --cov-report=html \
@@ -316,11 +312,144 @@ jobs:
         flags: frontend
         name: frontend-coverage
 
+  # E2E Testing Job with Playwright
+  test-e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [test-backend]  # Run after backend tests pass
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-test.txt
+
+    - name: Install Playwright browsers
+      run: |
+        playwright install --with-deps chromium
+
+    - name: Set up database
+      run: |
+        sqlite3 e2e_test.db < database_schema.sql
+      env:
+        DATABASE_PATH: e2e_test.db
+
+    - name: Start test server
+      run: |
+        python -m src.main &
+        SERVER_PID=$!
+        echo $SERVER_PID > server.pid
+
+        # Wait for server to be ready (max 30 seconds)
+        timeout=30
+        elapsed=0
+        while ! curl -s http://localhost:8000/api/v1/health > /dev/null; do
+          if [ $elapsed -ge $timeout ]; then
+            echo "Server failed to start within ${timeout}s"
+            kill $SERVER_PID || true
+            exit 1
+          fi
+          sleep 1
+          elapsed=$((elapsed + 1))
+        done
+        echo "Server started successfully (PID: $SERVER_PID)"
+      env:
+        ENVIRONMENT: testing
+        DATABASE_PATH: e2e_test.db
+        DATABASE_URL: sqlite:///e2e_test.db
+        DOWNLOAD_DIRECTORY: /tmp/printernizer-e2e-downloads
+        PRINTER_FILES_DIRECTORY: /tmp/printernizer-e2e-files
+        LOG_LEVEL: INFO
+        MOCK_PRINTERS: "true"
+
+    - name: Run E2E tests
+      continue-on-error: true
+      run: |
+        pytest tests/e2e/ \
+          --base-url=http://localhost:8000 \
+          --browser=chromium \
+          --headed=false \
+          --junit-xml=e2e-test-results.xml \
+          --tb=short \
+          --maxfail=10 \
+          -v
+      env:
+        PLAYWRIGHT_HEADLESS: true
+        CI: true
+
+    - name: Stop test server
+      if: always()
+      run: |
+        if [ -f server.pid ]; then
+          SERVER_PID=$(cat server.pid)
+          kill $SERVER_PID || true
+          rm server.pid
+        fi
+
+    - name: Generate E2E test summary
+      if: always()
+      run: |
+        cat > parse_results.py << 'PYTHON_SCRIPT'
+        import xml.etree.ElementTree as ET
+        import sys
+        try:
+            tree = ET.parse('e2e-test-results.xml')
+            root = tree.getroot()
+            tests = sum(int(ts.get('tests', 0)) for ts in root.findall('.//testsuite'))
+            failures = sum(int(ts.get('failures', 0)) for ts in root.findall('.//testsuite'))
+            errors = sum(int(ts.get('errors', 0)) for ts in root.findall('.//testsuite'))
+            skipped = sum(int(ts.get('skipped', 0)) for ts in root.findall('.//testsuite'))
+            passed = tests - failures - errors - skipped
+            pass_rate = (passed * 100 // tests) if tests > 0 else 0
+            print(f"**Total Tests**: {tests}")
+            print(f"**Passed**: {passed} ({pass_rate}%)")
+            print(f"**Failed**: {failures}")
+            print(f"**Errors**: {errors}")
+            print(f"**Skipped**: {skipped}")
+            print()
+            print(f"**Pass Rate**: {pass_rate}%")
+        except Exception as e:
+            print(f"Could not parse test results: {e}")
+        PYTHON_SCRIPT
+
+        echo "## E2E Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -f e2e-test-results.xml ]; then
+          python3 parse_results.py >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️  No E2E test results file found" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📦 E2E test artifacts uploaded for detailed review" >> $GITHUB_STEP_SUMMARY
+        rm -f parse_results.py
+
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: e2e-test-results
+        path: |
+          e2e-test-results.xml
+          test-results/
+          playwright-report/
+          screenshots/
+          videos/
+
   # Security Scanning Job
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend]
+    needs: [test-backend, test-frontend, test-e2e]
 
     permissions:
       contents: read
