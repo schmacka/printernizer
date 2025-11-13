@@ -198,7 +198,57 @@ class Database:
                     thumbnail_format TEXT,
                     thumbnail_source TEXT,
                     metadata TEXT, -- JSON metadata
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                    -- Physical properties metadata
+                    model_width REAL,
+                    model_depth REAL,
+                    model_height REAL,
+                    model_volume REAL,
+                    surface_area REAL,
+                    object_count INTEGER,
+
+                    -- Print settings metadata
+                    layer_height REAL,
+                    first_layer_height REAL,
+                    nozzle_diameter REAL,
+                    wall_count INTEGER,
+                    wall_thickness REAL,
+                    infill_density REAL,
+                    infill_pattern TEXT,
+                    support_used INTEGER,
+                    nozzle_temperature INTEGER,
+                    bed_temperature INTEGER,
+                    print_speed REAL,
+                    total_layer_count INTEGER,
+
+                    -- Material requirements metadata
+                    total_filament_weight REAL,
+                    filament_length REAL,
+                    filament_colors TEXT,
+                    material_types TEXT,
+                    multi_material INTEGER,
+
+                    -- Cost analysis metadata
+                    material_cost REAL,
+                    energy_cost REAL,
+                    total_cost REAL,
+
+                    -- Quality metrics metadata
+                    complexity_score INTEGER,
+                    difficulty_level TEXT,
+                    success_probability REAL,
+                    overhang_percentage REAL,
+
+                    -- Compatibility metadata
+                    compatible_printers TEXT,
+                    slicer_name TEXT,
+                    slicer_version TEXT,
+                    profile_name TEXT,
+                    bed_type TEXT,
+
+                    -- Error tracking
+                    error_message TEXT
                 )
             """)
 
