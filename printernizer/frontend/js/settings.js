@@ -16,19 +16,24 @@ class SettingsManager {
      */
     async init() {
         console.log('Initializing settings manager');
-        
+
         // Load current settings
         await this.loadSettings();
-        
+
         // Setup form handlers
         this.setupFormHandlers();
-        
+
         // Load system info
         await this.loadSystemInfo();
-        
+
         // Load watch folder settings
         await this.loadWatchFolderSettings();
-        
+
+        // Initialize navigation preferences UI
+        if (window.navigationPreferencesManager) {
+            window.navigationPreferencesManager.init();
+        }
+
         this.lastRefresh = new Date();
         console.log('Settings manager initialized');
     }
