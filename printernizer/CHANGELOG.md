@@ -1,3 +1,10 @@
+## [2.5.20] - 2025-11-13
+
+- feat: Add complete metadata schema to library_files table
+- fix: Add networkx dependency for 3MF thumbnail generation
+- fix: Make last_accessed field optional in LibraryFileResponse model
+- feat: Add library integration for uploaded files
+
 ## [2.5.19] - 2025-11-12
 
 - feat: Add library tables schema for unified file management
