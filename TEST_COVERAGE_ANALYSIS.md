@@ -822,26 +822,44 @@ def test_gcode_parser_structure(gcode_lines):
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Week 1-2) - **Fix Failures & Critical Services**
+### Phase 0: URGENT - Stabilize Test Suite (Week 1) - **CRITICAL**
 
-**Goal:** Get to 50% coverage with 95% pass rate
+**Goal:** Fix async errors and achieve 90%+ test pass rate
+
+**Priority Tasks:**
+
+**Day 1-2: Fix Async Event Loop Errors (96 tests affected)**
+- [ ] Review pytest.ini asyncio configuration
+- [ ] Update async fixture scope in conftest.py
+- [ ] Fix event loop conflicts in service tests
+- [ ] Test with different asyncio_mode settings
+- [ ] Verify all 96 async tests now pass
+
+**Day 3-4: Fix Critical Test Failures (107 failures)**
+- [ ] Fix WebSocket tests with proper async mocks
+- [ ] Fix database schema mismatches
+- [ ] Calibrate performance test thresholds
+- [ ] Fix job validation test failures
+- [ ] Update error handling tests for new error structure
+
+**Day 5: Cleanup and Validation**
+- [ ] Mark German business tests as skipped (not yet implemented)
+- [ ] Update integration tests or mark as manual
+- [ ] Run full test suite validation
+- [ ] Document all fixes made
+
+**Estimated Time:** 8-12 hours (distributed over 5 days)
+**Expected Result:** 90%+ pass rate (467+/519 tests), 25% coverage maintained
+**Critical Success Factor:** Zero async event loop errors
+
+### Phase 1: Foundation (Week 2-3) - **Core Services Coverage**
+
+**Goal:** Get to 40% coverage with 95% pass rate
 
 **Tasks:**
 
-**Week 1: Fix Existing Test Failures**
-- [ ] Fix WebSocket import errors (`websocket._exceptions`)
-- [ ] Replace `MagicMock` with `AsyncMock` in WebSocket tests
-- [ ] Add `settings` table to test database schema
-- [ ] Fix database schema mismatches in fixtures
-- [ ] Calibrate performance test thresholds
-- [ ] Fix or document `test_job_null_fix.py` failures
-- [ ] Mark German business tests as `@pytest.mark.skip(reason="Not implemented")`
-- [ ] Refactor integration tests or mark as manual
-
-**Estimated Time:** 8 hours
-**Expected Result:** 95% pass rate (245/259 tests), 34% coverage
-
 **Week 2: Critical Service Tests**
+
 - [ ] Create `tests/services/test_job_service.py` (50 tests)
   - Job creation, updates, state transitions
   - Duration calculation, cost calculation
@@ -858,57 +876,49 @@ def test_gcode_parser_structure(gcode_lines):
   - File filtering, search
   - Storage management
 
-**Estimated Time:** 20 hours
-**Expected Result:** 95% pass rate, 50% coverage
+**Week 3: Expand Service Coverage**
+- [ ] Add tests for `bambu_parser.py` (35 tests)
+- [ ] Add tests for `config_service.py` (20 tests)
+- [ ] Add tests for file processing services (30 tests)
 
-### Phase 2: Real-Time & Configuration (Week 3-4) - **Critical Infrastructure**
+**Estimated Time:** 28 hours
+**Expected Result:** 95% pass rate, 40% coverage
 
-**Goal:** Get to 60% coverage with robust infrastructure
+### Phase 2: Real-Time & Configuration (Week 4-5) - **Critical Infrastructure**
 
-**Week 3: Real-Time Services**
-- [ ] Create `tests/services/test_printer_monitoring_service.py` (25 tests)
+**Goal:** Get to 55% coverage with robust infrastructure
+
+- [ ] Expand `tests/services/test_printer_monitoring_service.py` (25 tests)
   - Status polling
   - State change detection
   - Error handling
   - Multi-printer monitoring
-- [ ] Create `tests/services/test_bambu_parser.py` (35 tests)
-  - Parse print status messages
-  - Parse printer info messages
-  - Parse HMS error messages
-  - Parse file list messages
-  - Invalid message handling
-  - Malformed JSON handling
-  - Message versioning
+- [ ] Expand monitoring and event service tests (20 tests)
 
-**Estimated Time:** 12 hours
-**Expected Result:** 95% pass rate, 55% coverage
-
-**Week 4: Configuration & Error Handling**
-- [ ] Create `tests/utils/test_config.py` (40 tests)
+- [ ] Expand `tests/utils/test_config.py` (40 tests)
   - Config file loading
   - Validation logic
   - Default values
   - Environment variable overrides
   - Config updates
   - Invalid config handling
-- [ ] Create `tests/services/test_config_service.py` (20 tests)
+- [ ] Expand `tests/services/test_config_service.py` (20 tests)
   - Runtime config access
   - Config persistence
   - Config validation
-- [ ] Create `tests/utils/test_error_handling.py` (25 tests)
+- [ ] Update `tests/utils/test_error_handling.py` (25 tests)
   - Error handler registration
   - Error logging
   - Error recovery
   - Error context
 
-**Estimated Time:** 14 hours
-**Expected Result:** 95% pass rate, 60% coverage
+**Estimated Time:** 16 hours
+**Expected Result:** 95% pass rate, 55% coverage
 
-### Phase 3: File Processing (Week 5-6) - **File Pipeline**
+### Phase 3: File Processing (Week 6-7) - **File Pipeline**
 
-**Goal:** Get to 75% coverage with complete file processing tests
+**Goal:** Get to 70% coverage with complete file processing tests
 
-**Week 5: File Analyzers**
 - [ ] Create `tests/services/test_stl_analyzer.py` (30 tests)
   - STL parsing (ASCII and binary)
   - Metadata extraction
@@ -926,9 +936,8 @@ def test_gcode_parser_structure(gcode_lines):
   - Printer settings extraction
 
 **Estimated Time:** 14 hours
-**Expected Result:** 95% pass rate, 68% coverage
+**Expected Result:** 95% pass rate, 65% coverage
 
-**Week 6: File Services**
 - [ ] Create `tests/services/test_file_upload_service.py` (20 tests)
 - [ ] Create `tests/services/test_file_watcher_service.py` (15 tests)
 - [ ] Create `tests/services/test_file_metadata_service.py` (15 tests)
@@ -936,13 +945,12 @@ def test_gcode_parser_structure(gcode_lines):
 - [ ] Create `tests/services/test_timelapse_service.py` (20 tests)
 
 **Estimated Time:** 16 hours
-**Expected Result:** 95% pass rate, 75% coverage
+**Expected Result:** 95% pass rate, 70% coverage
 
-### Phase 4: Analytics & Business (Week 7-8) - **Business Intelligence**
+### Phase 4: Analytics & Business (Week 8-10) - **Business Intelligence**
 
-**Goal:** Reach 85% target coverage
+**Goal:** Reach 80%+ coverage with all critical services covered
 
-**Week 7: Analytics**
 - [ ] Create `tests/services/test_analytics_service.py` (45 tests)
   - Job statistics
   - Printer utilization
@@ -954,9 +962,8 @@ def test_gcode_parser_structure(gcode_lines):
 - [ ] Create `tests/services/test_trending_service.py` (20 tests)
 
 **Estimated Time:** 16 hours
-**Expected Result:** 95% pass rate, 82% coverage
+**Expected Result:** 95% pass rate, 76% coverage
 
-**Week 8: Prusa & Infrastructure**
 - [ ] Create `tests/printers/test_prusa.py` (30 tests)
   - HTTP API communication
   - Status polling
@@ -965,12 +972,21 @@ def test_gcode_parser_structure(gcode_lines):
   - Parity with Bambu Lab tests
 - [ ] Create `tests/services/test_material_service.py` (15 tests)
 - [ ] Create `tests/services/test_migration_service.py` (20 tests)
-- [ ] Create `tests/models/` (20 tests for untested models)
 
-**Estimated Time:** 14 hours
+**Estimated Time:** 12 hours
+**Expected Result:** 95% pass rate, 80% coverage
+
+**Week 10: Final Push to 85%**
+- [ ] Create `tests/models/` (20 tests for untested models)
+- [ ] Add missing utility tests
+- [ ] Increase coverage of partially-tested services
+- [ ] Property-based tests for parsers
+- [ ] Review and improve test quality
+
+**Estimated Time:** 16 hours
 **Expected Result:** 95% pass rate, 85% coverage ✅
 
-### Phase 5: Polish & Maintenance (Ongoing)
+### Phase 5: Maintenance & Excellence (Ongoing)
 
 **Goal:** Maintain 85%+ coverage, improve test quality
 
@@ -1503,36 +1519,47 @@ coverage report --sort=cover
 
 ## Success Metrics
 
-### Phase 1 Success Criteria
-- ✅ 95% test pass rate (245/259 tests)
-- ✅ 50% component coverage
-- ✅ All critical services have basic tests
+### Phase 0 Success Criteria (Week 1 - CRITICAL)
+- ✅ 90%+ test pass rate (467+/519 tests)
+- ✅ Zero async event loop errors
+- ✅ All critical test failures resolved
+- ✅ Test suite is stable and reliable
+
+### Phase 1 Success Criteria (Week 2-3)
+- ✅ 95% test pass rate maintained
+- ✅ 40% overall coverage
+- ✅ Core services (job, printer, file) have >50% coverage
 - ✅ CI/CD pipeline is green
 
-### Phase 2 Success Criteria
-- ✅ 95% test pass rate
-- ✅ 60% component coverage
-- ✅ Real-time services fully tested
+### Phase 2 Success Criteria (Week 4-5)
+- ✅ 95% test pass rate maintained
+- ✅ 55% overall coverage
+- ✅ Real-time services tested
 - ✅ Configuration management tested
+- ✅ Error handling comprehensively tested
 
-### Phase 3 Success Criteria
-- ✅ 95% test pass rate
-- ✅ 75% component coverage
+### Phase 3 Success Criteria (Week 6-7)
+- ✅ 95% test pass rate maintained
+- ✅ 70% overall coverage
 - ✅ File processing pipeline tested
-- ✅ All file formats covered
+- ✅ All file formats (STL, 3MF, GCODE) covered
+- ✅ Timelapse service tested
 
-### Phase 4 Success Criteria (Target)
-- ✅ 95% test pass rate
-- ✅ 85% component coverage (PROJECT GOAL)
+### Phase 4 Success Criteria (Week 8-10 - TARGET)
+- ✅ 95% test pass rate maintained
+- ✅ **85% overall coverage (PROJECT GOAL)** ✅
 - ✅ All critical services > 90% coverage
 - ✅ All utilities > 70% coverage
 - ✅ Prusa driver matches Bambu Lab coverage
+- ✅ Analytics and business intelligence tested
 
-### Long-Term Maintenance
+### Phase 5: Long-Term Maintenance (Ongoing)
 - ✅ Maintain 85%+ coverage
 - ✅ No PR merged with decreased coverage
 - ✅ All new features include tests
 - ✅ Regular test review and refactoring
+- ✅ Property-based testing for complex parsers
+- ✅ Performance benchmarking
 
 ---
 
