@@ -35,6 +35,11 @@ class PrinternizerApp {
         // Setup navigation
         this.setupNavigation();
 
+        // Initialize global drag and drop
+        if (window.globalDragDropManager) {
+            window.globalDragDropManager.init();
+        }
+
         // Initialize current page
         this.showPage(this.currentPage);
 
