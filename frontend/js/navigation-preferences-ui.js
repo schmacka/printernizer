@@ -83,6 +83,7 @@ class NavigationPreferencesUIManager {
         items.forEach(item => {
             item.addEventListener('dragstart', (e) => this.handleDragStart(e));
             item.addEventListener('dragover', (e) => this.handleDragOver(e));
+            item.addEventListener('dragleave', (e) => this.handleDragLeave(e));
             item.addEventListener('drop', (e) => this.handleDrop(e));
             item.addEventListener('dragend', (e) => this.handleDragEnd(e));
         });
@@ -114,6 +115,14 @@ class NavigationPreferencesUIManager {
         }
 
         return false;
+    }
+
+    /**
+     * Handle drag leave
+     */
+    handleDragLeave(e) {
+        const target = e.currentTarget;
+        target.classList.remove('drag-over');
     }
 
     /**
@@ -253,7 +262,7 @@ class NavigationPreferencesUIManager {
      */
     showSuccess(message) {
         if (window.showToast) {
-            window.showToast(message, 'success');
+            window.showToast('success', 'Navigation', message);
         } else {
             console.log(message);
         }
@@ -264,7 +273,7 @@ class NavigationPreferencesUIManager {
      */
     showError(message) {
         if (window.showToast) {
-            window.showToast(message, 'error');
+            window.showToast('error', 'Navigation', message);
         } else {
             console.error(message);
         }
