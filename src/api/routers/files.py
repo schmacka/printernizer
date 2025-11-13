@@ -12,7 +12,8 @@ import base64
 from src.models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
 from src.services.file_service import FileService
 from src.services.config_service import ConfigService
-from src.utils.dependencies import get_file_service, get_config_service
+from src.services.file_thumbnail_service import FileThumbnailService
+from src.utils.dependencies import get_file_service, get_config_service, get_thumbnail_service
 from src.utils.errors import (
     FileNotFoundError as PrinternizerFileNotFoundError,
     FileDownloadError,
@@ -301,6 +302,69 @@ async def get_file_thumbnail(
             "Content-Disposition": f"inline; filename=thumbnail_{file_id}.{thumbnail_format}"
         }
     )
+
+
+@router.get("/{file_id}/thumbnail/animated")
+async def get_file_animated_thumbnail(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service),
+    thumbnail_service: FileThumbnailService = Depends(get_thumbnail_service)
+):
+    """Get animated GIF thumbnail for a file (multi-angle preview)."""
+    file_data = await file_service.get_file_by_id(file_id)
+
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+
+    file_path = file_data.get('file_path')
+    file_type = file_data.get('file_type', '')
+
+    if not file_path:
+        raise PrinternizerFileNotFoundError(file_id, details={"reason": "no_file_path"})
+
+    # Only support animated previews for STL and 3MF files
+    if file_type.lower() not in ['stl', '3mf']:
+        raise FileProcessingError(
+            filename=file_id,
+            operation="generate_animated_thumbnail",
+            reason=f"Animated thumbnails not supported for {file_type} files"
+        )
+
+    try:
+        # Get or generate animated preview
+        gif_bytes = await thumbnail_service.preview_render_service.get_or_generate_animated_preview(
+            file_path,
+            file_type,
+            size=(200, 200)
+        )
+
+        if not gif_bytes:
+            raise FileProcessingError(
+                filename=file_id,
+                operation="generate_animated_thumbnail",
+                reason="Failed to generate animated preview"
+            )
+
+        # Return GIF response
+        return Response(
+            content=gif_bytes,
+            media_type="image/gif",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "Content-Disposition": f"inline; filename=thumbnail_animated_{file_id}.gif"
+            }
+        )
+
+    except Exception as e:
+        logger.error("Failed to get animated thumbnail",
+                    file_id=file_id,
+                    error=str(e),
+                    exc_info=True)
+        raise FileProcessingError(
+            filename=file_id,
+            operation="get_animated_thumbnail",
+            reason=str(e)
+        )
 
 
 @router.get("/{file_id}/metadata")

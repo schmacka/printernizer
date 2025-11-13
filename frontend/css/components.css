@@ -2565,6 +2565,35 @@ label .required {
     opacity: 1;
 }
 
+/* Animated thumbnail support for 3D files (STL, 3MF) */
+.file-thumbnail.supports-animation {
+    position: relative;
+}
+
+.file-thumbnail.supports-animation::after {
+    content: '';
+    position: absolute;
+    top: var(--spacing-1);
+    right: var(--spacing-1);
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    border-radius: 50%;
+    opacity: 0.8;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.file-thumbnail.supports-animation .thumbnail-image {
+    transition: transform 0.2s ease, opacity 0.15s ease;
+}
+
+/* Reduce scale on hover for animated thumbnails to prevent distraction */
+.file-thumbnail.supports-animation:hover .thumbnail-image {
+    transform: scale(1.05);
+}
+
 .zoom-icon {
     color: white;
     font-size: 1.5rem;
