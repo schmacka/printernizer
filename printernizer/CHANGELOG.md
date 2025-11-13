@@ -1,3 +1,9 @@
+## [2.6.4] - 2025-11-13
+
+- feat: Add multi-angle animated GIF previews for 3D models
+- Fix Docker build: Switch to Alpine base image and add Brotli support
+- feat: Enable global drag and drop file upload from any page
+
 ## [2.6.3] - 2025-11-13
 
 - feat: Enable global drag and drop file upload from any page
