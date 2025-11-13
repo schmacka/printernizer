@@ -1,8 +1,15 @@
 # Printernizer Deployment Architecture
 
+## Branching Strategy and Deployment
+
+Printernizer uses a **two-branch model** that maps to different deployment targets:
+
+- **`development`** branch → Docker testing deployments
+- **`master`** branch → Production deployments (Home Assistant, Raspberry Pi)
+
 ## Deployment Methods
 
-Printernizer supports **three independent deployment methods**. Each uses the same core codebase but has deployment-specific configurations.
+Printernizer supports **four independent deployment methods**. Each uses the same core codebase but has deployment-specific configurations.
 
 ### 1. Python Standalone
 
@@ -19,16 +26,43 @@ Printernizer supports **three independent deployment methods**. Each uses the sa
 ### 2. Docker Standalone
 
 - **Location**: Root directory with `docker/` subdirectory
-- **Use Case**: Production deployments, containerized environments
+- **Use Case**: Testing (development branch), production deployments (master branch)
 - **Setup**: `docker-compose up -d`
 - **Configuration**: Environment variables or `.env`
 - **Data Storage**: Docker volumes
+- **Branch Strategy**:
+  - Development: `docker pull ghcr.io/schmacka/printernizer:development`
+  - Production: `docker pull ghcr.io/schmacka/printernizer:latest` (from master)
 - **Files**:
   - `docker/Dockerfile` - Container definition
   - `docker/docker-compose.yml` - Service orchestration
   - `docker/.env.example` - Configuration template
 
-### 3. Home Assistant Add-on
+### 3. Raspberry Pi Deployment
+
+- **Location**: Can be installed anywhere on Pi
+- **Use Case**: Dedicated Raspberry Pi server for production
+- **Setup**: One-line install script
+  ```bash
+  # Production (master branch - recommended)
+  curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/master/scripts/pi-deployment/pi-setup.sh | bash
+
+  # Testing (development branch - advanced users)
+  curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/development/scripts/pi-deployment/pi-setup.sh | bash
+  ```
+- **Configuration**: Interactive prompts during setup + `.env` file
+- **Data Storage**: Local filesystem in install directory
+- **Features**:
+  - Automatic dependency installation
+  - Systemd service setup
+  - Firewall configuration
+  - Auto-start on boot
+- **Files**:
+  - `scripts/pi-deployment/pi-setup.sh` - Main installation script
+  - `scripts/pi-deployment/printernizer.service` - Systemd service template
+  - Created `.env` file with user configuration
+
+### 4. Home Assistant Add-on
 
 - **Location**: `printernizer/` directory (Add-on name)
 - **Use Case**: Home Assistant users, 24/7 integration
@@ -51,20 +85,24 @@ The application detects its deployment mode via environment variables:
 
 ```python
 DEPLOYMENT_MODE = os.getenv('DEPLOYMENT_MODE', 'standalone')
-# Options: 'standalone', 'docker', 'homeassistant'
+# Options: 'standalone', 'docker', 'homeassistant', 'raspberry-pi'
 
 if DEPLOYMENT_MODE == 'homeassistant':
     HA_INGRESS = os.getenv('HA_INGRESS', 'false').lower() == 'true'
     # Use /data/ for storage, parse options.json
 elif DEPLOYMENT_MODE == 'docker':
     # Use volumes, read env vars
+elif DEPLOYMENT_MODE == 'raspberry-pi':
+    # Use systemd service, local data/, read .env
 else:
-    # Use local data/, read .env
+    # Standard standalone: Use local data/, read .env
 ```
+
+**Note**: Raspberry Pi deployment is technically the same as standalone but with systemd service management.
 
 ## Shared Codebase Architecture
 
-**IMPORTANT**: All three deployment methods share the same codebase with automated synchronization.
+**IMPORTANT**: All four deployment methods share the same codebase with automated synchronization.
 
 **Single Source of Truth**:
 - `/src/` - Primary application code (EDIT HERE)
@@ -72,13 +110,18 @@ else:
 - `requirements.txt` - Python dependencies
 - Core business logic and features
 
+**Branching Strategy**:
+- **`development`** - Used for Docker testing deployments
+- **`master`** - Used for production (HA add-on, Raspberry Pi, production Docker)
+
 **Automated Sync to Home Assistant Add-on**:
 - `/printernizer/src/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
 - `/printernizer/frontend/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
 - Synchronization happens automatically via:
   1. **Git pre-commit hook** - Auto-syncs when you commit changes
-  2. **GitHub Actions CI/CD** - Validates sync on push to master
+  2. **GitHub Actions CI/CD** - Validates sync on push to `master` or `development`
   3. **Manual script** - Run sync script when needed
+- **Version bumping**: Only happens on `master` branch (not `development`)
 
 **Deployment-specific Files**:
 - Startup scripts (`run.sh` vs `entrypoint.sh` vs HA `run.sh`)
