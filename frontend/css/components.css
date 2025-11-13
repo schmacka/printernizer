@@ -3564,3 +3564,55 @@ label .required {
 [data-theme="dark"] .toggle-slider {
     background-color: var(--gray-600, #4b5563);
 }
+
+/* VAT Calculation Panel */
+.vat-calculation-panel {
+    background: var(--gray-50, #f9fafb);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: var(--radius-md, 8px);
+    padding: var(--spacing-3, 12px);
+    margin-top: var(--spacing-2, 8px);
+}
+
+.vat-calculation-panel h4 {
+    margin: 0 0 var(--spacing-2, 8px) 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700, #374151);
+}
+
+.vat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-2, 8px) 0;
+    border-bottom: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.vat-row:last-child {
+    border-bottom: none;
+}
+
+.vat-row.vat-total {
+    margin-top: var(--spacing-2, 8px);
+    padding-top: var(--spacing-2, 8px);
+    border-top: 2px solid var(--gray-300, #d1d5db);
+    font-size: 1.0rem;
+}
+
+[data-theme="dark"] .vat-calculation-panel {
+    background: var(--gray-800, #1f2937);
+    border-color: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .vat-calculation-panel h4 {
+    color: var(--gray-200, #e5e7eb);
+}
+
+[data-theme="dark"] .vat-row {
+    border-color: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .vat-row.vat-total {
+    border-top-color: var(--gray-600, #4b5563);
+}
+

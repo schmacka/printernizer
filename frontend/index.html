@@ -2158,6 +2158,29 @@
                     <label for="customerName">Customer Name</label>
                     <input type="text" id="customerName" name="customer_name" class="form-control">
                 </div>
+                
+                <div id="costCalculationGroup" style="display: none;">
+                    <div class="form-group">
+                        <label for="materialCost">Material Cost (EUR)</label>
+                        <input type="number" id="materialCost" name="material_cost" class="form-control" min="0" step="0.01" placeholder="0.00">
+                    </div>
+                    
+                    <div class="vat-calculation-panel">
+                        <h4>Cost Breakdown</h4>
+                        <div class="vat-row">
+                            <span>Net Price (excl. VAT):</span>
+                            <span id="netPrice">€0.00</span>
+                        </div>
+                        <div class="vat-row">
+                            <span>VAT (19%):</span>
+                            <span id="vatAmount">€0.00</span>
+                        </div>
+                        <div class="vat-row vat-total">
+                            <span><strong>Gross Total (incl. VAT):</strong></span>
+                            <span id="grossTotal"><strong>€0.00</strong></span>
+                        </div>
+                    </div>
+                </div>
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeJobModal()">
@@ -2171,8 +2194,8 @@
         </div>
     </div>
 
-    <!-- Add Material Modal -->
-    <div id="materialModal" class="modal material-modal">
+    <!-- Add Material Modal (Legacy/Jobs) -->
+    <div id="addMaterialModal" class="modal material-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>Add Material</h3>

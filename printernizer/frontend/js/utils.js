@@ -942,15 +942,54 @@ function showCreateJobModal() {
     const modal = document.getElementById('jobModal');
     if (modal) {
         modal.classList.add('active');
+        
         // Show/hide business fields based on checkbox
         const businessCheckbox = document.getElementById('isBusiness');
         const customerNameGroup = document.getElementById('customerNameGroup');
-        if (businessCheckbox && customerNameGroup) {
+        const costCalculationGroup = document.getElementById('costCalculationGroup');
+        const materialCostInput = document.getElementById('materialCost');
+        
+        if (businessCheckbox) {
+            // Handler for business checkbox
             businessCheckbox.addEventListener('change', function() {
-                customerNameGroup.style.display = this.checked ? 'block' : 'none';
+                const isChecked = this.checked;
+                if (customerNameGroup) customerNameGroup.style.display = isChecked ? 'block' : 'none';
+                if (costCalculationGroup) costCalculationGroup.style.display = isChecked ? 'block' : 'none';
+                if (isChecked) {
+                    calculateVAT();
+                }
             });
         }
+        
+        // VAT calculation on cost input
+        if (materialCostInput) {
+            materialCostInput.addEventListener('input', calculateVAT);
+        }
     }
+}
+
+/**
+ * Calculate and display VAT for business jobs
+ */
+function calculateVAT() {
+    const materialCostInput = document.getElementById('materialCost');
+    const netPriceElement = document.getElementById('netPrice');
+    const vatAmountElement = document.getElementById('vatAmount');
+    const grossTotalElement = document.getElementById('grossTotal');
+    
+    if (!materialCostInput || !netPriceElement || !vatAmountElement || !grossTotalElement) {
+        return;
+    }
+    
+    const VAT_RATE = 0.19; // 19% for Germany
+    const netPrice = parseFloat(materialCostInput.value) || 0;
+    const vatAmount = netPrice * VAT_RATE;
+    const grossTotal = netPrice + vatAmount;
+    
+    // Format as EUR currency
+    netPriceElement.textContent = '€' + netPrice.toFixed(2);
+    vatAmountElement.textContent = '€' + vatAmount.toFixed(2);
+    grossTotalElement.textContent = '€' + grossTotal.toFixed(2);
 }
 
 function closeJobModal() {
@@ -971,17 +1010,17 @@ function closeJobModal() {
 }
 
 /**
- * Material Modal Functions
+ * Material Modal Functions (Legacy/Jobs)
  */
 function showAddMaterialModal() {
-    const modal = document.getElementById('materialModal');
+    const modal = document.getElementById('addMaterialModal');
     if (modal) {
         modal.classList.add('active');
     }
 }
 
 function closeMaterialModal() {
-    const modal = document.getElementById('materialModal');
+    const modal = document.getElementById('addMaterialModal');
     if (modal) {
         modal.classList.remove('active');
         // Reset form

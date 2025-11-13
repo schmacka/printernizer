@@ -257,6 +257,10 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.JOB_DETAIL(jobId));
     }
 
+    async createJob(jobData) {
+        return this.post(CONFIG.ENDPOINTS.JOBS, jobData);
+    }
+
     async cancelJob(jobId) {
         return this.post(CONFIG.ENDPOINTS.JOB_CANCEL(jobId));
     }

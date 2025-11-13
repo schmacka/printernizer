@@ -25,6 +25,9 @@ class JobManager {
         // Setup filter handlers
         this.setupFilterHandlers();
         
+        // Setup form handler
+        this.setupFormHandler();
+        
         // Set up refresh interval
         this.startAutoRefresh();
         
@@ -33,6 +36,101 @@ class JobManager {
         
         // Load printer options for filter
         this.loadPrinterOptions();
+        
+        // Populate form dropdowns
+        this.populateFormDropdowns();
+    }
+
+    /**
+     * Setup form submission handler
+     */
+    setupFormHandler() {
+        const form = document.getElementById('createJobForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleCreateJob(e.target);
+            });
+        }
+    }
+
+    /**
+     * Handle job creation form submission
+     */
+    async handleCreateJob(form) {
+        try {
+            // Get form data
+            const formData = new FormData(form);
+            const jobData = {
+                name: formData.get('job_name'),
+                file_id: formData.get('file') ? parseInt(formData.get('file')) : null,
+                printer_id: formData.get('printer'),
+                is_business: formData.get('is_business') === 'on',
+                customer_name: formData.get('customer_name') || null
+            };
+
+            // Validate required fields
+            if (!jobData.name) {
+                showToast('error', 'Fehler', 'Bitte geben Sie einen Job-Namen ein');
+                return;
+            }
+            if (!jobData.printer_id) {
+                showToast('error', 'Fehler', 'Bitte wählen Sie einen Drucker aus');
+                return;
+            }
+
+            // Create job via API
+            const response = await api.createJob(jobData);
+            
+            if (response) {
+                showToast('success', 'Erfolg', 'Job wurde erstellt');
+                closeJobModal();
+                form.reset();
+                this.loadJobs();
+            }
+        } catch (error) {
+            console.error('Failed to create job:', error);
+            showToast('error', 'Fehler', `Job konnte nicht erstellt werden: ${error.message}`);
+        }
+    }
+
+    /**
+     * Populate form dropdowns with files and printers
+     */
+    async populateFormDropdowns() {
+        try {
+            // Populate files dropdown
+            const fileSelect = document.getElementById('fileSelect');
+            if (fileSelect) {
+                const files = await api.getFiles();
+                fileSelect.innerHTML = '<option value="">Datei auswählen...</option>';
+                if (files && files.length > 0) {
+                    files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.id;
+                        option.textContent = file.filename || file.name;
+                        fileSelect.appendChild(option);
+                    });
+                }
+            }
+
+            // Populate printers dropdown
+            const printerSelect = document.getElementById('printerSelect');
+            if (printerSelect) {
+                const printers = await api.getPrinters();
+                printerSelect.innerHTML = '<option value="">Drucker auswählen...</option>';
+                if (printers && printers.length > 0) {
+                    printers.forEach(printer => {
+                        const option = document.createElement('option');
+                        option.value = printer.id;
+                        option.textContent = printer.name;
+                        printerSelect.appendChild(option);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to populate form dropdowns:', error);
+        }
     }
 
     /**
@@ -50,19 +148,22 @@ class JobManager {
      */
     async loadJobs(page = 1) {
         try {
-            const jobsList = document.getElementById('jobsList');
-            if (!jobsList) return;
+            const jobsTable = document.getElementById('jobsTableBody');
+            if (!jobsTable) {
+                console.error('Jobs table body not found');
+                return;
+            }
             
             // Show loading state on initial load
             if (page === 1) {
-                setLoadingState(jobsList, true);
+                jobsTable.innerHTML = '<tr><td colspan="6" class="loading-placeholder"><div class="spinner"></div><p>Lade Aufträge...</p></td></tr>';
             }
             
             // Prepare filters
             const filters = {
                 ...this.currentFilters,
                 page: page,
-                limit: CONFIG.DEFAULT_PAGE_SIZE
+                limit: CONFIG.DEFAULT_PAGE_SIZE || 50
             };
             
             // Load jobs from API
@@ -71,37 +172,113 @@ class JobManager {
             if (page === 1) {
                 // Clear existing jobs on new search
                 this.jobs.clear();
-                jobsList.innerHTML = '';
+                jobsTable.innerHTML = '';
             }
             
-            if (response.jobs && response.jobs.length > 0) {
-                // Create job items
-                response.jobs.forEach(job => {
-                    const jobItem = new JobListItem(job);
-                    const itemElement = jobItem.render();
-                    jobsList.appendChild(itemElement);
-                    
-                    // Store job item for updates
-                    this.jobs.set(job.id, jobItem);
+            if (response && response.length > 0) {
+                // Render job rows
+                response.forEach(job => {
+                    const row = this.renderJobRow(job);
+                    jobsTable.appendChild(row);
+                    this.jobs.set(job.id, job);
                 });
-                
-                // Update pagination
-                this.updatePagination(response.pagination);
-                
             } else if (page === 1) {
                 // Show empty state
-                jobsList.innerHTML = this.renderEmptyJobsState();
+                jobsTable.innerHTML = '<tr><td colspan="6" class="empty-state"><p>Keine Aufträge gefunden</p></td></tr>';
             }
             
             this.currentPage = page;
             
         } catch (error) {
             console.error('Failed to load jobs:', error);
-            const jobsList = document.getElementById('jobsList');
-            if (jobsList && this.currentPage === 1) {
-                jobsList.innerHTML = this.renderJobsError(error);
+            const jobsTable = document.getElementById('jobsTableBody');
+            if (jobsTable && this.currentPage === 1) {
+                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>Fehler beim Laden: ${error.message}</p></td></tr>`;
             }
         }
+    }
+
+    /**
+     * Render a single job row for the table
+     */
+    renderJobRow(job) {
+        const row = document.createElement('tr');
+        row.setAttribute('data-job-id', job.id);
+        row.className = `job-row status-${job.status}`;
+        
+        // Job name
+        const nameCell = document.createElement('td');
+        nameCell.innerHTML = `
+            <div class="job-name">
+                ${job.is_business ? '<span class="business-badge" title="Geschäftlich">🏢</span>' : ''}
+                <strong>${escapeHtml(job.name || 'Unbenannt')}</strong>
+                ${job.customer_name ? `<small>${escapeHtml(job.customer_name)}</small>` : ''}
+            </div>
+        `;
+        row.appendChild(nameCell);
+        
+        // Printer
+        const printerCell = document.createElement('td');
+        printerCell.textContent = job.printer_name || job.printer_id || '-';
+        row.appendChild(printerCell);
+        
+        // Status
+        const statusCell = document.createElement('td');
+        const statusBadge = this.getStatusBadge(job.status);
+        statusCell.innerHTML = statusBadge;
+        row.appendChild(statusCell);
+        
+        // File
+        const fileCell = document.createElement('td');
+        fileCell.textContent = job.file_name || '-';
+        row.appendChild(fileCell);
+        
+        // Progress
+        const progressCell = document.createElement('td');
+        if (job.progress !== undefined && job.status === 'printing') {
+            progressCell.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress">
+                        <div class="progress-bar" style="width: ${job.progress}%"></div>
+                    </div>
+                    <span class="progress-text">${Math.round(job.progress)}%</span>
+                </div>
+            `;
+        } else {
+            progressCell.textContent = '-';
+        }
+        row.appendChild(progressCell);
+        
+        // Actions
+        const actionsCell = document.createElement('td');
+        actionsCell.innerHTML = `
+            <div class="action-buttons">
+                ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(' + job.id + ')">⏸️</button>' : ''}
+                ${job.status === 'paused' ? '<button class="btn-icon" title="Fortsetzen" onclick="jobManager.resumeJob(' + job.id + ')">▶️</button>' : ''}
+                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="Abbrechen" onclick="jobManager.cancelJob(' + job.id + ')">⏹️</button>' : ''}
+                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(' + job.id + ')">ℹ️</button>
+            </div>
+        `;
+        row.appendChild(actionsCell);
+        
+        return row;
+    }
+
+    /**
+     * Get status badge HTML
+     */
+    getStatusBadge(status) {
+        const statusMap = {
+            'printing': { label: 'Druckt', icon: '🖨️', class: 'status-printing' },
+            'queued': { label: 'Warteschlange', icon: '⏳', class: 'status-queued' },
+            'completed': { label: 'Abgeschlossen', icon: '✅', class: 'status-completed' },
+            'failed': { label: 'Fehlgeschlagen', icon: '❌', class: 'status-failed' },
+            'cancelled': { label: 'Abgebrochen', icon: '⏹️', class: 'status-cancelled' },
+            'paused': { label: 'Pausiert', icon: '⏸️', class: 'status-paused' }
+        };
+        
+        const statusInfo = statusMap[status] || { label: status, icon: '❓', class: 'status-unknown' };
+        return `<span class="status-badge ${statusInfo.class}">${statusInfo.icon} ${statusInfo.label}</span>`;
     }
 
     /**

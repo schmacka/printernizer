@@ -13,7 +13,8 @@ def test_jobs_page_loads(app_page: Page, base_url: str):
     jobs = JobsPage(app_page)
     jobs.navigate(base_url)
     
-    expect(app_page).to_have_url(f"{base_url}/jobs.html")
+    # Check the hash-based routing for SPA
+    expect(app_page).to_have_url(f"{base_url}/#jobs")
 
 
 @pytest.mark.e2e

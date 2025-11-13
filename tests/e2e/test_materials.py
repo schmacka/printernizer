@@ -13,7 +13,8 @@ def test_materials_page_loads(app_page: Page, base_url: str):
     materials = MaterialsPage(app_page)
     materials.navigate(base_url)
     
-    expect(app_page).to_have_url(f"{base_url}/materials.html")
+    # Check the hash-based routing for SPA
+    expect(app_page).to_have_url(f"{base_url}/#materials")
 
 
 @pytest.mark.e2e
