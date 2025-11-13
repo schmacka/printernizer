@@ -49,6 +49,11 @@ matplotlib>=3.7.0
 pydantic>=2.0.0
 python-dotenv>=1.0.0
 
+# E2E Testing with Playwright
+playwright>=1.40.0
+pytest-playwright>=0.4.0
+pytest-base-url>=2.0.0
+
 # Development utilities
 coverage>=7.2.0
 pytest-html>=3.2.0
