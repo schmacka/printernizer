@@ -367,8 +367,10 @@ jobs:
         ENVIRONMENT: testing
         DATABASE_PATH: e2e_test.db
         DATABASE_URL: sqlite:///e2e_test.db
-        DOWNLOAD_DIRECTORY: /tmp/printernizer-e2e-downloads
-        PRINTER_FILES_DIRECTORY: /tmp/printernizer-e2e-files
+        DOWNLOADS_PATH: /tmp/printernizer-e2e-downloads
+        LIBRARY_PATH: /tmp/printernizer-e2e-library
+        TIMELAPSE_SOURCE_DIR: /tmp/printernizer-e2e-timelapse
+        TIMELAPSE_OUTPUT_DIR: /tmp/printernizer-e2e-output
         LOG_LEVEL: INFO
         MOCK_PRINTERS: "true"
 
