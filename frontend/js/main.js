@@ -98,8 +98,12 @@ class PrinternizerApp {
 
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
+        console.log(`[DEBUG] setupNavigation: currentHash='${currentHash}', initial currentPage='${this.currentPage}'`);
         if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
             this.currentPage = currentHash;
+            console.log(`[DEBUG] setupNavigation: updated currentPage to '${this.currentPage}'`);
+        } else {
+            console.log(`[DEBUG] setupNavigation: currentHash not in allowed list, keeping currentPage='${this.currentPage}'`);
         }
 
         history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
@@ -131,11 +135,20 @@ class PrinternizerApp {
         });
         
         // Show selected page
-        const pageElement = document.getElementById(pageName);
+        // Try page-prefixed ID first (for E2E test compatibility), then fall back to pageName
+        let pageElement = document.getElementById(`page-${pageName}`);
+        if (!pageElement) {
+            pageElement = document.getElementById(pageName);
+        }
         const navElement = document.querySelector(`[data-page="${pageName}"]`);
+        
+        console.log(`[DEBUG] showPage(${pageName}): pageElement found=${!!pageElement}, will add active class=${!!pageElement}`);
         
         if (pageElement) {
             pageElement.classList.add('active');
+            console.log(`[DEBUG] Added active class to element with id=${pageElement.id}`);
+        } else {
+            console.error(`[DEBUG] Could not find page element for: ${pageName}`);
         }
         
         if (navElement) {
