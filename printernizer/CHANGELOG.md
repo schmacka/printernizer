@@ -1,3 +1,12 @@
+## [2.6.2] - 2025-11-13
+
+- fix: Initialize navigation preferences UI when settings page loads
+- docs: Update CLAUDE.md and deployment docs with branching strategy
+- docs: Add comprehensive E2E test failures analysis document
+- Initial plan
+- Add Raspberry Pi deployment scripts with automated rollback
+- feat: Implement persistent development branch strategy
+
 ## [2.6.1] - 2025-11-13
 
 - feat: Implement jobs and materials frontend features
