@@ -1,3 +1,11 @@
+## [2.6.6] - 2025-11-13
+
+- feat: Create awesome modern settings page with tabs and comprehensive configuration
+- docs: Add comprehensive test coverage analysis
+- Fix E2E test failures: add missing script closing tag and hashchange handler
+- Add debugging logs to troubleshoot E2E test routing issue
+- Initial plan
+
 ## [2.6.5] - 2025-11-13
 
 - feat: Add multi-angle animated GIF previews for 3D models

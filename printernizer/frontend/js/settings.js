@@ -9,6 +9,8 @@ class SettingsManager {
         this.watchFolders = [];
         this.isDirty = false;
         this.autoSaveTimeout = null;
+        this.currentTab = 'general';
+        this.allSettings = [];
     }
 
     /**
@@ -34,8 +36,212 @@ class SettingsManager {
             window.navigationPreferencesManager.init();
         }
 
+        // Index all settings for search
+        this.indexSettings();
+
         this.lastRefresh = new Date();
         console.log('Settings manager initialized');
+    }
+
+    /**
+     * Switch between settings tabs
+     */
+    switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+
+        // Update tab buttons
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        const activeTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+
+        // Update tab content
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.remove('active');
+        });
+        const activePane = document.getElementById(`${tabName}-tab`);
+        if (activePane) {
+            activePane.classList.add('active');
+        }
+
+        this.currentTab = tabName;
+    }
+
+    /**
+     * Index all settings for search functionality
+     */
+    indexSettings() {
+        this.allSettings = [
+            // General settings
+            { id: 'logLevel', tab: 'general', keywords: ['log', 'level', 'debug', 'protokoll'] },
+            { id: 'monitoringInterval', tab: 'general', keywords: ['monitoring', 'interval', 'überwachung', 'polling'] },
+            { id: 'connectionTimeout', tab: 'general', keywords: ['timeout', 'verbindung', 'connection'] },
+            { id: 'vatRate', tab: 'general', keywords: ['vat', 'mwst', 'steuer', 'tax'] },
+
+            // Jobs & G-Code
+            { id: 'jobCreationAutoCreate', tab: 'jobs', keywords: ['job', 'auto', 'automatisch', 'auftrag'] },
+            { id: 'gcodeOptimizePrintOnly', tab: 'jobs', keywords: ['gcode', 'optimize', 'print', 'optimierung'] },
+            { id: 'gcodeOptimizationMaxLines', tab: 'jobs', keywords: ['gcode', 'lines', 'zeilen', 'max'] },
+            { id: 'gcodeRenderMaxLines', tab: 'jobs', keywords: ['gcode', 'render', 'rendering', 'vorschau'] },
+
+            // Library
+            { id: 'libraryEnabled', tab: 'library', keywords: ['library', 'bibliothek', 'enable'] },
+            { id: 'libraryPath', tab: 'library', keywords: ['library', 'path', 'pfad', 'verzeichnis'] },
+            { id: 'libraryAutoOrganize', tab: 'library', keywords: ['library', 'organize', 'auto', 'organisation'] },
+            { id: 'libraryAutoExtractMetadata', tab: 'library', keywords: ['library', 'metadata', 'extract', 'metadaten'] },
+            { id: 'libraryAutoDeduplicate', tab: 'library', keywords: ['library', 'duplicate', 'duplikat', 'deduplicate'] },
+            { id: 'libraryPreserveOriginals', tab: 'library', keywords: ['library', 'preserve', 'original', 'bewahren'] },
+            { id: 'libraryChecksumAlgorithm', tab: 'library', keywords: ['library', 'checksum', 'algorithm', 'prüfsumme'] },
+            { id: 'libraryProcessingWorkers', tab: 'library', keywords: ['library', 'workers', 'threads', 'parallel'] },
+            { id: 'librarySearchEnabled', tab: 'library', keywords: ['library', 'search', 'suche'] },
+            { id: 'librarySearchMinLength', tab: 'library', keywords: ['library', 'search', 'length', 'länge'] },
+
+            // Files
+            { id: 'downloadsPath', tab: 'files', keywords: ['download', 'path', 'pfad', 'verzeichnis'] },
+            { id: 'maxFileSize', tab: 'files', keywords: ['download', 'size', 'größe', 'max'] },
+            { id: 'enableUpload', tab: 'files', keywords: ['upload', 'hochladen', 'enable'] },
+            { id: 'maxUploadSizeMb', tab: 'files', keywords: ['upload', 'size', 'größe', 'max'] },
+            { id: 'allowedUploadExtensions', tab: 'files', keywords: ['upload', 'extensions', 'erweiterungen', 'format'] },
+
+            // Timelapse
+            { id: 'timelapseEnabled', tab: 'timelapse', keywords: ['timelapse', 'video', 'enable'] },
+            { id: 'timelapseSourceFolder', tab: 'timelapse', keywords: ['timelapse', 'source', 'quelle', 'folder'] },
+            { id: 'timelapseOutputFolder', tab: 'timelapse', keywords: ['timelapse', 'output', 'ausgabe', 'folder'] },
+            { id: 'timelapseOutputStrategy', tab: 'timelapse', keywords: ['timelapse', 'strategy', 'strategie'] },
+            { id: 'timelapseAutoProcessTimeout', tab: 'timelapse', keywords: ['timelapse', 'timeout', 'auto', 'process'] },
+            { id: 'timelapseCleanupAgeDays', tab: 'timelapse', keywords: ['timelapse', 'cleanup', 'clean', 'age', 'days'] },
+
+            // Watch folders
+            { id: 'watchFoldersEnabled', tab: 'watch', keywords: ['watch', 'folder', 'überwachung', 'verzeichnis'] },
+            { id: 'watchFoldersRecursive', tab: 'watch', keywords: ['watch', 'recursive', 'rekursiv', 'unterordner'] }
+        ];
+    }
+
+    /**
+     * Filter settings based on search query
+     */
+    filterSettings(query) {
+        if (!query || query.trim().length < 2) {
+            // Show all tabs and settings
+            document.querySelectorAll('.settings-tab').forEach(tab => tab.style.display = 'flex');
+            document.querySelectorAll('.settings-section').forEach(section => section.style.display = 'block');
+            document.querySelectorAll('.form-group').forEach(group => group.style.display = 'block');
+            return;
+        }
+
+        const searchTerms = query.toLowerCase().trim().split(' ');
+        const matchedSettings = new Set();
+        const matchedTabs = new Set();
+
+        // Find matching settings
+        this.allSettings.forEach(setting => {
+            const matches = searchTerms.every(term =>
+                setting.id.toLowerCase().includes(term) ||
+                setting.keywords.some(keyword => keyword.includes(term))
+            );
+
+            if (matches) {
+                matchedSettings.add(setting.id);
+                matchedTabs.add(setting.tab);
+            }
+        });
+
+        // Hide/show tabs
+        document.querySelectorAll('.settings-tab').forEach(tab => {
+            const tabName = tab.getAttribute('data-tab');
+            if (matchedTabs.has(tabName)) {
+                tab.style.display = 'flex';
+            } else {
+                tab.style.display = 'none';
+            }
+        });
+
+        // Hide/show form groups
+        document.querySelectorAll('.form-group').forEach(group => {
+            const input = group.querySelector('input, select');
+            if (input && matchedSettings.has(input.id)) {
+                group.style.display = 'block';
+                group.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                group.style.borderRadius = '8px';
+                group.style.padding = '0.5rem';
+            } else {
+                group.style.display = 'none';
+            }
+        });
+
+        // Switch to first matched tab if current tab has no matches
+        if (matchedTabs.size > 0 && !matchedTabs.has(this.currentTab)) {
+            const firstMatchedTab = Array.from(matchedTabs)[0];
+            this.switchTab(firstMatchedTab);
+        }
+    }
+
+    /**
+     * Export settings to JSON file
+     */
+    async exportSettings() {
+        try {
+            const settings = await api.getApplicationSettings();
+            const dataStr = JSON.stringify(settings, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `printernizer-settings-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('success', 'Export erfolgreich', 'Einstellungen wurden exportiert');
+        } catch (error) {
+            console.error('Failed to export settings:', error);
+            showToast('error', 'Export fehlgeschlagen', 'Einstellungen konnten nicht exportiert werden');
+        }
+    }
+
+    /**
+     * Import settings from JSON file
+     */
+    async importSettings() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const settings = JSON.parse(text);
+
+                // Confirm import
+                const confirmed = confirm(
+                    `Einstellungen aus "${file.name}" importieren?\n\n` +
+                    `Dies wird ${Object.keys(settings).length} Einstellungen überschreiben.`
+                );
+
+                if (!confirmed) return;
+
+                // Apply settings
+                await api.updateApplicationSettings(settings);
+                await this.loadSettings();
+
+                showToast('success', 'Import erfolgreich',
+                         `${Object.keys(settings).length} Einstellungen wurden importiert`);
+            } catch (error) {
+                console.error('Failed to import settings:', error);
+                showToast('error', 'Import fehlgeschlagen',
+                         'Einstellungen konnten nicht importiert werden. Prüfen Sie das Dateiformat.');
+            }
+        };
+
+        input.click();
     }
 
     /**
