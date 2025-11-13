@@ -3616,3 +3616,203 @@ label .required {
     border-top-color: var(--gray-600, #4b5563);
 }
 
+/* ===================================
+   Settings Tabs & Modern UI
+   =================================== */
+
+.settings-tabs-container {
+    margin: 0 2rem;
+}
+
+.settings-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--gray-200, #e5e7eb);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 0;
+}
+
+.settings-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--gray-600, #6b7280);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    position: relative;
+}
+
+.settings-tab:hover {
+    color: var(--primary-600, #2563eb);
+    background: var(--gray-50, #f9fafb);
+}
+
+.settings-tab.active {
+    color: var(--primary-600, #2563eb);
+    border-bottom-color: var(--primary-600, #2563eb);
+    font-weight: 600;
+}
+
+.settings-tab .tab-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.settings-tab .tab-label {
+    line-height: 1;
+}
+
+.settings-tab-content {
+    min-height: 400px;
+}
+
+.tab-pane {
+    display: none;
+    animation: fadeInUp 0.3s ease;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Settings Search */
+.settings-search-container input {
+    padding-left: 2.5rem;
+    background-image: none;
+}
+
+/* Settings Grid within Tabs */
+.tab-pane .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+.tab-pane .settings-section {
+    margin-bottom: 0;
+}
+
+.tab-pane .card-header h3 {
+    font-size: 1.125rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Dark Theme Support for Tabs */
+[data-theme="dark"] .settings-tabs {
+    border-bottom-color: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .settings-tab {
+    color: var(--gray-400, #9ca3af);
+}
+
+[data-theme="dark"] .settings-tab:hover {
+    color: var(--primary-400, #60a5fa);
+    background: var(--gray-800, #1f2937);
+}
+
+[data-theme="dark"] .settings-tab.active {
+    color: var(--primary-400, #60a5fa);
+    border-bottom-color: var(--primary-400, #60a5fa);
+}
+
+/* Responsive Tabs */
+@media (max-width: 768px) {
+    .settings-tabs-container {
+        margin: 0 1rem;
+    }
+
+    .settings-tabs {
+        gap: 0.25rem;
+    }
+
+    .settings-tab {
+        padding: 0.625rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .settings-tab .tab-icon {
+        font-size: 1.125rem;
+    }
+
+    .settings-tab .tab-label {
+        display: none;
+    }
+
+    .settings-search-container {
+        margin: 0 1rem 1rem 1rem !important;
+    }
+}
+
+/* Enhanced Alert Boxes in Settings */
+.tab-pane .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.tab-pane .alert-info {
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+}
+
+.tab-pane .alert-warning {
+    background-color: #fef3c7;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+}
+
+[data-theme="dark"] .tab-pane .alert-info {
+    background-color: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: #93c5fd;
+}
+
+[data-theme="dark"] .tab-pane .alert-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fcd34d;
+}
+
+/* Settings Form Enhancements */
+.tab-pane .form-group label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.tab-pane .form-text {
+    margin-top: 0.375rem;
+    font-size: 0.8125rem;
+}
+
