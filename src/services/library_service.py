@@ -981,6 +981,79 @@ class LibraryService:
         finally:
             self._processing_files.discard(checksum)
 
+    async def add_file_from_upload(self, file_id: str, file_path: str) -> Dict[str, Any]:
+        """
+        Add uploaded file to library.
+
+        This method bridges the file upload service with the library system.
+        It reads the uploaded file information from the files table and adds it
+        to the unified library with proper source tracking.
+
+        Args:
+            file_id: ID of uploaded file in files table
+            file_path: Path to the uploaded file
+
+        Returns:
+            Library file record
+
+        Raises:
+            FileNotFoundError: If uploaded file doesn't exist
+            ValueError: If file_id not found in database
+        """
+        try:
+            # Get file info from files table
+            conn = self.database.get_connection()
+            async with conn.execute(
+                "SELECT * FROM files WHERE id = ?",
+                (file_id,)
+            ) as cursor:
+                file_row = await cursor.fetchone()
+
+            if not file_row:
+                raise ValueError(f"File not found in database: {file_id}")
+
+            # Convert row to dictionary
+            file_info = dict(file_row)
+
+            # Convert file path string to Path object
+            source_path = Path(file_path)
+
+            # Create source info for library
+            source_info = {
+                'type': 'upload',
+                'source_id': 'manual_upload',
+                'source_name': 'Manual Upload',
+                'original_path': file_path,
+                'original_filename': file_info.get('filename', source_path.name),
+                'discovered_at': datetime.now().isoformat(),
+                'metadata': file_info.get('metadata', '{}')
+            }
+
+            logger.info("Adding uploaded file to library",
+                       file_id=file_id,
+                       filename=source_path.name)
+
+            # Add to library using main library method
+            # copy_file=True to preserve original in uploads folder
+            library_record = await self.add_file_to_library(
+                source_path=source_path,
+                source_info=source_info,
+                copy_file=True,
+                calculate_hash=True
+            )
+
+            logger.info("Uploaded file added to library successfully",
+                       file_id=file_id,
+                       library_checksum=library_record['checksum'][:16])
+
+            return library_record
+
+        except Exception as e:
+            logger.error("Failed to add uploaded file to library",
+                        file_id=file_id,
+                        error=str(e))
+            raise
+
     async def reprocess_file(self, checksum: str) -> bool:
         """
         Reprocess file metadata.

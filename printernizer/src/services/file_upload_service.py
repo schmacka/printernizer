@@ -290,12 +290,24 @@ class FileUploadService:
 
     async def process_file_after_upload(self, file_id: str, file_path: str):
         """
-        Trigger post-upload processing (thumbnails, metadata).
+        Trigger post-upload processing (thumbnails, metadata, library).
 
         Args:
             file_id: ID of the uploaded file
             file_path: Path to the uploaded file
         """
+        # Add to library if service available
+        if self.library_service:
+            try:
+                await self.library_service.add_file_from_upload(file_id, file_path)
+                logger.info("File added to library", file_id=file_id)
+            except Exception as e:
+                logger.warning(
+                    "Failed to add file to library",
+                    file_id=file_id,
+                    error=str(e)
+                )
+
         # Extract thumbnail if service available
         if self.thumbnail_service:
             try:
