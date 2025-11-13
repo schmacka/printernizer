@@ -1,3 +1,13 @@
+## [2.5.21] - 2025-11-13
+
+- fix: set materials table as default view for E2E tests
+- feat: add missing UI elements for E2E tests
+- Initial plan
+- fix: remove invalid --headed=false flag from E2E tests
+- fix: disable migration 018 (references materials table not yet created)
+- fix: disable migration 013 (source column already in base schema)
+- fix: disable migration 011 (materials table created by MaterialService, not migrations)
+
 ## [2.5.20] - 2025-11-13
 
 - feat: Add complete metadata schema to library_files table

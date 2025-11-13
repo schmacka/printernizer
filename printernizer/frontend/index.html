@@ -181,7 +181,7 @@
             <div class="section">
                 <div class="section-header">
                     <h2>Drucker Status</h2>
-                    <button class="btn btn-primary" onclick="showAddPrinter()">
+                    <button class="btn btn-primary" id="addPrinterBtn" data-action="add-printer" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
                         Drucker hinzufügen
                     </button>
@@ -236,7 +236,7 @@
                         <span class="btn-icon">🔍</span>
                         Drucker suchen
                     </button>
-                    <button class="btn btn-primary" onclick="showAddPrinter()">
+                    <button class="btn btn-primary" id="addPrinterBtn" data-action="add-printer" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
                         Drucker hinzufügen
                     </button>
@@ -300,11 +300,35 @@
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
                     </button>
+                    <button class="btn btn-primary" id="createJobBtn" onclick="showCreateJobModal()">
+                        <span class="btn-icon">➕</span>
+                        Create Job
+                    </button>
                 </div>
             </div>
 
             <div class="jobs-container">
-                <div class="jobs-list" id="jobsList">
+                <table class="jobs-table" id="jobsTable" style="width: 100%; display: table;">
+                    <thead>
+                        <tr>
+                            <th>Auftrag</th>
+                            <th>Drucker</th>
+                            <th>Status</th>
+                            <th>Datei</th>
+                            <th>Fortschritt</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jobsTableBody">
+                        <tr>
+                            <td colspan="6" class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Lade Aufträge...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="jobs-list" id="jobsList" style="display: none;">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
                         <p>Lade Aufträge...</p>
@@ -642,7 +666,7 @@
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
                     </button>
-                    <button class="btn btn-primary" onclick="materialsManager.showAddMaterialModal()">
+                    <button class="btn btn-primary" id="addMaterialBtn" onclick="materialsManager.showAddMaterialModal()">
                         <span class="btn-icon">➕</span>
                         Filament hinzufügen
                     </button>
@@ -744,14 +768,14 @@
 
             <!-- Materials Container -->
             <div class="materials-container">
-                <div id="materialsCardsView" class="materials-cards-grid">
+                <div id="materialsCardsView" class="materials-cards-grid" style="display: none;">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
                         <p>Lade Filamente...</p>
                     </div>
                 </div>
-                <div id="materialsTableView" class="materials-table-wrapper" style="display: none;">
-                    <table class="materials-table">
+                <div id="materialsTableView" class="materials-table-wrapper">
+                    <table class="materials-table" id="materialsTable">
                         <thead>
                             <tr>
                                 <th>Typ</th>
@@ -2094,6 +2118,109 @@
     <script src="js/search.js"></script>
 
     <script src="js/main.js?v=1.1"></script>
+
+    <!-- Create Job Modal -->
+    <div id="jobModal" class="modal job-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Job</h3>
+                <button class="modal-close" onclick="closeJobModal()">&times;</button>
+            </div>
+            <form id="createJobForm" class="modal-body">
+                <div class="form-group">
+                    <label for="jobName">Job Name</label>
+                    <input type="text" id="jobName" name="job_name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="fileSelect">File</label>
+                    <select id="fileSelect" name="file" class="form-control">
+                        <option value="">Select a file...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="printerSelect">Printer</label>
+                    <select id="printerSelect" name="printer" class="form-control">
+                        <option value="">Select a printer...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="isBusiness" name="is_business">
+                        <span class="checkbox-custom"></span>
+                        Business Job
+                    </label>
+                </div>
+                
+                <div class="form-group" id="customerNameGroup" style="display: none;">
+                    <label for="customerName">Customer Name</label>
+                    <input type="text" id="customerName" name="customer_name" class="form-control">
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeJobModal()">
+                    Cancel
+                </button>
+                <button type="submit" form="createJobForm" class="btn btn-primary submit-job-btn">
+                    <span class="btn-icon">➕</span>
+                    Create Job
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Material Modal -->
+    <div id="materialModal" class="modal material-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Material</h3>
+                <button class="modal-close" onclick="closeMaterialModal()">&times;</button>
+            </div>
+            <form id="addMaterialForm" class="modal-body">
+                <div class="form-group">
+                    <label for="materialName">Name</label>
+                    <input type="text" id="materialName" name="material_name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="materialType">Type</label>
+                    <select id="materialType" name="material_type" class="form-control">
+                        <option value="PLA">PLA</option>
+                        <option value="PETG">PETG</option>
+                        <option value="ABS">ABS</option>
+                        <option value="TPU">TPU</option>
+                        <option value="Nylon">Nylon</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="materialColor">Color</label>
+                    <input type="text" id="materialColor" name="color" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="materialWeight">Weight (g)</label>
+                    <input type="number" id="materialWeight" name="weight" class="form-control" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="materialCost">Cost (EUR)</label>
+                    <input type="number" id="materialCost" name="cost" class="form-control" min="0" step="0.01">
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeMaterialModal()">
+                    Cancel
+                </button>
+                <button type="submit" form="addMaterialForm" class="btn btn-primary submit-material-btn">
+                    <span class="btn-icon">➕</span>
+                    Add Material
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="app-footer">
