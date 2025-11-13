@@ -338,12 +338,6 @@ jobs:
       run: |
         playwright install --with-deps chromium
 
-    - name: Set up database
-      run: |
-        sqlite3 e2e_test.db < database_schema.sql
-      env:
-        DATABASE_PATH: e2e_test.db
-
     - name: Start test server
       run: |
         python -m src.main &
