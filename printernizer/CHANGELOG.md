@@ -1,3 +1,12 @@
+## [2.6.1] - 2025-11-13
+
+- feat: Implement jobs and materials frontend features
+- Fix file API performance test foreign key constraint
+- Fix WebSocket test failures: imports and async mocks
+- Initial plan
+- Add test-agent.agent.md file
+- Create feature-completer agent for CI test analysis
+
 ## [2.5.21] - 2025-11-13
 
 - fix: set materials table as default view for E2E tests
