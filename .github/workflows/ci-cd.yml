@@ -374,7 +374,6 @@ jobs:
         pytest tests/e2e/ \
           --base-url=http://localhost:8000 \
           --browser=chromium \
-          --headed=false \
           --junit-xml=e2e-test-results.xml \
           --tb=short \
           --maxfail=10 \
