@@ -1,5 +1,52 @@
 # Printernizer Development Workflow
 
+## Branching Strategy
+
+**Two-Branch Model**:
+
+### Branches
+
+- **`development`** - Integration and testing branch
+  - All feature branches merge here first
+  - Used for Docker testing deployments
+  - Pre-release versions (e.g., `2.7.0-dev`, `2.7.0-beta.1`)
+  - Automated CI/CD builds Docker images tagged `development`
+  - HA add-on sync runs but NO version bump
+
+- **`master`** - Production branch
+  - Only stable, tested code
+  - Used for Home Assistant add-on production releases
+  - Release versions only (e.g., `2.7.0`)
+  - Tagged commits trigger production releases
+  - HA add-on auto version bump on sync
+
+### Workflow
+
+```
+Feature branch → development (PR + review) → Docker testing → master (PR + review) → Tag for release
+```
+
+### Development Process
+
+1. **Create feature branch from `development`**:
+   ```bash
+   git checkout development
+   git pull origin development
+   git checkout -b feature/your-feature
+   ```
+
+2. **Develop and test locally**
+
+3. **Create PR to `development`** (not master!)
+
+4. **After merge**: CI/CD builds Docker image tagged `development`
+
+5. **Test with Docker deployment**
+
+6. **When ready for release**: Create PR from `development` to `master`
+
+7. **After merge to master**: Follow release process (see RELEASE.md)
+
 ## Code Synchronization - CRITICAL
 
 **Single Source of Truth**: Edit code ONLY in `/src/` and `/frontend/` directories.
@@ -22,8 +69,8 @@
    ```
 
 3. **CI/CD Validation**:
-   - GitHub Actions runs sync on push to master
-   - Auto-bumps HA add-on version
+   - GitHub Actions runs sync on push to `master` or `development`
+   - Auto-bumps HA add-on version **only on `master`**
    - Commits and pushes changes if needed
 
 ### Why This Architecture

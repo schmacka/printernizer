@@ -1,9 +1,15 @@
 name: Sync Home Assistant Add-on
 
+# Branching Strategy:
+# - master branch: Production HA add-on (auto version bump)
+# - development branch: Testing HA add-on changes (no version bump)
+# - feature/fix branches: Testing specific changes (no version bump)
+
 on:
   push:
     branches:
       - master
+      - development
       - 'feature/**'
       - 'fix/**'
     paths:
