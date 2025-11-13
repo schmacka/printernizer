@@ -1,3 +1,11 @@
+## [2.6.3] - 2025-11-13
+
+- feat: Enable global drag and drop file upload from any page
+- fix: Initialize navigation preferences UI when settings page loads
+- docs: Update CLAUDE.md and deployment docs with branching strategy
+- docs: Add comprehensive E2E test failures analysis document
+- Initial plan
+
 ## [2.6.2] - 2025-11-13
 
 - fix: Initialize navigation preferences UI when settings page loads
