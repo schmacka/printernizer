@@ -812,6 +812,11 @@ class FileListItem {
                     e.stopPropagation();
                     this.showFullThumbnail(this.file.id, this.file.filename);
                 });
+
+                // Add hover animation support for STL/3MF files
+                if (thumbnail.classList.contains('supports-animation')) {
+                    this.setupAnimatedThumbnail(thumbnail);
+                }
             }
         }
 
@@ -823,8 +828,16 @@ class FileListItem {
      */
     renderThumbnailOrIcon() {
         if (this.file.has_thumbnail && this.file.id) {
+            // Check if file supports animated preview (STL or 3MF)
+            const supportsAnimation = this.file.file_type &&
+                ['stl', '3mf'].includes(this.file.file_type.toLowerCase());
+
             return `
-                <div class="file-thumbnail enhanced" title="Click to enlarge">
+                <div class="file-thumbnail enhanced ${supportsAnimation ? 'supports-animation' : ''}"
+                     title="Click to enlarge"
+                     data-file-id="${this.file.id}"
+                     data-static-url="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail"
+                     ${supportsAnimation ? `data-animated-url="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail/animated"` : ''}>
                     <img src="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail"
                          alt="Thumbnail for ${escapeHtml(this.file.filename)}"
                          class="thumbnail-image"
@@ -875,6 +888,72 @@ class FileListItem {
         });
 
         document.body.appendChild(modal);
+    }
+
+    /**
+     * Setup animated thumbnail on hover for 3D files
+     */
+    setupAnimatedThumbnail(thumbnailElement) {
+        const img = thumbnailElement.querySelector('.thumbnail-image');
+        const staticUrl = thumbnailElement.dataset.staticUrl;
+        const animatedUrl = thumbnailElement.dataset.animatedUrl;
+
+        if (!img || !animatedUrl) return;
+
+        let isAnimatedLoaded = false;
+        let isHovering = false;
+        let loadTimeout = null;
+
+        // Preload the animated GIF on first hover
+        const preloadAnimatedGif = () => {
+            if (isAnimatedLoaded) return;
+
+            const preloadImg = new Image();
+            preloadImg.onload = () => {
+                isAnimatedLoaded = true;
+                // If still hovering, swap immediately
+                if (isHovering && img.src !== animatedUrl) {
+                    img.src = animatedUrl;
+                }
+            };
+            preloadImg.onerror = () => {
+                console.warn('Failed to load animated preview:', animatedUrl);
+            };
+            preloadImg.src = animatedUrl;
+        };
+
+        // Mouse enter: load and show animated GIF
+        thumbnailElement.addEventListener('mouseenter', () => {
+            isHovering = true;
+
+            // Start loading after a short delay to avoid loading on quick passes
+            loadTimeout = setTimeout(() => {
+                if (isHovering) {
+                    preloadAnimatedGif();
+
+                    // If already loaded, swap immediately
+                    if (isAnimatedLoaded && img.src !== animatedUrl) {
+                        img.src = animatedUrl;
+                    }
+                }
+            }, 200); // 200ms delay before loading
+        });
+
+        // Mouse leave: restore static image
+        thumbnailElement.addEventListener('mouseleave', () => {
+            isHovering = false;
+
+            // Cancel loading if not started yet
+            if (loadTimeout) {
+                clearTimeout(loadTimeout);
+                loadTimeout = null;
+            }
+
+            // Restore static image
+            if (img.src !== staticUrl) {
+                img.src = staticUrl;
+            }
+        });
     }
 
     /**

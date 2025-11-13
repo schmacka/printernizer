@@ -361,6 +361,25 @@ class FileThumbnailService:
             logger.info("Successfully generated preview thumbnail",
                        file_path=file_path)
 
+            # Also generate animated preview in the background (non-blocking)
+            # This will be cached and served via separate endpoint
+            if file_type.lower() in ['stl', '3mf']:
+                try:
+                    # Generate animated preview asynchronously without blocking
+                    asyncio.create_task(
+                        self.preview_render_service.get_or_generate_animated_preview(
+                            file_path,
+                            file_type,
+                            size=(200, 200)
+                        )
+                    )
+                    logger.debug("Started animated preview generation in background",
+                               file_path=file_path)
+                except Exception as e:
+                    logger.warning("Failed to start animated preview generation",
+                                 file_path=file_path,
+                                 error=str(e))
+
             return {
                 'data': thumbnail_data,
                 'width': 200,
