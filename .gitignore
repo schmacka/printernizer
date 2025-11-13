@@ -127,6 +127,20 @@ tmp_*.py
 temp_*.json
 nul
 
+# Root-level test/debug files (should be in scripts/ instead)
+/test_*.py
+/test_*.txt
+/backend_*.txt
+/backend_*.log
+backend_pid.txt
+
+# Temporary test scripts in scripts/ folder
+scripts/test_*.py
+scripts/debug_*.py
+
+# Claude AI test files
+.claude/**/test_*.py
+
 # Deployment scripts (project uses Python setup, not containers)
 deploy.sh
 validate-deployment.sh
