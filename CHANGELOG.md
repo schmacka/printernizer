@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2025-11-13
+
+### Added
+- **E2E Test UI Elements** - Implemented missing UI elements for Playwright E2E tests
+  - Added "Create Job" button (`#createJobBtn`) to Jobs page
+  - Added jobs table with `#jobsTable` ID and proper table structure
+  - Added job creation modal (`#jobModal`) with form fields:
+    - Job name, file selection, printer selection
+    - Business job checkbox with customer name field
+  - Added material modal (`#materialModal`) with form fields:
+    - Material name, type, color, weight, cost
+  - Added consistent IDs to all action buttons:
+    - `#addPrinterBtn` with `data-action="add-printer"` attribute
+    - `#addMaterialBtn` for material management
+  - Implemented JavaScript modal functions:
+    - `showCreateJobModal()`, `closeJobModal()`
+    - `showAddMaterialModal()`, `closeMaterialModal()`
+
+### Changed
+- **Materials Page** - Set table view as default (was cards view)
+  - Materials table now visible by default for better E2E test compatibility
+  - Cards view moved to secondary option via view mode toggle
+
 ### Fixed
 - **CI/CD Test Coverage** - Fixed critical test coverage gap in GitHub Actions workflow
   - Removed blanket `test_*.py` exclusion from `.gitignore` that prevented proper test file tracking
@@ -15,13 +38,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Test coverage increased from 68.3% (28/41 files) to 100% (39/39 files)
   - Added 44 E2E tests that were previously not running in CI/CD
   - Total test count increased from 518 to 562 tests (+8.5%)
+  - **E2E Tests** - Fixed 10 failing Playwright tests by implementing missing UI elements:
+    - `test_dashboard_add_printer_button_exists` - Button now has correct IDs
+    - `test_jobs_table_display` - Table exists and is visible
+    - `test_create_job_button_exists` - Button present with correct ID
+    - `test_create_job_modal_opens` - Modal can be opened
+    - `test_business_job_fields` - Business fields present in job modal
+    - `test_vat_calculation_display` - Job modal supports business workflows
+    - `test_job_form_validation` - Job form exists with proper structure
+    - `test_materials_table_display` - Materials table visible by default
+    - `test_add_material_button_exists` - Button has correct ID
 
-### Changed
+### Technical Details
 - **Test Infrastructure** - Modernized test execution approach
   - CI/CD now uses `pytest tests/ --ignore=tests/e2e --ignore=tests/frontend` for automatic test discovery
   - No longer requires manual workflow updates when adding new test files
   - E2E tests run in dedicated job with full Playwright browser automation
   - Security scan job now waits for E2E tests to complete
+  - All page object model selectors now match implemented UI elements
 
 ## [2.5.4] - 2025-11-11
 

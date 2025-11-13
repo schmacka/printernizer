@@ -935,6 +935,69 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAppVersion();
 });
 
+/**
+ * Job Modal Functions
+ */
+function showCreateJobModal() {
+    const modal = document.getElementById('jobModal');
+    if (modal) {
+        modal.classList.add('active');
+        // Show/hide business fields based on checkbox
+        const businessCheckbox = document.getElementById('isBusiness');
+        const customerNameGroup = document.getElementById('customerNameGroup');
+        if (businessCheckbox && customerNameGroup) {
+            businessCheckbox.addEventListener('change', function() {
+                customerNameGroup.style.display = this.checked ? 'block' : 'none';
+            });
+        }
+    }
+}
+
+function closeJobModal() {
+    const modal = document.getElementById('jobModal');
+    if (modal) {
+        modal.classList.remove('active');
+        // Reset form
+        const form = document.getElementById('createJobForm');
+        if (form) {
+            form.reset();
+        }
+        // Hide business fields
+        const customerNameGroup = document.getElementById('customerNameGroup');
+        if (customerNameGroup) {
+            customerNameGroup.style.display = 'none';
+        }
+    }
+}
+
+/**
+ * Material Modal Functions
+ */
+function showAddMaterialModal() {
+    const modal = document.getElementById('materialModal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeMaterialModal() {
+    const modal = document.getElementById('materialModal');
+    if (modal) {
+        modal.classList.remove('active');
+        // Reset form
+        const form = document.getElementById('addMaterialForm');
+        if (form) {
+            form.reset();
+        }
+    }
+}
+
+// Make modal functions available globally
+window.showCreateJobModal = showCreateJobModal;
+window.closeJobModal = closeJobModal;
+window.showAddMaterialModal = showAddMaterialModal;
+window.closeMaterialModal = closeMaterialModal;
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -944,6 +1007,7 @@ if (typeof module !== 'undefined' && module.exports) {
         setLoadingState, showToast, showNotification, showModal, closeModal,
         debounce, throttle, copyToClipboard, downloadFile,
         getStatusConfig, createStatusBadge, escapeHtml, truncateText, generateId,
-        Storage, URLParams
+        Storage, URLParams,
+        showCreateJobModal, closeJobModal, showAddMaterialModal, closeMaterialModal
     };
 }
