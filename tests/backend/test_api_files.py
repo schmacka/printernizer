@@ -373,6 +373,12 @@ class TestFileAPIPerformance:
         """Test API performance with large number of files"""
         cursor = db_connection.cursor()
         
+        # Create a test printer for foreign key constraint
+        cursor.execute("""
+            INSERT INTO printers (id, name, type, ip_address, status)
+            VALUES (?, ?, ?, ?, ?)
+        """, ('test_printer_001', 'Test Printer', 'bambu_lab', '192.168.1.100', 'online'))
+        
         # Insert many files for performance testing
         for i in range(200):
             cursor.execute("""
@@ -384,7 +390,7 @@ class TestFileAPIPerformance:
                 '.3mf',
                 1024000 + i * 1000,
                 'available' if i % 2 else 'downloaded',
-                'test_printer_001'
+                'test_printer_001' if i % 3 else None  # Some files without printer
             ))
         
         db_connection.commit()
