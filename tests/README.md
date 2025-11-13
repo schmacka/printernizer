@@ -2,6 +2,12 @@
 
 Comprehensive test suite for the Printernizer 3D print management system, covering backend APIs, frontend components, German business logic, and system performance.
 
+> **📝 Recent Update (Nov 2025):** Test organization improved!
+> - ✅ Service tests moved to `tests/services/`
+> - ✅ Integration tests moved to `tests/integration/`  
+> - ✅ Redundant tests removed (test_essential_config.py, test_working_core.py, test_essential_integration.py)
+> - See [Test Organization Analysis](../docs/TEST_ORGANIZATION_ANALYSIS.md) for details.
+
 ## 🎯 Test Coverage Overview
 
 ### Backend Tests (Python/pytest)
@@ -36,15 +42,12 @@ npm install
 
 #### Complete Test Suite (Matches CI/CD)
 ```bash
-# Run all 397 Python tests (same as CI/CD backend test job)
-python -m pytest tests/backend/ tests/services/ tests/integration/ \
-  tests/test_essential_config.py \
-  tests/test_essential_integration.py \
-  tests/test_essential_models.py \
-  tests/test_infrastructure.py \
-  tests/test_printer_interface_conformance.py \
-  tests/test_sync_consistency.py \
+# Run all backend/service/integration Python tests (same as CI/CD)
+python -m pytest tests/ --ignore=tests/e2e --ignore=tests/frontend \
   --cov=src --cov-report=html --cov-report=term-missing -v
+
+# Or run specific directories
+python -m pytest tests/backend/ tests/services/ tests/integration/ -v
 ```
 
 #### Using Test Runner (Legacy)
@@ -170,22 +173,24 @@ tests/
 │   ├── test_auto_job_performance.py     # Auto-job performance (13 tests)
 │   ├── test_job_null_fix.py             # Job null handling (5 tests)
 │   └── test_library_service.py          # Library/file storage (29 tests)
-├── services/                            # Service layer tests (63 tests)
+├── services/                            # Service layer tests (~130 tests)
 │   ├── __init__.py
 │   ├── test_auto_job_creation.py        # Auto-job logic (28 tests)
 │   ├── test_file_download_service.py    # File downloads (17 tests)
-│   └── test_printer_connection_service.py # Connections (18 tests)
-├── integration/                         # Integration tests (14 tests)
+│   ├── test_printer_connection_service.py # Connections (18 tests)
+│   ├── test_ideas_service.py            # Ideas/trending service (27 tests)
+│   ├── test_url_parser_service.py       # URL parsing (21 tests)
+│   └── test_gcode_analyzer.py           # G-code analysis (23 tests)
+├── integration/                         # Integration tests (~20 tests)
 │   ├── __init__.py
-│   └── test_auto_job_integration.py     # Auto-job workflows (14 tests)
-├── test_essential_config.py             # Configuration tests (15 tests)
-├── test_essential_integration.py        # Essential workflows (17 tests)
-├── test_essential_models.py             # Data models (16 tests)
-├── test_essential_printer_api.py        # Printer API validation (11 tests)
-├── test_essential_printer_drivers.py    # Printer drivers (11 tests)
-├── test_infrastructure.py               # Infrastructure setup (5 tests)
-├── test_printer_interface_conformance.py # Interface compliance (3 tests)
-├── test_sync_consistency.py             # Code sync validation (5 tests)
+│   ├── test_auto_job_integration.py     # Auto-job workflows (14 tests)
+│   ├── test_printer_interface_conformance.py # Interface compliance (3 tests)
+│   └── test_sync_consistency.py         # Code sync validation (8 tests)
+├── test_essential_models.py             # Data models (16 tests) - Lightweight model validation
+├── test_essential_printer_api.py        # Printer API validation (11 tests) - Milestone 1.2
+├── test_essential_printer_drivers.py    # Printer drivers (11 tests) - Milestone 1.2  
+├── test_infrastructure.py               # Test fixtures validation (5 tests)
+├── test_runner.py                       # Legacy test execution script (utility)
 └── frontend/                            # Frontend tests (JavaScript/Jest)
     ├── package.json                     # Node.js dependencies
     ├── setup.js                         # Jest environment setup
