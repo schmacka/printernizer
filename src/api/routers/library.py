@@ -36,7 +36,7 @@ class LibraryFileResponse(BaseModel):
     status: str
     added_to_library: str
     last_modified: Optional[str]
-    last_accessed: Optional[str]
+    last_accessed: Optional[str] = None
     last_analyzed: Optional[str] = None
     has_thumbnail: bool = False
 
