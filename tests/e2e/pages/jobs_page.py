@@ -26,10 +26,12 @@ class JobsPage:
         
     def navigate(self, base_url: str):
         """Navigate to jobs page"""
-        self.page.goto(f"{base_url}/#jobs")
+        self.page.goto(f"{base_url}/#jobs", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
+        # Wait for app initialization (main.js to execute)
+        self.page.wait_for_function("() => window.app && window.app.currentPage")
         # Wait for the jobs page section to be visible
-        self.page.wait_for_selector("#page-jobs", state="visible", timeout=5000)
+        self.page.wait_for_selector("#page-jobs.active", state="visible", timeout=5000)
         
     def open_create_job_modal(self):
         """Open the create job modal"""

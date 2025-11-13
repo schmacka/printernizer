@@ -96,14 +96,18 @@ class PrinternizerApp {
             this.showPage(page, false);
         });
 
+        // Handle hash changes (for direct navigation and E2E tests)
+        window.addEventListener('hashchange', () => {
+            const newHash = window.location.hash.slice(1);
+            if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(newHash)) {
+                this.showPage(newHash);
+            }
+        });
+
         // Set initial browser state
         const currentHash = window.location.hash.slice(1) || 'dashboard';
-        console.log(`[DEBUG] setupNavigation: currentHash='${currentHash}', initial currentPage='${this.currentPage}'`);
         if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
             this.currentPage = currentHash;
-            console.log(`[DEBUG] setupNavigation: updated currentPage to '${this.currentPage}'`);
-        } else {
-            console.log(`[DEBUG] setupNavigation: currentHash not in allowed list, keeping currentPage='${this.currentPage}'`);
         }
 
         history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
@@ -142,13 +146,10 @@ class PrinternizerApp {
         }
         const navElement = document.querySelector(`[data-page="${pageName}"]`);
         
-        console.log(`[DEBUG] showPage(${pageName}): pageElement found=${!!pageElement}, will add active class=${!!pageElement}`);
-        
         if (pageElement) {
             pageElement.classList.add('active');
-            console.log(`[DEBUG] Added active class to element with id=${pageElement.id}`);
         } else {
-            console.error(`[DEBUG] Could not find page element for: ${pageName}`);
+            console.error(`Could not find page element for: ${pageName}`);
         }
         
         if (navElement) {
