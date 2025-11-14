@@ -218,7 +218,15 @@ class PrinterManager {
      * Render temperatures for tile layout
      */
     renderTileTemperatures(temperatures) {
-        if (!temperatures) return '';
+        // Always show temperatures for consistent card height
+        if (!temperatures) {
+            return `
+                <div class="printer-tile-temps printer-tile-temps-placeholder">
+                    <span class="tile-temp text-muted" title="Düse">🔥 --°C</span>
+                    <span class="tile-temp text-muted" title="Druckbett">🛏️ --°C</span>
+                </div>
+            `;
+        }
 
         const tempItems = [];
 
@@ -232,7 +240,14 @@ class PrinterManager {
             tempItems.push(`<span class="tile-temp" title="Druckbett">🛏️ ${parseFloat(bed.current).toFixed(0)}°C</span>`);
         }
 
-        if (tempItems.length === 0) return '';
+        if (tempItems.length === 0) {
+            return `
+                <div class="printer-tile-temps printer-tile-temps-placeholder">
+                    <span class="tile-temp text-muted" title="Düse">🔥 --°C</span>
+                    <span class="tile-temp text-muted" title="Druckbett">🛏️ --°C</span>
+                </div>
+            `;
+        }
 
         return `
             <div class="printer-tile-temps">
