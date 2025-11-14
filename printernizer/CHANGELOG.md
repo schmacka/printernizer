@@ -1,3 +1,9 @@
+## [2.6.14] - 2025-11-14
+
+- fix: Improve iOS mobile file upload compatibility
+- feat: Add settings accessibility tests and fix tab switching
+- fix: Remove duplicate div tag in settings general tab
+
 ## [2.6.13] - 2025-11-14
 
 - feat: Add settings accessibility tests and fix tab switching

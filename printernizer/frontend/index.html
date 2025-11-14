@@ -536,11 +536,12 @@
             </div>
 
             <!-- Hidden file input for manual upload -->
+            <!-- iOS-friendly: simplified accept attribute for better mobile compatibility -->
             <input type="file"
                    id="libraryFileInput"
                    style="display: none;"
                    multiple
-                   accept=".3mf,.stl,.gcode,.obj,.ply,model/3mf,application/vnd.ms-package.3dmanufacturing-3dmodel+xml,model/stl,application/sla,application/vnd.ms-pki.stl,text/x.gcode,model/obj,application/ply"
+                   accept="*/*"
                    onchange="handleManualFileUpload(event)">
 
             <!-- Library Statistics -->
