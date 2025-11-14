@@ -1,39 +1,55 @@
 # Test Coverage Analysis - Printernizer
 
-**Generated:** 2025-11-13
-**Analyzed By:** Claude Code
-**Target Coverage:** 85% (configured in pytest.ini)
-**Current Coverage:** 34% (29/85 components)
+**Generated:** 2025-11-13 22:00 UTC  
+**Analyzed By:** GitHub Copilot Test Agent  
+**Target Coverage:** 85% (configured in pytest.ini)  
+**Current Coverage:** 25% (3,489/14,193 lines covered)
+
+### 📊 Quick Stats
+
+| Metric | Current | Target | Gap |
+|--------|---------|--------|-----|
+| **Line Coverage** | 25% | 85% | -60pp |
+| **Tests Passing** | 50.1% (260/519) | 95%+ | -45pp |
+| **Test Errors** | 96 (18.5%) | 0 | -96 |
+| **Test Failures** | 107 (20.6%) | <5% | -81 |
+| **Service Coverage** | 14% avg | 90% | -76pp |
+
+**Status:** 🔴 Critical - Requires immediate attention to async errors and coverage gaps
 
 ---
 
 ## Executive Summary
 
-The Printernizer codebase has a well-structured test infrastructure with 514 test functions across 53 test files. However, there is a significant gap between API endpoint coverage (94%) and service layer coverage (22%). While the test framework is solid, most tests focus on API endpoints rather than the underlying business logic in service classes.
+The Printernizer codebase has a well-structured test infrastructure with 519 test functions across 31+ test files. The current overall line coverage is 25%, significantly below the target of 85%. While the test framework is solid with comprehensive fixtures and markers, there are critical gaps in service layer coverage and many async test issues causing errors.
 
 ### Key Metrics
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| **Total Test Files** | 53 | ✅ Good |
-| **Total Test Functions** | 514 | ✅ Good |
-| **Test Pass Rate** | 54% (140/259) | ⚠️ Needs Work |
-| **Component Coverage** | 34% (29/85) | ❌ Below Target |
-| **API Endpoint Coverage** | 94% (17/18) | ✅ Excellent |
-| **Service Coverage** | 22% (7/32) | ❌ Critical Gap |
-| **Model Coverage** | 30% (3/10) | ⚠️ Needs Work |
-| **Utility Coverage** | 8% (1/12) | ❌ Critical Gap |
+| **Total Test Files** | 31+ | ✅ Good |
+| **Total Test Functions** | 519 | ✅ Excellent |
+| **Test Pass Rate** | 50.1% (260/519) | ⚠️ Needs Work |
+| **Tests Failed** | 107 (20.6%) | ❌ Critical |
+| **Tests Errors** | 96 (18.5%) | ❌ Critical |
+| **Tests Skipped** | 56 (10.8%) | ⚠️ Acceptable |
+| **Overall Line Coverage** | 25% | ❌ Critical Gap |
+| **API Endpoint Coverage** | ~80%+ | ✅ Good |
+| **Service Coverage** | 10-20% avg | ❌ Critical Gap |
+| **Model Coverage** | Variable | ⚠️ Needs Work |
+| **Utility Coverage** | 14-67% range | ⚠️ Mixed |
 
 ### Coverage by Category
 
 ```
-API Endpoints:  ████████████████████░  94% (17/18)
-Printers:       ██████████░░░░░░░░░░  50% (1/2)
-Models:         ██████░░░░░░░░░░░░░░  30% (3/10)
-Services:       ████░░░░░░░░░░░░░░░░  22% (7/32)
-Utilities:      █░░░░░░░░░░░░░░░░░░░   8% (1/12)
+API Routers:    ████████████████░░░░  80%+ (Good test coverage)
+Services:       ███░░░░░░░░░░░░░░░░░  10-20% (Critical gap)
+Models:         ████░░░░░░░░░░░░░░░░  Variable (Needs work)
+Printers:       ████████░░░░░░░░░░░░  ~40% (Needs improvement)
+Utilities:      ████████░░░░░░░░░░░░  14-67% (Mixed, needs work)
 ────────────────────────────────────
-Overall:        ███████░░░░░░░░░░░░░  34% (29/85)
+Overall:        █████░░░░░░░░░░░░░░░  25% (Below target)
+Target:         █████████████████░░░  85%
 ```
 
 ---
@@ -44,51 +60,52 @@ Overall:        ███████░░░░░░░░░░░░░  34
 
 ```
 tests/
-├── backend/              # API & backend tests (18 files)
-│   ├── test_api_files.py          (24 tests) ✅ 90% pass
+├── backend/              # API & backend tests (16 files)
+│   ├── test_api_files.py          (24 tests) ✅ Most passing
 │   ├── test_api_health.py         (9 tests)  ✅ 100% pass
-│   ├── test_api_jobs.py           (29 tests) ⚠️ 60% pass
-│   ├── test_api_printers.py       (26 tests) ⚠️ 47% pass
-│   ├── test_websocket.py          (21 tests) ⚠️ 38% pass
-│   ├── test_error_handling.py     (28 tests) ❌ 0% pass
-│   ├── test_german_business.py    (21 tests) ❌ 0% pass (not implemented)
-│   ├── test_integration.py        (16 tests) ❌ 0% pass
-│   ├── test_end_to_end.py         (9 tests)  ❌ 0% pass
-│   ├── test_performance.py        (11 tests) ❌ 0% pass
-│   ├── test_auto_job_performance.py (13 tests) ⚠️ 57% pass
-│   ├── test_database.py           (18 tests)
-│   ├── test_job_validation.py     (12 tests)
-│   ├── test_job_null_fix.py       (2 tests)  ❌ 0% pass
-│   ├── test_library_service.py    (29 tests)
-│   └── test_watch_folders.py      (8 tests)
+│   ├── test_api_jobs.py           (29 tests) ⚠️ Mixed results
+│   ├── test_api_printers.py       (26 tests) ⚠️ Mixed results
+│   ├── test_websocket.py          (21 tests) ⚠️ Some passing
+│   ├── test_error_handling.py     (28 tests) ❌ Many failures
+│   ├── test_german_business.py    (21 tests) ⏭️ Skipped (not implemented)
+│   ├── test_integration.py        (16 tests) ❌ Integration issues
+│   ├── test_end_to_end.py         (9 tests)  ❌ E2E issues
+│   ├── test_performance.py        (11 tests) ⚠️ Some passing
+│   ├── test_auto_job_performance.py (13 tests) ⚠️ Mixed results
+│   ├── test_database.py           (18 tests) ⚠️ Mixed results
+│   ├── test_job_validation.py     (12 tests) ⚠️ Mixed results
+│   ├── test_job_null_fix.py       (2 tests)  ⚠️ Mixed results
+│   ├── test_library_service.py    (29 tests) ⚠️ Mixed results
+│   └── test_watch_folders.py      (8 tests)  ⚠️ Mixed results
 │
 ├── services/             # Service unit tests (6 files)
-│   ├── test_auto_job_creation.py  (28 tests)
-│   ├── test_file_download_service.py (17 tests)
-│   ├── test_gcode_analyzer.py     (19 tests)
-│   ├── test_ideas_service.py      (27 tests)
-│   ├── test_printer_connection_service.py (18 tests)
-│   └── test_url_parser_service.py (18 tests)
+│   ├── test_auto_job_creation.py  (28 tests) ⚠️ Some passing
+│   ├── test_file_download_service.py (17 tests) ❌ Event loop errors
+│   ├── test_gcode_analyzer.py     (19 tests) ⚠️ Mixed results
+│   ├── test_ideas_service.py      (27 tests) ⚠️ Mixed results
+│   ├── test_printer_connection_service.py (18 tests) ❌ Event loop errors
+│   └── test_url_parser_service.py (18 tests) ⚠️ Mixed results
 │
 ├── integration/          # Integration tests (3 files)
-│   ├── test_auto_job_integration.py (15 tests)
-│   ├── test_printer_interface_conformance.py (1 test)
-│   └── test_sync_consistency.py   (1 test)
+│   ├── test_auto_job_integration.py (15 tests) ⚠️ Mixed results
+│   ├── test_printer_interface_conformance.py (1 test) ✅ Passing
+│   └── test_sync_consistency.py   (1 test)  ⚠️ Mixed results
 │
-├── e2e/                  # End-to-end Playwright tests (7 files)
-│   ├── test_printers.py           (6 tests)
-│   ├── test_jobs.py               (8 tests)
-│   ├── test_materials.py          (8 tests)
-│   ├── test_dashboard.py
-│   ├── test_integration.py        (7 tests)
-│   ├── test_examples.py           (7 tests)
-│   └── page_objects/              (helpers)
+├── e2e/                  # End-to-end Playwright tests (6 files)
+│   ├── test_printers.py           (6 tests)  ⚠️ Mixed results
+│   ├── test_jobs.py               (8 tests)  ⚠️ Mixed results
+│   ├── test_materials.py          (8 tests)  ⚠️ Mixed results
+│   ├── test_dashboard.py          (tests)    ⚠️ Mixed results
+│   ├── test_integration.py        (7 tests)  ⚠️ Mixed results
+│   └── test_examples.py           (7 tests)  ⚠️ Mixed results
 │
 ├── conftest.py           # Test fixtures (770 lines)
-├── test_essential_printer_drivers.py (11 tests)
-├── test_essential_printer_api.py     (11 tests)
-├── test_essential_models.py          (16 tests)
-└── test_infrastructure.py            (1 test)
+├── test_essential_printer_drivers.py (11 tests) ✅ Most passing
+├── test_essential_printer_api.py     (11 tests) ⚠️ Mixed results
+├── test_essential_models.py          (16 tests) ⚠️ Mixed results
+└── test_infrastructure.py            (1 test)  ✅ Passing
+
+**Total: 519 tests across 31+ test files**
 ```
 
 ### Test Configuration
@@ -171,27 +188,45 @@ Tests are organized with pytest markers for selective execution:
 
 ## Source Code Structure
 
-### Services (32 services, ~17,717 lines)
+### Services (33 services)
 
-| Service | Lines | Tests | Coverage |
-|---------|-------|-------|----------|
-| `analytics_service.py` | 13,325 | ❌ None | 0% |
-| `library_service.py` | 1,081 | ✅ 29 tests | Good |
-| `timelapse_service.py` | 1,017 | ❌ None | 0% |
-| `printer_monitoring_service.py` | 988 | ❌ None | 0% |
-| `bambu_parser.py` | 923 | ❌ None | 0% |
-| `search_service.py` | 798 | ❌ None | 0% |
-| `printer_service.py` | 795 | ❌ None | 0% |
-| `config_service.py` | 786 | ❌ None | 0% |
-| `file_service.py` | 742 | ❌ None | 0% |
-| `trending_service.py` | 683 | ❌ None | 0% |
-| `job_service.py` | 23,392 | ❌ None | 0% |
-| `auto_job_creation.py` | - | ✅ 28 tests | Good |
-| `file_download_service.py` | - | ✅ 17 tests | Partial |
-| `gcode_analyzer.py` | - | ✅ 19 tests | Partial |
-| `ideas_service.py` | - | ✅ 27 tests | Good |
-| `printer_connection_service.py` | - | ✅ 18 tests | Partial |
-| `url_parser_service.py` | - | ✅ 18 tests | Good |
+| Service | Statements | Missed | Coverage | Tests |
+|---------|------------|--------|----------|-------|
+| `analytics_service.py` | 113 | 95 | **16%** | ❌ Limited |
+| `bambu_ftp_service.py` | 211 | 180 | **15%** | ❌ Limited |
+| `bambu_parser.py` | 444 | 407 | **8%** | ❌ Critical Gap |
+| `config_service.py` | 424 | 313 | **26%** | ⚠️ Partial |
+| `discovery_service.py` | 255 | 221 | **13%** | ❌ Limited |
+| `event_service.py` | 239 | 220 | **8%** | ❌ Critical Gap |
+| `file_discovery_service.py` | 80 | 65 | **19%** | ❌ Limited |
+| `file_download_service.py` | 152 | 131 | **14%** | ✅ 17 tests (errors) |
+| `file_metadata_service.py` | 96 | 82 | **15%** | ❌ Limited |
+| `file_service.py` | 266 | 217 | **18%** | ❌ Limited |
+| `file_thumbnail_service.py` | 162 | 141 | **13%** | ❌ Limited |
+| `file_upload_service.py` | 139 | 117 | **16%** | ❌ Limited |
+| `file_watcher_service.py` | 283 | 231 | **18%** | ⚠️ Partial |
+| `idea_service.py` | 191 | 165 | **14%** | ✅ 27 tests |
+| `job_service.py` | 246 | 220 | **11%** | ❌ Critical Gap |
+| `library_service.py` | 410 | 410 | **0%** | ✅ 29 tests (no exec) |
+| `material_service.py` | 220 | 187 | **15%** | ❌ Limited |
+| `migration_service.py` | 103 | 88 | **15%** | ❌ Limited |
+| `monitoring_service.py` | 172 | 143 | **17%** | ❌ Limited |
+| `preview_render_service.py` | 362 | 327 | **10%** | ❌ Critical Gap |
+| `printer_connection_service.py` | 137 | 113 | **18%** | ✅ 18 tests (errors) |
+| `printer_control_service.py` | 78 | 63 | **19%** | ❌ Limited |
+| `printer_monitoring_service.py` | 301 | 268 | **11%** | ❌ Critical Gap |
+| `printer_service.py` | 229 | 185 | **19%** | ⚠️ Partial |
+| `search_service.py` | 269 | 233 | **13%** | ❌ Limited |
+| `stl_analyzer.py` | 101 | 101 | **0%** | ❌ Not tested |
+| `threemf_analyzer.py` | 213 | 213 | **0%** | ❌ Not tested |
+| `thumbnail_service.py` | 182 | 158 | **13%** | ❌ Limited |
+| `timelapse_service.py` | 438 | 397 | **9%** | ❌ Critical Gap |
+| `trending_service.py` | 312 | 274 | **12%** | ❌ Limited |
+| `url_parser_service.py` | 118 | 97 | **18%** | ✅ 18 tests |
+| `watch_folder_db_service.py` | 187 | 166 | **11%** | ❌ Critical Gap |
+| `base_service.py` | 24 | 24 | **0%** | ❌ Not tested |
+
+**Average Service Coverage: ~14%** (Critical - Target is 90%+)
 
 **Services Without Tests (26 services):**
 - File management: `file_upload_service.py`, `file_watcher_service.py`, `file_discovery_service.py`, `file_metadata_service.py`, `file_thumbnail_service.py`
@@ -222,18 +257,23 @@ Tests are organized with pytest markers for selective execution:
 | **Prusa** | `prusa.py` | ❌ None | Not tested |
 | **Base Classes** | `base.py` | ⚠️ Partial | Via driver tests |
 
-### Utilities (12 utilities, 8% coverage)
+### Utilities (11 utilities)
 
-| Utility | Lines | Tests | Priority |
-|---------|-------|-------|----------|
-| `config.py` | 26,125 | ❌ None | 🔴 Critical |
-| `error_handling.py` | 13,981 | ❌ None | 🔴 Critical |
-| `errors.py` | 25,355 | ❌ None | 🔴 Critical |
-| `gcode_analyzer.py` | - | ✅ 19 tests | Good |
-| `bambu_utils.py` | - | ❌ None | Medium |
-| `version.py` | - | ❌ None | Low |
-| `logging_config.py` | - | ❌ None | Medium |
-| Others (6) | - | ❌ None | Various |
+| Utility | Statements | Missed | Coverage | Priority |
+|---------|------------|--------|----------|----------|
+| `config.py` | 256 | 118 | **54%** | 🔴 Critical |
+| `dependencies.py` | 46 | 15 | **67%** | ✅ Good |
+| `error_handling.py` | 128 | 76 | **41%** | 🔴 Critical |
+| `errors.py` | 164 | 87 | **47%** | 🔴 Critical |
+| `exceptions.py` | 34 | 14 | **59%** | ⚠️ Needs work |
+| `gcode_analyzer.py` | 88 | 76 | **14%** | ⚠️ Needs work |
+| `logging_config.py` | 39 | 30 | **23%** | ⚠️ Needs work |
+| `middleware.py` | 44 | 32 | **27%** | ⚠️ Needs work |
+| `timing.py` | 55 | 38 | **31%** | ⚠️ Needs work |
+| `version.py` | 22 | 11 | **50%** | ⚠️ Needs work |
+| `bambu_utils.py` | 56 | 56 | **0%** | ❌ Not tested |
+
+**Average Utility Coverage: ~38%** (Below target - Need 70%+)
 
 ### Data Models (10 models, 30% coverage)
 
@@ -390,11 +430,71 @@ Tests are organized with pytest markers for selective execution:
 
 ---
 
+## Current Test Status (as of 2025-11-13 22:00 UTC)
+
+### Test Execution Summary
+
+**Overall Results:**
+- **Total Tests:** 519
+- **Passed:** 260 (50.1%) ✅
+- **Failed:** 107 (20.6%) ❌
+- **Errors:** 96 (18.5%) ❌❌
+- **Skipped:** 56 (10.8%) ⏭️
+
+### Critical Issue: Async Event Loop Errors (96 errors)
+
+**Problem:** Many service tests are failing with:
+```
+RuntimeError: Cannot run the event loop while another loop is running
+```
+
+**Affected Tests:**
+- `tests/services/test_file_download_service.py` (17 tests) - All failing
+- `tests/services/test_printer_connection_service.py` (18 tests) - All failing
+- Various async tests across the suite
+
+**Root Cause:**
+- Incorrect async test fixture setup
+- Event loop conflicts between pytest-asyncio and test fixtures
+- Possible need to update pytest-asyncio configuration
+
+**Priority:** 🔴 **CRITICAL** - These 96 errors account for 18.5% of test failures
+
+**Estimated Fix Time:** 4-6 hours
+- Review pytest-asyncio configuration in pytest.ini
+- Update async fixtures in conftest.py
+- Ensure proper event loop isolation
+- Test with different asyncio_mode settings
+
 ## Current Test Failures Analysis
 
-### Immediate Fixes Needed (10 failures, 2-3 hours to fix)
+### Immediate Fixes Needed (Priority Order)
 
-#### 1. WebSocket Tests (3 failures) - **30 minutes**
+#### 1. Async Event Loop Errors (96 errors) - **CRITICAL** - **4-6 hours**
+
+**Issue:** RuntimeError in async service tests preventing proper test execution
+
+**Files:**
+- `tests/services/test_file_download_service.py` (all 17 tests)
+- `tests/services/test_printer_connection_service.py` (all 18 tests)
+- Various other async tests
+
+**Root Cause:**
+```python
+# Problem: Event loop conflict
+RuntimeError: Cannot run the event loop while another loop is running
+```
+
+**Fix Strategy:**
+1. Review pytest.ini asyncio configuration
+2. Update async fixtures in conftest.py to use proper event loop scope
+3. Ensure pytest-asyncio mode is set correctly
+4. Consider using `asyncio_mode = auto` or `asyncio_mode = strict`
+5. Update fixture scope declarations
+
+**Impact:** Blocking 96 tests (18.5% of suite)
+
+#### 2. WebSocket Tests (failures) - **30 minutes**
 
 **Issue:** Import errors and async mocking issues
 
@@ -722,26 +822,44 @@ def test_gcode_parser_structure(gcode_lines):
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Week 1-2) - **Fix Failures & Critical Services**
+### Phase 0: URGENT - Stabilize Test Suite (Week 1) - **CRITICAL**
 
-**Goal:** Get to 50% coverage with 95% pass rate
+**Goal:** Fix async errors and achieve 90%+ test pass rate
+
+**Priority Tasks:**
+
+**Day 1-2: Fix Async Event Loop Errors (96 tests affected)**
+- [ ] Review pytest.ini asyncio configuration
+- [ ] Update async fixture scope in conftest.py
+- [ ] Fix event loop conflicts in service tests
+- [ ] Test with different asyncio_mode settings
+- [ ] Verify all 96 async tests now pass
+
+**Day 3-4: Fix Critical Test Failures (107 failures)**
+- [ ] Fix WebSocket tests with proper async mocks
+- [ ] Fix database schema mismatches
+- [ ] Calibrate performance test thresholds
+- [ ] Fix job validation test failures
+- [ ] Update error handling tests for new error structure
+
+**Day 5: Cleanup and Validation**
+- [ ] Mark German business tests as skipped (not yet implemented)
+- [ ] Update integration tests or mark as manual
+- [ ] Run full test suite validation
+- [ ] Document all fixes made
+
+**Estimated Time:** 8-12 hours (distributed over 5 days)
+**Expected Result:** 90%+ pass rate (467+/519 tests), 25% coverage maintained
+**Critical Success Factor:** Zero async event loop errors
+
+### Phase 1: Foundation (Week 2-3) - **Core Services Coverage**
+
+**Goal:** Get to 40% coverage with 95% pass rate
 
 **Tasks:**
 
-**Week 1: Fix Existing Test Failures**
-- [ ] Fix WebSocket import errors (`websocket._exceptions`)
-- [ ] Replace `MagicMock` with `AsyncMock` in WebSocket tests
-- [ ] Add `settings` table to test database schema
-- [ ] Fix database schema mismatches in fixtures
-- [ ] Calibrate performance test thresholds
-- [ ] Fix or document `test_job_null_fix.py` failures
-- [ ] Mark German business tests as `@pytest.mark.skip(reason="Not implemented")`
-- [ ] Refactor integration tests or mark as manual
-
-**Estimated Time:** 8 hours
-**Expected Result:** 95% pass rate (245/259 tests), 34% coverage
-
 **Week 2: Critical Service Tests**
+
 - [ ] Create `tests/services/test_job_service.py` (50 tests)
   - Job creation, updates, state transitions
   - Duration calculation, cost calculation
@@ -758,57 +876,49 @@ def test_gcode_parser_structure(gcode_lines):
   - File filtering, search
   - Storage management
 
-**Estimated Time:** 20 hours
-**Expected Result:** 95% pass rate, 50% coverage
+**Week 3: Expand Service Coverage**
+- [ ] Add tests for `bambu_parser.py` (35 tests)
+- [ ] Add tests for `config_service.py` (20 tests)
+- [ ] Add tests for file processing services (30 tests)
 
-### Phase 2: Real-Time & Configuration (Week 3-4) - **Critical Infrastructure**
+**Estimated Time:** 28 hours
+**Expected Result:** 95% pass rate, 40% coverage
 
-**Goal:** Get to 60% coverage with robust infrastructure
+### Phase 2: Real-Time & Configuration (Week 4-5) - **Critical Infrastructure**
 
-**Week 3: Real-Time Services**
-- [ ] Create `tests/services/test_printer_monitoring_service.py` (25 tests)
+**Goal:** Get to 55% coverage with robust infrastructure
+
+- [ ] Expand `tests/services/test_printer_monitoring_service.py` (25 tests)
   - Status polling
   - State change detection
   - Error handling
   - Multi-printer monitoring
-- [ ] Create `tests/services/test_bambu_parser.py` (35 tests)
-  - Parse print status messages
-  - Parse printer info messages
-  - Parse HMS error messages
-  - Parse file list messages
-  - Invalid message handling
-  - Malformed JSON handling
-  - Message versioning
+- [ ] Expand monitoring and event service tests (20 tests)
 
-**Estimated Time:** 12 hours
-**Expected Result:** 95% pass rate, 55% coverage
-
-**Week 4: Configuration & Error Handling**
-- [ ] Create `tests/utils/test_config.py` (40 tests)
+- [ ] Expand `tests/utils/test_config.py` (40 tests)
   - Config file loading
   - Validation logic
   - Default values
   - Environment variable overrides
   - Config updates
   - Invalid config handling
-- [ ] Create `tests/services/test_config_service.py` (20 tests)
+- [ ] Expand `tests/services/test_config_service.py` (20 tests)
   - Runtime config access
   - Config persistence
   - Config validation
-- [ ] Create `tests/utils/test_error_handling.py` (25 tests)
+- [ ] Update `tests/utils/test_error_handling.py` (25 tests)
   - Error handler registration
   - Error logging
   - Error recovery
   - Error context
 
-**Estimated Time:** 14 hours
-**Expected Result:** 95% pass rate, 60% coverage
+**Estimated Time:** 16 hours
+**Expected Result:** 95% pass rate, 55% coverage
 
-### Phase 3: File Processing (Week 5-6) - **File Pipeline**
+### Phase 3: File Processing (Week 6-7) - **File Pipeline**
 
-**Goal:** Get to 75% coverage with complete file processing tests
+**Goal:** Get to 70% coverage with complete file processing tests
 
-**Week 5: File Analyzers**
 - [ ] Create `tests/services/test_stl_analyzer.py` (30 tests)
   - STL parsing (ASCII and binary)
   - Metadata extraction
@@ -826,9 +936,8 @@ def test_gcode_parser_structure(gcode_lines):
   - Printer settings extraction
 
 **Estimated Time:** 14 hours
-**Expected Result:** 95% pass rate, 68% coverage
+**Expected Result:** 95% pass rate, 65% coverage
 
-**Week 6: File Services**
 - [ ] Create `tests/services/test_file_upload_service.py` (20 tests)
 - [ ] Create `tests/services/test_file_watcher_service.py` (15 tests)
 - [ ] Create `tests/services/test_file_metadata_service.py` (15 tests)
@@ -836,13 +945,12 @@ def test_gcode_parser_structure(gcode_lines):
 - [ ] Create `tests/services/test_timelapse_service.py` (20 tests)
 
 **Estimated Time:** 16 hours
-**Expected Result:** 95% pass rate, 75% coverage
+**Expected Result:** 95% pass rate, 70% coverage
 
-### Phase 4: Analytics & Business (Week 7-8) - **Business Intelligence**
+### Phase 4: Analytics & Business (Week 8-10) - **Business Intelligence**
 
-**Goal:** Reach 85% target coverage
+**Goal:** Reach 80%+ coverage with all critical services covered
 
-**Week 7: Analytics**
 - [ ] Create `tests/services/test_analytics_service.py` (45 tests)
   - Job statistics
   - Printer utilization
@@ -854,9 +962,8 @@ def test_gcode_parser_structure(gcode_lines):
 - [ ] Create `tests/services/test_trending_service.py` (20 tests)
 
 **Estimated Time:** 16 hours
-**Expected Result:** 95% pass rate, 82% coverage
+**Expected Result:** 95% pass rate, 76% coverage
 
-**Week 8: Prusa & Infrastructure**
 - [ ] Create `tests/printers/test_prusa.py` (30 tests)
   - HTTP API communication
   - Status polling
@@ -865,12 +972,21 @@ def test_gcode_parser_structure(gcode_lines):
   - Parity with Bambu Lab tests
 - [ ] Create `tests/services/test_material_service.py` (15 tests)
 - [ ] Create `tests/services/test_migration_service.py` (20 tests)
-- [ ] Create `tests/models/` (20 tests for untested models)
 
-**Estimated Time:** 14 hours
+**Estimated Time:** 12 hours
+**Expected Result:** 95% pass rate, 80% coverage
+
+**Week 10: Final Push to 85%**
+- [ ] Create `tests/models/` (20 tests for untested models)
+- [ ] Add missing utility tests
+- [ ] Increase coverage of partially-tested services
+- [ ] Property-based tests for parsers
+- [ ] Review and improve test quality
+
+**Estimated Time:** 16 hours
 **Expected Result:** 95% pass rate, 85% coverage ✅
 
-### Phase 5: Polish & Maintenance (Ongoing)
+### Phase 5: Maintenance & Excellence (Ongoing)
 
 **Goal:** Maintain 85%+ coverage, improve test quality
 
@@ -1403,36 +1519,47 @@ coverage report --sort=cover
 
 ## Success Metrics
 
-### Phase 1 Success Criteria
-- ✅ 95% test pass rate (245/259 tests)
-- ✅ 50% component coverage
-- ✅ All critical services have basic tests
+### Phase 0 Success Criteria (Week 1 - CRITICAL)
+- ✅ 90%+ test pass rate (467+/519 tests)
+- ✅ Zero async event loop errors
+- ✅ All critical test failures resolved
+- ✅ Test suite is stable and reliable
+
+### Phase 1 Success Criteria (Week 2-3)
+- ✅ 95% test pass rate maintained
+- ✅ 40% overall coverage
+- ✅ Core services (job, printer, file) have >50% coverage
 - ✅ CI/CD pipeline is green
 
-### Phase 2 Success Criteria
-- ✅ 95% test pass rate
-- ✅ 60% component coverage
-- ✅ Real-time services fully tested
+### Phase 2 Success Criteria (Week 4-5)
+- ✅ 95% test pass rate maintained
+- ✅ 55% overall coverage
+- ✅ Real-time services tested
 - ✅ Configuration management tested
+- ✅ Error handling comprehensively tested
 
-### Phase 3 Success Criteria
-- ✅ 95% test pass rate
-- ✅ 75% component coverage
+### Phase 3 Success Criteria (Week 6-7)
+- ✅ 95% test pass rate maintained
+- ✅ 70% overall coverage
 - ✅ File processing pipeline tested
-- ✅ All file formats covered
+- ✅ All file formats (STL, 3MF, GCODE) covered
+- ✅ Timelapse service tested
 
-### Phase 4 Success Criteria (Target)
-- ✅ 95% test pass rate
-- ✅ 85% component coverage (PROJECT GOAL)
+### Phase 4 Success Criteria (Week 8-10 - TARGET)
+- ✅ 95% test pass rate maintained
+- ✅ **85% overall coverage (PROJECT GOAL)** ✅
 - ✅ All critical services > 90% coverage
 - ✅ All utilities > 70% coverage
 - ✅ Prusa driver matches Bambu Lab coverage
+- ✅ Analytics and business intelligence tested
 
-### Long-Term Maintenance
+### Phase 5: Long-Term Maintenance (Ongoing)
 - ✅ Maintain 85%+ coverage
 - ✅ No PR merged with decreased coverage
 - ✅ All new features include tests
 - ✅ Regular test review and refactoring
+- ✅ Property-based testing for complex parsers
+- ✅ Performance benchmarking
 
 ---
 
@@ -1522,27 +1649,68 @@ coverage report --sort=cover
 
 ## Conclusion
 
-The Printernizer codebase has a solid test infrastructure foundation with 514 tests, but significant gaps exist in service layer coverage (22% vs. 94% for API endpoints). The primary recommendation is to shift focus from integration/E2E tests to comprehensive unit tests for the 30+ services that currently lack coverage.
+The Printernizer codebase has a comprehensive test infrastructure with 519 tests across 31+ files, but faces critical challenges:
 
-**Immediate Actions:**
-1. Fix 10 broken tests (3 hours)
-2. Add tests for `job_service.py`, `printer_service.py`, `file_service.py` (20 hours)
-3. Target 50% coverage in 2 weeks
+### Current State
+- **Test Coverage:** 25% (Target: 85%) - **60 percentage points gap**
+- **Test Pass Rate:** 50.1% (Target: 95%+) - **Needs improvement**
+- **Critical Blocker:** 96 async event loop errors (18.5% of tests)
+- **Service Coverage:** 10-20% average (Target: 90%+) - **70 percentage points gap**
 
-**Long-Term Goal:**
-- Reach 85% coverage in 8 weeks
-- Maintain 95%+ test pass rate
-- Ensure all critical services have 90%+ coverage
+### Critical Path to Success
 
-**Success Factors:**
-- Prioritize service layer unit tests over integration tests
-- Use fixture factories for reusable test data
-- Mock external dependencies consistently
-- Run tests in CI/CD with coverage requirements
-- Review and refactor tests regularly
+**Phase 0: Stabilize Test Suite (Week 1) - URGENT**
+1. Fix async event loop errors (96 tests) - **4-6 hours** 🔴
+2. Fix critical test failures (107 tests) - **8-12 hours** 🔴
+3. Target: 90%+ test pass rate (467/519 tests passing)
+
+**Phase 1: Core Services (Weeks 2-3)**
+1. Add comprehensive tests for `job_service.py` (11% → 90%)
+2. Add tests for `printer_service.py` (19% → 90%)
+3. Add tests for `file_service.py` (18% → 90%)
+4. Target: 35% overall coverage
+
+**Phase 2: Critical Infrastructure (Weeks 4-6)**
+1. Test `bambu_parser.py` (8% → 85%)
+2. Test `config_service.py` (26% → 85%)
+3. Test file processing services (13-19% → 75%)
+4. Target: 50% overall coverage
+
+**Phase 3: Complete Coverage (Weeks 7-12)**
+1. Test remaining services (0-20% → 70%+)
+2. Test utilities comprehensively (38% → 70%+)
+3. Add property-based tests for parsers
+4. Target: **85% overall coverage achieved** ✅
+
+### Success Metrics
+
+**Week 1 (Immediate):**
+- ✅ 90%+ tests passing (467/519)
+- ✅ Zero async event loop errors
+- ✅ All critical test infrastructure fixed
+
+**Month 1:**
+- ✅ 35% overall coverage
+- ✅ Core services >50% covered
+- ✅ 95%+ test pass rate maintained
+
+**Month 3 (Target):**
+- ✅ **85% overall coverage achieved**
+- ✅ All services >70% covered
+- ✅ All critical paths >90% covered
+- ✅ Comprehensive CI/CD integration
+
+### Key Recommendations
+
+1. **URGENT:** Fix async event loop errors - blocking 96 tests
+2. **Priority:** Increase service layer coverage from 14% to 90%+
+3. **Strategy:** Focus on unit tests over integration/E2E tests
+4. **Quality:** Use property-based testing for parsers
+5. **Maintenance:** Enforce coverage requirements in CI/CD
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** 2025-11-13
-**Next Review:** 2025-12-13
+**Document Version:** 2.0
+**Last Updated:** 2025-11-13 22:00 UTC
+**Test Suite Analyzed:** 519 tests, 25% coverage
+**Next Review:** 2025-11-20 (Weekly updates recommended during improvement phase)
