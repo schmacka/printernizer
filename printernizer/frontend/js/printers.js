@@ -101,9 +101,13 @@ class PrinterManager {
             this.printers.clear();
             printersList.innerHTML = '';
             
-            if (response && Array.isArray(response) && response.length > 0) {
+            // API returns {printers: [], total_count: N, pagination: {...}}
+            const printers = response?.printers || response;
+            const printersArray = Array.isArray(printers) ? printers : (Array.isArray(response) ? response : []);
+            
+            if (printersArray.length > 0) {
                 // Create printer cards
-                response.forEach(printer => {
+                printersArray.forEach(printer => {
                     const printerCard = this.createPrinterManagementCard(printer);
                     printersList.appendChild(printerCard);
                     
