@@ -1,12 +1,19 @@
 # Test Coverage Analysis - Printernizer
 
-**Generated:** 2025-11-13 22:00 UTC  
-**Last Updated:** 2025-11-14 07:35 UTC  
-**Analyzed By:** GitHub Copilot Test Agent  
-**Target Coverage:** 85% (configured in pytest.ini)  
+**Generated:** 2025-11-13 22:00 UTC
+**Last Updated:** 2025-11-14 08:10 UTC
+**Analyzed By:** Claude Code Test Engineer Agent
+**Target Coverage:** 85% (configured in pytest.ini)
 **Current Coverage:** 25% (3,489/14,193 lines covered)
 
-### 🎯 Recent Improvements (2025-11-14)
+### 🎯 Recent Improvements (2025-11-14 08:10 UTC)
+
+**Latest Test Run Results:**
+- ✅ **Pass Rate: 72.8%** (412/566 tests) - **Major improvement from 50.1%!**
+- ❌ Failures: 95 tests (16.8%)
+- ❌ Errors: 11 tests (1.9%)
+- ⏭️ Skipped: 55 tests (9.7%)
+- ⏱️ Runtime: 2:54 minutes
 
 **Fixes Applied:**
 - ✅ Fixed database foreign key constraint failures (2 tests fixed)
@@ -14,9 +21,30 @@
 - ✅ Verified WebSocket tests all passing (21/21 tests)
 - ✅ All database tests now passing (18/18 tests)
 - ✅ All FileService tests now passing (28/28 tests)
+- ✅ **Fixed all PrinterService tests (14 tests, now 29/29 passing)** - NEW!
 
-**Tests Fixed:** 10 critical test failures resolved
-**Status:** ⚠️ In Progress - Database and FileService tests stabilized, async errors investigation ongoing
+**Tests Fixed:** 24 critical test failures resolved
+**Status:** 🟢 Good Progress - 72.8% pass rate achieved, continuing fixes
+
+**Remaining Failures by Category (95 failures + 11 errors):**
+1. **German Business Logic** (21) - Features not implemented yet (expected, skip)
+2. **Integration Tests** (16) - Full stack integration issues
+3. **Auto Job Integration** (14) - Auto-creation logic issues
+4. **E2E Tests** (8 + 3 errors) - End-to-end workflow failures
+5. **Job Validation** (7 + 5 errors) - ID validation and migration issues
+6. **Performance Tests** (7) - Threshold calibration needed
+7. **Auto Job Performance** (5) - Performance threshold issues
+8. **URL Parser Service** (4) - Async mock issues
+9. **Sync Consistency** (3) - Version sync checks
+10. **Job Null Fix** (2) - Legacy bug tests
+11. **Database** (1 + 1 error) - Trigger test failure
+
+**Next Steps:**
+- Fix URL parser async mock issues (4 tests)
+- Fix job validation tests (12 tests + errors)
+- Calibrate performance test thresholds (12 tests)
+- Fix auto job integration logic (14 tests)
+- Address sync consistency issues (3 tests)
 
 ---
 
@@ -25,12 +53,12 @@
 | Metric | Current | Target | Gap |
 |--------|---------|--------|-----|
 | **Line Coverage** | 25% | 85% | -60pp |
-| **Tests Passing** | 50.1% (260/519) | 95%+ | -45pp |
-| **Test Errors** | 96 (18.5%) | 0 | -96 |
-| **Test Failures** | 107 (20.6%) | <5% | -81 |
+| **Tests Passing** | **72.8% (412/566)** | 95%+ | **-22pp** ⬆️ |
+| **Test Errors** | **11 (1.9%)** | 0 | **-11** ⬇️ |
+| **Test Failures** | **95 (16.8%)** | <5% | **-67** ⬇️ |
 | **Service Coverage** | 14% avg | 90% | -76pp |
 
-**Status:** 🔴 Critical - Requires immediate attention to async errors and coverage gaps
+**Status:** 🟡 Improving - Pass rate jumped from 50.1% to 72.8%, errors reduced from 96 to 11
 
 ---
 

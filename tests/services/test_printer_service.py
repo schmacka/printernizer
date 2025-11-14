@@ -94,43 +94,55 @@ class TestPrinterManagement:
     """Test printer CRUD operations."""
 
     @pytest.mark.asyncio
-    async def test_add_printer_bambu_lab(self, printer_service, mock_database):
+    async def test_add_printer_bambu_lab(self, printer_service, mock_database, mock_config_service):
         """Test adding a Bambu Lab printer."""
-        printer_data = {
-            'name': 'Bambu Lab A1',
-            'printer_type': 'bambu_lab',
-            'ip_address': '192.168.1.100',
-            'access_code': '12345678',
-            'serial_number': 'BAMBU001',
-            'model': 'A1'
-        }
-        
+        from src.models.printer import PrinterType
+
         printer_id = str(uuid.uuid4())
         mock_database.create_printer.return_value = printer_id
-        
-        result = await printer_service.create_printer(**printer_data)
-        
+        mock_config_service.add_printer.return_value = True
+        mock_config_service.get_printer.return_value = None  # Simulate no instance created
+
+        result = await printer_service.create_printer(
+            name='Bambu Lab A1',
+            printer_type=PrinterType.BAMBU_LAB,
+            connection_config={
+                'ip_address': '192.168.1.100',
+                'access_code': '12345678',
+                'serial_number': 'BAMBU001',
+                'model': 'A1'
+            }
+        )
+
         assert result is not None
-        mock_database.create_printer.assert_called_once()
+        assert isinstance(result, Printer)
+        assert result.name == 'Bambu Lab A1'
+        mock_config_service.add_printer.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_printer_prusa(self, printer_service, mock_database):
+    async def test_add_printer_prusa(self, printer_service, mock_database, mock_config_service):
         """Test adding a Prusa printer."""
-        printer_data = {
-            'name': 'Prusa Core One',
-            'printer_type': 'prusa',
-            'ip_address': '192.168.1.101',
-            'api_key': 'prusa_api_key_here',
-            'model': 'Core One'
-        }
-        
+        from src.models.printer import PrinterType
+
         printer_id = str(uuid.uuid4())
         mock_database.create_printer.return_value = printer_id
-        
-        result = await printer_service.create_printer(**printer_data)
-        
+        mock_config_service.add_printer.return_value = True
+        mock_config_service.get_printer.return_value = None  # Simulate no instance created
+
+        result = await printer_service.create_printer(
+            name='Prusa Core One',
+            printer_type=PrinterType.PRUSA_CORE,
+            connection_config={
+                'ip_address': '192.168.1.101',
+                'api_key': 'prusa_api_key_here',
+                'model': 'Core One'
+            }
+        )
+
         assert result is not None
-        mock_database.create_printer.assert_called_once()
+        assert isinstance(result, Printer)
+        assert result.name == 'Prusa Core One'
+        mock_config_service.add_printer.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_add_printer_validates_ip_address(self, printer_service, mock_database):
@@ -147,91 +159,215 @@ class TestPrinterManagement:
             await printer_service.create_printer(**printer_data)
 
     @pytest.mark.asyncio
-    async def test_remove_printer_deletes_record(self, printer_service, mock_database):
+    async def test_remove_printer_deletes_record(self, printer_service, mock_config_service):
         """Test removing a printer."""
         printer_id = str(uuid.uuid4())
-        mock_database.delete_printer.return_value = True
-        
+        mock_config_service.remove_printer.return_value = True
+
         result = await printer_service.delete_printer(printer_id)
-        
+
         assert result == True
-        mock_database.delete_printer.assert_called_once_with(printer_id)
+        mock_config_service.remove_printer.assert_called_once_with(printer_id)
 
     @pytest.mark.asyncio
-    async def test_update_printer_name(self, printer_service, mock_database):
+    async def test_update_printer_name(self, printer_service, mock_config_service):
         """Test updating printer name."""
+        from src.models.printer import PrinterType
+        from src.services.config_service import PrinterConfig
+
         printer_id = str(uuid.uuid4())
-        printer_data = create_sample_printer_data(printer_id=printer_id)
-        mock_database.get_printer.return_value = printer_data
-        mock_database.update_printer.return_value = Printer(**printer_data)
-        
+
+        # Mock initial config
+        initial_config = PrinterConfig(
+            printer_id=printer_id,
+            name='Old Name',
+            type='bambu_lab',
+            ip_address='192.168.1.100',
+            access_code='12345678',
+            is_active=True
+        )
+
+        # Mock updated config
+        updated_config = PrinterConfig(
+            printer_id=printer_id,
+            name='New Name',
+            type='bambu_lab',
+            ip_address='192.168.1.100',
+            access_code='12345678',
+            is_active=True
+        )
+
+        mock_config_service.get_printer.side_effect = [initial_config, updated_config, updated_config]
+        mock_config_service.add_printer.return_value = True
+
         result = await printer_service.update_printer(printer_id, name='New Name')
-        
-        mock_database.update_printer.assert_called_once()
+
+        assert result is not None
+        assert isinstance(result, Printer)
+        assert result.name == 'New Name'
+        mock_config_service.add_printer.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_get_printer_by_id(self, printer_service, mock_database):
+    async def test_get_printer_by_id(self, printer_service):
         """Test retrieving a specific printer by ID."""
         printer_id = str(uuid.uuid4())
-        printer_data = create_sample_printer_data(printer_id=printer_id)
-        mock_database.get_printer.return_value = printer_data
-        
+
+        # Create a mock printer instance with proper string attributes
+        mock_printer_instance = MagicMock()
+        mock_printer_instance.name = 'Test Printer'
+        mock_printer_instance.ip_address = '192.168.1.100'
+        mock_printer_instance.is_connected = True
+        mock_printer_instance.last_status = None
+        # Mock getattr to return None for optional fields
+        mock_printer_instance.api_key = None
+        mock_printer_instance.access_code = None
+        mock_printer_instance.serial_number = None
+
+        # Add it to printer_instances
+        printer_service.connection.printer_instances[printer_id] = mock_printer_instance
+
         printer = await printer_service.get_printer(printer_id)
-        
+
         assert printer is not None
         assert printer.id == printer_id
-        mock_database.get_printer.assert_called_once_with(printer_id)
+        assert isinstance(printer, Printer)
+        assert printer.name == 'Test Printer'
 
     @pytest.mark.asyncio
-    async def test_get_printer_by_id_not_found(self, printer_service, mock_database):
+    async def test_get_printer_by_id_not_found(self, printer_service):
         """Test retrieving non-existent printer returns None."""
-        mock_database.get_printer.return_value = None
-        
         printer = await printer_service.get_printer('nonexistent_id')
-        
+
         assert printer is None
 
     @pytest.mark.asyncio
-    async def test_list_all_printers(self, printer_service, mock_database):
+    async def test_list_all_printers(self, printer_service):
         """Test listing all printers."""
-        sample_printers = [
-            create_sample_printer_data(printer_id=str(uuid.uuid4())),
-            create_sample_printer_data(printer_id=str(uuid.uuid4())),
-        ]
-        mock_database.list_printers.return_value = sample_printers
-        
+        # Create mock printer instances with proper string attributes
+        mock_printer1 = MagicMock()
+        mock_printer1.name = 'Printer 1'
+        mock_printer1.ip_address = '192.168.1.100'
+        mock_printer1.is_connected = True
+        mock_printer1.last_status = None
+        mock_printer1.api_key = None
+        mock_printer1.access_code = None
+        mock_printer1.serial_number = None
+
+        mock_printer2 = MagicMock()
+        mock_printer2.name = 'Printer 2'
+        mock_printer2.ip_address = '192.168.1.101'
+        mock_printer2.is_connected = True
+        mock_printer2.last_status = None
+        mock_printer2.api_key = None
+        mock_printer2.access_code = None
+        mock_printer2.serial_number = None
+
+        # Add to printer_instances
+        printer_service.connection.printer_instances = {
+            str(uuid.uuid4()): mock_printer1,
+            str(uuid.uuid4()): mock_printer2,
+        }
+
         printers = await printer_service.list_printers()
-        
+
         assert len(printers) == 2
-        mock_database.list_printers.assert_called_once()
+        assert all(isinstance(p, Printer) for p in printers)
 
     @pytest.mark.asyncio
-    async def test_list_printers_by_type(self, printer_service, mock_database):
+    async def test_list_printers_by_type(self, printer_service):
         """Test filtering printers by type."""
-        sample_printers = [
-            create_sample_printer_data(printer_type='bambu_lab'),
-            create_sample_printer_data(printer_type='bambu_lab'),
-        ]
-        mock_database.list_printers.return_value = sample_printers
-        
+        from src.models.printer import PrinterType
+
+        # Create mock printer instances - the type is determined by checking class name
+        mock_printer1 = MagicMock()
+        mock_printer1.name = 'Bambu 1'
+        mock_printer1.ip_address = '192.168.1.100'
+        mock_printer1.is_connected = True
+        mock_printer1.last_status = None
+        mock_printer1.api_key = None
+        mock_printer1.access_code = None
+        mock_printer1.serial_number = None
+        mock_printer1.__class__.__name__ = 'BambuLabPrinter'
+
+        mock_printer2 = MagicMock()
+        mock_printer2.name = 'Bambu 2'
+        mock_printer2.ip_address = '192.168.1.101'
+        mock_printer2.is_connected = True
+        mock_printer2.last_status = None
+        mock_printer2.api_key = None
+        mock_printer2.access_code = None
+        mock_printer2.serial_number = None
+        mock_printer2.__class__.__name__ = 'BambuLabPrinter'
+
+        # Add to printer_instances
+        printer_service.connection.printer_instances = {
+            str(uuid.uuid4()): mock_printer1,
+            str(uuid.uuid4()): mock_printer2,
+        }
+
         printers = await printer_service.list_printers()
-        
-        bambu_printers = [p for p in printers if p.printer_type == 'bambu_lab']
+
+        bambu_printers = [p for p in printers if p.type == PrinterType.BAMBU_LAB]
         assert len(bambu_printers) == 2
 
     @pytest.mark.asyncio
-    async def test_list_printers_by_status(self, printer_service, mock_database):
+    async def test_list_printers_by_status(self, printer_service):
         """Test filtering printers by status."""
-        sample_printers = [
-            create_sample_printer_data(status='printing'),
-            create_sample_printer_data(status='printing'),
-            create_sample_printer_data(status='idle'),
-        ]
-        mock_database.list_printers.return_value = sample_printers
-        
+        from src.models.printer import PrinterStatus, PrinterStatusUpdate
+
+        # Create mock printer instances with status
+        mock_printer1 = MagicMock()
+        mock_printer1.name = 'Printer 1'
+        mock_printer1.ip_address = '192.168.1.100'
+        mock_printer1.is_connected = True
+        mock_printer1.api_key = None
+        mock_printer1.access_code = None
+        mock_printer1.serial_number = None
+        mock_printer1.last_status = PrinterStatusUpdate(
+            printer_id='p1',
+            status=PrinterStatus.PRINTING,
+            message='Printing',
+            timestamp=datetime.now()
+        )
+
+        mock_printer2 = MagicMock()
+        mock_printer2.name = 'Printer 2'
+        mock_printer2.ip_address = '192.168.1.101'
+        mock_printer2.is_connected = True
+        mock_printer2.api_key = None
+        mock_printer2.access_code = None
+        mock_printer2.serial_number = None
+        mock_printer2.last_status = PrinterStatusUpdate(
+            printer_id='p2',
+            status=PrinterStatus.PRINTING,
+            message='Printing',
+            timestamp=datetime.now()
+        )
+
+        mock_printer3 = MagicMock()
+        mock_printer3.name = 'Printer 3'
+        mock_printer3.ip_address = '192.168.1.102'
+        mock_printer3.is_connected = True
+        mock_printer3.api_key = None
+        mock_printer3.access_code = None
+        mock_printer3.serial_number = None
+        mock_printer3.last_status = PrinterStatusUpdate(
+            printer_id='p3',
+            status=PrinterStatus.ONLINE,
+            message='Idle',
+            timestamp=datetime.now()
+        )
+
+        # Add to printer_instances
+        printer_service.connection.printer_instances = {
+            'p1': mock_printer1,
+            'p2': mock_printer2,
+            'p3': mock_printer3,
+        }
+
         printers = await printer_service.list_printers()
-        
-        printing_printers = [p for p in printers if p.status == 'printing']
+
+        printing_printers = [p for p in printers if p.status == PrinterStatus.PRINTING]
         assert len(printing_printers) == 2
 
 
@@ -285,14 +421,36 @@ class TestPrinterStatus:
     @pytest.mark.asyncio
     async def test_get_printer_current_status(self, printer_service, mock_database):
         """Test retrieving printer current status."""
+        from src.models.printer import PrinterStatus, PrinterStatusUpdate
+
         printer_id = str(uuid.uuid4())
-        printer_data = create_sample_printer_data(printer_id=printer_id, status='printing')
-        mock_database.get_printer.return_value = printer_data
-        
+
+        # Create mock printer instance
+        mock_printer_instance = MagicMock()
+        mock_printer_instance.is_connected = True
+        mock_printer_instance.get_status = AsyncMock(return_value=PrinterStatusUpdate(
+            printer_id=printer_id,
+            status=PrinterStatus.PRINTING,
+            message='Printing test.3mf',
+            temperature_bed=60.0,
+            temperature_nozzle=210.0,
+            progress=50,
+            current_job='test.3mf',
+            timestamp=datetime.now()
+        ))
+
+        # Add to printer_instances
+        printer_service.connection.printer_instances[printer_id] = mock_printer_instance
+
+        # Mock database update
+        mock_database.update_printer_status = AsyncMock()
+
         status = await printer_service.get_printer_status(printer_id)
-        
+
         assert status is not None
-        assert 'status' in status or 'state' in status
+        assert 'status' in status
+        assert status['status'] == 'printing'  # Enum values are lowercase
+        assert status['progress'] == 50
 
     @pytest.mark.asyncio
     async def test_start_monitoring(self, printer_service):
@@ -317,10 +475,10 @@ class TestPrinterStatus:
     @pytest.mark.asyncio
     async def test_monitoring_active_property(self, printer_service):
         """Test checking if monitoring is active."""
-        printer_service.monitoring._monitoring_active = True
-        
+        printer_service.monitoring.monitoring_active = True
+
         is_active = printer_service.monitoring_active
-        
+
         assert is_active == True
 
 
@@ -371,77 +529,89 @@ class TestPrinterFiles:
     """Test printer file operations."""
 
     @pytest.mark.asyncio
-    async def test_get_printer_files(self, printer_service, mock_database):
+    async def test_get_printer_files(self, printer_service):
         """Test retrieving files from a printer."""
+        from src.printers.base import PrinterFile
+
         printer_id = str(uuid.uuid4())
-        printer_data = create_sample_printer_data(printer_id=printer_id, printer_type='bambu_lab')
-        mock_database.get_printer.return_value = printer_data
-        
-        # Mock printer instance with get_files method
+
+        # Mock printer instance with list_files method (not get_files)
         mock_printer_instance = MagicMock()
-        mock_printer_instance.get_files = AsyncMock(return_value=[
-            {'filename': 'test.3mf', 'size': 1024}
+        mock_printer_instance.is_connected = True
+        mock_printer_instance.list_files = AsyncMock(return_value=[
+            PrinterFile(filename='test.3mf', size=1024, modified=datetime.now(), path='/test.3mf')
         ])
-        
-        with patch.object(printer_service.connection, 'get_printer_instance', return_value=mock_printer_instance):
-            files = await printer_service.get_printer_files(printer_id)
-            
-            assert isinstance(files, list)
+
+        # Add to printer_instances
+        printer_service.connection.printer_instances[printer_id] = mock_printer_instance
+
+        files = await printer_service.get_printer_files(printer_id)
+
+        assert isinstance(files, list)
+        assert len(files) == 1
+        assert files[0]['filename'] == 'test.3mf'
 
     @pytest.mark.asyncio
-    async def test_download_printer_file(self, printer_service, mock_database):
+    async def test_download_printer_file(self, printer_service):
         """Test downloading a file from a printer."""
         printer_id = str(uuid.uuid4())
         filename = 'test.3mf'
-        
-        printer_data = create_sample_printer_data(printer_id=printer_id)
-        mock_database.get_printer.return_value = printer_data
-        
-        # Mock file download
+
+        # Mock printer instance
         mock_printer_instance = MagicMock()
-        mock_printer_instance.download_file = AsyncMock(return_value='/path/to/test.3mf')
-        
-        with patch.object(printer_service.connection, 'get_printer_instance', return_value=mock_printer_instance):
-            result = await printer_service.download_printer_file(printer_id, filename)
-            
-            assert result is not None
+        mock_printer_instance.is_connected = True
+        mock_printer_instance.download_file = AsyncMock(return_value=True)  # Returns bool, not path
+
+        # Add to printer_instances
+        printer_service.connection.printer_instances[printer_id] = mock_printer_instance
+
+        result = await printer_service.download_printer_file(printer_id, filename, '/tmp/test.3mf')
+
+        assert result is True
+        mock_printer_instance.download_file.assert_called_once_with(filename, '/tmp/test.3mf')
 
 
 class TestPrinterValidation:
     """Test printer validation and error handling."""
 
     @pytest.mark.asyncio
-    async def test_add_printer_generates_unique_id(self, printer_service, mock_database):
+    async def test_add_printer_generates_unique_id(self, printer_service, mock_database, mock_config_service):
         """Test that printer creation generates unique IDs."""
-        printer_data = {
-            'name': 'Test Printer',
-            'printer_type': 'bambu_lab',
-            'ip_address': '192.168.1.100',
-            'access_code': '12345678'
-        }
-        
+        from src.models.printer import PrinterType
+
         printer_id = str(uuid.uuid4())
         mock_database.create_printer.return_value = printer_id
-        
-        result = await printer_service.create_printer(**printer_data)
-        
+        mock_config_service.add_printer.return_value = True
+        mock_config_service.get_printer.return_value = None  # Simulate no instance created
+
+        result = await printer_service.create_printer(
+            name='Test Printer',
+            printer_type=PrinterType.BAMBU_LAB,
+            connection_config={
+                'ip_address': '192.168.1.100',
+                'access_code': '12345678'
+            }
+        )
+
         assert result is not None
+        assert isinstance(result, Printer)
+        assert result.id is not None  # ID should be generated
 
     @pytest.mark.asyncio
-    async def test_remove_printer_not_found(self, printer_service, mock_database):
+    async def test_remove_printer_not_found(self, printer_service, mock_config_service):
         """Test removing non-existent printer."""
-        mock_database.delete_printer.return_value = False
-        
+        mock_config_service.remove_printer.return_value = False
+
         result = await printer_service.delete_printer('nonexistent_id')
-        
+
         assert result == False
 
     @pytest.mark.asyncio
-    async def test_get_printer_status_not_found(self, printer_service, mock_database):
+    async def test_get_printer_status_not_found(self, printer_service):
         """Test getting status of non-existent printer."""
-        mock_database.get_printer.return_value = None
-        
-        with pytest.raises(Exception):
+        from src.utils.exceptions import NotFoundError
+
+        with pytest.raises(NotFoundError):
             await printer_service.get_printer_status('nonexistent_id')
 
 
