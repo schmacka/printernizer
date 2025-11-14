@@ -536,11 +536,12 @@
             </div>
 
             <!-- Hidden file input for manual upload -->
+            <!-- Note: accept attribute removed for iOS Safari compatibility -->
+            <!-- File type validation happens in JavaScript (handleManualFileUpload) -->
             <input type="file"
                    id="libraryFileInput"
                    style="display: none;"
                    multiple
-                   accept="model/3mf,model/stl,model/obj,text/plain,application/octet-stream,.3mf,.stl,.gcode,.obj,.ply"
                    onchange="handleManualFileUpload(event)">
 
             <!-- Library Statistics -->
