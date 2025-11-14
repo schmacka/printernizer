@@ -1,3 +1,9 @@
+## [2.6.15] - 2025-11-14
+
+- Add webcam support for Bambu Lab printers
+- fix: Improve iOS mobile file upload compatibility
+- feat: Add settings accessibility tests and fix tab switching
+
 ## [2.6.14] - 2025-11-14
 
 - fix: Improve iOS mobile file upload compatibility
