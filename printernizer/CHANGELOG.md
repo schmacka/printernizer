@@ -1,3 +1,10 @@
+## [2.6.10] - 2025-11-14
+
+- test: Fix 11 additional tests - 81.1% pass rate achieved
+- docs: Correct test coverage analysis with verified results
+- test: Additional 28 tests fixed - 77.7% pass rate achieved
+- Update version fallback to 2.6.8
+
 ## [2.6.9] - 2025-11-14
 
 - Update version fallback to 2.6.8
