@@ -490,6 +490,19 @@ class TestDatabasePerformance:
         """Test that indexes improve query performance"""
         cursor = db_connection.cursor()
         
+        # First create the required printers
+        for i in range(5):
+            cursor.execute("""
+                INSERT INTO printers (id, name, type, ip_address, api_key, is_active)
+                VALUES (?, ?, 'bambu_lab', '192.168.1.' || ?, 'test_key', 1)
+            """, (
+                f'printer_{i}',
+                f'Test Printer {i}',
+                str(100 + i)
+            ))
+        
+        db_connection.commit()
+        
         # Insert many jobs
         for i in range(1000):
             cursor.execute("""
@@ -529,6 +542,19 @@ class TestDatabasePerformance:
     def test_database_size_estimates(self, db_connection):
         """Test database size remains reasonable with realistic data"""
         cursor = db_connection.cursor()
+        
+        # First create the required printers
+        for i in range(2):
+            cursor.execute("""
+                INSERT INTO printers (id, name, type, ip_address, api_key, is_active)
+                VALUES (?, ?, 'bambu_lab', '192.168.1.' || ?, 'test_key', 1)
+            """, (
+                f'printer_{i}',
+                f'Test Printer {i}',
+                str(100 + i)
+            ))
+        
+        db_connection.commit()
         
         # Get initial database size
         cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")
