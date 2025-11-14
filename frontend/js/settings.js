@@ -924,6 +924,55 @@ async function validateLibraryPath() {
     }
 }
 
+async function checkFfmpegInstallation() {
+    const resultDiv = document.getElementById('ffmpegCheckResult');
+
+    if (!resultDiv) {
+        console.error('FFmpeg result div not found');
+        return;
+    }
+
+    try {
+        // Show loading state
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'validation-result loading';
+        resultDiv.innerHTML = '<span class="spinner-small"></span> Prüfe FFmpeg-Installation...';
+
+        // Check ffmpeg availability
+        const response = await fetch(`${CONFIG.API_BASE_URL}/settings/ffmpeg-check`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.installed) {
+            resultDiv.className = 'validation-result success';
+            resultDiv.innerHTML = `
+                <span class="icon">✓</span>
+                <strong>FFmpeg ist installiert!</strong><br>
+                <small style="margin-top: 0.25rem; display: block;">${result.version || 'Version unbekannt'}</small>
+            `;
+            showToast('success', 'FFmpeg gefunden', 'FFmpeg ist installiert und einsatzbereit');
+        } else {
+            resultDiv.className = 'validation-result error';
+            resultDiv.innerHTML = `
+                <span class="icon">✗</span>
+                <strong>FFmpeg nicht gefunden</strong><br>
+                <small style="margin-top: 0.25rem; display: block;">${result.error || 'FFmpeg ist nicht installiert oder nicht im PATH'}</small>
+            `;
+            showToast('warning', 'FFmpeg fehlt', 'FFmpeg ist nicht installiert. Timelapse-Funktion wird nicht funktionieren.');
+        }
+
+    } catch (error) {
+        console.error('Failed to check ffmpeg:', error);
+        resultDiv.className = 'validation-result error';
+        resultDiv.innerHTML = '<span class="icon">✗</span> Prüfung fehlgeschlagen';
+        showToast('error', 'Fehler', 'FFmpeg-Prüfung konnte nicht durchgeführt werden');
+    }
+}
+
 // Export for use in main.js
 if (typeof window !== 'undefined') {
     window.settingsManager = settingsManager;
