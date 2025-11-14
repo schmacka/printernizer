@@ -21,20 +21,31 @@ def temp_database():
     """Create temporary SQLite database for testing"""
     temp_db = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
     temp_db.close()
-    
+
     # Read schema file and create database
     schema_path = os.path.join(os.path.dirname(__file__), '..', 'database_schema.sql')
     with open(schema_path, 'r', encoding='utf-8') as f:
         schema_sql = f.read()
-    
+
     conn = sqlite3.connect(temp_db.name)
     conn.executescript(schema_sql)
     conn.close()
-    
+
     yield temp_db.name
-    
-    # Cleanup
-    os.unlink(temp_db.name)
+
+    # Cleanup with retry for Windows file locking
+    import time
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            os.unlink(temp_db.name)
+            break
+        except PermissionError:
+            if attempt < max_retries - 1:
+                time.sleep(0.1)  # Wait 100ms before retry
+            else:
+                # If all retries fail, just pass - temp files will be cleaned by OS
+                pass
 
 
 @pytest.fixture
