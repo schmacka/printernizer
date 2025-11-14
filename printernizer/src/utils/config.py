@@ -83,6 +83,13 @@ class PrinternizerSettings(BaseSettings):
         le=20
     )
 
+    # Job Management
+    job_creation_auto_create: bool = Field(
+        default=True,
+        env="JOB_CREATION_AUTO_CREATE",
+        description="Automatically create jobs when print starts are detected."
+    )
+
     # File Management
     downloads_path: str = Field(
         default="/data/printernizer/printer-files",
