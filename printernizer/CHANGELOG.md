@@ -1,3 +1,8 @@
+## [2.6.9] - 2025-11-14
+
+- Update version fallback to 2.6.8
+- Fix config save on Windows-mounted volumes
+
 ## [2.6.8] - 2025-11-14
 
 - fix: Add config volume mount to Docker setup
