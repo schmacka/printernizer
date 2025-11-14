@@ -1151,9 +1151,17 @@ p {
 /* Printer Tile Layout */
 .printers-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     gap: var(--spacing-6);
     padding: var(--spacing-4);
+}
+
+/* Container query support with fallback */
+@supports (container-type: inline-size) {
+    .printers-list {
+        container-type: inline-size;
+        container-name: printers-list;
+    }
 }
 
 .printer-tile-card {
@@ -1163,8 +1171,29 @@ p {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.3s ease;
     border: 2px solid transparent;
+    min-height: 420px;
+    max-width: 480px;
+}
+
+/* Container query adjustments - progressive enhancement */
+@supports (container-type: inline-size) {
+    @container printers-list (max-width: 500px) {
+        .printer-tile-card {
+            max-width: 100%;
+        }
+
+        .printer-tile-body {
+            padding: var(--spacing-3);
+        }
+    }
+
+    @container printers-list (min-width: 1200px) {
+        .printer-tile-card {
+            max-width: 450px;
+        }
+    }
 }
 
 .printer-tile-card:hover {
@@ -1241,6 +1270,7 @@ p {
     background: var(--info-light);
     border-radius: var(--radius-md);
     border-left: 3px solid var(--info-color);
+    min-height: 80px;
 }
 
 .printer-tile-idle {
@@ -1249,6 +1279,10 @@ p {
     border-radius: var(--radius-md);
     text-align: center;
     color: var(--gray-500);
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tile-job-name {
@@ -1292,6 +1326,10 @@ p {
     display: flex;
     gap: var(--spacing-3);
     padding: var(--spacing-2) 0;
+}
+
+.printer-tile-temps-placeholder {
+    opacity: 0.6;
 }
 
 .tile-temp {
@@ -1361,9 +1399,9 @@ p {
 }
 
 /* Responsive Printer Tiles */
-@media (max-width: 1024px) {
+@media (min-width: 769px) and (max-width: 1024px) {
     .printers-list {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: var(--spacing-4);
     }
 }
@@ -1374,9 +1412,29 @@ p {
         padding: var(--spacing-2);
     }
 
+    .printer-tile-card {
+        max-width: 100%;
+    }
+
     .printer-tile-actions {
         flex-wrap: wrap;
         justify-content: center;
+    }
+}
+
+/* Mobile optimization */
+@media (max-width: 480px) {
+    .printers-list {
+        gap: var(--spacing-3);
+    }
+
+    .printer-tile-body {
+        padding: var(--spacing-3);
+    }
+
+    .printer-tile-header,
+    .printer-tile-footer {
+        padding: var(--spacing-3);
     }
 }
 

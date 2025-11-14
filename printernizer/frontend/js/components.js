@@ -272,8 +272,16 @@ class PrinterCard {
      * Render current job section
      */
     renderCurrentJob() {
+        // Always render a job section container for consistent card height
         if (!this.printer.current_job) {
-            return '<p class="text-muted text-center">Kein aktiver Auftrag</p>';
+            return `
+                <div class="current-job current-job-placeholder">
+                    <div class="job-placeholder-content">
+                        <span class="placeholder-icon">📭</span>
+                        <p class="text-muted">Kein aktiver Auftrag</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Handle case where current_job is a string (job name) rather than an object
@@ -349,27 +357,50 @@ class PrinterCard {
      * Render temperatures section
      */
     renderTemperatures() {
+        // Always show temperature section for consistent height
         if (!this.printer.temperatures) {
-            return '';
+            return `
+                <div class="temperatures temperatures-placeholder">
+                    <div class="temp-item">
+                        <div class="temp-label">Düse</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                    <div class="temp-item">
+                        <div class="temp-label">Bett</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                </div>
+            `;
         }
 
         const temps = this.printer.temperatures;
         const tempItems = [];
-        
+
         if (temps.nozzle !== undefined) {
             tempItems.push(this.renderTemperatureItem('nozzle', 'Düse', temps.nozzle));
         }
-        
+
         if (temps.bed !== undefined) {
             tempItems.push(this.renderTemperatureItem('bed', 'Bett', temps.bed));
         }
-        
+
         if (temps.chamber !== undefined) {
             tempItems.push(this.renderTemperatureItem('chamber', 'Kammer', temps.chamber));
         }
 
         if (tempItems.length === 0) {
-            return '';
+            return `
+                <div class="temperatures temperatures-placeholder">
+                    <div class="temp-item">
+                        <div class="temp-label">Düse</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                    <div class="temp-item">
+                        <div class="temp-label">Bett</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                </div>
+            `;
         }
 
         return `

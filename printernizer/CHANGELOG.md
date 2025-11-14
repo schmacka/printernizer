@@ -1,3 +1,9 @@
+## [2.6.16] - 2025-11-14
+
+- Add webcam support for Bambu Lab printers
+- feat: Harmonize printer card sizing and improve responsive layout
+- fix: Improve iOS mobile file upload compatibility
+
 ## [2.6.15] - 2025-11-14
 
 - Add webcam support for Bambu Lab printers
