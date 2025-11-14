@@ -33,6 +33,15 @@ mkdir -p /app/backups
 mkdir -p /app/printer-files
 mkdir -p /app/temp
 mkdir -p /app/data/preview-cache
+mkdir -p /app/config
+
+# Fix permissions for mounted config directory (Windows mounts may have wrong ownership)
+if [ -d "/app/config" ]; then
+    echo -e "${YELLOW}🔐 Fixing config directory permissions...${NC}"
+    # Files from Windows host may be root:root, need to be readable/writable by appuser
+    chmod -R 777 /app/config 2>/dev/null || true
+    echo -e "${GREEN}✅ Config directory permissions fixed${NC}"
+fi
 
 # Database initialization
 DATABASE_PATH=${DATABASE_PATH:-/app/data/printernizer.db}
