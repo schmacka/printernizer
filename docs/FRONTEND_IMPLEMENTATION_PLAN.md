@@ -10,6 +10,13 @@ This document tracks the implementation of missing frontend features identified 
 
 ---
 
+### Latest Updates (2025-01-14)
+- Added standalone SPA entry points (`jobs.html`, `printers.html`, `materials.html`) so E2E tests can deep-link directly without manual hash routing.
+- Reworked the Jobs modal/VAT workflow to use the shared modal helper and keep business fields synchronized for compliance scenarios.
+- Defaulted Materials to the table layout, removed the legacy duplicate modal, and routed everything through the shared modal helper for consistent selectors.
+
+---
+
 ## Test Results Summary
 
 ### Current Status
@@ -22,14 +29,14 @@ This document tracks the implementation of missing frontend features identified 
 | Test | Page | Status |
 |------|------|--------|
 | `test_dashboard_add_printer_button_exists` | Dashboard | ⏳ Not Started |
-| `test_jobs_table_display` | Jobs | ⏳ Not Started |
-| `test_create_job_button_exists` | Jobs | ⏳ Not Started |
-| `test_create_job_modal_opens` | Jobs | ⏳ Not Started |
-| `test_business_job_fields` | Jobs | ⏳ Not Started |
-| `test_vat_calculation_display` | Jobs | ⏳ Not Started |
+| `test_jobs_table_display` | Jobs | 🟢 Ready for re-test |
+| `test_create_job_button_exists` | Jobs | 🟢 Ready for re-test |
+| `test_create_job_modal_opens` | Jobs | 🟢 Ready for re-test |
+| `test_business_job_fields` | Jobs | 🟢 Ready for re-test |
+| `test_vat_calculation_display` | Jobs | 🟢 Ready for re-test |
 | `test_job_form_validation` | Jobs | ⏳ Not Started |
-| `test_materials_table_display` | Materials | ⏳ Not Started |
-| `test_add_material_button_exists` | Materials | ⏳ Not Started |
+| `test_materials_table_display` | Materials | 🟡 In Progress |
+| `test_add_material_button_exists` | Materials | 🟡 In Progress |
 | `test_complete_workflow_example` | Example | ⏳ Not Started |
 
 ---
@@ -41,7 +48,7 @@ This document tracks the implementation of missing frontend features identified 
 ### 1.1 Jobs Table Display
 **Priority:** Critical  
 **Effort:** 2-3 hours  
-**Status:** ⏳ Not Started  
+**Status:** ✅ Complete – SPA alias now exposes existing table  
 **Test:** `test_jobs_table_display`
 
 **Requirements:**
@@ -80,7 +87,7 @@ This document tracks the implementation of missing frontend features identified 
 ### 1.2 Create Job Button & Modal
 **Priority:** Critical  
 **Effort:** 3-4 hours  
-**Status:** ⏳ Not Started  
+**Status:** ✅ Complete – modal uses shared helper  
 **Tests:** `test_create_job_button_exists`, `test_create_job_modal_opens`
 
 **Requirements:**
@@ -136,7 +143,7 @@ This document tracks the implementation of missing frontend features identified 
 ### 2.1 Business Job Fields
 **Priority:** High  
 **Effort:** 1-2 hours  
-**Status:** ⏳ Not Started  
+**Status:** ✅ Complete – business fields toggle with VAT panel  
 **Test:** `test_business_job_fields`
 
 **Requirements:**
@@ -164,7 +171,7 @@ This document tracks the implementation of missing frontend features identified 
 ### 2.2 VAT Calculation Display
 **Priority:** High  
 **Effort:** 2-3 hours  
-**Status:** ⏳ Not Started  
+**Status:** ✅ Complete – VAT values update in real time  
 **Test:** `test_vat_calculation_display`
 
 **Requirements:**
@@ -193,7 +200,7 @@ const grossTotal = netPrice + vatAmount;
 ### 3.1 Materials Table Display
 **Priority:** Medium  
 **Effort:** 2-3 hours  
-**Status:** ⏳ Not Started  
+**Status:** 🟡 In Progress – table view is default, filter polish pending  
 **Test:** `test_materials_table_display`
 
 **Requirements:**
@@ -219,7 +226,7 @@ const grossTotal = netPrice + vatAmount;
 ### 3.2 Add Material Button & Modal
 **Priority:** Medium  
 **Effort:** 2-3 hours  
-**Status:** ⏳ Not Started  
+**Status:** 🟡 In Progress – primary modal aligned with shared helper  
 **Test:** `test_add_material_button_exists`
 
 **Requirements:**

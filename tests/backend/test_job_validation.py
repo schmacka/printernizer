@@ -122,141 +122,206 @@ class TestJobIDValidation:
         assert any(e['loc'] == ('id',) for e in errors)
 
     @pytest.mark.asyncio
-    async def test_get_jobs_skips_invalid_jobs(self, job_service, test_db):
+    async def test_get_jobs_skips_invalid_jobs(self):
         """Test that get_jobs handles and logs invalid jobs gracefully."""
-        # Create a valid job first
-        valid_job_id = await job_service.create_job({
-            'printer_id': 'test_printer',
-            'job_name': 'Valid Job',
-            'filename': 'valid.3mf'
-        })
+        db, db_path = await create_test_db()
+        try:
+            from src.services.event_service import EventService
+            from src.services.job_service import JobService
+            event_service = EventService()
+            job_service = JobService(db, event_service)
 
-        # Get jobs should return the valid job
-        jobs = await job_service.get_jobs()
-        assert len(jobs) == 1
-        assert jobs[0]['id'] == valid_job_id
+            # Create a valid job first
+            valid_job_id = await job_service.create_job({
+                'printer_id': 'test_printer',
+                'job_name': 'Valid Job',
+                'filename': 'valid.3mf'
+            })
+
+            # Get jobs should return the valid job
+            jobs = await job_service.get_jobs()
+            assert len(jobs) == 1
+            assert jobs[0]['id'] == valid_job_id
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
     @pytest.mark.asyncio
-    async def test_list_jobs_skips_invalid_jobs(self, job_service):
+    async def test_list_jobs_skips_invalid_jobs(self):
         """Test that list_jobs handles invalid jobs gracefully."""
-        # Create valid jobs
-        job1_id = await job_service.create_job({
-            'printer_id': 'printer_001',
-            'job_name': 'Job 1',
-            'filename': 'job1.3mf'
-        })
+        db, db_path = await create_test_db()
+        try:
+            from src.services.event_service import EventService
+            from src.services.job_service import JobService
+            event_service = EventService()
+            job_service = JobService(db, event_service)
 
-        job2_id = await job_service.create_job({
-            'printer_id': 'printer_002',
-            'job_name': 'Job 2',
-            'filename': 'job2.3mf'
-        })
+            # Create valid jobs
+            job1_id = await job_service.create_job({
+                'printer_id': 'printer_001',
+                'job_name': 'Job 1',
+                'filename': 'job1.3mf'
+            })
 
-        # List all jobs
-        all_jobs = await job_service.list_jobs()
-        assert len(all_jobs) == 2
+            job2_id = await job_service.create_job({
+                'printer_id': 'printer_002',
+                'job_name': 'Job 2',
+                'filename': 'job2.3mf'
+            })
 
-        # List filtered by printer
-        printer1_jobs = await job_service.list_jobs(printer_id='printer_001')
-        assert len(printer1_jobs) == 1
-        assert printer1_jobs[0]['id'] == job1_id
+            # List all jobs
+            all_jobs = await job_service.list_jobs()
+            assert len(all_jobs) == 2
+
+            # List filtered by printer
+            printer1_jobs = await job_service.list_jobs(printer_id='printer_001')
+            assert len(printer1_jobs) == 1
+            assert printer1_jobs[0]['id'] == job1_id
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
 
 class TestMigration005:
     """Test suite for migration 005."""
 
     @pytest.mark.asyncio
-    async def test_migration_tracking_table_created(self, test_db):
+    async def test_migration_tracking_table_created(self):
         """Test that migrations table is created."""
-        async with test_db.connection() as conn:
-            cursor = await conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'"
-            )
-            result = await cursor.fetchone()
-            assert result is not None
+        db, db_path = await create_test_db()
+        try:
+            async with db.connection() as conn:
+                cursor = await conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'"
+                )
+                result = await cursor.fetchone()
+                assert result is not None
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
     @pytest.mark.asyncio
-    async def test_migration_005_recorded(self, test_db):
+    async def test_migration_005_recorded(self):
         """Test that migration 005 is recorded in migrations table."""
-        async with test_db.connection() as conn:
-            cursor = await conn.execute(
-                "SELECT version, description FROM migrations WHERE version='005'"
-            )
-            result = await cursor.fetchone()
-            assert result is not None
-            assert result[0] == '005'
-            assert 'NULL' in result[1] or 'job' in result[1].lower()
+        db, db_path = await create_test_db()
+        try:
+            async with db.connection() as conn:
+                cursor = await conn.execute(
+                    "SELECT version, description FROM migrations WHERE version='005'"
+                )
+                result = await cursor.fetchone()
+                assert result is not None
+                assert result[0] == '005'
+                assert 'NULL' in result[1] or 'job' in result[1].lower()
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
     @pytest.mark.asyncio
-    async def test_jobs_table_has_not_null_constraint(self, test_db):
+    async def test_jobs_table_has_not_null_constraint(self):
         """Test that jobs table has NOT NULL constraint on id column."""
-        async with test_db.connection() as conn:
-            cursor = await conn.execute("PRAGMA table_info(jobs)")
-            columns = await cursor.fetchall()
+        db, db_path = await create_test_db()
+        try:
+            async with db.connection() as conn:
+                cursor = await conn.execute("PRAGMA table_info(jobs)")
+                columns = await cursor.fetchall()
 
-            # Find the id column
-            id_column = next(col for col in columns if col[1] == 'id')
+                # Find the id column
+                id_column = next(col for col in columns if col[1] == 'id')
 
-            # Check NOT NULL constraint (column index 3)
-            assert id_column[3] == 1, "ID column should have NOT NULL constraint"
+                # Check NOT NULL constraint (column index 3)
+                assert id_column[3] == 1, "ID column should have NOT NULL constraint"
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
 
 class TestJobCreationValidation:
     """Test job creation validation."""
 
     @pytest.mark.asyncio
-    async def test_create_job_validates_required_fields(self, job_service):
+    async def test_create_job_validates_required_fields(self):
         """Test that create_job validates all required fields."""
-        # Missing printer_id
-        with pytest.raises(Exception):
-            await job_service.create_job({
-                'job_name': 'Test Job'
-            })
+        db, db_path = await create_test_db()
+        try:
+            from src.services.event_service import EventService
+            from src.services.job_service import JobService
+            event_service = EventService()
+            job_service = JobService(db, event_service)
 
-        # Missing job_name
-        with pytest.raises(Exception):
-            await job_service.create_job({
-                'printer_id': 'printer_001'
-            })
+            # Missing printer_id
+            with pytest.raises(Exception):
+                await job_service.create_job({
+                    'job_name': 'Test Job'
+                })
+
+            # Missing job_name
+            with pytest.raises(Exception):
+                await job_service.create_job({
+                    'printer_id': 'printer_001'
+                })
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
     @pytest.mark.asyncio
-    async def test_create_job_generates_unique_ids(self, job_service):
+    async def test_create_job_generates_unique_ids(self):
         """Test that create_job generates unique IDs for each job."""
-        job_ids = []
+        db, db_path = await create_test_db()
+        try:
+            from src.services.event_service import EventService
+            from src.services.job_service import JobService
+            event_service = EventService()
+            job_service = JobService(db, event_service)
 
-        for i in range(5):
-            job_id = await job_service.create_job({
-                'printer_id': 'test_printer',
-                'job_name': f'Job {i}',
-                'filename': f'job{i}.3mf'
-            })
-            job_ids.append(job_id)
+            job_ids = []
 
-        # All IDs should be unique
-        assert len(job_ids) == len(set(job_ids))
+            for i in range(5):
+                job_id = await job_service.create_job({
+                    'printer_id': 'test_printer',
+                    'job_name': f'Job {i}',
+                    'filename': f'job{i}.3mf'
+                })
+                job_ids.append(job_id)
 
-        # All IDs should be valid UUIDs
-        for job_id in job_ids:
-            uuid.UUID(job_id)  # Will raise if invalid
+            # All IDs should be unique
+            assert len(job_ids) == len(set(job_ids))
+
+            # All IDs should be valid UUIDs
+            for job_id in job_ids:
+                uuid.UUID(job_id)  # Will raise if invalid
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
     @pytest.mark.asyncio
-    async def test_create_job_with_business_info(self, job_service):
+    async def test_create_job_with_business_info(self):
         """Test creating business jobs with customer info."""
-        job_id = await job_service.create_job({
-            'printer_id': 'printer_001',
-            'job_name': 'Business Print',
-            'filename': 'business.3mf',
-            'is_business': True,
-            'customer_info': {
-                'name': 'Test Customer',
-                'order_id': 'ORD-12345'
-            }
-        })
+        db, db_path = await create_test_db()
+        try:
+            from src.services.event_service import EventService
+            from src.services.job_service import JobService
+            event_service = EventService()
+            job_service = JobService(db, event_service)
 
-        # Retrieve and verify
-        job = await job_service.get_job(job_id)
-        assert job['is_business'] is True
-        assert job['customer_info']['name'] == 'Test Customer'
+            job_id = await job_service.create_job({
+                'printer_id': 'printer_001',
+                'job_name': 'Business Print',
+                'filename': 'business.3mf',
+                'is_business': True,
+                'customer_info': {
+                    'name': 'Test Customer',
+                    'order_id': 'ORD-12345'
+                }
+            })
+
+            # Retrieve and verify
+            job = await job_service.get_job(job_id)
+            assert job['is_business'] is True
+            assert job['customer_info']['name'] == 'Test Customer'
+        finally:
+            await db.close()
+            os.unlink(db_path)
 
 
 if __name__ == '__main__':

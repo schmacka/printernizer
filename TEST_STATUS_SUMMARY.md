@@ -67,6 +67,13 @@ The test suite has been fixed and now meets the CI/CD pass rate threshold of 45%
 - Changed `"/api/v1/jobs{filter_query}"` → `f"/api/v1/jobs{filter_query}"`
 - **Impact**: Fixed string formatting issue
 
+### 6. Frontend Deep-Link & Modal Alignment (2025-01-14)
+**Files**: `frontend/jobs.html`, `frontend/printers.html`, `frontend/materials.html`, `frontend/js/main.js`, `frontend/js/utils.js`, `frontend/js/materials.js`, `frontend/index.html`
+- Added SPA wrapper pages so `/jobs.html`, `/printers.html`, and `/materials.html` hydrate the dashboard shell with the correct section already active.
+- Ensured the Jobs modal/VAT panel uses the shared modal helper so Playwright selectors (e.g., `#jobModal`, `#isBusiness`) become visible immediately.
+- Defaulted the Materials view to the table layout, removed the legacy duplicate modal, and routed the remaining modal through the shared helper to avoid duplicate IDs.
+- **Verification**: Run `pytest tests/e2e/test_jobs.py -k "jobs_table_display or create_job"` and `pytest tests/e2e/test_materials.py -k "materials_table_display or add_material"` once the frontend bundle is rebuilt.
+
 ## Remaining Test Failures (Expected)
 
 ### Category 1: Missing Business Logic Services (36 failures)

@@ -3,10 +3,25 @@
  * Handles page routing, navigation, and application initialization
  */
 
+const AVAILABLE_PAGES = [
+    'dashboard',
+    'printers',
+    'jobs',
+    'timelapses',
+    'files',
+    'library',
+    'materials',
+    'ideas',
+    'settings',
+    'debug'
+];
+
 // Main application class
 class PrinternizerApp {
     constructor() {
-        this.currentPage = 'dashboard';
+        this.availablePages = AVAILABLE_PAGES;
+        this.entryPath = window.__ENTRY_PATH__ || window.location.pathname;
+        this.currentPage = this.resolveInitialPage();
         this.pageManagers = {
             dashboard: typeof dashboard !== 'undefined' ? dashboard : null,
             printers: typeof printerManager !== 'undefined' ? printerManager : null,
@@ -40,8 +55,8 @@ class PrinternizerApp {
             window.globalDragDropManager.init();
         }
 
-        // Initialize current page
-        this.showPage(this.currentPage);
+        // Initialize current page without creating duplicate history entries
+        this.showPage(this.currentPage, false);
 
         // Setup global error handling
         this.setupErrorHandling();
@@ -97,32 +112,26 @@ class PrinternizerApp {
 
         // Handle back/forward browser navigation
         window.addEventListener('popstate', (e) => {
-            const page = e.state?.page || 'dashboard';
+            const page = this.isValidPage(e.state?.page) ? e.state.page : this.resolveInitialPage();
             this.showPage(page, false);
         });
 
         // Handle hash changes (for direct navigation and E2E tests)
         window.addEventListener('hashchange', () => {
             const newHash = window.location.hash.slice(1);
-            if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(newHash)) {
-                this.showPage(newHash);
+            if (this.isValidPage(newHash) && newHash !== this.currentPage) {
+                this.showPage(newHash, false);
             }
         });
 
-        // Set initial browser state
-        const currentHash = window.location.hash.slice(1) || 'dashboard';
-        if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
-            this.currentPage = currentHash;
-        }
-
-        history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
+        this.updateHistoryState(this.currentPage, 'replace');
     }
 
     /**
      * Show specific page
      */
     showPage(pageName, updateHistory = true) {
-        if (!['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(pageName)) {
+        if (!this.isValidPage(pageName)) {
             console.error('Invalid page name:', pageName);
             return;
         }
@@ -167,7 +176,7 @@ class PrinternizerApp {
         
         // Update browser history
         if (updateHistory) {
-            history.pushState({ page: pageName }, '', `#${pageName}`);
+            this.updateHistoryState(pageName, 'push');
         }
         
         // Initialize new page manager
@@ -252,6 +261,61 @@ class PrinternizerApp {
             document.body.classList.add('app-loading');
         } else {
             document.body.classList.remove('app-loading');
+        }
+    }
+
+    isValidPage(pageName) {
+        return typeof pageName === 'string' && this.availablePages.includes(pageName);
+    }
+
+    resolveInitialPage() {
+        const coercedInitial = typeof window.__INITIAL_PAGE__ === 'string'
+            ? window.__INITIAL_PAGE__.trim()
+            : null;
+        if (this.isValidPage(coercedInitial)) {
+            return coercedInitial;
+        }
+
+        const hashPage = window.location.hash.slice(1);
+        if (this.isValidPage(hashPage)) {
+            return hashPage;
+        }
+
+        const pathPage = this.getPageFromPath(window.location.pathname);
+        if (this.isValidPage(pathPage)) {
+            return pathPage;
+        }
+
+        return 'dashboard';
+    }
+
+    getPageFromPath(pathname = '') {
+        if (!pathname) {
+            return null;
+        }
+        const segments = pathname.split('/').filter(Boolean);
+        if (!segments.length) {
+            return null;
+        }
+        const lastSegment = segments[segments.length - 1];
+        if (!lastSegment || lastSegment === 'index.html') {
+            return null;
+        }
+        const cleanSegment = lastSegment.endsWith('.html')
+            ? lastSegment.replace('.html', '')
+            : lastSegment;
+        return cleanSegment;
+    }
+
+    updateHistoryState(page, mode = 'push') {
+        const basePath = (this.entryPath || window.location.pathname || '/').split('#')[0] || '/';
+        const url = `${basePath}#${page}`;
+        const state = { page };
+
+        if (mode === 'replace') {
+            history.replaceState(state, '', url);
+        } else {
+            history.pushState(state, '', url);
         }
     }
 }

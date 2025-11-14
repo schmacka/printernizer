@@ -67,6 +67,8 @@ services:
     volumes:
       # Database and application data
       - printernizer-data:/app/data
+      # Configuration files (CRITICAL: printers.json must persist)
+      - ../config:/app/config
       # Downloaded printer files
       - printernizer-printer-files:/app/printer-files
       # Application logs

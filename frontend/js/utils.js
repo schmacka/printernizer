@@ -929,43 +929,77 @@ function showNotification(message, type = 'info') {
 // Make showNotification available globally
 window.showNotification = showNotification;
 
-// Initialize system time and version when DOM loads
+// Initialize system time, version info, and modal helpers when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
     initSystemTime();
     loadAppVersion();
+    initializeJobModalControls();
 });
 
 /**
  * Job Modal Functions
  */
-function showCreateJobModal() {
-    const modal = document.getElementById('jobModal');
-    if (modal) {
-        modal.classList.add('active');
-        
-        // Show/hide business fields based on checkbox
-        const businessCheckbox = document.getElementById('isBusiness');
-        const customerNameGroup = document.getElementById('customerNameGroup');
-        const costCalculationGroup = document.getElementById('costCalculationGroup');
-        const materialCostInput = document.getElementById('materialCost');
-        
-        if (businessCheckbox) {
-            // Handler for business checkbox
-            businessCheckbox.addEventListener('change', function() {
-                const isChecked = this.checked;
-                if (customerNameGroup) customerNameGroup.style.display = isChecked ? 'block' : 'none';
-                if (costCalculationGroup) costCalculationGroup.style.display = isChecked ? 'block' : 'none';
-                if (isChecked) {
-                    calculateVAT();
-                }
-            });
-        }
-        
-        // VAT calculation on cost input
-        if (materialCostInput) {
-            materialCostInput.addEventListener('input', calculateVAT);
-        }
+let jobModalControlsInitialized = false;
+
+function initializeJobModalControls() {
+    if (jobModalControlsInitialized) {
+        return;
     }
+
+    if (!document.getElementById('jobModal')) {
+        return;
+    }
+
+    const businessCheckbox = document.getElementById('isBusiness');
+    const materialCostInput = document.getElementById('materialCost');
+
+    if (businessCheckbox) {
+        businessCheckbox.addEventListener('change', syncBusinessJobFields);
+    }
+
+    if (materialCostInput) {
+        materialCostInput.addEventListener('input', calculateVAT);
+    }
+
+    jobModalControlsInitialized = true;
+    syncBusinessJobFields();
+}
+
+function syncBusinessJobFields() {
+    const businessCheckbox = document.getElementById('isBusiness');
+    const customerNameGroup = document.getElementById('customerNameGroup');
+    const costCalculationGroup = document.getElementById('costCalculationGroup');
+    const isChecked = Boolean(businessCheckbox?.checked);
+
+    if (customerNameGroup) {
+        customerNameGroup.style.display = isChecked ? 'block' : 'none';
+    }
+
+    if (costCalculationGroup) {
+        costCalculationGroup.style.display = isChecked ? 'block' : 'none';
+    }
+
+    if (isChecked) {
+        calculateVAT();
+    } else {
+        resetVatCalculationDisplay();
+    }
+}
+
+function resetVatCalculationDisplay() {
+    const netPriceElement = document.getElementById('netPrice');
+    const vatAmountElement = document.getElementById('vatAmount');
+    const grossTotalElement = document.getElementById('grossTotal');
+
+    if (netPriceElement) netPriceElement.textContent = '€0.00';
+    if (vatAmountElement) vatAmountElement.textContent = '€0.00';
+    if (grossTotalElement) grossTotalElement.textContent = '€0.00';
+}
+
+function showCreateJobModal() {
+    initializeJobModalControls();
+    syncBusinessJobFields();
+    showModal('jobModal');
 }
 
 /**
@@ -994,48 +1028,23 @@ function calculateVAT() {
 
 function closeJobModal() {
     const modal = document.getElementById('jobModal');
-    if (modal) {
-        modal.classList.remove('active');
-        // Reset form
-        const form = document.getElementById('createJobForm');
-        if (form) {
-            form.reset();
-        }
-        // Hide business fields
-        const customerNameGroup = document.getElementById('customerNameGroup');
-        if (customerNameGroup) {
-            customerNameGroup.style.display = 'none';
-        }
+    if (!modal) {
+        return;
     }
-}
 
-/**
- * Material Modal Functions (Legacy/Jobs)
- */
-function showAddMaterialModal() {
-    const modal = document.getElementById('addMaterialModal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
+    closeModal('jobModal');
 
-function closeMaterialModal() {
-    const modal = document.getElementById('addMaterialModal');
-    if (modal) {
-        modal.classList.remove('active');
-        // Reset form
-        const form = document.getElementById('addMaterialForm');
-        if (form) {
-            form.reset();
-        }
+    const form = document.getElementById('createJobForm');
+    if (form) {
+        form.reset();
     }
+
+    syncBusinessJobFields();
 }
 
 // Make modal functions available globally
 window.showCreateJobModal = showCreateJobModal;
 window.closeJobModal = closeJobModal;
-window.showAddMaterialModal = showAddMaterialModal;
-window.closeMaterialModal = closeMaterialModal;
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
@@ -1047,6 +1056,6 @@ if (typeof module !== 'undefined' && module.exports) {
         debounce, throttle, copyToClipboard, downloadFile,
         getStatusConfig, createStatusBadge, escapeHtml, truncateText, generateId,
         Storage, URLParams,
-        showCreateJobModal, closeJobModal, showAddMaterialModal, closeMaterialModal
+        showCreateJobModal, closeJobModal
     };
 }

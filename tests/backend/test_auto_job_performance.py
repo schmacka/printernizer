@@ -35,6 +35,30 @@ async def performance_test_stack():
     database = Database(temp_db.name)
     await database.initialize()
 
+    # Create test printers to satisfy FOREIGN KEY constraints
+    # Create bambu_001 printer used in tests
+    await database.create_printer({
+        'id': 'bambu_001',
+        'name': 'Test Bambu Printer',
+        'type': 'bambu_lab',
+        'model': 'A1',
+        'ip_address': '192.168.1.100',
+        'access_code': 'test123',
+        'serial_number': 'TEST001'
+    })
+
+    # Create additional printers for concurrent tests (printer_000 to printer_009)
+    for i in range(10):
+        await database.create_printer({
+            'id': f'printer_{i:03d}',
+            'name': f'Test Printer {i}',
+            'type': 'bambu_lab',
+            'model': 'A1',
+            'ip_address': f'192.168.1.{100 + i}',
+            'access_code': 'test123',
+            'serial_number': f'TEST{i:03d}'
+        })
+
     event_service = EventService()
     job_service = JobService(database, event_service)
 
