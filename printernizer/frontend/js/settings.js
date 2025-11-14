@@ -49,25 +49,61 @@ class SettingsManager {
     switchTab(tabName) {
         console.log('Switching to tab:', tabName);
 
-        // Update tab buttons
-        document.querySelectorAll('.settings-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        const activeTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
-        if (activeTab) {
-            activeTab.classList.add('active');
-        }
+        try {
+            // Validate tab name
+            if (!tabName || typeof tabName !== 'string') {
+                console.error('Invalid tab name:', tabName);
+                return;
+            }
 
-        // Update tab content
-        document.querySelectorAll('.tab-pane').forEach(pane => {
-            pane.classList.remove('active');
-        });
-        const activePane = document.getElementById(`${tabName}-tab`);
-        if (activePane) {
-            activePane.classList.add('active');
-        }
+            // Update tab buttons - remove active from all tabs
+            const allTabs = document.querySelectorAll('.settings-tab');
+            console.log(`Found ${allTabs.length} tab buttons`);
+            allTabs.forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-selected', 'false');
+            });
 
-        this.currentTab = tabName;
+            // Add active to the clicked tab
+            const activeTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+                activeTab.setAttribute('aria-selected', 'true');
+                console.log(`Activated tab button: ${tabName}`);
+            } else {
+                console.error(`Tab button not found for: ${tabName}`);
+                return;
+            }
+
+            // Update tab content - remove active from all panes
+            const allPanes = document.querySelectorAll('.tab-pane');
+            console.log(`Found ${allPanes.length} tab panes`);
+            allPanes.forEach(pane => {
+                pane.classList.remove('active');
+                pane.style.display = 'none';  // Explicitly set display none
+                pane.setAttribute('aria-hidden', 'true');
+            });
+
+            // Add active to the target pane
+            const activePane = document.getElementById(`${tabName}-tab`);
+            if (activePane) {
+                activePane.classList.add('active');
+                activePane.style.display = 'block';  // Explicitly set display block
+                activePane.setAttribute('aria-hidden', 'false');
+                console.log(`Activated tab pane: ${tabName}-tab`);
+            } else {
+                console.error(`Tab pane not found for: ${tabName}-tab`);
+                return;
+            }
+
+            // Update current tab tracking
+            this.currentTab = tabName;
+            console.log(`Successfully switched to tab: ${tabName}`);
+
+        } catch (error) {
+            console.error('Error in switchTab:', error);
+            showToast('error', 'Fehler', 'Tab konnte nicht gewechselt werden');
+        }
     }
 
     /**
