@@ -338,11 +338,15 @@ class Dashboard {
             // Clear existing printers
             this.printers.clear();
             
-            if (response && Array.isArray(response) && response.length > 0) {
+            // API returns {printers: [], total_count: N, pagination: {...}}
+            const printers = response?.printers || response;
+            const printersArray = Array.isArray(printers) ? printers : (Array.isArray(response) ? response : []);
+            
+            if (printersArray.length > 0) {
                 // Create printer cards
                 printerGrid.innerHTML = '';
                 
-                response.forEach(printer => {
+                printersArray.forEach(printer => {
                     const printerCard = new PrinterCard(printer);
                     const cardElement = printerCard.render();
                     printerGrid.appendChild(cardElement);
