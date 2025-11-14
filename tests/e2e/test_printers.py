@@ -13,7 +13,7 @@ def test_printers_page_loads(app_page: Page, base_url: str):
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
     
-    expect(app_page).to_have_url(f"{base_url}/printers.html")
+    expect(app_page).to_have_url(f"{base_url}/#printers")
 
 
 @pytest.mark.e2e
@@ -23,8 +23,8 @@ def test_add_printer_modal_opens(app_page: Page, base_url: str):
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
     
-    # Click add printer button
-    add_button = app_page.locator("button:has-text('Add Printer')")
+    # Click add printer button using German text
+    add_button = app_page.locator("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
     if add_button.count() > 0:
         printers.open_add_printer_modal()
         
@@ -40,7 +40,7 @@ def test_printer_form_validation(app_page: Page, base_url: str):
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
     
-    add_button = app_page.locator("button:has-text('Add Printer')")
+    add_button = app_page.locator("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
     if add_button.count() > 0:
         printers.open_add_printer_modal()
         
@@ -60,7 +60,7 @@ def test_add_bambu_printer(app_page: Page, base_url: str):
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
     
-    add_button = app_page.locator("button:has-text('Add Printer')")
+    add_button = app_page.locator("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
     if add_button.count() > 0:
         # Add a test printer
         test_printer_name = "Test Bambu Printer"
@@ -96,7 +96,7 @@ def test_printer_types_available(app_page: Page, base_url: str):
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
     
-    add_button = app_page.locator("button:has-text('Add Printer')")
+    add_button = app_page.locator("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
     if add_button.count() > 0:
         printers.open_add_printer_modal()
         

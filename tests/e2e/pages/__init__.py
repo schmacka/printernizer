@@ -4,6 +4,7 @@ from .printers_page import PrintersPage
 from .jobs_page import JobsPage
 from .materials_page import MaterialsPage
 from .settings_page import SettingsPage
+from .statistics_page import StatisticsPage
 
 __all__ = [
     "DashboardPage",
@@ -11,4 +12,5 @@ __all__ = [
     "JobsPage",
     "MaterialsPage",
     "SettingsPage",
+    "StatisticsPage",
 ]

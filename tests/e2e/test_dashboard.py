@@ -48,12 +48,12 @@ def test_dashboard_navigation(app_page: Page, base_url: str):
     """Test navigation from dashboard to other pages"""
     app_page.goto(base_url)
     
-    # Test navigation to printers page
-    printers_link = app_page.locator("a[href*='printers'], nav a:has-text('Printers')")
+    # Test navigation to printers page using German text
+    printers_link = app_page.locator("a[href='#printers'], nav a:has-text('Drucker')")
     if printers_link.count() > 0:
         printers_link.first.click()
-        app_page.wait_for_load_state("networkidle")
-        assert "printers" in app_page.url.lower() or app_page.url == f"{base_url}/printers.html"
+        app_page.wait_for_timeout(500)
+        assert "#printers" in app_page.url, "Should navigate to printers page"
 
 
 @pytest.mark.e2e

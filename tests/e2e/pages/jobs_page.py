@@ -11,10 +11,10 @@ class JobsPage:
     def __init__(self, page: Page):
         self.page = page
         
-        # Selectors
-        self.jobs_table_selector = ".jobs-table, #jobsTable"
-        self.job_row_selector = ".job-row, tr.job"
-        self.create_job_button_selector = "button:has-text('Create Job'), #createJobBtn"
+        # Selectors - matching actual HTML structure
+        self.jobs_table_selector = "#jobsTable, .jobs-table"
+        self.job_row_selector = "#jobsTableBody tr, .job-row"
+        self.create_job_button_selector = "#createJobBtn, button:has-text('Create Job')"
         self.job_modal_selector = "#jobModal, .job-modal"
         self.job_name_input_selector = "input[name='job_name'], #jobName"
         self.file_select_selector = "select[name='file'], #fileSelect"

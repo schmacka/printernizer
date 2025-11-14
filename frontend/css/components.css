@@ -2856,13 +2856,7 @@ label .required {
    AUTO-DOWNLOAD SYSTEM UI STYLES
    ======================================== */
 
-/* Auto-Download Status Card */
-.auto-download-status-card {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--blue-600) 100%);
-    color: var(--white);
-    border: none;
-    box-shadow: var(--shadow-lg);
-}
+/* Auto-Download Status Card - removed special styling to match other overview cards */
 
 .auto-download-status {
     display: flex;

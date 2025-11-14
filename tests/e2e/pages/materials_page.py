@@ -11,10 +11,10 @@ class MaterialsPage:
     def __init__(self, page: Page):
         self.page = page
         
-        # Selectors
-        self.materials_table_selector = ".materials-table, #materialsTable"
-        self.material_row_selector = ".material-row, tr.material"
-        self.add_material_button_selector = "button:has-text('Add Material'), #addMaterialBtn"
+        # Selectors - matching actual HTML with German text
+        self.materials_table_selector = "#materialsTable, .materials-table"
+        self.material_row_selector = "#materialsTableBody tr, .material-row"
+        self.add_material_button_selector = "#addMaterialBtn, button:has-text('Filament hinzufügen')"
         self.material_modal_selector = "#materialModal, .material-modal"
         self.material_name_input_selector = "input[name='material_name'], #materialName"
         self.material_type_select_selector = "select[name='material_type'], #materialType"

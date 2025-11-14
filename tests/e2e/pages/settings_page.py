@@ -80,15 +80,12 @@ class SettingsPage:
 
     def navigate(self, base_url: str):
         """Navigate to the settings page"""
-        # Settings is in the index.html as a tab/section
-        self.page.goto(base_url)
+        self.page.goto(f"{base_url}/#settings", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-
-        # Click on settings navigation if it exists
-        settings_nav = self.page.locator("a[href*='settings'], nav a:has-text('Settings'), nav a:has-text('Einstellungen')")
-        if settings_nav.count() > 0:
-            settings_nav.first.click()
-            self.page.wait_for_load_state("networkidle")
+        # Wait for app initialization
+        self.page.wait_for_function("() => window.app && window.app.currentPage")
+        # Wait for the settings page section to be visible
+        self.page.wait_for_selector("#settings.active, [id='settings'].page.active, #page-settings.active", state="visible", timeout=5000)
 
     def is_loaded(self) -> bool:
         """Check if the settings page is loaded"""
