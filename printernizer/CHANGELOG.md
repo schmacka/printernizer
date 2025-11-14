@@ -1,3 +1,13 @@
+## [2.6.8] - 2025-11-14
+
+- fix: Add config volume mount to Docker setup
+- test: Major test suite improvements - 72.8% pass rate achieved
+- Update TEST_COVERAGE_ANALYSIS.md - async errors resolved
+- Update TEST_COVERAGE_ANALYSIS.md with recent fixes
+- Fix database and file service test failures
+- Initial plan
+- fix: Add MIME types to file upload accept attribute for mobile browser support
+
 ## [2.6.7] - 2025-11-14
 
 - test: Major test suite improvements - 72.8% pass rate achieved
