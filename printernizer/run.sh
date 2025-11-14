@@ -52,6 +52,13 @@ mkdir -p "${TIMELAPSE_OUTPUT_FOLDER}"
 mkdir -p /app/logs
 mkdir -p /app/temp
 
+# Fix permissions for /data directory to allow config file writes
+# This prevents "[Errno 1] Operation not permitted" when saving printer config
+if [ -d "/data/printernizer" ]; then
+    bashio::log.info "Ensuring write permissions for config files..."
+    chmod -R 777 /data/printernizer 2>/dev/null || true
+fi
+
 # Generate environment configuration
 bashio::log.info "Generating application configuration..."
 cat > /app/.env << EOF
