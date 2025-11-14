@@ -1,3 +1,10 @@
+## [2.6.12] - 2025-11-14
+
+- fix: Remove duplicate div tag in settings general tab
+- fix: Add missing job_creation_auto_create setting field
+- Add permission fix to Home Assistant add-on
+- Fix dashboard printer list - same API response handling
+
 ## [2.6.11] - 2025-11-14
 
 - fix: Add missing job_creation_auto_create setting field
