@@ -1,3 +1,9 @@
+## [2.6.13] - 2025-11-14
+
+- feat: Add settings accessibility tests and fix tab switching
+- fix: Remove duplicate div tag in settings general tab
+- fix: Add missing job_creation_auto_create setting field
+
 ## [2.6.12] - 2025-11-14
 
 - fix: Remove duplicate div tag in settings general tab
