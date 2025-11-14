@@ -71,6 +71,14 @@ class TestJobIDValidation:
             event_service = EventService()
             job_service = JobService(db, event_service)
 
+            # Create test printer first (required for foreign key constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address, is_active)
+                    VALUES ('test_printer_001', 'Test Printer', 'bambu', '192.168.1.1', 1)
+                """)
+                await conn.commit()
+
             job_data = {
                 'printer_id': 'test_printer_001',
                 'job_name': 'Test Print Job',
@@ -131,6 +139,14 @@ class TestJobIDValidation:
             event_service = EventService()
             job_service = JobService(db, event_service)
 
+            # Create test printer first (required for foreign key constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address, is_active)
+                    VALUES ('test_printer', 'Test Printer', 'bambu', '192.168.1.1', 1)
+                """)
+                await conn.commit()
+
             # Create a valid job first
             valid_job_id = await job_service.create_job({
                 'printer_id': 'test_printer',
@@ -155,6 +171,18 @@ class TestJobIDValidation:
             from src.services.job_service import JobService
             event_service = EventService()
             job_service = JobService(db, event_service)
+
+            # Create test printers first (required for foreign key constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address, is_active)
+                    VALUES ('printer_001', 'Printer 1', 'bambu', '192.168.1.1', 1)
+                """)
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address, is_active)
+                    VALUES ('printer_002', 'Printer 2', 'prusa', '192.168.1.2', 1)
+                """)
+                await conn.commit()
 
             # Create valid jobs
             job1_id = await job_service.create_job({
@@ -274,6 +302,14 @@ class TestJobCreationValidation:
             event_service = EventService()
             job_service = JobService(db, event_service)
 
+            # Create test printer first (required for foreign key constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address, is_active)
+                    VALUES ('test_printer', 'Test Printer', 'bambu', '192.168.1.1', 1)
+                """)
+                await conn.commit()
+
             job_ids = []
 
             for i in range(5):
@@ -303,6 +339,14 @@ class TestJobCreationValidation:
             from src.services.job_service import JobService
             event_service = EventService()
             job_service = JobService(db, event_service)
+
+            # Create test printer first (required for foreign key constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address, is_active)
+                    VALUES ('printer_001', 'Printer 1', 'bambu', '192.168.1.1', 1)
+                """)
+                await conn.commit()
 
             job_id = await job_service.create_job({
                 'printer_id': 'printer_001',
