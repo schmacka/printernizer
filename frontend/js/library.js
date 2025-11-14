@@ -1100,13 +1100,15 @@ class LibraryManager {
 
         // Show errors for invalid files
         if (invalidFiles.length > 0) {
-            const errorMsg = `Invalid file types:\n${invalidFiles.map(f => `- ${f.name} (${f.error})`).join('\n')}`;
+            const errorMsg = `Invalid file types:\n${invalidFiles.map(f => `- ${f.name}`).join('\n')}\n\nSupported: ${this.allowedExtensions.join(', ')}`;
             this.showToast(errorMsg, 'error');
         }
 
         // Upload valid files
         if (validFiles.length > 0) {
             await this.uploadFiles(validFiles);
+        } else if (invalidFiles.length === 0 && files.length === 0) {
+            this.showToast('No files selected', 'info');
         }
     }
 
@@ -1279,24 +1281,39 @@ libraryManager.init = function() {
 // Global function to trigger file upload picker
 // Explicitly attach to window object to ensure it's available globally
 window.triggerFileUpload = function() {
+    console.log('triggerFileUpload called');
     const fileInput = document.getElementById('libraryFileInput');
     if (fileInput) {
-        fileInput.click();
+        console.log('File input found, triggering click');
+        // iOS Safari requires the click to be triggered directly from user interaction
+        // Use try-catch to handle any security restrictions
+        try {
+            fileInput.click();
+        } catch (error) {
+            console.error('Error triggering file input click:', error);
+            alert('Unable to open file picker. Please try again.');
+        }
     } else {
         console.error('File input not found');
+        alert('File input not found. Please refresh the page.');
     }
 };
 
 // Global function to handle manual file upload
 // Explicitly attach to window object to ensure it's available globally
 window.handleManualFileUpload = async function(event) {
+    console.log('handleManualFileUpload called', event);
     const files = Array.from(event.target.files);
+    console.log('Files selected:', files.length, files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+
     if (files.length > 0) {
-        console.log('Files selected for upload:', files.length);
+        console.log('Processing', files.length, 'file(s) for upload');
         await libraryManager.handleFileDrop(files);
 
         // Reset the file input so the same files can be selected again if needed
         event.target.value = '';
+    } else {
+        console.warn('No files selected from file input');
     }
 };
 
