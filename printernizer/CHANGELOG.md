@@ -1,3 +1,11 @@
+## [2.6.11] - 2025-11-14
+
+- fix: Add missing job_creation_auto_create setting field
+- Add permission fix to Home Assistant add-on
+- Fix dashboard printer list - same API response handling
+- docs: Update analysis to 82.3% pass rate - ALL ERRORS ELIMINATED
+- test: Fix 7 additional tests - 82.3% pass rate achieved
+
 ## [2.6.10] - 2025-11-14
 
 - test: Fix 11 additional tests - 81.1% pass rate achieved
