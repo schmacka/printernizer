@@ -1,3 +1,21 @@
+## [2.6.7] - 2025-11-14
+
+- test: Major test suite improvements - 72.8% pass rate achieved
+- Update TEST_COVERAGE_ANALYSIS.md - async errors resolved
+- Update TEST_COVERAGE_ANALYSIS.md with recent fixes
+- Fix database and file service test failures
+- Initial plan
+- Complete TEST_COVERAGE_ANALYSIS.md update with detailed implementation plan
+- Update TEST_COVERAGE_ANALYSIS.md with current metrics
+- Initial plan for updating TEST_COVERAGE_ANALYSIS.md
+- Initial plan
+- Add implementation summary - 70 tests created for critical services
+- Add file_service tests (20/28 passing, coordinator pattern)
+- fix: Add MIME types to file upload accept attribute for mobile browser support
+- Add printer_service tests (16/29 passing, needs refinement)
+- Add comprehensive tests for job_service (34 tests, 100% pass)
+- Initial plan
+
 ## [2.6.6] - 2025-11-13
 
 - feat: Create awesome modern settings page with tabs and comprehensive configuration
