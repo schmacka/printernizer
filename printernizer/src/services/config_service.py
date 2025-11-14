@@ -394,7 +394,12 @@ class ConfigService:
             if self.config_path.exists():
                 backup_path = self.config_path.with_suffix('.backup')
                 import shutil
-                shutil.copy2(self.config_path, backup_path)
+                try:
+                    # Use copy() instead of copy2() to avoid permission errors on mounted volumes
+                    # copy2() tries to preserve metadata which fails on Windows-mounted volumes
+                    shutil.copy(self.config_path, backup_path)
+                except (PermissionError, OSError) as backup_error:
+                    logger.warning("Could not create config backup, continuing with save", error=str(backup_error))
             
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump(config_data, f, indent=2, ensure_ascii=False)
@@ -402,6 +407,7 @@ class ConfigService:
             logger.info("Saved printer configuration", path=str(self.config_path))
         except Exception as e:
             logger.error("Failed to save printer config", error=str(e))
+            raise  # Re-raise so caller knows save failed
             
     def validate_printer_connection(self, printer_id: str) -> Dict[str, Any]:
         """Validate printer connection configuration."""
