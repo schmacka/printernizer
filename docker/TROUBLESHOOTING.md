@@ -13,7 +13,7 @@
 The Docker image was built with an incorrect build context. The Dockerfile expects to be built from the repository root so it can access all required files:
 - `src/` (application source code)
 - `frontend/` (web interface)
-- `database_schema.sql` (database schema)
+- `assets/database/schema.sql` (database schema)
 - `docker/entrypoint.sh` (startup script)
 
 **Solution:**
