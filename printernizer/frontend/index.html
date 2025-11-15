@@ -1431,6 +1431,20 @@
                                         <small class="form-text text-muted">Alte Timelapse-Dateien automatisch löschen nach X Tagen (1-365)</small>
                                     </div>
 
+                                    <div class="form-group">
+                                        <label>FFmpeg-Verfügbarkeit prüfen 🔧</label>
+                                        <div class="ffmpeg-check-container">
+                                            <button type="button" class="btn btn-secondary" onclick="checkFfmpegInstallation()">
+                                                <span class="btn-icon">🔍</span>
+                                                FFmpeg prüfen
+                                            </button>
+                                            <div id="ffmpegCheckResult" class="validation-result" style="display: none; margin-top: 0.5rem;"></div>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            Prüfen Sie, ob FFmpeg auf dem System installiert ist. FFmpeg wird für die Timelapse-Videogenerierung benötigt.
+                                        </small>
+                                    </div>
+
                                     <div class="alert alert-info">
                                         <strong>ℹ️ Hinweis:</strong> Timelapse-Funktion erfordert ffmpeg oder vergleichbare Software.
                                     </div>

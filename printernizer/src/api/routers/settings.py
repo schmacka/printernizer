@@ -323,3 +323,18 @@ async def reload_configuration(
         )
 
     return success_response({"message": "Configuration reloaded successfully"})
+
+
+@router.get("/ffmpeg-check")
+async def check_ffmpeg_installation():
+    """Check if ffmpeg is installed and available on the system."""
+    from src.utils.system_check import check_ffmpeg
+
+    result = check_ffmpeg()
+
+    return {
+        "installed": result['installed'],
+        "version": result['version'],
+        "error": result['error'],
+        "message": "ffmpeg is installed and available" if result['installed'] else "ffmpeg is not installed or not in PATH"
+    }
