@@ -23,7 +23,7 @@ def temp_database():
     temp_db.close()
 
     # Read schema file and create database
-    schema_path = os.path.join(os.path.dirname(__file__), '..', 'database_schema.sql')
+    schema_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'database', 'schema.sql')
     with open(schema_path, 'r', encoding='utf-8') as f:
         schema_sql = f.read()
 
