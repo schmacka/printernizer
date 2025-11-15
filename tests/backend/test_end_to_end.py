@@ -694,7 +694,7 @@ class TestE2EGermanBusinessCompliance:
             # Initialize database with German business settings
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO settings (key, value, category) VALUES 
+                INSERT INTO configuration (key, value, category) VALUES 
                 ('vat_rate', '0.19', 'business'),
                 ('currency', 'EUR', 'business'),
                 ('timezone', 'Europe/Berlin', 'business'),

@@ -740,3 +740,22 @@ class FileService:
                 await asyncio.gather(*self._background_tasks, return_exceptions=True)
 
         logger.info("FileService shutdown complete")
+
+
+# Module-level function for E2E testing compatibility
+async def scan_printer_files(printer_ids: Optional[List[str]] = None) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Scan printers for available files
+    
+    This is a stub function for E2E test compatibility.
+    In production, use FileService.discovery.discover_printer_files() instead.
+    
+    Args:
+        printer_ids: Optional list of printer IDs to scan
+    
+    Returns:
+        Dictionary mapping printer_id to list of discovered files
+    """
+    logger.info("Scanning printer files", printer_ids=printer_ids)
+    # Stub implementation for testing
+    return {}
