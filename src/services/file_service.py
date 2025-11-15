@@ -740,3 +740,29 @@ class FileService:
                 await asyncio.gather(*self._background_tasks, return_exceptions=True)
 
         logger.info("FileService shutdown complete")
+
+
+async def scan_printer_files(printer_service=None) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Module-level function to scan files from all connected printers.
+    Returns a dictionary mapping printer IDs to lists of discovered files.
+    
+    This is a stub implementation used by E2E tests to mock file discovery.
+    Real implementation would be called via FileService.discover_printer_files.
+    
+    Args:
+        printer_service: Optional printer service instance
+    
+    Returns:
+        Dictionary mapping printer IDs to lists of file metadata dictionaries
+    """
+    try:
+        logger.info("scan_printer_files_called")
+        
+        # Stub implementation - returns empty dict
+        # Real implementation would query all active printers
+        return {}
+        
+    except Exception as e:
+        logger.error("scan_printer_files_error", error=str(e))
+        return {}
