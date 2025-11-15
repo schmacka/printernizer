@@ -8,7 +8,8 @@ Write-Host ""
 
 # Get script directory and project root
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectRoot = Split-Path -Parent $ScriptDir
+$ScriptsDir = Split-Path -Parent $ScriptDir
+$ProjectRoot = Split-Path -Parent $ScriptsDir
 $DockerDir = Join-Path $ProjectRoot "docker"
 
 # Check if docker-compose.yml exists
