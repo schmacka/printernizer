@@ -12,15 +12,16 @@ class MaterialsPage:
         self.page = page
         
         # Selectors - matching actual HTML with German text
-        self.materials_table_selector = "#materialsTable, .materials-table"
+        # Note: Table view is hidden by default, cards view is shown
+        self.materials_table_selector = "#materialsTable, .materials-table-wrapper"
         self.material_row_selector = "#materialsTableBody tr, .material-row"
         self.add_material_button_selector = "#addMaterialBtn, button:has-text('Filament hinzufügen')"
         self.material_modal_selector = "#materialModal, .material-modal"
-        self.material_name_input_selector = "input[name='material_name'], #materialName"
-        self.material_type_select_selector = "select[name='material_type'], #materialType"
-        self.color_input_selector = "input[name='color'], #materialColor"
-        self.weight_input_selector = "input[name='weight'], #materialWeight"
-        self.cost_input_selector = "input[name='cost'], #materialCost"
+        self.material_brand_input_selector = "#materialBrand, input[name='brand']"
+        self.material_type_select_selector = "#materialType, select[name='material_type']"
+        self.color_input_selector = "#materialColor, input[name='color']"
+        self.weight_input_selector = "#materialSpoolWeight, input[name='spool_weight_g']"
+        self.cost_input_selector = "#materialPricePerKg, input[name='price_per_kg']"
         self.submit_material_button_selector = "button[type='submit'], .submit-material-btn"
         
     def navigate(self, base_url: str):
@@ -46,7 +47,7 @@ class MaterialsPage:
         cost: Optional[str] = None
     ):
         """Fill out the material form"""
-        self.page.fill(self.material_name_input_selector, name)
+        self.page.fill(self.material_brand_input_selector, name)
         self.page.select_option(self.material_type_select_selector, material_type)
         
         if color:

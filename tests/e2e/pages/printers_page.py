@@ -29,7 +29,9 @@ class PrintersPage:
         # Wait for app initialization
         self.page.wait_for_function("() => window.app && window.app.currentPage")
         # Wait for the printers page section to be visible
-        self.page.wait_for_selector("#printers.active, [id='printers'].page.active", state="visible", timeout=5000)
+        self.page.wait_for_selector("#printers.page.active", state="visible", timeout=10000)
+        # Wait for add printer button to be visible
+        self.page.wait_for_selector("#addPrinterBtn", state="visible", timeout=5000)
         
     def open_add_printer_modal(self):
         """Open the add printer modal"""

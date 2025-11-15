@@ -43,7 +43,8 @@ class StatisticsPage:
     def is_loaded(self) -> bool:
         """Check if the statistics page is loaded"""
         try:
-            self.page.wait_for_selector(self.stats_container_selector, timeout=5000)
+            # Dashboard uses sections, not a single stats container
+            self.page.wait_for_selector(".section, .dashboard-grid, #dashboard.active", timeout=5000)
             return True
         except:
             return False

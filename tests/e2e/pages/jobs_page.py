@@ -16,12 +16,12 @@ class JobsPage:
         self.job_row_selector = "#jobsTableBody tr, .job-row"
         self.create_job_button_selector = "#createJobBtn, button:has-text('Create Job')"
         self.job_modal_selector = "#jobModal, .job-modal"
-        self.job_name_input_selector = "input[name='job_name'], #jobName"
-        self.file_select_selector = "select[name='file'], #fileSelect"
-        self.printer_select_selector = "select[name='printer'], #printerSelect"
-        self.business_checkbox_selector = "input[name='is_business'], #isBusiness"
-        self.customer_name_input_selector = "input[name='customer_name'], #customerName"
-        self.submit_job_button_selector = "button[type='submit'], .submit-job-btn"
+        self.job_name_input_selector = "#jobName, input[name='job_name']"
+        self.file_select_selector = "#fileSelect, select[name='file']"
+        self.printer_select_selector = "#printerSelect, select[name='printer']"
+        self.business_checkbox_selector = "#isBusiness, input[name='is_business']"
+        self.customer_name_input_selector = "#customerName, input[name='customer_name']"
+        self.submit_job_button_selector = ".submit-job-btn, button[type='submit'][form='createJobForm']"
         self.job_status_selector = ".job-status"
         
     def navigate(self, base_url: str):
