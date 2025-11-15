@@ -463,8 +463,8 @@ async def test_event_handler_exception_isolation():
 
 ## Related Documentation
 
-- [TECHNICAL_DEBT_ASSESSMENT.md](../TECHNICAL_DEBT_ASSESSMENT.md) - Original technical debt analysis
-- [EVENT_CONTRACTS.md](EVENT_CONTRACTS.md) - Event system documentation
+- [TECHNICAL_DEBT_ASSESSMENT.md](../archive/TECHNICAL_DEBT_ASSESSMENT.md) - Original technical debt analysis
+- [EVENT_CONTRACTS.md](../architecture/EVENT_CONTRACTS.md) - Event system documentation
 - [CIRCULAR_DEPENDENCY_AUDIT.md](CIRCULAR_DEPENDENCY_AUDIT.md) - Dependency audit
 
 ---

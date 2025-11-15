@@ -9,7 +9,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -27,6 +26,11 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Build artifacts and test results
+# Note: build/ directory contains build scripts (tracked)
+# but test-results/ subdirectory contains generated output (ignored)
+build/test-results/
 
 # PyInstaller
 *.manifest
