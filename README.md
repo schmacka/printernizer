@@ -72,20 +72,23 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
 **Choose the deployment method that fits your needs:**
 
-1. **Python Standalone** - Direct Python installation
-   - Best for: Development, testing, local installation
-   - Setup time: 5 minutes
-   - [Quick Start](#option-1-python-development-setup)
-
-2. **Docker Standalone** - Containerized deployment
-   - Best for: Production servers, NAS systems
+1. **Docker Standalone** ⭐ **RECOMMENDED FOR PRODUCTION**
+   - Best for: Production servers, NAS systems, 24/7 operation
    - Setup time: 5 minutes
    - [Docker Guide](docker/README.md)
+   - **This is the recommended production deployment method**
 
-3. **Home Assistant Add-on** - Integrated with Home Assistant
-   - Best for: Home Assistant users, 24/7 operation
+2. **Home Assistant Add-on** - Integrated with Home Assistant
+   - Best for: Home Assistant users, 24/7 operation with HA integration
    - Setup time: 10 minutes
    - [Add-on Guide](printernizer/README.md)
+   - **Production-ready with automatic updates**
+
+3. **Python Standalone** - Direct Python installation
+   - Best for: Development, testing, and local development only
+   - Setup time: 5 minutes
+   - [Development Setup](#option-1-python-standalone-development-only)
+   - ⚠️ **Not recommended for production use**
 
 ## ✅ Current Status: **PRODUCTION READY**
 
@@ -113,44 +116,9 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
 ## 🚀 Quick Start
 
-Choose your preferred deployment method below.
+Choose your preferred deployment method below. **For production use, we strongly recommend Docker or Home Assistant Add-on.**
 
-### Option 1: Python Standalone (Development)
-
-```bash
-# 1. Create virtual environment (optional but recommended)
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# 2. Install core dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
-
-# 3. Create environment file (already exists)
-# Edit .env with your printer configurations if needed
-
-# 4. Start the backend
-# Windows:
-run.bat
-# Linux/Mac:
-./run.sh
-# Or manually:
-cd src
-python main.py
-
-# 5. Start the frontend (optional - open new terminal)
-cd frontend
-python -m http.server 3000
-
-# 6. Access the application
-# Backend API: http://localhost:8000
-# Frontend: http://localhost:3000 (if started separately)
-# API Docs: http://localhost:8000/docs
-```
-
-### Option 2: Docker Standalone (Production)
+### Option 1: Docker Standalone (Production - Recommended)
 
 Run Printernizer in a Docker container for production deployments:
 
@@ -174,7 +142,7 @@ docker-compose down
 **Using Build Script:**
 ```bash
 # From project root
-./build-docker.sh
+./build/build-docker.sh
 docker run -d -p 8000:8000 --name printernizer printernizer:latest
 ```
 
@@ -189,7 +157,7 @@ docker run -d -p 8000:8000 --name printernizer printernizer:latest
 
 For detailed instructions, see [docker/README.md](docker/README.md)
 
-### Option 3: Home Assistant Add-on (24/7 Integration)
+### Option 2: Home Assistant Add-on (Production - HA Users)
 
 Install as a Home Assistant Add-on for seamless integration:
 
@@ -211,6 +179,53 @@ Install as a Home Assistant Add-on for seamless integration:
 - Ingress support for secure access
 
 For detailed instructions, see [printernizer/README.md](printernizer/README.md)
+
+### Option 3: Python Standalone (Development Only)
+
+⚠️ **DEPRECATED FOR PRODUCTION USE** - The `run.bat` and `run.sh` scripts are legacy development tools. For production deployments, use Docker or Home Assistant Add-on instead.
+
+**This setup is for development and testing only:**
+
+```bash
+# 1. Create virtual environment (optional but recommended)
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# 2. Install core dependencies
+pip install -r requirements.txt
+
+# 3. Create environment file
+# Copy .env.example to .env and edit with your printer configurations
+
+# 4. Start the backend (development mode)
+# Option A: Using legacy startup scripts (deprecated)
+# Windows:
+run.bat
+# Linux/Mac:
+./run.sh
+
+# Option B: Direct Python execution (recommended for development)
+python -m src.main
+
+# 5. Access the application
+# Backend API: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+**Note:** This method is suitable for:
+- Local development and testing
+- Contributing to the project
+- Debugging and troubleshooting
+
+**Not suitable for:**
+- Production deployments
+- 24/7 operation
+- Multi-user environments
+
+For production use, see [Option 1: Docker Standalone](#option-1-docker-standalone-production---recommended) or [Option 2: Home Assistant Add-on](#option-2-home-assistant-add-on-production---ha-users).
 
 ## 📋 Prerequisites
 
@@ -524,30 +539,41 @@ sqlite3 data/printernizer.db ".tables"
 
 ## 🚀 Deployment Options
 
-### 1. Local Development
-```bash
-# Windows: run.bat
-# Linux/Mac: ./run.sh
-# Access: http://localhost:8000
-```
+### Production Deployments (Recommended)
 
-### 2. Docker Development
+**1. Docker Standalone** ⭐ **Most Popular**
 ```bash
+# From docker directory
+cd docker
 docker-compose up -d
-# Access: http://localhost:3000
+# Access: http://localhost:8000
+# With SSL termination and domain configuration for production
 ```
+See [docker/README.md](docker/README.md) for complete production deployment guide.
 
-### 3. Production Server
-```bash
-docker-compose -f docker-compose.yml up -d
-# With SSL termination and domain configuration
-```
+**2. Home Assistant Add-on** ⭐ **Best for HA Users**
+- Install from Home Assistant Add-on Store
+- 24/7 operation with automatic updates
+- Integrated configuration and management
+See [printernizer/README.md](printernizer/README.md) for installation guide.
 
-### 4. Kubernetes Production
+**3. Kubernetes Production** (Advanced)
 ```bash
 kubectl apply -f production.yml
 # Full enterprise deployment with auto-scaling
 ```
+⚠️ Kubernetes manifests coming soon - currently in development.
+
+### Development Setup
+
+**Python Standalone** (Development Only)
+```bash
+# ⚠️ DEPRECATED for production use
+# For development and testing only
+python -m src.main
+# Access: http://localhost:8000
+```
+Use `run.bat` (Windows) or `./run.sh` (Linux/Mac) as legacy shortcuts, but direct Python execution is recommended.
 
 ## 📝 Support & Documentation
 
@@ -656,38 +682,56 @@ mypy src/
 
 ## 🚀 Deployment
 
-### Current Deployment Options
+### Production-Ready Deployment Options
 
-**Python Application (Recommended)**
+**1. Docker Standalone** ⭐ **RECOMMENDED**
 ```bash
-# Production deployment with systemd or similar
-sudo systemctl enable printernizer
-sudo systemctl start printernizer
+# Production deployment with Docker Compose
+cd docker
+docker-compose up -d
 ```
+- ✅ **Production-ready** containerization
+- ✅ Single container deployment with persistent volumes
+- ✅ Automatic restarts and health checks
+- ✅ Easy backup and migration
+- See [docker/README.md](docker/README.md) for full production setup guide
 
-**Development Server**
+**2. Home Assistant Add-on** ⭐ **BEST FOR HA USERS**
+- ✅ **Production-ready** with automatic updates
+- ✅ Integrated with Home Assistant ecosystem
+- ✅ Configuration via HA interface
+- ✅ Multi-architecture support (RPi, x86_64, ARM64)
+- See [printernizer/README.md](printernizer/README.md) for installation guide
+
+### Development Deployment
+
+**Python Standalone** (Development Only)
 ```bash
-# Simple development deployment
-nohup python src/main.py &
+# ⚠️ NOT RECOMMENDED FOR PRODUCTION
+# For local development and testing only
+python -m src.main
+
+# Legacy shortcuts (deprecated):
+# Windows: run.bat
+# Linux/Mac: ./run.sh
 ```
+This method is suitable only for development, testing, and contributing to the project.
 
 ### Planned Deployment Options
 
-**Docker Deployment (Coming Soon)**
-- Single container deployment
-- Multi-service orchestration with databases
-- Production-ready containerization
-
-**Kubernetes Deployment (Coming Soon)**
+**Kubernetes Deployment** (Coming Soon)
 - Scalable production deployment
 - High availability configuration
 - Advanced monitoring and alerting
+- Auto-scaling based on load
 
-### Production Considerations
-- Configure SSL/TLS for HTTPS
-- Set up proper logging and monitoring
-- Configure backup strategies for SQLite database
-- Use reverse proxy (nginx/Apache) for production
+### Production Best Practices
+- ✅ Use Docker or Home Assistant Add-on for production
+- ✅ Configure SSL/TLS for HTTPS (reverse proxy recommended)
+- ✅ Set up proper logging and monitoring
+- ✅ Regular backup of SQLite database and data volumes
+- ✅ Use environment-specific configurations
+- ❌ Avoid using Python standalone (`run.bat`/`run.sh`) for production
 
 ## 🤝 Contributing
 
