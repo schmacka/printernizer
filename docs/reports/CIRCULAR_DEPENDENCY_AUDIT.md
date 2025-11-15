@@ -703,8 +703,8 @@ def test_reverse_import_order():
 
 ## See Also
 
-- [EVENT_CONTRACTS.md](EVENT_CONTRACTS.md) - Complete event documentation
-- [EVENT_FLOWS.md](EVENT_FLOWS.md) - Visual event flow diagrams
-- [Architecture Documentation](.claude/skills/printernizer-architecture.md) - System architecture
-- [FILESERVICE_REFACTORING_SUMMARY.md](../FILESERVICE_REFACTORING_SUMMARY.md) - FileService refactoring details
-- [PRINTERSERVICE_REFACTORING_SUMMARY.md](../PRINTERSERVICE_REFACTORING_SUMMARY.md) - PrinterService refactoring details
+- [EVENT_CONTRACTS.md](../architecture/EVENT_CONTRACTS.md) - Complete event documentation
+- [EVENT_FLOWS.md](../architecture/EVENT_FLOWS.md) - Visual event flow diagrams
+- [Architecture Documentation](../../.claude/skills/printernizer-architecture.md) - System architecture
+- [FILESERVICE_REFACTORING_SUMMARY.md](FILESERVICE_REFACTORING_SUMMARY.md) - FileService refactoring details
+- [PRINTERSERVICE_REFACTORING_SUMMARY.md](PRINTERSERVICE_REFACTORING_SUMMARY.md) - PrinterService refactoring details

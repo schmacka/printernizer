@@ -53,6 +53,6 @@ Key directories:
 - `/tests/` - Test suite
 
 Important files:
-- `database_schema.sql` - SQLite schema
+- `assets/database/schema.sql` - SQLite schema (formerly `database_schema.sql`)
 - `requirements.txt` - Python dependencies
 - `.env` - Configuration (use `.env.example` as template)
