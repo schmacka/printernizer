@@ -59,7 +59,7 @@ jobs:
 
     - name: Set up database
       run: |
-        sqlite3 test.db < database_schema.sql
+        sqlite3 test.db < assets/database/schema.sql
       env:
         DATABASE_PATH: test.db
 

@@ -209,7 +209,7 @@ else
     check_fail "Python requirements file is missing"
 fi
 
-if [ -f "database_schema.sql" ]; then
+if [ -f "assets/database/schema.sql" ]; then
     check_pass "Database schema file exists"
 else
     check_fail "Database schema file is missing"

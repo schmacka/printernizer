@@ -26,7 +26,7 @@ required_files=(
     "docker/entrypoint.sh"
     "src"
     "frontend"
-    "database_schema.sql"
+    "assets/database/schema.sql"
 )
 
 for file in "${required_files[@]}"; do

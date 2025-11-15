@@ -78,7 +78,7 @@ COPY --from=builder /root/.local /home/appuser/.local
 # Copy application files
 COPY --chown=appuser:appuser src/ /app/src/
 COPY --chown=appuser:appuser frontend/ /app/frontend/
-COPY --chown=appuser:appuser database_schema.sql /app/
+COPY --chown=appuser:appuser assets/database/schema.sql /app/database_schema.sql
 COPY --chown=appuser:appuser docker/entrypoint.sh /app/
 
 # Make entrypoint executable
