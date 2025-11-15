@@ -50,12 +50,39 @@ Printernizer is a professional 3D printer management system designed for:
 
 ## Installation
 
-### Quick Installation (Recommended)
+### Production Installation (Recommended)
+
+**Option 1: Docker Standalone** ⭐ **Most Popular**
+```bash
+# 1. Clone the repository
+git clone https://github.com/schmacka/printernizer.git
+cd printernizer
+
+# 2. Start with Docker Compose
+cd docker
+docker-compose up -d
+
+# 3. Access Printernizer
+# Web Interface: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+**Option 2: Home Assistant Add-on** ⭐ **Best for HA Users**
+1. In Home Assistant: **Settings → Add-ons → Add-on Store**
+2. Click **⋮** menu → **Repositories**
+3. Add: `https://github.com/schmacka/printernizer`
+4. Find **Printernizer** and click **Install**
+5. Configure and click **Start**
+6. Access via **Open Web UI**
+
+### Development Installation (Testing Only)
+
+⚠️ **For development and testing only. Not recommended for production use.**
 
 **Windows:**
 ```cmd
 # 1. Download Printernizer
-git clone https://github.com/yourusername/printernizer.git
+git clone https://github.com/schmacka/printernizer.git
 cd printernizer
 
 # 2. Create virtual environment
@@ -63,16 +90,17 @@ python -m venv venv
 venv\Scripts\activate
 
 # 3. Install dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
+pip install -r requirements.txt
 
-# 4. Start Printernizer
-run.bat
+# 4. Start Printernizer (development mode)
+python -m src.main
+# Or use legacy script: run.bat
 ```
 
 **Linux/macOS:**
 ```bash
 # 1. Download Printernizer
-git clone https://github.com/yourusername/printernizer.git
+git clone https://github.com/schmacka/printernizer.git
 cd printernizer
 
 # 2. Create virtual environment
@@ -80,10 +108,11 @@ python3 -m venv venv
 source venv/bin/activate
 
 # 3. Install dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
+pip install -r requirements.txt
 
-# 4. Start Printernizer
-./run.sh
+# 4. Start Printernizer (development mode)
+python -m src.main
+# Or use legacy script: ./run.sh
 ```
 
 ### Accessing Printernizer
@@ -99,7 +128,8 @@ After starting, access Printernizer at:
 
 ### First-Time Setup
 
-1. **Start Printernizer** using `run.bat` (Windows) or `./run.sh` (Linux/macOS)
+1. **Start Printernizer** using Docker (recommended) or Home Assistant Add-on
+   - Development: Use `python -m src.main` or legacy `run.bat`/`./run.sh` scripts
 2. **Open your browser** to http://localhost:8000
 3. **Add your first printer** via the Dashboard
 
