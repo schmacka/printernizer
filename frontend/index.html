@@ -296,6 +296,10 @@
                             <option value="">Alle Drucker</option>
                         </select>
                     </div>
+                    <button class="btn btn-secondary btn-sm" onclick="openPageSettings('jobs', 'Druckaufträge')">
+                        <span class="btn-icon">⚙️</span>
+                        Einstellungen
+                    </button>
                     <button class="btn btn-secondary" onclick="refreshJobs()">
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
@@ -356,6 +360,10 @@
                             <span>Nur verknüpfte</span>
                         </label>
                     </div>
+                    <button class="btn btn-secondary btn-sm" onclick="openPageSettings('timelapse', 'Zeitraffer-Videos')">
+                        <span class="btn-icon">⚙️</span>
+                        Einstellungen
+                    </button>
                     <button class="btn btn-secondary" onclick="refreshTimelapses()">
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
@@ -436,6 +444,10 @@
                             <option value="">Alle Drucker</option>
                         </select>
                     </div>
+                    <button class="btn btn-secondary btn-sm" onclick="openPageSettings('files', 'Drucker-Dateien')">
+                        <span class="btn-icon">⚙️</span>
+                        Einstellungen
+                    </button>
                     <button class="btn btn-secondary" onclick="refreshFiles()">
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
@@ -524,6 +536,10 @@
                                     aria-label="Suche löschen">✕</button>
                         </div>
                     </div>
+                    <button class="btn btn-secondary btn-sm" onclick="openPageSettings('library', 'Bibliothek')">
+                        <span class="btn-icon">⚙️</span>
+                        Einstellungen
+                    </button>
                     <button class="btn btn-primary" onclick="triggerFileUpload()">
                         <span class="btn-icon">📤</span>
                         Hochladen
@@ -981,6 +997,13 @@
 
         <!-- Settings Page -->
         <div id="settings" class="page">
+            <!-- Settings Breadcrumb -->
+            <div id="settingsBreadcrumb" class="settings-breadcrumb" style="display: none;">
+                <button class="breadcrumb-back" onclick="navigateBackFromSettings()">
+                    ← Zurück
+                </button>
+            </div>
+
             <div class="page-header">
                 <h1>⚙️ Einstellungen</h1>
                 <div class="header-actions">
@@ -2374,6 +2397,35 @@
                 </button>
                 <button type="submit" form="materialForm" class="btn btn-primary" id="materialSubmitBtn">
                     <span class="btn-icon">➕</span>
+                    Speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal settings-modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <div class="settings-modal-title">
+                    <h3>⚙️ Einstellungen</h3>
+                </div>
+                <div class="modal-header-actions">
+                    <select class="modal-tab-selector" onchange="switchModalSettingsTab(this.value)">
+                        <!-- Options populated by JS -->
+                    </select>
+                    <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body settings-modal-body">
+                <!-- Settings content will be cloned here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">
+                    Abbrechen
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveModalSettings()">
+                    <span class="btn-icon">💾</span>
                     Speichern
                 </button>
             </div>
