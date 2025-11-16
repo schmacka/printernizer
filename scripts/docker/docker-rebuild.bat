@@ -11,7 +11,7 @@ echo.
 
 REM Get script directory and project root
 set "SCRIPT_DIR=%~dp0"
-set "PROJECT_ROOT=%SCRIPT_DIR%.."
+set "PROJECT_ROOT=%SCRIPT_DIR%..\.."
 set "DOCKER_DIR=%PROJECT_ROOT%\docker"
 
 REM Check if docker-compose.yml exists

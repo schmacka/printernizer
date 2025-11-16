@@ -13,7 +13,7 @@ echo.
 
 REM Get script directory and project root
 set "SCRIPT_DIR=%~dp0"
-set "PROJECT_ROOT=%SCRIPT_DIR%.."
+set "PROJECT_ROOT=%SCRIPT_DIR%..\.."
 
 echo Project root: %PROJECT_ROOT%
 echo.

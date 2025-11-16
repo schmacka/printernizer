@@ -43,7 +43,9 @@ param(
 $ErrorActionPreference = "Stop"
 $DeploymentId = Get-Date -Format "yyyyMMdd_HHmmss"
 $ScriptRoot = Split-Path -Parent $PSCommandPath
-$ProjectRoot = Split-Path -Parent (Split-Path -Parent $ScriptRoot)
+$DeploymentDir = Split-Path -Parent $ScriptRoot
+$ScriptsDir = Split-Path -Parent $DeploymentDir
+$ProjectRoot = Split-Path -Parent $ScriptsDir
 $LocalBackupPath = Join-Path $ProjectRoot "deployments\backup_$DeploymentId"
 
 # Color output functions
