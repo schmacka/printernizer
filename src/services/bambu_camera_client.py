@@ -24,7 +24,7 @@ from datetime import datetime
 import structlog
 
 from src.constants import PortConstants, CameraConstants
-from src.exceptions import PrinterConnectionError
+from src.utils.exceptions import PrinterConnectionError
 
 
 logger = structlog.get_logger(__name__)
@@ -140,6 +140,17 @@ class BambuLabCameraClient:
         context.load_verify_locations(cadata=BAMBU_CA_CERT)
         context.check_hostname = False
         context.verify_mode = ssl.CERT_REQUIRED
+
+        # Python 3.13+ has stricter SSL validation
+        # Bambu Lab CA cert doesn't have keyUsage extension, so we need to relax verification
+        # This is safe because we're verifying against a specific known CA certificate
+        try:
+            # Disable strict key usage checking (Python 3.13+)
+            context.verify_flags &= ~ssl.VERIFY_X509_STRICT
+        except AttributeError:
+            # Python < 3.13 doesn't have this flag
+            pass
+
         return context
 
     def _build_auth_packet(self) -> bytes:
@@ -154,13 +165,13 @@ class BambuLabCameraClient:
         Returns:
             80-byte authentication packet
         """
-        # Header (16 bytes)
-        payload_size = CameraConstants.AUTH_PAYLOAD_SIZE
-        packet_type = CameraConstants.AUTH_PACKET_TYPE
-        flags = 0x0000
-        padding = 0x0000
+        # Header (16 bytes) - 4 x uint32
+        payload_size = CameraConstants.AUTH_PAYLOAD_SIZE  # 0x40 (64 bytes)
+        packet_type = CameraConstants.AUTH_PACKET_TYPE     # 0x3000
+        flags = 0x00000000
+        reserved = 0x00000000
 
-        header = struct.pack('<IHHH', payload_size, packet_type, flags, padding)
+        header = struct.pack('<IIII', payload_size, packet_type, flags, reserved)
 
         # Username field (32 bytes)
         username = CameraConstants.CAMERA_USERNAME.ljust(

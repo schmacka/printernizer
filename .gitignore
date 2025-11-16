@@ -139,6 +139,10 @@ nul
 /backend_*.log
 backend_pid.txt
 
+# Camera test files with credentials
+test_camera_connection*.py
+test_snapshot.jpg
+
 # Temporary test scripts in scripts/ folder
 scripts/test_*.py
 scripts/debug_*.py
