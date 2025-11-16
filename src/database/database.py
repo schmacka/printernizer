@@ -2158,3 +2158,188 @@ class Database:
         except Exception as e:
             logger.error("Failed to add search analytics", error=str(e))
             return False
+
+    # ==========================================
+    # Snapshot Methods
+    # ==========================================
+
+    async def create_snapshot(self, snapshot_data: Dict[str, Any]) -> Optional[int]:
+        """Create a new snapshot record.
+
+        Args:
+            snapshot_data: Dictionary containing snapshot information
+
+        Returns:
+            Snapshot ID if successful, None otherwise
+        """
+        try:
+            metadata_json = json.dumps(snapshot_data.get('metadata')) if snapshot_data.get('metadata') else None
+
+            cursor = await self._connection.execute(
+                """INSERT INTO snapshots (
+                    job_id, printer_id, filename, original_filename,
+                    file_size, content_type, storage_path,
+                    captured_at, capture_trigger, width, height,
+                    is_valid, notes, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    snapshot_data.get('job_id'),
+                    snapshot_data['printer_id'],
+                    snapshot_data['filename'],
+                    snapshot_data.get('original_filename'),
+                    snapshot_data['file_size'],
+                    snapshot_data.get('content_type', 'image/jpeg'),
+                    snapshot_data['storage_path'],
+                    snapshot_data.get('captured_at', datetime.now().isoformat()),
+                    snapshot_data.get('capture_trigger', 'manual'),
+                    snapshot_data.get('width'),
+                    snapshot_data.get('height'),
+                    snapshot_data.get('is_valid', True),
+                    snapshot_data.get('notes'),
+                    metadata_json
+                )
+            )
+            await self._connection.commit()
+
+            logger.info("Snapshot created", snapshot_id=cursor.lastrowid, filename=snapshot_data['filename'])
+            return cursor.lastrowid
+
+        except Exception as e:
+            logger.error("Failed to create snapshot", error=str(e), snapshot_data=snapshot_data)
+            return None
+
+    async def get_snapshot_by_id(self, snapshot_id: int) -> Optional[Dict[str, Any]]:
+        """Get snapshot by ID with context information.
+
+        Args:
+            snapshot_id: Snapshot ID
+
+        Returns:
+            Snapshot dictionary with context data, or None if not found
+        """
+        try:
+            sql = """
+                SELECT * FROM v_snapshots_with_context
+                WHERE id = ?
+            """
+            row = await self._fetch_one(sql, [snapshot_id])
+
+            if row:
+                snapshot = dict(row)
+                # Parse JSON metadata
+                if snapshot.get('metadata'):
+                    try:
+                        snapshot['metadata'] = json.loads(snapshot['metadata'])
+                    except (json.JSONDecodeError, TypeError):
+                        snapshot['metadata'] = None
+                return snapshot
+
+            return None
+
+        except Exception as e:
+            logger.error("Failed to get snapshot", error=str(e), snapshot_id=snapshot_id)
+            return None
+
+    async def list_snapshots(
+        self,
+        printer_id: Optional[str] = None,
+        job_id: Optional[int] = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """List snapshots with optional filters.
+
+        Args:
+            printer_id: Filter by printer ID
+            job_id: Filter by job ID
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of snapshot dictionaries with context data
+        """
+        try:
+            conditions = []
+            params = []
+
+            if printer_id:
+                conditions.append("printer_id = ?")
+                params.append(printer_id)
+
+            if job_id:
+                conditions.append("job_id = ?")
+                params.append(job_id)
+
+            where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            sql = f"""
+                SELECT * FROM v_snapshots_with_context
+                {where_clause}
+                ORDER BY captured_at DESC
+                LIMIT ? OFFSET ?
+            """
+            params.extend([limit, offset])
+
+            rows = await self._fetch_all(sql, params)
+
+            snapshots = []
+            for row in rows:
+                snapshot = dict(row)
+                # Parse JSON metadata
+                if snapshot.get('metadata'):
+                    try:
+                        snapshot['metadata'] = json.loads(snapshot['metadata'])
+                    except (json.JSONDecodeError, TypeError):
+                        snapshot['metadata'] = None
+                snapshots.append(snapshot)
+
+            return snapshots
+
+        except Exception as e:
+            logger.error("Failed to list snapshots", error=str(e), printer_id=printer_id, job_id=job_id)
+            return []
+
+    async def delete_snapshot(self, snapshot_id: int) -> bool:
+        """Delete a snapshot record.
+
+        Args:
+            snapshot_id: Snapshot ID to delete
+
+        Returns:
+            True if deleted, False otherwise
+        """
+        try:
+            return await self._execute_write(
+                "DELETE FROM snapshots WHERE id = ?",
+                (snapshot_id,)
+            )
+        except Exception as e:
+            logger.error("Failed to delete snapshot", error=str(e), snapshot_id=snapshot_id)
+            return False
+
+    async def update_snapshot_validation(
+        self,
+        snapshot_id: int,
+        is_valid: bool,
+        validation_error: Optional[str] = None
+    ) -> bool:
+        """Update snapshot validation status.
+
+        Args:
+            snapshot_id: Snapshot ID
+            is_valid: Whether snapshot is valid
+            validation_error: Error message if invalid
+
+        Returns:
+            True if updated, False otherwise
+        """
+        try:
+            return await self._execute_write(
+                """UPDATE snapshots
+                   SET is_valid = ?, validation_error = ?, last_validated_at = ?
+                   WHERE id = ?""",
+                (is_valid, validation_error, datetime.now().isoformat(), snapshot_id)
+            )
+        except Exception as e:
+            logger.error("Failed to update snapshot validation", error=str(e), snapshot_id=snapshot_id)
+            return False

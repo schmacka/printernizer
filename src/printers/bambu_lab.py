@@ -1828,71 +1828,41 @@ class BambuLabPrinter(BasePrinter):
             return False
 
     async def has_camera(self) -> bool:
-        """Check if Bambu Lab printer has camera support."""
-        # Most Bambu Lab printers have cameras, but we should check if accessible
-        if not self.is_connected:
-            return False
-            
-        try:
-            # Try to access camera stream to verify availability
-            stream_url = await self.get_camera_stream_url()
-            return stream_url is not None
-        except Exception as e:
-            logger.debug("Camera check failed", printer_id=self.printer_id, error=str(e))
-            return False
+        """Check if Bambu Lab printer has camera support.
+
+        All Bambu Lab A1 and P1 series printers have built-in cameras.
+        Camera functionality is now handled by CameraSnapshotService.
+        """
+        # All Bambu Lab A1/P1 series printers have cameras
+        # Connection to camera is managed by CameraSnapshotService via TCP/TLS
+        return True
 
     async def get_camera_stream_url(self) -> Optional[str]:
-        """Get camera stream URL for Bambu Lab printer."""
-        if not self.is_connected:
-            logger.warning("Cannot get camera stream - printer not connected", 
-                          printer_id=self.printer_id)
-            return None
-            
-        try:
-            # Bambu Lab A1 typically exposes camera at port 8080
-            # Format: http://printer-ip:8080/stream or mjpeg stream
-            stream_url = f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/stream"
-            
-            logger.debug("Generated camera stream URL", 
-                        printer_id=self.printer_id, url=stream_url)
-            return stream_url
-            
-        except Exception as e:
-            logger.error("Error generating camera stream URL",
-                        printer_id=self.printer_id, error=str(e))
-            return None
+        """Get camera stream URL for Bambu Lab printer.
+
+        DEPRECATED: Live streaming not yet implemented.
+        Bambu Lab cameras use proprietary TCP/TLS protocol on port 6000.
+        Use CameraSnapshotService for snapshot functionality.
+        Live MJPEG streaming planned for future implementation.
+        """
+        logger.warning(
+            "get_camera_stream_url is deprecated - live streaming not yet implemented",
+            printer_id=self.printer_id
+        )
+        return None
 
     async def take_snapshot(self) -> Optional[bytes]:
-        """Take a camera snapshot from Bambu Lab printer."""
-        if not self.is_connected:
-            logger.warning("Cannot take snapshot - printer not connected",
-                          printer_id=self.printer_id)
-            return None
-            
-        try:
-            import aiohttp
+        """Take a camera snapshot from Bambu Lab printer.
 
-            # Bambu Lab snapshot endpoint
-            snapshot_url = f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/snapshot"
+        DEPRECATED: This method is deprecated.
+        Bambu Lab cameras use proprietary TCP/TLS protocol on port 6000, not HTTP.
+        Snapshot functionality is now handled by CameraSnapshotService with proper
+        binary protocol implementation, connection pooling, and frame caching.
 
-            logger.info("Taking snapshot from Bambu Lab printer",
-                       printer_id=self.printer_id, url=snapshot_url)
-
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=NetworkConstants.SNAPSHOT_TIMEOUT_SECONDS)) as session:
-                async with session.get(snapshot_url) as response:
-                    if response.status == 200:
-                        image_data = await response.read()
-                        logger.info("Successfully captured snapshot",
-                                   printer_id=self.printer_id, 
-                                   size=len(image_data))
-                        return image_data
-                    else:
-                        logger.warning("Failed to capture snapshot - HTTP error",
-                                     printer_id=self.printer_id,
-                                     status=response.status)
-                        return None
-                        
-        except Exception as e:
-            logger.error("Error taking snapshot from Bambu Lab",
-                        printer_id=self.printer_id, error=str(e))
-            return None
+        Use the camera API endpoint: POST /api/v1/printers/{printer_id}/camera/snapshot
+        """
+        logger.warning(
+            "BambuLabPrinter.take_snapshot is deprecated - use CameraSnapshotService via API",
+            printer_id=self.printer_id
+        )
+        return None
