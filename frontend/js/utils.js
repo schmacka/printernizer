@@ -576,6 +576,242 @@ document.addEventListener('keydown', (e) => {
 });
 
 /**
+ * Navigate to settings page and open specific tab with modal overlay option
+ * @param {string} settingsTab - Tab ID to open (e.g., 'timelapse', 'library')
+ * @param {string} sourcePage - Optional page name to show in breadcrumb
+ * @param {boolean} useModal - If true, show settings in modal overlay instead of navigating
+ */
+function openPageSettings(settingsTab, sourcePage = null, useModal = true) {
+    if (useModal) {
+        // Show settings in modal overlay
+        showSettingsModal(settingsTab, sourcePage);
+    } else {
+        // Navigate to settings page
+        if (sourcePage) {
+            // Store source page and current hash for breadcrumb
+            sessionStorage.setItem('settingsSourcePage', sourcePage);
+            sessionStorage.setItem('settingsSourceHash', window.location.hash);
+        }
+
+        window.location.hash = '#settings';
+
+        // Wait for settings page to load, then switch to specific tab and update breadcrumb
+        setTimeout(() => {
+            if (window.settingsManager && settingsManager.switchTab) {
+                settingsManager.switchTab(settingsTab);
+            }
+            updateSettingsBreadcrumb();
+        }, 150);
+    }
+}
+
+/**
+ * Show settings in a modal overlay
+ * @param {string} settingsTab - Tab ID to open
+ * @param {string} sourcePage - Source page name for context
+ */
+function showSettingsModal(settingsTab, sourcePage) {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) {
+        console.error('Settings modal not found');
+        return;
+    }
+
+    // Store current tab and source page
+    modal.dataset.currentTab = settingsTab;
+    modal.dataset.sourcePage = sourcePage || '';
+
+    // Update modal title with breadcrumb if source page provided
+    const modalTitle = modal.querySelector('.settings-modal-title');
+    if (modalTitle && sourcePage) {
+        modalTitle.innerHTML = `
+            <button class="breadcrumb-back" onclick="closeSettingsModal()">
+                ← Zurück zu ${sourcePage}
+            </button>
+            <span class="breadcrumb-separator">/</span>
+            <span>Einstellungen</span>
+        `;
+    }
+
+    // Load settings content into modal
+    loadSettingsIntoModal(settingsTab);
+
+    // Show modal
+    showModal('settingsModal');
+}
+
+/**
+ * Load settings tab content into modal
+ * @param {string} settingsTab - Tab ID to load
+ */
+function loadSettingsIntoModal(settingsTab) {
+    const modalBody = document.querySelector('#settingsModal .settings-modal-body');
+    if (!modalBody) return;
+
+    // Clone the settings tab content
+    const tabPane = document.getElementById(`${settingsTab}-tab`);
+    if (!tabPane) {
+        console.error(`Settings tab not found: ${settingsTab}`);
+        return;
+    }
+
+    // Clear and populate modal body
+    modalBody.innerHTML = '';
+    const clonedContent = tabPane.cloneNode(true);
+    clonedContent.id = `modal-${settingsTab}-tab`;
+    clonedContent.classList.add('active');
+    modalBody.appendChild(clonedContent);
+
+    // Update tab selector in modal
+    updateModalTabSelector(settingsTab);
+}
+
+/**
+ * Update the tab selector in modal header
+ * @param {string} activeTab - Currently active tab
+ */
+function updateModalTabSelector(activeTab) {
+    const tabSelector = document.querySelector('#settingsModal .modal-tab-selector');
+    if (!tabSelector) return;
+
+    const tabs = [
+        { id: 'general', icon: '⚙️', label: 'Allgemein' },
+        { id: 'jobs', icon: '🖨️', label: 'Aufträge & G-Code' },
+        { id: 'library', icon: '🗄️', label: 'Bibliothek' },
+        { id: 'files', icon: '📁', label: 'Uploads & Downloads' },
+        { id: 'timelapse', icon: '🎬', label: 'Timelapse' },
+        { id: 'watch', icon: '👁️', label: 'Überwachung' },
+        { id: 'system', icon: '💻', label: 'System' }
+    ];
+
+    const options = tabs.map(tab => {
+        const selected = tab.id === activeTab ? 'selected' : '';
+        return `<option value="${tab.id}" ${selected}>${tab.icon} ${tab.label}</option>`;
+    }).join('');
+
+    tabSelector.innerHTML = options;
+}
+
+/**
+ * Switch tab in settings modal
+ * @param {string} tabId - Tab to switch to
+ */
+function switchModalSettingsTab(tabId) {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) return;
+
+    modal.dataset.currentTab = tabId;
+    loadSettingsIntoModal(tabId);
+}
+
+/**
+ * Close settings modal
+ */
+function closeSettingsModal() {
+    closeModal('settingsModal');
+}
+
+/**
+ * Navigate back from settings page to source page
+ */
+function navigateBackFromSettings() {
+    const sourcePage = sessionStorage.getItem('settingsSourcePage');
+    const sourceHash = sessionStorage.getItem('settingsSourceHash');
+
+    // Clear stored values
+    sessionStorage.removeItem('settingsSourcePage');
+    sessionStorage.removeItem('settingsSourceHash');
+
+    if (sourceHash) {
+        window.location.hash = sourceHash;
+    } else if (sourcePage) {
+        // Fallback to page name if hash not stored
+        window.location.hash = `#${sourcePage.toLowerCase()}`;
+    } else {
+        // Default to dashboard
+        window.location.hash = '#dashboard';
+    }
+
+    // Hide breadcrumb
+    const breadcrumb = document.getElementById('settingsBreadcrumb');
+    if (breadcrumb) {
+        breadcrumb.style.display = 'none';
+    }
+}
+
+/**
+ * Show breadcrumb in settings page if navigating from another page
+ * Should be called when settings page loads
+ */
+function updateSettingsBreadcrumb() {
+    const sourcePage = sessionStorage.getItem('settingsSourcePage');
+    const breadcrumb = document.getElementById('settingsBreadcrumb');
+
+    if (!breadcrumb) return;
+
+    if (sourcePage) {
+        const backButton = breadcrumb.querySelector('.breadcrumb-back');
+        if (backButton) {
+            backButton.innerHTML = `← Zurück zu ${sourcePage}`;
+        }
+        breadcrumb.style.display = 'block';
+    } else {
+        breadcrumb.style.display = 'none';
+    }
+}
+
+/**
+ * Save settings from modal
+ */
+async function saveModalSettings() {
+    const modal = document.getElementById('settingsModal');
+    const currentTab = modal?.dataset.currentTab;
+
+    if (!currentTab) {
+        showToast('error', 'Fehler', 'Keine Einstellungen zum Speichern gefunden');
+        return;
+    }
+
+    try {
+        // Get form data from modal
+        const modalBody = document.querySelector('#settingsModal .settings-modal-body');
+        const forms = modalBody.querySelectorAll('form');
+
+        const settingsData = {};
+        forms.forEach(form => {
+            const formData = new FormData(form);
+            for (const [key, value] of formData.entries()) {
+                settingsData[key] = value;
+            }
+        });
+
+        // Save settings via API
+        const response = await fetch(`${CONFIG.API_BASE_URL}/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settingsData)
+        });
+
+        if (response.ok) {
+            showToast('success', 'Gespeichert', 'Einstellungen wurden erfolgreich gespeichert');
+
+            // Reload settings in main page if needed
+            if (window.settingsManager) {
+                await settingsManager.loadSettings();
+            }
+
+            // Close modal after brief delay
+            setTimeout(() => closeSettingsModal(), 500);
+        } else {
+            throw new Error('Failed to save settings');
+        }
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showToast('error', 'Fehler', 'Einstellungen konnten nicht gespeichert werden');
+    }
+}
+
+/**
  * Debounce function for search inputs
  */
 function debounce(func, wait) {
