@@ -42,6 +42,33 @@ Example migration:
     printer = await printer_repo.get(printer_id)
 
 See docs/technical-debt/progress-tracker.md for migration status.
+
+CONNECTION POOLING (Phase 3):
+-----------------------------
+The Database class now supports connection pooling for improved concurrency.
+
+Usage examples:
+    # Using pooled connections (recommended for concurrent operations)
+    async with db.pooled_connection() as conn:
+        async with conn.execute("SELECT * FROM jobs") as cursor:
+            rows = await cursor.fetchall()
+
+    # Or manually acquire/release
+    conn = await db.acquire_connection()
+    try:
+        # Use connection
+        pass
+    finally:
+        await db.release_connection(conn)
+
+    # Legacy usage (backward compatible)
+    conn = db.get_connection()
+    # Use connection directly
+
+Configuration:
+    - Default pool size: 5 connections
+    - Customize: Database(db_path, pool_size=10)
+    - Uses WAL mode for optimal read concurrency
 """
 import asyncio
 import aiosqlite
@@ -58,34 +85,52 @@ logger = structlog.get_logger()
 
 
 class Database:
-    """SQLite database manager for Printernizer."""
-    
-    def __init__(self, db_path: Optional[str] = None):
-        """Initialize database connection."""
+    """SQLite database manager for Printernizer with connection pooling."""
+
+    def __init__(self, db_path: Optional[str] = None, pool_size: int = 5):
+        """
+        Initialize database with connection pooling.
+
+        Args:
+            db_path: Path to SQLite database file
+            pool_size: Number of connections in the pool (default: 5)
+        """
         if db_path is None:
             db_path = Path(__file__).parent.parent.parent / "data" / "printernizer.db"
-        
+
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Connection pooling
+        self._pool_size = pool_size
+        self._connection_pool: asyncio.Queue[aiosqlite.Connection] = asyncio.Queue(maxsize=pool_size)
+        self._pool_semaphore = asyncio.Semaphore(pool_size)
+        self._pool_initialized = False
+
+        # Backward compatibility: maintain single connection reference for old code
         self._connection: Optional[aiosqlite.Connection] = None
         
     async def initialize(self):
-        """Initialize database and create tables."""
-        logger.info("Initializing database", path=str(self.db_path))
-        
+        """Initialize database, connection pool, and create tables."""
+        logger.info("Initializing database with connection pool", path=str(self.db_path), pool_size=self._pool_size)
+
+        # Create main connection for backward compatibility and initial setup
         self._connection = await aiosqlite.connect(str(self.db_path))
         self._connection.row_factory = aiosqlite.Row
-        
+
         # Enable foreign key constraints
         await self._connection.execute("PRAGMA foreign_keys = ON")
-        
+
         # Create tables
         await self._create_tables()
-        
+
         # Run migrations
         await self._run_migrations()
-        
-        logger.info("Database initialized successfully")
+
+        # Initialize connection pool
+        await self._initialize_pool()
+
+        logger.info("Database initialized successfully", pool_size=self._pool_size)
         
     async def _create_tables(self):
         """Create database tables if they don't exist."""
@@ -435,9 +480,109 @@ class Database:
         except Exception as e:
             logger.error("db.select.failed", error=str(e), sql=sql.split('\n')[0][:140])
             return []
-        
+
+    # ============================================================================
+    # Connection Pool Management
+    # ============================================================================
+
+    async def _initialize_pool(self):
+        """Initialize the connection pool with configured number of connections."""
+        if self._pool_initialized:
+            logger.warning("Connection pool already initialized")
+            return
+
+        logger.info("Initializing connection pool", size=self._pool_size)
+
+        for i in range(self._pool_size):
+            conn = await aiosqlite.connect(str(self.db_path))
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("PRAGMA foreign_keys = ON")
+            # Optimize for concurrent reads
+            await conn.execute("PRAGMA journal_mode = WAL")
+            await conn.execute("PRAGMA synchronous = NORMAL")
+            await self._connection_pool.put(conn)
+
+        self._pool_initialized = True
+        logger.info("Connection pool initialized", connections=self._pool_size)
+
+    async def acquire_connection(self) -> aiosqlite.Connection:
+        """
+        Acquire a connection from the pool.
+
+        Returns:
+            aiosqlite.Connection: Database connection from pool
+
+        Raises:
+            RuntimeError: If pool not initialized
+        """
+        if not self._pool_initialized:
+            # Fallback to main connection if pool not initialized
+            logger.warning("Pool not initialized, using main connection")
+            return self._connection
+
+        # Acquire semaphore slot
+        await self._pool_semaphore.acquire()
+
+        # Get connection from pool
+        conn = await self._connection_pool.get()
+        logger.debug("Connection acquired from pool", pool_size=self._connection_pool.qsize())
+        return conn
+
+    async def release_connection(self, conn: aiosqlite.Connection):
+        """
+        Release a connection back to the pool.
+
+        Args:
+            conn: Connection to release back to pool
+        """
+        if not self._pool_initialized:
+            # Nothing to release if pool not used
+            return
+
+        # Return connection to pool
+        await self._connection_pool.put(conn)
+
+        # Release semaphore slot
+        self._pool_semaphore.release()
+        logger.debug("Connection released to pool", pool_size=self._connection_pool.qsize())
+
+    @asynccontextmanager
+    async def pooled_connection(self):
+        """
+        Get a database connection from pool as async context manager.
+
+        Usage:
+            async with db.pooled_connection() as conn:
+                async with conn.execute("SELECT * FROM jobs") as cursor:
+                    rows = await cursor.fetchall()
+
+        Yields:
+            aiosqlite.Connection: Database connection from pool
+        """
+        conn = await self.acquire_connection()
+        try:
+            yield conn
+        finally:
+            await self.release_connection(conn)
+
     async def close(self):
-        """Close database connection."""
+        """Close all database connections including pool."""
+        logger.info("Closing database connections")
+
+        # Close pool connections
+        if self._pool_initialized:
+            closed_count = 0
+            while not self._connection_pool.empty():
+                try:
+                    conn = await asyncio.wait_for(self._connection_pool.get(), timeout=1.0)
+                    await conn.close()
+                    closed_count += 1
+                except asyncio.TimeoutError:
+                    break
+            logger.info("Closed pool connections", count=closed_count)
+            self._pool_initialized = False
+
+        # Close main connection
         if self._connection:
             await self._connection.close()
             logger.info("Database connection closed")
