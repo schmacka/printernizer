@@ -29,6 +29,8 @@ from dataclasses import dataclass
 
 import structlog
 
+from src.config.constants import PollingIntervals
+
 from src.services.bambu_camera_client import BambuLabCameraClient, CameraConnectionError
 from src.constants import CameraConstants
 
@@ -225,8 +227,10 @@ class CameraSnapshotService:
                     )
                     try:
                         await connection.client.disconnect()
-                    except:
-                        pass
+                    except (ConnectionError, TimeoutError, OSError) as e:
+                        self._logger.debug("Failed to disconnect dead camera connection (expected)", printer_id=printer_id, error=str(e))
+                    except Exception as e:
+                        self._logger.warning("Unexpected error disconnecting camera", printer_id=printer_id, error=str(e))
                     del self._camera_clients[printer_id]
 
             # Create new camera client
@@ -295,7 +299,7 @@ class CameraSnapshotService:
 
         while self._running:
             try:
-                await asyncio.sleep(30)  # Run every 30 seconds
+                await asyncio.sleep(PollingIntervals.CAMERA_SNAPSHOT_INTERVAL)  # Run every 30 seconds
                 await self._cleanup_idle_connections()
             except asyncio.CancelledError:
                 break

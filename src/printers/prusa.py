@@ -10,6 +10,7 @@ from pathlib import Path
 import aiohttp
 import structlog
 
+from src.config.constants import file_url
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
@@ -95,19 +96,38 @@ class PrusaPrinter(BasePrinter):
                     else:
                         raise
 
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            error_msg = f"Cannot connect to Prusa printer: {str(e)}"
+            logger.error("Prusa printer connection failed - check IP address and network",
+                        printer_id=self.printer_id, ip=self.ip_address, error=error_msg)
+            if self.session:
+                await self.session.close()
+                self.session = None
+            raise PrinterConnectionError(self.printer_id, error_msg)
+        except aiohttp.ClientTimeout as e:
+            error_msg = f"Connection timeout: {str(e)}"
+            logger.error("Prusa printer connection timeout - check network and IP address",
+                        printer_id=self.printer_id, ip=self.ip_address, error=error_msg)
+            if self.session:
+                await self.session.close()
+                self.session = None
+            raise PrinterConnectionError(self.printer_id, error_msg)
+        except aiohttp.ClientResponseError as e:
+            error_msg = f"HTTP {e.status}: {e.message}"
+            if e.status in (401, 403):
+                logger.error("Prusa printer authentication error - check API key",
+                            printer_id=self.printer_id, status=e.status, error=error_msg)
+            else:
+                logger.error("Prusa printer HTTP error",
+                            printer_id=self.printer_id, status=e.status, error=error_msg)
+            if self.session:
+                await self.session.close()
+                self.session = None
+            raise PrinterConnectionError(self.printer_id, error_msg)
         except Exception as e:
             error_msg = str(e) or f"{type(e).__name__}: Connection failed"
-            if "Authentication failed" in error_msg or "Access forbidden" in error_msg:
-                logger.error("Prusa printer authentication error",
-                            printer_id=self.printer_id, error=error_msg)
-            elif "timeout" in error_msg.lower() or isinstance(e, asyncio.TimeoutError):
-                logger.error("Prusa printer connection timeout - check network and IP address",
-                            printer_id=self.printer_id, ip=self.ip_address, error=error_msg)
-            else:
-                logger.error("Failed to connect to Prusa printer",
-                            printer_id=self.printer_id, error=error_msg,
-                            error_type=type(e).__name__)
-
+            logger.error("Unexpected error connecting to Prusa printer",
+                        printer_id=self.printer_id, error=error_msg, exc_info=True)
             if self.session:
                 await self.session.close()
                 self.session = None
@@ -126,10 +146,13 @@ class PrusaPrinter(BasePrinter):
             self.session = None
             
             logger.info("Disconnected from Prusa printer", printer_id=self.printer_id)
-            
+
+        except (aiohttp.ClientError, OSError) as e:
+            logger.warning("Non-fatal error disconnecting from Prusa printer",
+                          printer_id=self.printer_id, error=str(e))
         except Exception as e:
-            logger.error("Error disconnecting from Prusa printer",
-                        printer_id=self.printer_id, error=str(e))
+            logger.error("Unexpected error disconnecting from Prusa printer",
+                        printer_id=self.printer_id, error=str(e), exc_info=True)
             
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Prusa."""
@@ -150,9 +173,18 @@ class PrusaPrinter(BasePrinter):
                 async with self.session.get(f"{self.base_url}/job") as job_response:
                     if job_response.status == 200:
                         job_data = await job_response.json()
-            except Exception as e:
-                logger.warning("Failed to get job data from Prusa",
+            except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+                logger.warning("Failed to connect to Prusa for job data",
                               printer_id=self.printer_id, error=str(e))
+            except aiohttp.ClientTimeout as e:
+                logger.warning("Timeout getting job data from Prusa",
+                              printer_id=self.printer_id, error=str(e))
+            except json.JSONDecodeError as e:
+                logger.warning("Invalid JSON in Prusa job response",
+                              printer_id=self.printer_id, error=str(e))
+            except Exception as e:
+                logger.warning("Unexpected error getting job data from Prusa",
+                              printer_id=self.printer_id, error=str(e), exc_info=True)
             
             # Map Prusa status to our PrinterStatus
             prusa_state = status_data.get('state', {}).get('text', 'Unknown')
@@ -271,7 +303,7 @@ class PrusaPrinter(BasePrinter):
                 current_job=current_job if current_job else None,
                 current_job_file_id=current_job_file_id,
                 current_job_has_thumbnail=current_job_has_thumbnail,
-                current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+                current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
                 remaining_time_minutes=remaining_time_minutes,
                 estimated_end_time=estimated_end_time,
                 elapsed_time_minutes=elapsed_time_minutes,
@@ -279,10 +311,37 @@ class PrusaPrinter(BasePrinter):
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )
-            
-        except Exception as e:
-            logger.error("Failed to get Prusa status",
+
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.error("Cannot connect to Prusa printer for status",
+                        printer_id=self.printer_id, ip=self.ip_address, error=str(e))
+            return PrinterStatusUpdate(
+                printer_id=self.printer_id,
+                status=PrinterStatus.ERROR,
+                message=f"Connection failed: {str(e)}",
+                timestamp=datetime.now()
+            )
+        except aiohttp.ClientTimeout as e:
+            logger.error("Timeout getting Prusa status",
                         printer_id=self.printer_id, error=str(e))
+            return PrinterStatusUpdate(
+                printer_id=self.printer_id,
+                status=PrinterStatus.ERROR,
+                message=f"Status check timeout: {str(e)}",
+                timestamp=datetime.now()
+            )
+        except json.JSONDecodeError as e:
+            logger.error("Invalid JSON in Prusa status response",
+                        printer_id=self.printer_id, error=str(e))
+            return PrinterStatusUpdate(
+                printer_id=self.printer_id,
+                status=PrinterStatus.ERROR,
+                message=f"Invalid response format: {str(e)}",
+                timestamp=datetime.now()
+            )
+        except Exception as e:
+            logger.error("Unexpected error getting Prusa status",
+                        printer_id=self.printer_id, error=str(e), exc_info=True)
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
                 status=PrinterStatus.ERROR,
@@ -471,11 +530,23 @@ class PrusaPrinter(BasePrinter):
             logger.info("Retrieved file list from Prusa",
                        printer_id=self.printer_id, file_count=len(printer_files))
             return printer_files
-            
-        except Exception as e:
-            logger.warning("Failed to list files from Prusa - returning empty list",
+
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.warning("Cannot connect to Prusa printer to list files",
                           printer_id=self.printer_id, error=str(e))
-            return []  # Return empty list instead of raising exception
+            return []
+        except aiohttp.ClientTimeout as e:
+            logger.warning("Timeout listing files from Prusa",
+                          printer_id=self.printer_id, error=str(e))
+            return []
+        except json.JSONDecodeError as e:
+            logger.warning("Invalid JSON in Prusa files response",
+                          printer_id=self.printer_id, error=str(e))
+            return []
+        except Exception as e:
+            logger.warning("Unexpected error listing files from Prusa - returning empty list",
+                          printer_id=self.printer_id, error=str(e), exc_info=True)
+            return []
     
     async def get_files(self) -> List[dict]:
         """Get raw file data from Prusa printer API (for download references)."""
@@ -549,11 +620,23 @@ class PrusaPrinter(BasePrinter):
             logger.info("Retrieved raw file data from Prusa",
                        printer_id=self.printer_id, file_count=len(raw_files))
             return raw_files
-            
-        except Exception as e:
-            logger.warning("Failed to get raw files from Prusa - returning empty list",
+
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.warning("Cannot connect to Prusa printer to get files",
                           printer_id=self.printer_id, error=str(e))
-            return []  # Return empty list instead of raising exception
+            return []
+        except aiohttp.ClientTimeout as e:
+            logger.warning("Timeout getting files from Prusa",
+                          printer_id=self.printer_id, error=str(e))
+            return []
+        except json.JSONDecodeError as e:
+            logger.warning("Invalid JSON in Prusa files response",
+                          printer_id=self.printer_id, error=str(e))
+            return []
+        except Exception as e:
+            logger.warning("Unexpected error getting files from Prusa - returning empty list",
+                          printer_id=self.printer_id, error=str(e), exc_info=True)
+            return []
             
     async def download_file(self, filename: str, local_path: str) -> bool:
         """Download a file from Prusa printer."""
@@ -650,9 +733,21 @@ class PrusaPrinter(BasePrinter):
                                reason=response.reason)
                     return False
 
-        except Exception as e:
-            logger.error("Failed to download file from Prusa",
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.error("Cannot connect to Prusa printer to download file",
                         printer_id=self.printer_id, filename=filename, error=str(e))
+            return False
+        except aiohttp.ClientTimeout as e:
+            logger.error("Timeout downloading file from Prusa",
+                        printer_id=self.printer_id, filename=filename, error=str(e))
+            return False
+        except OSError as e:
+            logger.error("File system error saving downloaded file",
+                        printer_id=self.printer_id, filename=filename, local_path=local_path, error=str(e))
+            return False
+        except Exception as e:
+            logger.error("Unexpected error downloading file from Prusa",
+                        printer_id=self.printer_id, filename=filename, error=str(e), exc_info=True)
             return False
 
     async def _find_file_by_display_name(self, display_name: str) -> Optional[dict]:
@@ -699,11 +794,17 @@ class PrusaPrinter(BasePrinter):
 
             return None
 
+        except (AttributeError, KeyError, TypeError) as e:
+            logger.warning("Error processing file list during search",
+                          printer_id=self.printer_id,
+                          display_name=display_name,
+                          error=str(e))
+            return None
         except Exception as e:
-            logger.error("Failed to search for file",
+            logger.error("Unexpected error searching for file",
                         printer_id=self.printer_id,
                         display_name=display_name,
-                        error=str(e))
+                        error=str(e), exc_info=True)
             return None
 
     async def download_thumbnail(self, filename: str, size: str = 'l') -> Optional[bytes]:
@@ -789,13 +890,21 @@ class PrusaPrinter(BasePrinter):
                     logger.info("Successfully paused print", printer_id=self.printer_id)
                     return True
                 else:
-                    logger.warning("Failed to pause print", 
+                    logger.warning("Failed to pause print",
                                  printer_id=self.printer_id, status=response.status)
                     return False
-                    
-        except Exception as e:
-            logger.error("Error pausing print on Prusa",
+
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.error("Cannot connect to Prusa printer to pause print",
                         printer_id=self.printer_id, error=str(e))
+            return False
+        except aiohttp.ClientTimeout as e:
+            logger.error("Timeout pausing print on Prusa",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+        except Exception as e:
+            logger.error("Unexpected error pausing print on Prusa",
+                        printer_id=self.printer_id, error=str(e), exc_info=True)
             return False
             
     async def resume_print(self) -> bool:
@@ -813,13 +922,21 @@ class PrusaPrinter(BasePrinter):
                     logger.info("Successfully resumed print", printer_id=self.printer_id)
                     return True
                 else:
-                    logger.warning("Failed to resume print", 
+                    logger.warning("Failed to resume print",
                                  printer_id=self.printer_id, status=response.status)
                     return False
-                    
-        except Exception as e:
-            logger.error("Error resuming print on Prusa",
+
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.error("Cannot connect to Prusa printer to resume print",
                         printer_id=self.printer_id, error=str(e))
+            return False
+        except aiohttp.ClientTimeout as e:
+            logger.error("Timeout resuming print on Prusa",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+        except Exception as e:
+            logger.error("Unexpected error resuming print on Prusa",
+                        printer_id=self.printer_id, error=str(e), exc_info=True)
             return False
             
     async def stop_print(self) -> bool:
@@ -837,13 +954,21 @@ class PrusaPrinter(BasePrinter):
                     logger.info("Successfully stopped print", printer_id=self.printer_id)
                     return True
                 else:
-                    logger.warning("Failed to stop print", 
+                    logger.warning("Failed to stop print",
                                  printer_id=self.printer_id, status=response.status)
                     return False
-                    
-        except Exception as e:
-            logger.error("Error stopping print on Prusa",
+
+        except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
+            logger.error("Cannot connect to Prusa printer to stop print",
                         printer_id=self.printer_id, error=str(e))
+            return False
+        except aiohttp.ClientTimeout as e:
+            logger.error("Timeout stopping print on Prusa",
+                        printer_id=self.printer_id, error=str(e))
+            return False
+        except Exception as e:
+            logger.error("Unexpected error stopping print on Prusa",
+                        printer_id=self.printer_id, error=str(e), exc_info=True)
             return False
 
     async def has_camera(self) -> bool:

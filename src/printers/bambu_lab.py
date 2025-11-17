@@ -9,9 +9,16 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import structlog
 
+from src.config.constants import file_url
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
+from .download_strategies import (
+    DownloadHandler,
+    FTPDownloadStrategy,
+    HTTPDownloadStrategy,
+    MQTTDownloadStrategy
+)
 from src.services.bambu_ftp_service import BambuFTPService, BambuFTPFile
 from src.constants import (
     PortConstants,
@@ -66,6 +73,9 @@ class BambuLabPrinter(BasePrinter):
         # Direct FTP service for file operations
         self.ftp_service: Optional[BambuFTPService] = None
         self.use_direct_ftp = True  # Flag to enable direct FTP
+
+        # Download handler for file downloads (initialized in connect())
+        self.download_handler: Optional[DownloadHandler] = None
 
         # Initialize appropriate client
         if self.use_bambu_api:
@@ -145,9 +155,21 @@ class BambuLabPrinter(BasePrinter):
                     self.ftp_service = None
 
             if self.use_bambu_api:
-                return await self._connect_bambu_api()
+                result = await self._connect_bambu_api()
+
+                # Initialize download handler after connection
+                if result:
+                    self._initialize_download_handler()
+
+                return result
             else:
-                return await self._connect_mqtt()
+                result = await self._connect_mqtt()
+
+                # Initialize download handler after connection
+                if result:
+                    self._initialize_download_handler()
+
+                return result
 
         except Exception as e:
             logger.error("Failed to connect to Bambu Lab printer",
@@ -309,6 +331,54 @@ class BambuLabPrinter(BasePrinter):
             logger.warning("Failed to process file list update",
                           printer_id=self.printer_id, error=str(e))
 
+    def _initialize_download_handler(self) -> None:
+        """Initialize download handler with available strategies.
+
+        Creates and configures download strategies based on available clients
+        and services. Strategies are tried in priority order: FTP, HTTP, MQTT.
+        """
+        strategies = []
+
+        # Priority 1: FTP download (most reliable)
+        ftp_client = None
+        if self.use_bambu_api and self.bambu_client and hasattr(self.bambu_client, 'ftp_client'):
+            ftp_client = self.bambu_client.ftp_client
+
+        ftp_strategy = FTPDownloadStrategy(
+            printer_id=self.printer_id,
+            printer_ip=self.ip_address,
+            ftp_client=ftp_client,
+            ftp_service=self.ftp_service
+        )
+        strategies.append(ftp_strategy)
+
+        # Priority 2: HTTP download (fallback)
+        http_strategy = HTTPDownloadStrategy(
+            printer_id=self.printer_id,
+            printer_ip=self.ip_address,
+            access_code=self.access_code
+        )
+        strategies.append(http_strategy)
+
+        # Priority 3: MQTT (placeholder - not supported)
+        mqtt_strategy = MQTTDownloadStrategy(
+            printer_id=self.printer_id,
+            printer_ip=self.ip_address
+        )
+        strategies.append(mqtt_strategy)
+
+        # Create download handler
+        self.download_handler = DownloadHandler(
+            printer_id=self.printer_id,
+            strategies=strategies
+        )
+
+        logger.info(
+            "Download handler initialized",
+            printer_id=self.printer_id,
+            strategies=[s.name for s in strategies]
+        )
+
     async def disconnect(self) -> None:
         """Disconnect from Bambu Lab printer."""
         if not self.is_connected:
@@ -380,21 +450,34 @@ class BambuLabPrinter(BasePrinter):
                     try:
                         state = self.bambu_client.get_state()
                         alternative_status.name = state if state else 'UNKNOWN'
-                    except:
+                    except (AttributeError, KeyError, TypeError) as e:
+                        logger.debug("Failed to get printer state", printer_id=self.printer_id, error=str(e))
+                        alternative_status.name = 'UNKNOWN'
+                    except Exception as e:
+                        logger.warning("Unexpected error getting printer state", printer_id=self.printer_id, error=str(e), exc_info=True)
                         alternative_status.name = 'UNKNOWN'
                         
                 # Try to get temperature data
                 try:
                     alternative_status.bed_temper = self.bambu_client.get_bed_temperature() or 0.0
                     alternative_status.nozzle_temper = self.bambu_client.get_nozzle_temperature() or 0.0
-                except:
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    logger.debug("Failed to get temperature data", printer_id=self.printer_id, error=str(e))
+                    alternative_status.bed_temper = 0.0
+                    alternative_status.nozzle_temper = 0.0
+                except Exception as e:
+                    logger.warning("Unexpected error getting temperature data", printer_id=self.printer_id, error=str(e), exc_info=True)
                     alternative_status.bed_temper = 0.0
                     alternative_status.nozzle_temper = 0.0
                 
                 # Try to get progress
                 try:
                     alternative_status.print_percent = self.bambu_client.get_percentage() or 0
-                except:
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    logger.debug("Failed to get print progress", printer_id=self.printer_id, error=str(e))
+                    alternative_status.print_percent = 0
+                except Exception as e:
+                    logger.warning("Unexpected error getting print progress", printer_id=self.printer_id, error=str(e), exc_info=True)
                     alternative_status.print_percent = 0
                     
                 # Try to get filename
@@ -409,7 +492,11 @@ class BambuLabPrinter(BasePrinter):
                                 break
                     if not hasattr(alternative_status, 'gcode_file'):
                         alternative_status.gcode_file = None
-                except:
+                except (AttributeError, KeyError, TypeError) as e:
+                    logger.debug("Failed to get filename", printer_id=self.printer_id, error=str(e))
+                    alternative_status.gcode_file = None
+                except Exception as e:
+                    logger.warning("Unexpected error getting filename", printer_id=self.printer_id, error=str(e), exc_info=True)
                     alternative_status.gcode_file = None
                 
                 # If we have temperature data, we can infer printing status
@@ -678,7 +765,7 @@ class BambuLabPrinter(BasePrinter):
             current_job=current_job,
             current_job_file_id=current_job_file_id,
             current_job_has_thumbnail=current_job_has_thumbnail,
-            current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+            current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
             elapsed_time_minutes=elapsed_time_minutes,
@@ -809,7 +896,7 @@ class BambuLabPrinter(BasePrinter):
             current_job=current_job,
             current_job_file_id=current_job_file_id,
             current_job_has_thumbnail=current_job_has_thumbnail,
-            current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+            current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
             timestamp=datetime.now(),
@@ -1371,35 +1458,6 @@ class BambuLabPrinter(BasePrinter):
                         printer_id=self.printer_id, error=str(e))
             raise
 
-    async def _download_file_direct_ftp(self, filename: str, local_path: str) -> bool:
-        """Download file using direct FTP connection."""
-        if not self.ftp_service:
-            logger.warning("Direct FTP service not available, falling back to bambulabs-api",
-                          printer_id=self.printer_id)
-            return await self._download_file_bambu_api(filename, local_path)
-
-        logger.info("Downloading file via direct FTP",
-                   printer_id=self.printer_id, filename=filename, local_path=local_path)
-
-        try:
-            # Try to download from cache directory first
-            success = await self.ftp_service.download_file(filename, local_path, "/cache")
-
-            if success:
-                logger.info("Direct FTP download successful",
-                           printer_id=self.printer_id, filename=filename)
-                return True
-            else:
-                logger.warning("Direct FTP download failed, trying bambulabs-api fallback",
-                             printer_id=self.printer_id, filename=filename)
-                # Fallback to original method
-                return await self._download_file_bambu_api(filename, local_path)
-
-        except Exception as e:
-            logger.error("Direct FTP download error, trying bambulabs-api fallback",
-                        printer_id=self.printer_id, filename=filename, error=str(e))
-            # Fallback to original method
-            return await self._download_file_bambu_api(filename, local_path)
 
     def _get_file_type_from_name(self, filename: str) -> str:
         """Extract file type from filename extension."""
@@ -1416,348 +1474,68 @@ class BambuLabPrinter(BasePrinter):
         return type_map.get(ext, 'unknown')
             
     async def download_file(self, filename: str, local_path: str) -> bool:
-        """Download a file from Bambu Lab printer."""
+        """Download a file from Bambu Lab printer using download strategy pattern.
+
+        Args:
+            filename: Name of the file to download
+            local_path: Local filesystem path to save the file
+
+        Returns:
+            True if download succeeded, False otherwise
+
+        Raises:
+            PrinterConnectionError: If printer is not connected
+        """
         if not self.is_connected:
             raise PrinterConnectionError(self.printer_id, "Not connected")
 
-        try:
-            # Try direct FTP first if available
-            if self.ftp_service:
-                return await self._download_file_direct_ftp(filename, local_path)
-            elif self.use_bambu_api:
-                return await self._download_file_bambu_api(filename, local_path)
-            else:
-                return await self._download_file_mqtt(filename, local_path)
-
-        except Exception as e:
-            logger.error("Failed to download file from Bambu Lab",
-                        printer_id=self.printer_id, filename=filename, error=str(e))
+        if not self.download_handler:
+            logger.error(
+                "Download handler not initialized",
+                printer_id=self.printer_id
+            )
             return False
 
-    async def _download_file_bambu_api(self, filename: str, local_path: str) -> bool:
-        """Download file using bambulabs_api with corrected implementation."""
-        if not self.bambu_client:
-            raise PrinterConnectionError(self.printer_id, "Bambu client not initialized")
-
-        logger.info("Downloading file from Bambu Lab printer via bambulabs-api",
-                   printer_id=self.printer_id, filename=filename, local_path=local_path)
-
-        # Method 1: Use bambulabs_api FTP client directly (this works!)
-        if hasattr(self.bambu_client, 'ftp_client') and self.bambu_client.ftp_client:
-            try:
-                # Use the working bambulabs-api approach
-                from pathlib import Path
-
-                # Ensure local directory exists
-                Path(local_path).parent.mkdir(parents=True, exist_ok=True)
-
-                logger.debug("Attempting bambulabs-api FTP download",
-                           printer_id=self.printer_id, filename=filename)
-
-                # Download using the correct bambulabs-api method
-                file_data_io = self.bambu_client.ftp_client.download_file(f"cache/{filename}")
-
-                if file_data_io:
-                    file_data = file_data_io.getvalue()
-                    if file_data and len(file_data) > 0:
-                        # Write file data to local path
-                        with open(local_path, 'wb') as f:
-                            f.write(file_data)
-
-                        logger.info("bambulabs-api FTP download successful",
-                                   printer_id=self.printer_id,
-                                   filename=filename,
-                                   size=len(file_data))
-                        return True
-                    else:
-                        logger.debug("bambulabs-api FTP returned empty data",
-                                    printer_id=self.printer_id, filename=filename)
-                else:
-                    logger.debug("bambulabs-api FTP returned None",
-                                printer_id=self.printer_id, filename=filename)
-
-            except Exception as e:
-                logger.debug("bambulabs-api FTP download failed, trying HTTP fallback",
-                            printer_id=self.printer_id, filename=filename, error=str(e))
-
-        # Method 2: HTTP fallback download
         try:
-            success = await self._download_via_http(filename, local_path)
-            if success:
-                logger.info("Successfully downloaded file via HTTP",
-                           printer_id=self.printer_id, filename=filename)
+            logger.info(
+                "Downloading file using download handler",
+                printer_id=self.printer_id,
+                filename=filename,
+                local_path=local_path
+            )
+
+            # Use download handler with automatic retry and fallback
+            result = await self.download_handler.download(filename, local_path)
+
+            if result.success:
+                logger.info(
+                    "File download successful",
+                    printer_id=self.printer_id,
+                    filename=filename,
+                    strategy=result.strategy_used,
+                    size=result.size_bytes,
+                    attempts=result.attempts
+                )
                 return True
-        except Exception as e:
-            logger.warning("HTTP download also failed",
-                          printer_id=self.printer_id, filename=filename, error=str(e))
-
-        logger.warning("All download methods failed for file",
-                      printer_id=self.printer_id, filename=filename)
-        return False
-
-    async def _download_file_mqtt(self, filename: str, local_path: str) -> bool:
-        """Download file using direct MQTT (fallback)."""
-        # File download not implemented for direct MQTT approach
-        logger.warning("File download not implemented for direct MQTT approach",
-                      printer_id=self.printer_id, filename=filename)
-        return False
-
-    async def _download_via_ftp(self, filename: str, local_path: str) -> bool:
-        """Download file via bambulabs_api FTP client."""
-        try:
-            ftp = self.bambu_client.ftp_client
-
-            # Ensure local directory exists
-            from pathlib import Path
-            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
-
-            # Try multiple possible paths for the file
-            possible_paths = [
-                f"cache/{filename}",  # Cache directory (most common)
-                filename,  # Direct filename
-                f"model/{filename}",  # Model directory
-                f"timelapse/{filename}",  # Timelapse directory
-            ]
-
-            for remote_path in possible_paths:
-                try:
-                    logger.debug("Attempting FTP download",
-                                printer_id=self.printer_id,
-                                remote_path=remote_path)
-                    
-                    # FIXED: Use correct bambulabs-api FTP method
-                    # download_file() returns BytesIO object, not (success, data) tuple
-                    file_data_io = ftp.download_file(remote_path)
-                    
-                    if file_data_io:
-                        # Get the actual bytes from BytesIO
-                        file_data = file_data_io.getvalue()
-                        
-                        if file_data and len(file_data) > 0:
-                            # Write file data to local path
-                            with open(local_path, 'wb') as f:
-                                f.write(file_data)
-
-                            logger.info("FTP download successful",
-                                       printer_id=self.printer_id,
-                                       filename=filename,
-                                       remote_path=remote_path,
-                                       size=len(file_data))
-                            return True
-                        else:
-                            logger.debug("FTP download returned empty data",
-                                        printer_id=self.printer_id,
-                                        remote_path=remote_path)
-
-                except Exception as e:
-                    logger.debug("FTP download failed for path",
-                                printer_id=self.printer_id,
-                                remote_path=remote_path,
-                                error=str(e))
-                    continue
-
-            # Enhanced: attempt directory scanning & fuzzy / case-insensitive matching
-            try:
-                logger.debug("Attempting enhanced FTP search", printer_id=self.printer_id, filename=filename)
-
-                # Helper to list a directory robustly
-                def _safe_list(dir_path: str):
-                    methods = [
-                        'list_dir', 'listdir', 'listfiles', 'list_files'
-                    ]
-                    for m in methods:
-                        if hasattr(ftp, m):
-                            try:
-                                return getattr(ftp, m)(dir_path)
-                            except Exception:
-                                continue
-                    return []
-
-                # Candidate directories to scan
-                scan_dirs = ['', 'cache', 'model', 'timelapse', 'sdcard', 'usb', 'USB', 'gcodes']
-                target_lower = filename.lower()
-                discovered = []  # (dir, name)
-
-                for d in scan_dirs:
-                    try:
-                        entries = _safe_list(d) if d != '' else _safe_list('.')
-                        if not entries:
-                            continue
-                        # Normalize entry names depending on structure (str or dict)
-                        for entry in entries:
-                            if isinstance(entry, dict):
-                                name = entry.get('name') or entry.get('filename') or ''
-                                path_component = entry.get('path') or name
-                            else:
-                                name = str(entry)
-                                path_component = name
-                            if not name:
-                                continue
-                            discovered.append((d, name, path_component))
-                    except Exception as e:
-                        logger.debug("Directory scan failed", printer_id=self.printer_id, directory=d, error=str(e))
-                        continue
-
-                # First try exact case-insensitive match
-                exact_match = next((item for item in discovered if item[1].lower() == target_lower), None)
-                if exact_match:
-                    dir_part, name_part, path_component = exact_match
-                    remote_path = f"{dir_part}/{name_part}" if dir_part and not path_component.startswith(dir_part) else path_component
-                    try:
-                        logger.debug("Attempting FTP download (enhanced exact match)", printer_id=self.printer_id, remote_path=remote_path)
-                        file_data_io = ftp.download_file(remote_path)
-                        if file_data_io:
-                            data = file_data_io.getvalue()
-                            if data:
-                                with open(local_path, 'wb') as f:
-                                    f.write(data)
-                                logger.info("FTP download successful (enhanced exact match)", printer_id=self.printer_id, filename=filename, remote_path=remote_path, size=len(data))
-                                return True
-                    except Exception as e:
-                        logger.debug("Enhanced exact match download failed", printer_id=self.printer_id, remote_path=remote_path, error=str(e))
-
-                # Fuzzy: allow substring match without extension differences
-                base_no_ext = target_lower.rsplit('.', 1)[0]
-                fuzzy_candidates = []
-                for d, name, path_component in discovered:
-                    n_lower = name.lower()
-                    if base_no_ext in n_lower:
-                        fuzzy_candidates.append((d, name, path_component))
-
-                # If multiple, prefer those with same extension or .3mf/.gcode
-                if fuzzy_candidates:
-                    def rank(item):
-                        _, name, _ = item
-                        n_lower = name.lower()
-                        score = 0
-                        if n_lower.endswith('.3mf'): score += 3
-                        if n_lower.endswith('.gcode'): score += 2
-                        if n_lower.startswith(base_no_ext): score += 1
-                        if base_no_ext in n_lower: score += 0.5
-                        return -score  # smallest first
-                    fuzzy_candidates.sort(key=rank)
-                    best = fuzzy_candidates[0]
-                    dir_part, name_part, path_component = best
-                    remote_path = f"{dir_part}/{name_part}" if dir_part and not path_component.startswith(dir_part) else path_component
-                    try:
-                        logger.debug("Attempting FTP download (enhanced fuzzy)", printer_id=self.printer_id, remote_path=remote_path)
-                        file_data_io = ftp.download_file(remote_path)
-                        if file_data_io:
-                            data = file_data_io.getvalue()
-                            if data:
-                                with open(local_path, 'wb') as f:
-                                    f.write(data)
-                                logger.info("FTP download successful (enhanced fuzzy)", printer_id=self.printer_id, requested=filename, matched=name_part, remote_path=remote_path, size=len(data))
-                                return True
-                    except Exception as e:
-                        logger.debug("Enhanced fuzzy download failed", printer_id=self.printer_id, remote_path=remote_path, error=str(e))
-
-                # Provide diagnostic suggestions
-                if discovered:
-                    similar = [name for _, name, _ in discovered if target_lower.split('.')[0] in name.lower()][:10]
-                    logger.warning("File not found via FTP after enhanced search", printer_id=self.printer_id, filename=filename, similar=similar, scanned_dirs=scan_dirs)
-                else:
-                    logger.warning("No files discovered during enhanced FTP search (empty listings)", printer_id=self.printer_id, filename=filename)
-            except Exception as e:
-                logger.debug("Enhanced FTP search failed", printer_id=self.printer_id, filename=filename, error=str(e))
-
-            logger.warning("File not found via FTP in any expected path",
-                          printer_id=self.printer_id, filename=filename)
-            return False
+            else:
+                logger.error(
+                    "File download failed",
+                    printer_id=self.printer_id,
+                    filename=filename,
+                    error=result.error,
+                    attempts=result.attempts
+                )
+                return False
 
         except Exception as e:
-            logger.error("FTP download method failed",
-                        printer_id=self.printer_id, filename=filename, error=str(e))
+            logger.error(
+                "Unexpected error during file download",
+                printer_id=self.printer_id,
+                filename=filename,
+                error=str(e)
+            )
             return False
 
-    async def _download_via_http(self, filename: str, local_path: str) -> bool:
-        """Download file via HTTP from Bambu Lab printer web interface."""
-        try:
-            import aiohttp
-            from pathlib import Path
-
-            # Ensure local directory exists
-            Path(local_path).parent.mkdir(parents=True, exist_ok=True)
-
-            # Try multiple HTTP endpoints that Bambu Lab printers might expose
-            possible_urls = [
-                f"http://{self.ip_address}/cache/{filename}",
-                f"http://{self.ip_address}/model/{filename}",
-                f"http://{self.ip_address}/files/{filename}",
-                f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/cache/{filename}",
-                f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/model/{filename}",
-                f"http://{self.ip_address}:{PortConstants.BAMBU_CAMERA_PORT}/files/{filename}",
-            ]
-
-            timeout = aiohttp.ClientTimeout(total=NetworkConstants.HTTP_DOWNLOAD_TIMEOUT_SECONDS)
-
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                for url in possible_urls:
-                    try:
-                        logger.debug("Attempting HTTP download",
-                                    printer_id=self.printer_id, url=url)
-
-                        # Add basic auth if available
-                        auth = None
-                        if hasattr(self, 'access_code') and self.access_code:
-                            auth = aiohttp.BasicAuth('bblp', self.access_code)
-
-                        async with session.get(url, auth=auth) as response:
-                            if response.status == 200:
-                                # Get file size for progress tracking
-                                content_length = response.headers.get('Content-Length')
-                                total_size = int(content_length) if content_length else None
-
-                                downloaded_size = 0
-                                with open(local_path, 'wb') as f:
-                                    async for chunk in response.content.iter_chunked(FileConstants.DOWNLOAD_CHUNK_SIZE_BYTES):
-                                        f.write(chunk)
-                                        downloaded_size += len(chunk)
-
-                                        # Log progress for large files
-                                        if total_size and downloaded_size % (1024 * 1024) == 0:  # Every MB
-                                            progress = (downloaded_size / total_size) * 100
-                                            logger.debug("Download progress",
-                                                        printer_id=self.printer_id,
-                                                        filename=filename,
-                                                        progress=f"{progress:.1f}%")
-
-                                logger.info("HTTP download successful",
-                                           printer_id=self.printer_id,
-                                           filename=filename,
-                                           url=url,
-                                           size=downloaded_size)
-                                return True
-
-                            elif response.status == 401:
-                                logger.debug("HTTP 401 - authentication required",
-                                            printer_id=self.printer_id, url=url)
-                            elif response.status == 404:
-                                logger.debug("HTTP 404 - file not found at URL",
-                                            printer_id=self.printer_id, url=url)
-                            else:
-                                logger.debug("HTTP error",
-                                            printer_id=self.printer_id,
-                                            url=url, status=response.status)
-
-                    except aiohttp.ClientError as e:
-                        logger.debug("HTTP client error",
-                                    printer_id=self.printer_id, url=url, error=str(e))
-                        continue
-                    except Exception as e:
-                        logger.debug("HTTP download attempt failed",
-                                    printer_id=self.printer_id, url=url, error=str(e))
-                        continue
-
-            logger.warning("File not accessible via HTTP at any expected URL",
-                          printer_id=self.printer_id, filename=filename)
-            return False
-
-        except Exception as e:
-            logger.error("HTTP download method failed",
-                        printer_id=self.printer_id, filename=filename, error=str(e))
-            return False
-            
     async def pause_print(self) -> bool:
         """Pause the current print job on Bambu Lab printer."""
         if not self.is_connected or not self.client:
