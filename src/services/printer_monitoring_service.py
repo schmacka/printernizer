@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import PrinterRepository
 from src.services.event_service import EventService
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.printers import BasePrinter
@@ -63,6 +64,7 @@ class PrinterMonitoringService:
             config_service: Optional config service for reading settings
         """
         self.database = database
+        self.printer_repo = PrinterRepository(database._connection)
         self.event_service = event_service
         self.file_service = file_service
         self.connection_service = connection_service
@@ -423,7 +425,7 @@ class PrinterMonitoringService:
 
         # Update database with current status (could be expanded to track history)
         try:
-            await self.database.update_printer_status(
+            await self.printer_repo.update_status(
                 status.printer_id,
                 status.status.value.lower(),
                 status.timestamp
