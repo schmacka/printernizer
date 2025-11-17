@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import structlog
 
+from src.config.constants import file_url
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
@@ -678,7 +679,7 @@ class BambuLabPrinter(BasePrinter):
             current_job=current_job,
             current_job_file_id=current_job_file_id,
             current_job_has_thumbnail=current_job_has_thumbnail,
-            current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+            current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
             elapsed_time_minutes=elapsed_time_minutes,
@@ -809,7 +810,7 @@ class BambuLabPrinter(BasePrinter):
             current_job=current_job,
             current_job_file_id=current_job_file_id,
             current_job_has_thumbnail=current_job_has_thumbnail,
-            current_job_thumbnail_url=(f"/api/v1/files/{current_job_file_id}/thumbnail" if current_job_file_id and current_job_has_thumbnail else None),
+            current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
             timestamp=datetime.now(),
