@@ -275,7 +275,7 @@ class PrinterControlService:
 
         return instance
 
-    def set_connection_service(self, connection_service):
+    def set_connection_service(self, connection_service) -> None:
         """
         Set connection service dependency.
 

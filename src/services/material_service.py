@@ -104,7 +104,7 @@ class MaterialService:
 
             await conn.commit()
 
-    async def _load_materials(self):
+    async def _load_materials(self) -> None:
         """Load materials from database into cache."""
         async with self.db.connection() as conn:
             cursor = await conn.execute('SELECT * FROM materials ORDER BY created_at DESC')

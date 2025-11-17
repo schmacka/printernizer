@@ -423,7 +423,7 @@ class FileThumbnailService:
         file_id: str,
         status: str,
         details: Optional[str] = None
-    ):
+    ) -> None:
         """
         Log a thumbnail processing attempt for debugging.
 
@@ -471,7 +471,7 @@ class FileThumbnailService:
             return self.thumbnail_processing_log[:limit]
         return self.thumbnail_processing_log
 
-    def set_printer_service(self, printer_service):
+    def set_printer_service(self, printer_service) -> None:
         """
         Set printer service dependency.
 

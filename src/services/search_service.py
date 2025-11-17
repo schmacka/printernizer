@@ -74,7 +74,7 @@ class SearchCache:
         # Clear results cache
         self.results_cache.clear()
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         """Clear all caches."""
         self.results_cache.clear()
         self.external_cache.clear()

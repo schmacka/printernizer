@@ -487,7 +487,7 @@ class LibraryService:
         """
         return await self.library_repo.list_files(filters, page, limit)
 
-    async def add_file_source(self, checksum: str, source_info: Dict[str, Any]):
+    async def add_file_source(self, checksum: str, source_info: Dict[str, Any]) -> None:
         """
         Add a source to an existing file.
 

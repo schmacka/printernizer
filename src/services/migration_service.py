@@ -115,7 +115,7 @@ class MigrationService:
             logger.error("Failed to get migration files", error=str(e))
             raise
     
-    async def _run_migration_file(self, migration_file: Path, migration_name: str):
+    async def _run_migration_file(self, migration_file: Path, migration_name: str) -> None:
         """Run a single migration file."""
         try:
             if not self.database:

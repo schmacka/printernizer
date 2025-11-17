@@ -164,7 +164,7 @@ class PrinterConnectionService:
                           type=config.type)
             return None
 
-    async def _sync_database_printers(self):
+    async def _sync_database_printers(self) -> None:
         """
         Sync printer configurations with database.
 
@@ -494,7 +494,7 @@ class PrinterConnectionService:
         """
         return self.printer_instances.get(printer_id)
 
-    def set_file_service(self, file_service):
+    def set_file_service(self, file_service) -> None:
         """
         Set file service dependency.
 

@@ -94,7 +94,7 @@ class EventService:
             if handler in self._event_handlers[event_type]:
                 self._event_handlers[event_type].remove(handler)
                 
-    async def emit_event(self, event_type: str, data: Dict[str, Any]):
+    async def emit_event(self, event_type: str, data: Dict[str, Any]) -> None:
         """Emit an event to all subscribers."""
         if event_type not in self._event_handlers:
             return
@@ -475,7 +475,7 @@ class EventService:
             }
         }
     
-    def set_services(self, printer_service=None, job_service=None, file_service=None, database=None):
+    def set_services(self, printer_service=None, job_service=None, file_service=None, database=None) -> None:
         """Set service dependencies after initialization."""
         if printer_service:
             self.printer_service = printer_service
@@ -542,7 +542,7 @@ class EventService:
             logger.error("Force discovery failed", error=str(e))
             return {"error": str(e)}
     
-    async def reset_monitoring_state(self):
+    async def reset_monitoring_state(self) -> None:
         """Reset all monitoring state - useful for testing or after configuration changes."""
         logger.info("Resetting event service monitoring state")
         self.last_printer_status.clear()
