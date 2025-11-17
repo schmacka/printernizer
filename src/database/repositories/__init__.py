@@ -9,6 +9,7 @@ from .printer_repository import PrinterRepository
 from .job_repository import JobRepository
 from .file_repository import FileRepository
 from .idea_repository import IdeaRepository
+from .library_repository import LibraryRepository
 
 __all__ = [
     'BaseRepository',
@@ -16,4 +17,5 @@ __all__ = [
     'JobRepository',
     'FileRepository',
     'IdeaRepository',
+    'LibraryRepository',
 ]
