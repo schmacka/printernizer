@@ -13,6 +13,7 @@ from datetime import datetime
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import PrinterRepository
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
 from src.printers import BambuLabPrinter, PrusaPrinter, BasePrinter
@@ -63,6 +64,7 @@ class PrinterConnectionService:
             monitoring_service: Optional monitoring service for auto-job creation on startup
         """
         self.database = database
+        self.printer_repo = PrinterRepository(database._connection)
         self.event_service = event_service
         self.config_service = config_service
         self.file_service = file_service
@@ -222,7 +224,7 @@ class PrinterConnectionService:
             result = await instance.connect()
             if result:
                 # Update last_seen timestamp in database when connection succeeds
-                await self.database.update_printer_status(
+                await self.printer_repo.update_status(
                     printer_id,
                     "online",  # Set status to online when connected
                     datetime.now()
@@ -327,7 +329,7 @@ class PrinterConnectionService:
 
                 if connected:
                     # Update last_seen timestamp when connection succeeds
-                    await self.database.update_printer_status(
+                    await self.printer_repo.update_status(
                         printer_id,
                         "online",
                         datetime.now()

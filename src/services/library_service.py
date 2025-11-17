@@ -42,6 +42,7 @@ class LibraryService:
             event_service: Event service for notifications
         """
         self.database = database
+        self.library_repo = LibraryRepository(database._connection)
         self.config_service = config_service
         self.event_service = event_service
 
@@ -378,7 +379,7 @@ class LibraryService:
 
             # Save to database (handle race condition with UNIQUE constraint)
             try:
-                success = await self.database.create_library_file(file_record)
+                success = await self.library_repo.create_file(file_record)
 
                 if not success:
                     # Database insert failed - likely race condition
@@ -409,7 +410,7 @@ class LibraryService:
             # If this is a duplicate, increment the duplicate_count on the original file
             if is_duplicate and original_file:
                 current_count = original_file.get('duplicate_count', 0)
-                await self.database.update_library_file(original_file['checksum'], {
+                await self.library_repo.update_file(original_file['checksum'], {
                     'duplicate_count': current_count + 1
                 })
                 logger.info("Incremented duplicate count on original file",
@@ -451,7 +452,7 @@ class LibraryService:
         Returns:
             File record or None if not found
         """
-        return await self.database.get_library_file_by_checksum(checksum)
+        return await self.library_repo.get_file_by_checksum(checksum)
 
     async def get_file_by_id(self, file_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -463,7 +464,7 @@ class LibraryService:
         Returns:
             File record or None if not found
         """
-        return await self.database.get_library_file(file_id)
+        return await self.library_repo.get_file(file_id)
 
     async def list_files(self, filters: Dict[str, Any] = None,
                         page: int = 1, limit: int = 50) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -484,7 +485,7 @@ class LibraryService:
         Returns:
             Tuple of (files list, pagination info)
         """
-        return await self.database.list_library_files(filters, page, limit)
+        return await self.library_repo.list_files(filters, page, limit)
 
     async def add_file_source(self, checksum: str, source_info: Dict[str, Any]):
         """
@@ -514,14 +515,14 @@ class LibraryService:
             sources.append(source_info)
 
             # Update database
-            await self.database.update_library_file(checksum, {
+            await self.library_repo.update_file(checksum, {
                 'sources': json.dumps(sources)
             })
 
             logger.info("Added source to file", checksum=checksum[:16], source_type=source_info.get('type'))
 
         # Add to junction table
-        await self.database.create_library_file_source({
+        await self.library_repo.create_file_source({
             'file_checksum': checksum,
             'source_type': source_info.get('type'),
             'source_id': source_info.get('printer_id') or source_info.get('folder_path'),
@@ -559,8 +560,8 @@ class LibraryService:
                     logger.info("Deleted physical file", path=str(library_path))
 
             # Delete from database
-            await self.database.delete_library_file(checksum)
-            await self.database.delete_library_file_sources(checksum)
+            await self.library_repo.delete_file(checksum)
+            await self.library_repo.delete_file_sources(checksum)
 
             logger.info("File deleted from library", checksum=checksum[:16])
 
@@ -583,7 +584,7 @@ class LibraryService:
         Returns:
             Statistics dictionary
         """
-        return await self.database.get_library_stats()
+        return await self.library_repo.get_stats()
 
     def _map_parser_metadata_to_db(self, parser_metadata: Dict[str, Any], parser_thumbnails: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -883,7 +884,7 @@ class LibraryService:
             self._processing_files.add(checksum)
 
             # Update status to processing
-            await self.database.update_library_file(checksum, {
+            await self.library_repo.update_file(checksum, {
                 'status': 'processing'
             })
 
@@ -1000,7 +1001,7 @@ class LibraryService:
                 'last_analyzed': datetime.now().isoformat()
             }
 
-            await self.database.update_library_file(checksum, update_fields)
+            await self.library_repo.update_file(checksum, update_fields)
 
             logger.info("Metadata extraction completed",
                        checksum=checksum[:16],
@@ -1008,7 +1009,7 @@ class LibraryService:
 
         except Exception as e:
             logger.error("Metadata extraction failed", checksum=checksum[:16], error=str(e))
-            await self.database.update_library_file(checksum, {
+            await self.library_repo.update_file(checksum, {
                 'status': 'error',
                 'error_message': str(e)
             })

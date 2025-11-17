@@ -13,6 +13,7 @@ import structlog
 
 from src.config.constants import file_url
 from src.database.database import Database
+from src.database.repositories import FileRepository, LibraryRepository, IdeaRepository
 from src.models.search import (
     SearchSource, SearchFilters, SearchResult, SearchResultGroup,
     SearchResults, SearchHistoryEntry, ResultType, SearchSuggestion
@@ -93,6 +94,10 @@ class SearchService:
             idea_service: IdeaService instance (optional)
         """
         self.database = database
+        # Initialize repositories for domain-specific operations
+        self.file_repo = FileRepository(database._connection)
+        self.library_repo = LibraryRepository(database._connection)
+        self.idea_repo = IdeaRepository(database._connection)
         self.file_service = file_service
         self.idea_service = idea_service
         self.cache = SearchCache()
@@ -209,13 +214,13 @@ class SearchService:
 
             for file_id in file_ids:
                 # Get file from database
-                file_data = await self.database.get_file(file_id)
+                file_data = await self.file_repo.get(file_id)
                 if file_data:
                     files.append(dict(file_data))
 
                 # Also try library
                 if not file_data:
-                    file_data = await self.database.get_library_file(file_id)
+                    file_data = await self.library_repo.get_file(file_id)
                     if file_data:
                         files.append(dict(file_data))
 
@@ -256,7 +261,7 @@ class SearchService:
             ideas = []
 
             for idea_id in idea_ids:
-                idea_data = await self.database.get_idea(idea_id)
+                idea_data = await self.idea_repo.get(idea_id)
                 if idea_data:
                     ideas.append(dict(idea_data))
 

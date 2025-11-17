@@ -12,6 +12,7 @@ from datetime import datetime
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import FileRepository
 from src.services.event_service import EventService
 
 logger = structlog.get_logger()
@@ -61,6 +62,7 @@ class FileDownloadService:
             library_service: Optional library service for adding downloaded files
         """
         self.database = database
+        self.file_repo = FileRepository(database._connection)
         self.event_service = event_service
         self.printer_service = printer_service
         self.config_service = config_service
@@ -216,7 +218,7 @@ class FileDownloadService:
         """
         try:
             # Update database with download info
-            await self.database.update_file(file_id, {
+            await self.file_repo.update(file_id, {
                 'status': 'downloaded',
                 'file_path': destination_path,
                 'downloaded_at': datetime.now().isoformat(),
@@ -550,7 +552,7 @@ class FileDownloadService:
                 }
 
             # Check database for historical status
-            file_data = await self.database.list_files()
+            file_data = await self.file_repo.list()
             for file_info in file_data:
                 if file_info['id'] == file_id:
                     return {
