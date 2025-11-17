@@ -444,7 +444,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend, test-e2e]
+    needs: [test-backend, test-frontend]
 
     permissions:
       contents: read
