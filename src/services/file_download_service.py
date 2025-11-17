@@ -581,7 +581,7 @@ class FileDownloadService:
                 "error": str(e)
             }
 
-    async def cleanup_download_status(self, max_age_hours: int = 24):
+    async def cleanup_download_status(self, max_age_hours: int = 24) -> None:
         """
         Clean up old download status entries.
 
@@ -612,7 +612,7 @@ class FileDownloadService:
         except Exception as e:
             logger.error("Failed to cleanup download status", error=str(e))
 
-    def set_printer_service(self, printer_service):
+    def set_printer_service(self, printer_service) -> None:
         """
         Set printer service dependency.
 
@@ -624,7 +624,7 @@ class FileDownloadService:
         self.printer_service = printer_service
         logger.debug("Printer service set in FileDownloadService")
 
-    def set_config_service(self, config_service):
+    def set_config_service(self, config_service) -> None:
         """
         Set config service dependency.
 

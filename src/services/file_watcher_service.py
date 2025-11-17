@@ -103,7 +103,7 @@ class PrintFileHandler(FileSystemEventHandler):
             logger.info("Print file deleted", file_path=event.src_path)
             asyncio.create_task(self.file_watcher._handle_file_deleted(event.src_path))
     
-    def on_moved(self, event: FileSystemEvent):
+    def on_moved(self, event: FileSystemEvent) -> None:
         """Handle file move/rename events."""
         if hasattr(event, 'dest_path'):
             if not event.is_directory and self.should_process_file(event.dest_path):
@@ -132,7 +132,7 @@ class FileWatcherService:
         # Initialize file handler
         self._file_handler = PrintFileHandler(self)
     
-    async def start(self):
+    async def start(self) -> None:
         """Start file watcher service."""
         if self._is_running:
             logger.warning("File watcher service already running")
@@ -542,7 +542,7 @@ class FileWatcherService:
             'supported_extensions': list(self._file_handler.SUPPORTED_EXTENSIONS)
         }
     
-    async def reload_watch_folders(self):
+    async def reload_watch_folders(self) -> None:
         """Reload watch folders from configuration."""
         if not self._is_running:
             logger.warning("Cannot reload: file watcher not running")

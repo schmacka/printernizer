@@ -389,7 +389,7 @@ class JobService:
             logger.error("Failed to create job", error=str(e), error_type=type(e).__name__, data=job_data)
             raise
         
-    async def update_job_status(self, job_id: str, status: str, data: Dict[str, Any] = None):
+    async def update_job_status(self, job_id: str, status: str, data: Dict[str, Any] = None) -> None:
         """Update job status."""
         try:
             # Validate status
@@ -567,7 +567,7 @@ class JobService:
         """Get all jobs for a specific printer."""
         return await self.list_jobs(printer_id=printer_id, limit=limit, offset=offset)
     
-    async def update_job_progress(self, job_id: str, progress: int, material_used: Optional[float] = None):
+    async def update_job_progress(self, job_id: str, progress: int, material_used: Optional[float] = None) -> bool:
         """Update job progress and optionally material usage."""
         try:
             updates = {

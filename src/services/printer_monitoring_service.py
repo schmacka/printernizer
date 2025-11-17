@@ -222,7 +222,7 @@ class PrinterMonitoringService:
         import os as _os
         return _os.path.splitext(lower)[1] in printable_exts
 
-    async def _attempt_download_current_job(self, printer_id: str, filename: str):
+    async def _attempt_download_current_job(self, printer_id: str, filename: str) -> None:
         """
         Attempt to download the currently printing file for thumbnail processing.
 
@@ -407,7 +407,7 @@ class PrinterMonitoringService:
                           filename=filename,
                           error=str(e))
 
-    async def _store_status_update(self, status: PrinterStatusUpdate):
+    async def _store_status_update(self, status: PrinterStatusUpdate) -> None:
         """
         Store status update in database for history.
 
@@ -987,7 +987,7 @@ class PrinterMonitoringService:
 
         return clean
 
-    def set_file_service(self, file_service):
+    def set_file_service(self, file_service) -> None:
         """
         Set file service dependency.
 

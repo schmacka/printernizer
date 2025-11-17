@@ -604,7 +604,7 @@ class FileService:
         """Get download status of a file. Delegates to FileDownloadService."""
         return await self.downloader.get_download_status(file_id)
 
-    async def cleanup_download_status(self, max_age_hours: int = 24):
+    async def cleanup_download_status(self, max_age_hours: int = 24) -> None:
         """Clean up old download status entries. Delegates to FileDownloadService."""
         await self.downloader.cleanup_download_status(max_age_hours)
 
@@ -737,7 +737,7 @@ class FileService:
     # DEPENDENCY INJECTION (for resolving circular dependencies)
     # ========================================================================
 
-    def set_printer_service(self, printer_service):
+    def set_printer_service(self, printer_service) -> None:
         """
         Set printer service dependency on FileService and all sub-services.
 
@@ -752,7 +752,7 @@ class FileService:
         self.thumbnail.set_printer_service(printer_service)
         logger.info("Printer service set in FileService and all sub-services")
 
-    def set_config_service(self, config_service):
+    def set_config_service(self, config_service) -> None:
         """Set config service dependency."""
         self.config_service = config_service
         self.downloader.set_config_service(config_service)

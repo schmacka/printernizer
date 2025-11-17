@@ -422,7 +422,7 @@ class DiscoveryService:
             # Create semaphore to limit concurrent requests
             semaphore = asyncio.Semaphore(20)  # Max 20 concurrent requests
             
-            async def check_ip(ip: str):
+            async def check_ip(ip: str) -> None:
                 """Check if IP is a Prusa printer."""
                 async with semaphore:
                     try:

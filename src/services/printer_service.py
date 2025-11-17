@@ -772,7 +772,7 @@ class PrinterService:
     # GRACEFUL SHUTDOWN
     # ========================================================================
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """
         Gracefully shutdown printer service.
 

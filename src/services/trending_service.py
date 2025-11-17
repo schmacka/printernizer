@@ -185,7 +185,7 @@ class TrendingService:
                 raise
         return self.session
 
-    async def _close_session(self):
+    async def _close_session(self) -> None:
         """Close and recreate HTTP session for error recovery."""
         if self.session and not self.session.closed:
             try:
@@ -195,7 +195,7 @@ class TrendingService:
                 logger.warning(f"Error closing HTTP session: {e}")
         self.session = None
 
-    async def _start_refresh_task(self):
+    async def _start_refresh_task(self) -> None:
         """Start background task for periodic refresh."""
         if self._refresh_task is None:
             self._refresh_task = asyncio.create_task(self._refresh_loop())
@@ -429,7 +429,7 @@ class TrendingService:
                         text=text, error=str(e))
             return 0
 
-    async def save_trending_items(self, items: List[Dict[str, Any]], platform: str):
+    async def save_trending_items(self, items: List[Dict[str, Any]], platform: str) -> None:
         """Save trending items to cache."""
         expires_at = datetime.now() + timedelta(hours=6)
 
