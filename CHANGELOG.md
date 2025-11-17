@@ -8,14 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Technical Debt Phase 4** - Started ongoing quality improvements (LOW priority)
-  - **Type Hints (Batch 1 of 4)**: Added return type hints to 8 methods across 3 core services
-    - config_service.py: Added `-> None` to 3 validation/loading methods
-    - event_service.py: Added `-> None` to 4 lifecycle methods (start, stop, subscribe, unsubscribe)
-    - file_discovery_service.py: Added `-> None` to dependency injection method
+- **Technical Debt Phase 4** - Ongoing quality improvements (LOW priority)
+  - **Type Hints (Batches 1-2 of 4)**: Added return type hints to 13 methods across 6 core services
+    - **Batch 1**: config_service.py, event_service.py, file_discovery_service.py (8 methods)
+      - Added `-> None` to validation, lifecycle, and dependency injection methods
+    - **Batch 2**: camera_snapshot_service.py, bambu_ftp_service.py, timelapse_service.py (5 methods)
+      - Added `-> None` to service lifecycle methods (start, shutdown)
+      - Added `-> AsyncGenerator[ftplib.FTP_TLS, None]` to FTP context manager
+      - Enhanced type safety for async context managers
     - Improves IDE autocomplete, type checking, and catches bugs at development time
-    - 31 service files identified with missing type hints; batch 1 addresses 3 files (10%)
-    - Remaining batches to be completed incrementally as ongoing improvements
+    - 31 service files identified; batches 1-2 address 6 files (19%)
+    - Remaining batches 3-4 to be completed incrementally
 - **Technical Debt Phase 3** - Completed all backend improvements for Phase 3
   - **Configuration Extraction**: Centralized all hardcoded values into `src/config/constants.py`
     - Extracted 18+ polling intervals, retry settings, and API URLs
