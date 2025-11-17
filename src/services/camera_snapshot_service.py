@@ -29,6 +29,8 @@ from dataclasses import dataclass
 
 import structlog
 
+from src.config.constants import PollingIntervals
+
 from src.services.bambu_camera_client import BambuLabCameraClient, CameraConnectionError
 from src.constants import CameraConstants
 
@@ -297,7 +299,7 @@ class CameraSnapshotService:
 
         while self._running:
             try:
-                await asyncio.sleep(30)  # Run every 30 seconds
+                await asyncio.sleep(PollingIntervals.CAMERA_SNAPSHOT_INTERVAL)  # Run every 30 seconds
                 await self._cleanup_idle_connections()
             except asyncio.CancelledError:
                 break

@@ -23,6 +23,7 @@ from datetime import datetime
 
 import structlog
 
+from src.config.constants import RetrySettings
 from src.constants import PortConstants, CameraConstants
 from src.utils.exceptions import PrinterConnectionError
 
@@ -403,7 +404,7 @@ class BambuLabCameraClient:
 
             except Exception as e:
                 self._logger.error("Unexpected error in frame reader", error=str(e))
-                await asyncio.sleep(1)  # Brief delay before retry
+                await asyncio.sleep(RetrySettings.CAMERA_RETRY_DELAY)  # Brief delay before retry
 
         self._logger.debug("Frame reader loop stopped")
 

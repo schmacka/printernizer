@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import structlog
 
+from src.config.constants import file_url
 from src.database.database import Database
 from src.models.search import (
     SearchSource, SearchFilters, SearchResult, SearchResultGroup,
@@ -317,7 +318,7 @@ class SearchService:
             result_type=ResultType.FILE,
             title=file_data.get('filename', 'Unknown'),
             description=file_data.get('display_name'),
-            thumbnail_url=f"/api/v1/files/{file_data.get('id')}/thumbnail" if file_data.get('id') else None,
+            thumbnail_url=file_url(file_data.get('id'), 'thumbnail') if file_data.get('id') else None,
             metadata=metadata,
             relevance_score=relevance_score,
             match_highlights=match_highlights,
