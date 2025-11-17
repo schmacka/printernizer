@@ -18,6 +18,12 @@ import structlog
 from src.services.bambu_parser import BambuParser
 from src.services.stl_analyzer import STLAnalyzer
 from src.services.preview_render_service import PreviewRenderService
+from src.services.filament_colors import (
+    extract_colors_from_filament_ids,
+    extract_color_from_name,
+    get_primary_color,
+    format_color_list
+)
 import base64
 
 logger = structlog.get_logger()
@@ -728,17 +734,46 @@ class LibraryService:
                 types = [t.strip() for t in types.split(';') if t.strip()]
             db_fields['material_types'] = json.dumps(types)
 
-        # Filament IDs: Unique identifiers for spools
-        # Could be used for color extraction with lookup table
-        # Example: "GFL00;GFL01" = Bambu Lab filament IDs
+        # Filament IDs and Colors: Extract color information from filament IDs
+        # Uses mapping table for Bambu Lab filament IDs (GFL series)
+        # Example: "GFL00;GFL02" → ["Black", "Red"]
+        filament_colors = []
+
         if 'filament_ids' in parser_metadata:
             ids = parser_metadata['filament_ids']
             if isinstance(ids, str):
                 ids = [i.strip() for i in ids.split(';') if i.strip()]
-            # TODO: Implement color extraction from filament ID database
-            # Would need mapping table: filament_id → color_name
-            # For now, just document the IDs are available
-            # db_fields['filament_colors'] = json.dumps(ids)
+                # Extract colors from filament IDs using mapping table
+                filament_colors = extract_colors_from_filament_ids(ids)
+
+        # Fallback: Try to extract color from filename if no filament IDs
+        # This helps with files from other slicers or manually named files
+        if not filament_colors and 'filename' in parser_metadata:
+            filename = parser_metadata['filename']
+            detected_color = extract_color_from_name(filename)
+            if detected_color:
+                filament_colors = [detected_color]
+
+        # Store extracted color information in database
+        if filament_colors:
+            # Store full color list as JSON array (supports multi-color prints)
+            # Example: ["Black", "White", "Red"]
+            db_fields['filament_colors'] = json.dumps(filament_colors)
+
+            # Store primary (first/dominant) color for filtering and sorting
+            # Simplifies queries like "show all red prints"
+            primary_color = get_primary_color(filament_colors)
+            if primary_color:
+                db_fields['primary_color'] = primary_color
+
+            # Store human-readable color string for UI display
+            # Example: "Black & White" or "Red, Green & Blue"
+            db_fields['color_display'] = format_color_list(filament_colors)
+
+            logger.debug("Extracted filament colors",
+                        colors=filament_colors,
+                        primary=primary_color,
+                        display=db_fields['color_display'])
 
         # ==================== COMPATIBILITY INFORMATION ====================
         # Track which printers/slicers created this file for troubleshooting
