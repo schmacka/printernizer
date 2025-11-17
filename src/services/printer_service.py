@@ -106,7 +106,7 @@ class PrinterService:
                    monitoring=True,
                    control=True)
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """
         Initialize printer service and load configured printers.
 

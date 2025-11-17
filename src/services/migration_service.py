@@ -22,7 +22,7 @@ class MigrationService:
         self.migrations_path = Path(__file__).parent.parent.parent / "migrations"
         self.migrations_path.mkdir(exist_ok=True)
     
-    async def run_migrations(self):
+    async def run_migrations(self) -> None:
         """Run all pending database migrations."""
         try:
             if not self.database:
@@ -57,7 +57,7 @@ class MigrationService:
             logger.error("Failed to run database migrations", error=str(e))
             raise
     
-    async def _ensure_migrations_table(self):
+    async def _ensure_migrations_table(self) -> None:
         """Ensure migrations tracking table exists."""
         try:
             if not self.database:
