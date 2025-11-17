@@ -194,6 +194,52 @@ class FileRepository(BaseRepository):
             logger.error("Failed to list files", error=str(e), exc_info=True)
             return []
 
+    async def count(self, printer_id: Optional[str] = None, status: Optional[str] = None,
+                   source: Optional[str] = None) -> int:
+        """Count files with optional filtering (efficient COUNT query).
+
+        Args:
+            printer_id: Filter by printer ID
+            status: Filter by file status
+            source: Filter by file source
+
+        Returns:
+            Total count of files matching filters
+
+        Notes:
+            - Uses efficient COUNT(*) query without fetching data
+            - Returns 0 on error
+        """
+        try:
+            query = "SELECT COUNT(*) as count FROM files"
+            params = []
+            conditions = []
+
+            if printer_id:
+                conditions.append("printer_id = ?")
+                params.append(printer_id)
+            if status:
+                conditions.append("status = ?")
+                params.append(status)
+            if source:
+                conditions.append("source = ?")
+                params.append(source)
+
+            if conditions:
+                query += " WHERE " + " AND ".join(conditions)
+
+            row = await self._fetch_one(query, tuple(params))
+            return row['count'] if row else 0
+
+        except Exception as e:
+            logger.error("Failed to count files",
+                        printer_id=printer_id,
+                        status=status,
+                        source=source,
+                        error=str(e),
+                        exc_info=True)
+            return 0
+
     async def update(self, file_id: str, updates: Dict[str, Any]) -> bool:
         """Update file with provided fields.
 
