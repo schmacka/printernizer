@@ -1,6 +1,47 @@
 """
 Database connection and management for Printernizer.
 SQLite database with async support for job tracking and printer management.
+
+DEPRECATION NOTICE:
+-------------------
+Many methods in this class have been superseded by the Repository pattern (Phase 1 refactoring).
+The following repositories are now the preferred way to interact with the database:
+
+- PrinterRepository (src/database/repositories/printer_repository.py)
+  Replaces: create_printer, get_printer, list_printers, update_printer_status
+
+- JobRepository (src/database/repositories/job_repository.py)
+  Replaces: create_job, get_job, list_jobs, update_job, delete_job, get_jobs_by_date_range, get_job_statistics
+
+- FileRepository (src/database/repositories/file_repository.py)
+  Replaces: create_file, list_files, update_file, delete_local_file, get_file_statistics
+
+- SnapshotRepository (src/database/repositories/snapshot_repository.py)
+  Replaces: create_snapshot, get_snapshot_by_id, list_snapshots, delete_snapshot, update_snapshot_validation
+
+- TrendingRepository (src/database/repositories/trending_repository.py)
+  Replaces: upsert_trending, get_trending, clean_expired_trending
+
+- IdeaRepository (src/database/repositories/idea_repository.py)
+  Replaces: create_idea, get_idea, list_ideas, update_idea, delete_idea, update_idea_status,
+           add_idea_tags, remove_idea_tags, get_idea_tags, get_all_tags
+
+- LibraryRepository (src/database/repositories/library_repository.py)
+  Replaces: create_library_file, get_library_file, list_library_files, update_library_file,
+           delete_library_file, get_library_stats
+
+The old methods are maintained for backward compatibility during the migration period.
+New code should use the repository classes directly.
+
+Example migration:
+    # Old way (deprecated)
+    printer = await db.get_printer(printer_id)
+
+    # New way (preferred)
+    printer_repo = PrinterRepository(db.get_connection())
+    printer = await printer_repo.get(printer_id)
+
+See docs/technical-debt/progress-tracker.md for migration status.
 """
 import asyncio
 import aiosqlite
