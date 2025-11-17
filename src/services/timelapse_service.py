@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import structlog
 
+from src.config.constants import PollingIntervals
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.models.timelapse import (
@@ -96,7 +97,7 @@ class TimelapseService:
                 logger.error("Folder monitoring error", error=str(e), error_type=type(e).__name__)
 
             # Wait 30 seconds before next scan
-            await asyncio.sleep(30)
+            await asyncio.sleep(PollingIntervals.TIMELAPSE_CHECK_INTERVAL)
 
     async def _scan_source_folders(self):
         """Scan source folder for timelapse image subfolders."""
@@ -254,7 +255,7 @@ class TimelapseService:
                 logger.error("Queue processing error", error=str(e), error_type=type(e).__name__)
 
             # Wait 10 seconds before next check
-            await asyncio.sleep(10)
+            await asyncio.sleep(PollingIntervals.TIMELAPSE_FRAME_INTERVAL)
 
     async def _process_queue(self):
         """Check for pending timelapses and process next one if none currently processing."""

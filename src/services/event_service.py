@@ -7,6 +7,8 @@ from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 import structlog
 
+from src.config.constants import PollingIntervals
+
 logger = structlog.get_logger()
 
 
@@ -115,7 +117,7 @@ class EventService:
         while self._running:
             try:
                 if not self.printer_service:
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(PollingIntervals.PRINTER_STATUS_CHECK)
                     continue
                 
                 # Get current printer status from all printers
@@ -208,14 +210,14 @@ class EventService:
                     
                 except Exception as e:
                     logger.error("Error getting printer list", error=str(e))
-                
-                await asyncio.sleep(30)  # 30-second polling interval
+
+                await asyncio.sleep(PollingIntervals.PRINTER_STATUS_CHECK)  # 30-second polling interval
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error in printer monitoring", error=str(e))
-                await asyncio.sleep(60)  # Wait longer on error
+                await asyncio.sleep(PollingIntervals.PRINTER_STATUS_ERROR_BACKOFF)  # Wait longer on error
                 
         logger.info("Printer monitoring task stopped")
         
@@ -226,7 +228,7 @@ class EventService:
         while self._running:
             try:
                 if not self.job_service:
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(PollingIntervals.JOB_STATUS_CHECK)
                     continue
                 
                 # Get active jobs to monitor
@@ -319,14 +321,14 @@ class EventService:
                     
                 except Exception as e:
                     logger.error("Error getting active jobs", error=str(e))
-                
-                await asyncio.sleep(10)  # 10-second job polling
+
+                await asyncio.sleep(PollingIntervals.JOB_STATUS_CHECK)  # 10-second job polling
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error in job monitoring", error=str(e))
-                await asyncio.sleep(30)
+                await asyncio.sleep(PollingIntervals.JOB_STATUS_ERROR_BACKOFF)
                 
         logger.info("Job status monitoring task stopped")
         
@@ -337,7 +339,7 @@ class EventService:
         while self._running:
             try:
                 if not self.file_service:
-                    await asyncio.sleep(300)
+                    await asyncio.sleep(PollingIntervals.FILE_DISCOVERY_CHECK)
                     continue
                 
                 new_files_found = []
@@ -438,14 +440,14 @@ class EventService:
                     
                 except Exception as e:
                     logger.error("Error during file discovery", error=str(e))
-                
-                await asyncio.sleep(300)  # 5-minute file discovery interval
+
+                await asyncio.sleep(PollingIntervals.FILE_DISCOVERY_CHECK)  # 5-minute file discovery interval
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error in file discovery task", error=str(e))
-                await asyncio.sleep(600)  # Wait longer on error
+                await asyncio.sleep(PollingIntervals.FILE_DISCOVERY_ERROR_BACKOFF)  # Wait longer on error
                 
         logger.info("File discovery task stopped")
         

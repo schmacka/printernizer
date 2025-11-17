@@ -15,6 +15,7 @@ import aiohttp
 import structlog
 from bs4 import BeautifulSoup
 
+from src.config.constants import PollingIntervals
 from src.database.database import Database
 from src.services.event_service import EventService
 
@@ -214,7 +215,7 @@ class TrendingService:
                 break
             except Exception as e:
                 logger.error(f"Error in refresh loop: {e}")
-                await asyncio.sleep(60)  # Wait a minute before retrying
+                await asyncio.sleep(PollingIntervals.TRENDING_SERVICE_RETRY)  # Wait a minute before retrying
 
     async def _needs_refresh(self) -> bool:
         """Check if trending cache needs refresh."""
