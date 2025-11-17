@@ -903,7 +903,14 @@ function createStatusBadge(type, status) {
 }
 
 /**
- * Escape HTML to prevent XSS
+ * Security Utilities for XSS Prevention
+ */
+
+/**
+ * Escape HTML to prevent XSS attacks
+ * Use this before inserting user-generated content into HTML
+ * @param {string} unsafe - Unsafe string that may contain HTML
+ * @returns {string} - HTML-escaped string
  */
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return unsafe;
@@ -914,6 +921,119 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+/**
+ * Sanitize HTML attributes to prevent XSS in attributes
+ * Use this for href, src, and other attribute values
+ * @param {string} unsafe - Unsafe attribute value
+ * @returns {string} - Sanitized attribute value
+ */
+function sanitizeAttribute(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+
+    // Remove javascript:, data:, and vbscript: protocols
+    const dangerous = /^(javascript|data|vbscript):/i;
+    if (dangerous.test(unsafe.trim())) {
+        return '';
+    }
+
+    return escapeHtml(unsafe);
+}
+
+/**
+ * Sanitize URL to prevent XSS via URL schemes
+ * @param {string} url - URL to sanitize
+ * @returns {string} - Sanitized URL or empty string if dangerous
+ */
+function sanitizeUrl(url) {
+    if (typeof url !== 'string') return '';
+
+    const trimmed = url.trim().toLowerCase();
+
+    // Allow only safe protocols
+    const safeProtocols = /^(https?|ftp|mailto):/i;
+    const dangerous = /^(javascript|data|vbscript):/i;
+
+    if (dangerous.test(trimmed)) {
+        return '';
+    }
+
+    // If it has a protocol, it must be safe
+    if (trimmed.includes(':') && !safeProtocols.test(trimmed)) {
+        return '';
+    }
+
+    return url;
+}
+
+/**
+ * Create a safe DOM element with escaped content
+ * Preferred over innerHTML for dynamic content
+ * @param {string} tag - HTML tag name
+ * @param {object} attributes - Element attributes (will be sanitized)
+ * @param {string|Node|Array} content - Element content (strings will be escaped)
+ * @returns {HTMLElement} - Safe DOM element
+ */
+function createSafeElement(tag, attributes = {}, content = null) {
+    const element = document.createElement(tag);
+
+    // Set attributes safely
+    for (const [key, value] of Object.entries(attributes)) {
+        if (key === 'href' || key === 'src') {
+            const safeUrl = sanitizeUrl(value);
+            if (safeUrl) {
+                element.setAttribute(key, safeUrl);
+            }
+        } else if (key === 'class' || key === 'className') {
+            element.className = value;
+        } else if (key === 'style') {
+            if (typeof value === 'object') {
+                Object.assign(element.style, value);
+            } else {
+                element.setAttribute('style', value);
+            }
+        } else {
+            element.setAttribute(key, sanitizeAttribute(value));
+        }
+    }
+
+    // Set content safely
+    if (content !== null) {
+        if (Array.isArray(content)) {
+            content.forEach(item => {
+                if (typeof item === 'string') {
+                    element.appendChild(document.createTextNode(item));
+                } else if (item instanceof Node) {
+                    element.appendChild(item);
+                }
+            });
+        } else if (typeof content === 'string') {
+            element.textContent = content; // Automatically escaped
+        } else if (content instanceof Node) {
+            element.appendChild(content);
+        }
+    }
+
+    return element;
+}
+
+/**
+ * Safely set innerHTML with HTML escaping
+ * Use only when you need to insert already-escaped HTML
+ * @param {HTMLElement} element - Target element
+ * @param {string} html - HTML string (should be pre-escaped or trusted)
+ * @param {boolean} escape - Whether to escape the HTML (default: true)
+ */
+function safeSetInnerHTML(element, html, escape = true) {
+    if (!element) return;
+
+    if (escape) {
+        element.textContent = html; // textContent auto-escapes
+    } else {
+        // Only use this with trusted, pre-escaped content
+        element.innerHTML = html;
+    }
 }
 
 /**

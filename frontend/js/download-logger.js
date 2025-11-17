@@ -23,7 +23,7 @@ class DownloadLogger {
      * Initialize the logger
      */
     async init() {
-        console.log('📝 Initializing Download Logger');
+        Logger.debug('📝 Initializing Download Logger');
 
         // Load existing logs from localStorage
         await this.loadLogs();
@@ -105,20 +105,20 @@ class DownloadLogger {
 
         switch (entry.level) {
             case 'debug':
-                console.debug(message, entry.data);
+                Logger.debug(message, entry.data);
                 break;
             case 'info':
-                console.info(message, entry.data);
+                Logger.info(message, entry.data);
                 break;
             case 'warn':
-                console.warn(message, entry.data);
+                Logger.warn(message, entry.data);
                 break;
             case 'error':
             case 'critical':
-                console.error(message, entry.data);
+                Logger.error(message, entry.data);
                 break;
             default:
-                console.log(message, entry.data);
+                Logger.info(message, entry.data);
         }
     }
 
@@ -372,10 +372,10 @@ class DownloadLogger {
                     ...log,
                     timestamp: new Date(log.timestamp) // Convert string back to Date
                 }));
-                console.log(`📝 Loaded ${this.logs.length} existing log entries`);
+                Logger.debug(`📝 Loaded ${this.logs.length} existing log entries`);
             }
         } catch (error) {
-            console.warn('Failed to load logs from localStorage:', error);
+            Logger.warn('Failed to load logs from localStorage', error);
             this.logs = [];
         }
     }
@@ -391,7 +391,7 @@ class DownloadLogger {
             }));
             localStorage.setItem(this.storageKey, JSON.stringify(serializedLogs));
         } catch (error) {
-            console.warn('Failed to save logs to localStorage:', error);
+            Logger.warn('Failed to save logs to localStorage', error);
         }
     }
 
@@ -407,7 +407,7 @@ class DownloadLogger {
         const afterCount = this.logs.length;
 
         if (beforeCount !== afterCount) {
-            console.log(`📝 Cleaned up ${beforeCount - afterCount} old log entries`);
+            Logger.debug(`📝 Cleaned up ${beforeCount - afterCount} old log entries`);
             this.saveLogs();
         }
     }
