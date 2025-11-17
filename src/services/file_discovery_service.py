@@ -12,6 +12,7 @@ from datetime import datetime
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import FileRepository
 from src.services.event_service import EventService
 
 logger = structlog.get_logger()
@@ -54,6 +55,7 @@ class FileDiscoveryService:
                            Can be None if using event-driven communication
         """
         self.database = database
+        self.file_repo = FileRepository(database._connection)
         self.event_service = event_service
         self.printer_service = printer_service
 
@@ -113,7 +115,7 @@ class FileDiscoveryService:
                 }
 
                 # Store in database
-                await self.database.create_file(file_data)
+                await self.file_repo.create(file_data)
                 stored_files.append(file_data)
 
             logger.info("Discovered printer files",
@@ -135,7 +137,7 @@ class FileDiscoveryService:
                         printer_id=printer_id,
                         error=str(e))
             # Fallback to database files
-            db_files = await self.database.list_files(
+            db_files = await self.file_repo.list(
                 printer_id=printer_id,
                 source='printer'
             )
@@ -174,7 +176,7 @@ class FileDiscoveryService:
             current_files = await self.get_printer_files(printer_id)
 
             # Get existing files in database for this printer
-            existing_files = await self.database.list_files(
+            existing_files = await self.file_repo.list(
                 printer_id=printer_id,
                 source='printer'
             )
@@ -190,7 +192,7 @@ class FileDiscoveryService:
             for file_data in existing_files:
                 if file_data['filename'] in removed_files:
                     # Mark as unavailable rather than deleting
-                    await self.database.update_file(file_data['id'], {
+                    await self.file_repo.update(file_data['id'], {
                         'status': 'unavailable'
                     })
                     removed_count += 1
@@ -302,7 +304,7 @@ class FileDiscoveryService:
         """
         try:
             # Check printer files in database first
-            files = await self.database.list_files(printer_id=printer_id)
+            files = await self.file_repo.list(printer_id=printer_id)
             for file_data in files:
                 if file_data.get('filename') == filename:
                     return dict(file_data)

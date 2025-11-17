@@ -8,6 +8,7 @@ from pathlib import Path
 import csv
 import structlog
 from src.database.database import Database
+from src.database.repositories import PrinterRepository, JobRepository, FileRepository
 
 logger = structlog.get_logger()
 
@@ -15,15 +16,20 @@ logger = structlog.get_logger()
 class AnalyticsService:
     """Service for business analytics and reporting."""
     
-    def __init__(self, database: Database):
+    def __init__(self, database: Database, printer_repository: PrinterRepository = None,
+                 job_repository: JobRepository = None, file_repository: FileRepository = None):
         """Initialize analytics service."""
         self.database = database
+        # Use provided repositories or create new ones from database connection
+        self.printer_repo = printer_repository or PrinterRepository(database._connection)
+        self.job_repo = job_repository or JobRepository(database._connection)
+        self.file_repo = file_repository or FileRepository(database._connection)
         
     async def get_dashboard_stats(self) -> Dict[str, Any]:
         """Get main dashboard statistics."""
         try:
             # Get all jobs
-            all_jobs = await self.database.list_jobs()
+            all_jobs = await self.job_repo.list()
 
             # Count jobs by type
             total_jobs = len(all_jobs)
@@ -31,7 +37,7 @@ class AnalyticsService:
             private_jobs = total_jobs - business_jobs
 
             # Get active printers
-            printers = await self.database.list_printers()
+            printers = await self.printer_repo.list()
             active_printers = len([p for p in printers if p.get('status') in ('online', 'printing', 'paused')])
 
             # Calculate total runtime from completed jobs
@@ -85,10 +91,10 @@ class AnalyticsService:
             start_date = end_date - timedelta(days=days)
 
             # Get all printers
-            printers = await self.database.list_printers()
+            printers = await self.printer_repo.list()
 
             # Get jobs within the time period
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(),
                 end_date.isoformat()
             )
@@ -145,7 +151,7 @@ class AnalyticsService:
             start_date = end_date - timedelta(days=days)
 
             # Get jobs within the time period
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(),
                 end_date.isoformat()
             )
@@ -226,7 +232,7 @@ class AnalyticsService:
                        start=start_date.isoformat(), end=end_date.isoformat())
             
             # Get jobs within the period
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(), end_date.isoformat()
             )
             
@@ -307,7 +313,7 @@ class AnalyticsService:
                 start_date = end_date - timedelta(days=30)
 
             # Get jobs within the date range
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(),
                 end_date.isoformat()
             )
@@ -431,7 +437,7 @@ class AnalyticsService:
                 start_date = end_date - timedelta(days=30)
             
             # Get jobs within the period
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(), end_date.isoformat()
             )
             
@@ -471,7 +477,7 @@ class AnalyticsService:
                 start_date = end_date - timedelta(days=30)
             
             # Get jobs within the period
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(), end_date.isoformat()
             )
             
@@ -571,7 +577,7 @@ class AnalyticsService:
             start_date = end_date - timedelta(days=days)
 
             # Query jobs from database for the period
-            jobs = await self.database.get_jobs_by_date_range(
+            jobs = await self.job_repo.get_by_date_range(
                 start_date.isoformat(),
                 end_date.isoformat()
             )
@@ -603,7 +609,7 @@ class AnalyticsService:
         """Get file statistics."""
         try:
             # Get file statistics from database
-            file_stats = await self.database.get_file_statistics()
+            file_stats = await self.file_repo.get_statistics()
 
             # Map database statistics to dashboard format
             # Database returns: available_count, downloaded_count, printer_count, local_watch_count, etc.
@@ -631,7 +637,7 @@ class AnalyticsService:
         """Get printer statistics.""" 
         try:
             # Query printers from database
-            printers = await self.database.list_printers()
+            printers = await self.printer_repo.list()
             
             total_printers = len(printers)
             online_printers = len([p for p in printers if p.get('status') == 'online'])

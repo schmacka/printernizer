@@ -6,7 +6,10 @@ from src.database.database import Database
 from src.database.repositories import (
     SnapshotRepository,
     TrendingRepository,
-    IdeaRepository
+    IdeaRepository,
+    PrinterRepository,
+    JobRepository,
+    FileRepository
 )
 from src.services.config_service import ConfigService
 from src.services.printer_service import PrinterService
@@ -49,6 +52,27 @@ async def get_idea_repository(
 ) -> IdeaRepository:
     """Get idea repository instance."""
     return IdeaRepository(database._connection)
+
+
+async def get_printer_repository(
+    database: Database = Depends(get_database)
+) -> PrinterRepository:
+    """Get printer repository instance."""
+    return PrinterRepository(database._connection)
+
+
+async def get_job_repository(
+    database: Database = Depends(get_database)
+) -> JobRepository:
+    """Get job repository instance."""
+    return JobRepository(database._connection)
+
+
+async def get_file_repository(
+    database: Database = Depends(get_database)
+) -> FileRepository:
+    """Get file repository instance."""
+    return FileRepository(database._connection)
 
 
 async def get_config_service(request: Request) -> ConfigService:
