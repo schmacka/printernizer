@@ -4,6 +4,8 @@ This will be expanded in Phase 4 with complete business analytics.
 """
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+from pathlib import Path
+import csv
 import structlog
 from src.database.database import Database
 
@@ -287,16 +289,137 @@ class AnalyticsService:
             }
         
     async def export_data(self, format_type: str, filters: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Export data in specified format (CSV, Excel)."""
-        # TODO: Implement data export functionality
-        logger.info("Exporting data (placeholder)", format=format_type, filters=filters)
-        
-        return {
-            "status": "success",
-            "message": "Data export not yet implemented",
-            "format": format_type,
-            "file_path": None
-        }
+        """Export job data in specified format (CSV, JSON)."""
+        try:
+            if filters is None:
+                filters = {}
+
+            # Get date range from filters
+            start_date_str = filters.get('start_date')
+            end_date_str = filters.get('end_date')
+
+            if start_date_str and end_date_str:
+                start_date = datetime.fromisoformat(start_date_str)
+                end_date = datetime.fromisoformat(end_date_str)
+            else:
+                # Default to last 30 days
+                end_date = datetime.now()
+                start_date = end_date - timedelta(days=30)
+
+            # Get jobs within the date range
+            jobs = await self.database.get_jobs_by_date_range(
+                start_date.isoformat(),
+                end_date.isoformat()
+            )
+
+            # Apply additional filters
+            if filters.get('printer_id'):
+                jobs = [j for j in jobs if j.get('printer_id') == filters['printer_id']]
+
+            if filters.get('is_business') is not None:
+                jobs = [j for j in jobs if j.get('is_business') == filters['is_business']]
+
+            if filters.get('status'):
+                jobs = [j for j in jobs if j.get('status') == filters['status']]
+
+            if not jobs:
+                logger.warning("No data to export with given filters", filters=filters)
+                return {
+                    "status": "error",
+                    "message": "No data found matching the specified filters",
+                    "format": format_type,
+                    "file_path": None
+                }
+
+            # Create export directory if it doesn't exist
+            export_dir = Path("exports")
+            export_dir.mkdir(exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            format_lower = format_type.lower()
+
+            if format_lower == 'csv':
+                file_path = export_dir / f"jobs_export_{timestamp}.csv"
+                await self._export_to_csv(jobs, file_path)
+
+            elif format_lower == 'json':
+                file_path = export_dir / f"jobs_export_{timestamp}.json"
+                await self._export_to_json(jobs, file_path)
+
+            else:
+                logger.warning(f"Unsupported export format: {format_type}")
+                return {
+                    "status": "error",
+                    "message": f"Unsupported format '{format_type}'. Supported formats: CSV, JSON",
+                    "format": format_type,
+                    "file_path": None
+                }
+
+            logger.info(f"Data exported successfully", format=format_type, file_path=str(file_path), job_count=len(jobs))
+
+            return {
+                "status": "success",
+                "message": f"Successfully exported {len(jobs)} jobs to {format_type}",
+                "format": format_type,
+                "file_path": str(file_path),
+                "record_count": len(jobs)
+            }
+
+        except Exception as e:
+            logger.error("Error exporting data", format=format_type, filters=filters, error=str(e), exc_info=True)
+            return {
+                "status": "error",
+                "message": f"Export failed: {str(e)}",
+                "format": format_type,
+                "file_path": None
+            }
+
+    async def _export_to_csv(self, jobs: List[Dict[str, Any]], file_path: Path) -> None:
+        """Export jobs data to CSV format."""
+        if not jobs:
+            return
+
+        # Define the fields to export
+        fields = [
+            'id', 'printer_id', 'printer_name', 'filename', 'status',
+            'start_time', 'end_time', 'elapsed_time_minutes',
+            'material_used_grams', 'is_business', 'customer_name',
+            'cost_eur', 'notes'
+        ]
+
+        with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fields, extrasaction='ignore')
+            writer.writeheader()
+
+            for job in jobs:
+                # Convert datetime objects to strings
+                row = job.copy()
+                for key in ['start_time', 'end_time', 'created_at', 'updated_at']:
+                    if key in row and row[key]:
+                        row[key] = str(row[key])
+
+                writer.writerow(row)
+
+        logger.debug(f"CSV export completed: {file_path}")
+
+    async def _export_to_json(self, jobs: List[Dict[str, Any]], file_path: Path) -> None:
+        """Export jobs data to JSON format."""
+        import json
+
+        # Convert datetime objects to strings for JSON serialization
+        serializable_jobs = []
+        for job in jobs:
+            job_copy = job.copy()
+            for key, value in job_copy.items():
+                if isinstance(value, datetime):
+                    job_copy[key] = value.isoformat()
+
+            serializable_jobs.append(job_copy)
+
+        with open(file_path, 'w', encoding='utf-8') as jsonfile:
+            json.dump(serializable_jobs, jsonfile, indent=2, ensure_ascii=False)
+
+        logger.debug(f"JSON export completed: {file_path}")
         
     async def get_summary(self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None) -> Dict[str, Any]:
         """Get analytics summary for the specified period."""
