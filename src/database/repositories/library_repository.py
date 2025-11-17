@@ -1,7 +1,150 @@
-"""Library repository for database operations.
+"""
+Library repository for managing centralized 3D print file library operations.
 
-This repository handles all library-related database operations including
-library file management, file sources, and statistics.
+This module provides data access methods for the centralized library that aggregates
+files from all sources (printers, watch folders, URLs). It implements intelligent
+deduplication using file checksums and tracks all source locations for each unique file.
+
+Key Capabilities:
+    - Centralized file library with checksum-based deduplication
+    - Multi-source tracking (one file, multiple source locations)
+    - Search indexing for fast file discovery
+    - Duplicate detection and management
+    - Comprehensive filtering and sorting
+    - Library statistics and analytics
+    - File source management (add/remove sources per file)
+
+Database Schema:
+    The library_files table stores deduplicated files:
+    - id (TEXT PRIMARY KEY): Unique file identifier
+    - checksum (TEXT UNIQUE): SHA256 checksum for deduplication
+    - filename (TEXT): Original filename
+    - display_name (TEXT): Human-readable name
+    - library_path (TEXT): Path in library storage
+    - file_size (INTEGER): File size in bytes
+    - file_type (TEXT): File extension (.gcode, .3mf, .bgcode)
+    - sources (TEXT): JSON array of source information
+    - status (TEXT): File status (available, deleted)
+    - added_to_library (DATETIME): When first added to library
+    - last_modified (DATETIME): Last modification timestamp
+    - search_index (TEXT): Searchable text (filename, tags, metadata)
+    - is_duplicate (BOOLEAN): Whether file is a duplicate
+    - duplicate_of_checksum (TEXT): Checksum of original if duplicate
+    - duplicate_count (INTEGER): Number of duplicates found
+
+    The library_file_sources table tracks file source locations:
+    - id (INTEGER PRIMARY KEY AUTOINCREMENT): Unique source ID
+    - file_checksum (TEXT): Foreign key to library_files.checksum
+    - source_type (TEXT): Source type ('printer', 'watch_folder', 'url')
+    - source_id (TEXT): Source identifier (printer ID, folder path, etc.)
+    - source_path (TEXT): Original path at source
+    - discovered_at (DATETIME): When source was discovered
+    - last_seen (DATETIME): Last verification timestamp
+
+    Indexes:
+    - idx_library_files_checksum: Fast deduplication lookups (UNIQUE)
+    - idx_library_files_file_type: Fast filtering by file type
+    - idx_library_files_status: Fast filtering by status
+    - idx_library_file_sources_checksum: Fast source lookups per file
+    - idx_library_file_sources_type: Fast filtering by source type
+
+Usage Examples:
+    ```python
+    from src.database.repositories import LibraryRepository
+    import hashlib
+
+    # Initialize
+    library_repo = LibraryRepository(db.connection)
+
+    # Add a file to library
+    checksum = hashlib.sha256(file_content).hexdigest()
+    file_data = {
+        'id': 'lib_file_123',
+        'checksum': checksum,
+        'filename': 'model.3mf',
+        'display_name': 'Calibration Cube',
+        'library_path': '/library/models/model_abc123.3mf',
+        'file_size': 1024000,
+        'file_type': '.3mf',
+        'sources': json.dumps([{
+            'source_type': 'printer',
+            'source_id': 'bambu_a1_001',
+            'source_path': '/models/model.3mf'
+        }]),
+        'added_to_library': datetime.now().isoformat()
+    }
+    await library_repo.create_file(file_data)
+
+    # Check for duplicate before adding
+    existing = await library_repo.get_file_by_checksum(checksum)
+    if existing:
+        print(f"File already in library: {existing['display_name']}")
+        # Add new source to existing file
+        await library_repo.create_file_source({
+            'file_checksum': checksum,
+            'source_type': 'watch_folder',
+            'source_id': '/watch_folders/prints',
+            'source_path': '/watch_folders/prints/model.3mf',
+            'discovered_at': datetime.now().isoformat()
+        })
+    else:
+        # Add as new file
+        await library_repo.create_file(file_data)
+
+    # Search library
+    search_results = await library_repo.list_files(
+        filters={
+            'file_type': '.3mf',
+            'search_query': 'calibration'
+        },
+        limit=50
+    )
+
+    # Get files from specific source
+    printer_files = await library_repo.list_files(
+        filters={'source_type': 'printer'},
+        sort_by='added_to_library',
+        sort_direction='DESC'
+    )
+
+    # Get library statistics
+    stats = await library_repo.get_stats()
+    print(f"Total files: {stats['total_files']}")
+    print(f"Total size: {stats['total_size_gb']:.2f} GB")
+    print(f"Duplicates found: {stats['duplicate_count']}")
+    ```
+
+Deduplication Strategy:
+    - Files are deduplicated using SHA256 checksums
+    - First occurrence becomes the canonical file
+    - Subsequent identical files are tracked as additional sources
+    - Duplicate detection prevents storage waste
+    - All source locations are preserved and queryable
+
+Multi-Source Tracking:
+    - Each unique file (by checksum) can have multiple sources
+    - Sources tracked separately in library_file_sources table
+    - Enables finding all locations where a file exists
+    - Supports source removal without deleting file
+    - Last seen timestamps for source verification
+
+Search Indexing:
+    - search_index field contains searchable text
+    - Includes filename, display_name, tags, metadata
+    - Enables fast full-text search across library
+    - Updated when file metadata changes
+
+Error Handling:
+    - Duplicate checksums handled gracefully
+    - JSON sources serialized/deserialized automatically
+    - All database errors logged with context
+    - Retry logic inherited from BaseRepository
+
+See Also:
+    - src/services/library_service.py - Library management service
+    - src/services/file_service.py - File operations
+    - src/api/routers/library.py - Library API endpoints
+    - docs/technical-debt/COMPLETION-REPORT.md - Repository pattern
 """
 
 import sqlite3
@@ -15,11 +158,25 @@ logger = structlog.get_logger(__name__)
 
 
 class LibraryRepository(BaseRepository):
-    """Repository for library-related database operations.
+    """
+    Repository for library-related database operations.
 
-    Handles CRUD operations for the centralized library of 3D print files,
-    including duplicate detection, multi-source tracking, and comprehensive
-    filtering/search capabilities.
+    Handles CRUD operations for the centralized library of 3D print files with
+    intelligent checksum-based deduplication and multi-source tracking. A single
+    file can exist in multiple locations (printers, watch folders) while being
+    stored only once in the library.
+
+    Key Features:
+        - Checksum-based deduplication (SHA256)
+        - Multi-source tracking per file
+        - Search indexing for fast discovery
+        - Comprehensive filtering and sorting
+        - Library statistics and analytics
+        - Source management (add/remove per file)
+
+    Thread Safety:
+        Operations are atomic but the repository is not thread-safe.
+        Use connection pooling for concurrent access.
     """
 
     async def create_file(self, file_data: Dict[str, Any]) -> bool:
