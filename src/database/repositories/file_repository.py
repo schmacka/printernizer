@@ -1,7 +1,146 @@
-"""File repository for database operations.
+"""
+File repository for managing 3D print file database operations.
 
-This repository handles all file-related database operations including
-printer files, local watch folder files, and file statistics.
+This module provides data access methods for 3D print files, including files from
+printers (via FTP/HTTP) and local watch folders. It handles file metadata, thumbnails,
+enhanced analysis data, and deduplication.
+
+Key Capabilities:
+    - File registration from printers and local watch folders
+    - Metadata extraction and storage (print time, material, layer info)
+    - Thumbnail management (embedded and extracted thumbnails)
+    - Enhanced metadata from file analysis (colors, materials, objects)
+    - File deduplication and upsert logic
+    - Watch folder file tracking with relative paths
+    - File statistics and counts
+
+Database Schema:
+    The files table stores 3D print files with extensive metadata:
+    - id (TEXT PRIMARY KEY): Unique file identifier (hash-based)
+    - printer_id (TEXT): Source printer ('local' for watch folder files)
+    - filename (TEXT): Original filename
+    - display_name (TEXT): Human-readable name (without hash prefix)
+    - file_path (TEXT): Local filesystem path
+    - file_size (INTEGER): File size in bytes
+    - file_type (TEXT): File extension (.gcode, .3mf, .bgcode)
+    - status (TEXT): File status (available, downloading, deleted)
+    - source (TEXT): File source ('printer', 'local_watch')
+    - metadata (TEXT): JSON metadata from file headers
+    - watch_folder_path (TEXT): Watch folder path (if source='local_watch')
+    - relative_path (TEXT): Relative path within watch folder
+    - modified_time (DATETIME): Last modified timestamp
+    - created_at (DATETIME): When file was added to database
+    - updated_at (DATETIME): Last update timestamp
+
+    Thumbnail fields:
+    - has_thumbnail (BOOLEAN): Whether file has a thumbnail
+    - thumbnail_data (BLOB): Thumbnail image data (PNG format)
+    - thumbnail_width (INTEGER): Thumbnail width in pixels
+    - thumbnail_height (INTEGER): Thumbnail height in pixels
+    - thumbnail_format (TEXT): Image format (usually 'png')
+    - thumbnail_source (TEXT): Source of thumbnail ('embedded', 'extracted')
+
+    Enhanced metadata fields (from file analysis):
+    - filament_colors (TEXT): JSON array of detected filament colors
+    - filament_types (TEXT): JSON array of material types used
+    - object_count (INTEGER): Number of objects in the print
+    - object_labels (TEXT): JSON array of object labels/names
+
+    Indexes:
+    - idx_files_printer_id: Fast lookup by printer
+    - idx_files_status: Fast filtering by status
+    - idx_files_source: Fast filtering by source type
+    - idx_files_watch_folder: Fast watch folder lookups
+
+Usage Examples:
+    ```python
+    from src.database.repositories import FileRepository
+
+    # Initialize
+    file_repo = FileRepository(db.connection)
+
+    # Register a file from printer
+    file_data = {
+        'id': 'printer1_model_abc123',
+        'printer_id': 'bambu_a1_001',
+        'filename': 'model.3mf',
+        'display_name': 'Calibration Cube',
+        'file_size': 1024000,
+        'file_type': '.3mf',
+        'source': 'printer',
+        'metadata': {
+            'print_time_seconds': 3600,
+            'material_grams': 50.5,
+            'layer_height': 0.2
+        }
+    }
+    await file_repo.create(file_data)
+
+    # Register a file from local watch folder
+    watch_file_data = {
+        'id': 'local_benchy_xyz789',
+        'printer_id': 'local',
+        'filename': '3DBenchy.gcode',
+        'file_path': '/watch_folders/prints/3DBenchy.gcode',
+        'source': 'local_watch',
+        'watch_folder_path': '/watch_folders/prints',
+        'relative_path': '3DBenchy.gcode'
+    }
+    await file_repo.create(watch_file_data)
+
+    # Update enhanced metadata after file analysis
+    await file_repo.update_enhanced_metadata(
+        'printer1_model_abc123',
+        enhanced_metadata={
+            'filament_colors': ['#FF5733', '#3498DB'],
+            'filament_types': ['PLA', 'PLA'],
+            'object_count': 2
+        },
+        filament_types=['PLA', 'PLA']
+    )
+
+    # Query files
+    printer_files = await file_repo.list(
+        printer_id='bambu_a1_001',
+        status='available'
+    )
+
+    # Get local watch folder files
+    watch_files = await file_repo.list_local_files(
+        watch_folder_path='/watch_folders/prints'
+    )
+
+    # Get file statistics
+    stats = await file_repo.get_statistics()
+    print(f"Total files: {stats['total_files']}")
+    print(f"Total size: {stats['total_size_bytes']} bytes")
+    ```
+
+File Deduplication:
+    The repository implements intelligent upsert logic:
+    - Existing files are updated, preserving thumbnails
+    - Thumbnail data is only overwritten if explicitly provided
+    - Metadata is merged to prevent data loss
+    - File status can be updated independently
+
+Enhanced Metadata:
+    Files can be analyzed to extract enhanced metadata:
+    - Filament colors (hex color codes from slicer data)
+    - Filament types (PLA, PETG, ABS, etc.)
+    - Object count and labels
+    - Updated separately from basic metadata
+
+Error Handling:
+    - Duplicate file IDs handled gracefully with upsert
+    - JSON metadata serialized/deserialized automatically
+    - All database errors logged with context
+    - Retry logic inherited from BaseRepository
+
+See Also:
+    - src/services/file_service.py - File management business logic
+    - src/services/file_discovery_service.py - File discovery from printers
+    - src/services/file_watcher_service.py - Watch folder monitoring
+    - src/api/routers/files.py - File API endpoints
 """
 
 import json
@@ -17,10 +156,24 @@ logger = structlog.get_logger(__name__)
 
 
 class FileRepository(BaseRepository):
-    """Repository for file-related database operations.
+    """
+    Repository for file-related database operations.
 
-    Handles CRUD operations for 3D print files from printers and local watch folders,
-    including metadata management, thumbnails, and enhanced metadata from file analysis.
+    Handles CRUD operations for 3D print files from multiple sources:
+    - Printer files (via FTP/HTTP from Bambu Lab, Prusa)
+    - Local watch folder files (monitored directories)
+
+    Key Features:
+        - Smart upsert logic preserving thumbnails
+        - Enhanced metadata management (colors, materials, objects)
+        - Watch folder file tracking with relative paths
+        - File statistics and aggregation
+        - Thumbnail storage and retrieval
+        - Metadata JSON serialization
+
+    Thread Safety:
+        Operations are atomic but the repository is not thread-safe.
+        Use connection pooling for concurrent access.
     """
 
     async def create(self, file_data: Dict[str, Any]) -> bool:
