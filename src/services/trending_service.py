@@ -53,7 +53,7 @@ class TrendingService:
             "cache_misses": 0
         }
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize trending service and create tables."""
         try:
             await self._create_tables()
@@ -63,7 +63,7 @@ class TrendingService:
             logger.error(f"Failed to initialize trending service: {e}")
             raise
 
-    async def _create_tables(self):
+    async def _create_tables(self) -> None:
         """Create trending-related database tables."""
         async with self.db.connection() as conn:
             await conn.execute('''

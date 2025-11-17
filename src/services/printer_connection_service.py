@@ -75,7 +75,7 @@ class PrinterConnectionService:
 
         logger.info("PrinterConnectionService initialized")
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """
         Initialize printer connection service.
 
@@ -92,7 +92,7 @@ class PrinterConnectionService:
         logger.info("Printer connection service initialization complete",
                    printer_count=len(self.printer_instances))
 
-    async def _load_printers(self):
+    async def _load_printers(self) -> None:
         """
         Load printer configurations and create instances.
 
