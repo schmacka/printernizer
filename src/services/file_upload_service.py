@@ -290,7 +290,7 @@ class FileUploadService:
 
         return file_id
 
-    async def process_file_after_upload(self, file_id: str, file_path: str):
+    async def process_file_after_upload(self, file_id: str, file_path: str) -> None:
         """
         Trigger post-upload processing (thumbnails, metadata, library).
 

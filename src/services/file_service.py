@@ -133,7 +133,7 @@ class FileService:
                    thumbnail=True,
                    metadata=True)
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """
         Initialize the file service and subscribe to events.
 

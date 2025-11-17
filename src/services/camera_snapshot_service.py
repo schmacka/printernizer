@@ -74,7 +74,7 @@ class CameraSnapshotService:
 
         self._logger = logger.bind(service="camera_snapshot")
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the snapshot service and background tasks."""
         if self._running:
             self._logger.warning("Service already running")
@@ -84,7 +84,7 @@ class CameraSnapshotService:
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
         self._logger.info("Camera snapshot service started")
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Shutdown service and cleanup all connections."""
         self._logger.info("Shutting down camera snapshot service")
         self._running = False

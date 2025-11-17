@@ -88,7 +88,7 @@ class PrinterMonitoringService:
 
         logger.info("PrinterMonitoringService initialized")
 
-    def setup_status_callback(self, printer_instance: BasePrinter):
+    def setup_status_callback(self, printer_instance: BasePrinter) -> None:
         """
         Set up status callback for a printer instance.
 
@@ -109,7 +109,7 @@ class PrinterMonitoringService:
         logger.debug("Status callback setup for printer",
                     printer_id=getattr(printer_instance, 'printer_id', 'unknown'))
 
-    async def _handle_status_update(self, status: PrinterStatusUpdate):
+    async def _handle_status_update(self, status: PrinterStatusUpdate) -> None:
         """
         Handle status updates from printers.
 
@@ -157,7 +157,7 @@ class PrinterMonitoringService:
                 discovery_key = f"{status.printer_id}:{status.current_job}"
                 self._print_discoveries.pop(discovery_key, None)
 
-    async def _check_auto_download(self, status: PrinterStatusUpdate):
+    async def _check_auto_download(self, status: PrinterStatusUpdate) -> None:
         """
         Check if auto-download should be triggered for current job.
 

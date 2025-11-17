@@ -42,7 +42,7 @@ class MaterialService:
         self.materials_cache: Dict[str, MaterialSpool] = {}
         self._init_task = None
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize material service and create tables."""
         try:
             await self._create_tables()
@@ -52,7 +52,7 @@ class MaterialService:
             logger.error(f"Failed to initialize material service: {e}")
             raise
 
-    async def _create_tables(self):
+    async def _create_tables(self) -> None:
         """Create material-related database tables."""
         async with self.db.connection() as conn:
             # Materials table

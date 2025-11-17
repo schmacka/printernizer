@@ -39,7 +39,7 @@ class TimelapseService:
         self._queue_task: Optional[asyncio.Task] = None
         self._shutdown = False
 
-    async def start(self):
+    async def start(self) -> None:
         """Start timelapse service background tasks."""
         if not self.settings.timelapse_enabled:
             logger.info("Timelapse feature disabled in settings")
@@ -63,7 +63,7 @@ class TimelapseService:
 
         logger.info("Timelapse service started")
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Shutdown timelapse service and cancel background tasks."""
         logger.info("Shutting down timelapse service")
         self._shutdown = True

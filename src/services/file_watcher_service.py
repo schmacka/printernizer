@@ -83,21 +83,21 @@ class PrintFileHandler(FileSystemEventHandler):
         self._debounce_events[file_path] = now
         return True
     
-    def on_created(self, event: FileSystemEvent):
+    def on_created(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""
         if not event.is_directory and self.should_process_file(event.src_path):
             if self._debounce_event(event.src_path):
                 logger.info("New print file detected", file_path=event.src_path)
                 asyncio.create_task(self.file_watcher._handle_file_created(event.src_path))
-    
-    def on_modified(self, event: FileSystemEvent):
+
+    def on_modified(self, event: FileSystemEvent) -> None:
         """Handle file modification events."""
         if not event.is_directory and self.should_process_file(event.src_path):
             if self._debounce_event(event.src_path):
                 logger.debug("Print file modified", file_path=event.src_path)
                 asyncio.create_task(self.file_watcher._handle_file_modified(event.src_path))
-    
-    def on_deleted(self, event: FileSystemEvent):
+
+    def on_deleted(self, event: FileSystemEvent) -> None:
         """Handle file deletion events."""
         if not event.is_directory and self.should_process_file(event.src_path):
             logger.info("Print file deleted", file_path=event.src_path)

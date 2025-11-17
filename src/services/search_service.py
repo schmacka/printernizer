@@ -56,11 +56,11 @@ class SearchCache:
                 del self.results_cache[cache_key]
         return None
 
-    def set_search_results(self, cache_key: str, results: SearchResults):
+    def set_search_results(self, cache_key: str, results: SearchResults) -> None:
         """Cache search results."""
         self.results_cache[cache_key] = (results, time.time())
 
-    def invalidate_file(self, file_id: str):
+    def invalidate_file(self, file_id: str) -> None:
         """Invalidate caches when file is updated/deleted."""
         # Clear results cache (contains this file)
         self.results_cache.clear()
@@ -69,7 +69,7 @@ class SearchCache:
         if file_id in self.metadata_cache:
             del self.metadata_cache[file_id]
 
-    def invalidate_idea(self, idea_id: str):
+    def invalidate_idea(self, idea_id: str) -> None:
         """Invalidate caches when idea is updated/deleted."""
         # Clear results cache
         self.results_cache.clear()

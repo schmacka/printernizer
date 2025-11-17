@@ -345,7 +345,7 @@ class FileDiscoveryService:
         }
         return type_map.get(ext, 'unknown')
 
-    def set_printer_service(self, printer_service):
+    def set_printer_service(self, printer_service) -> None:
         """
         Set printer service dependency.
 

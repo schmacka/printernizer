@@ -44,51 +44,51 @@ class EventService:
             'new_files_found': 0
         }
         
-    async def start(self):
+    async def start(self) -> None:
         """Start the event service and background tasks."""
         if self._running:
             logger.warning("Event service already running")
             return
-            
+
         self._running = True
         logger.info("Starting event service")
-        
+
         # Start background monitoring tasks
         self._tasks.extend([
             asyncio.create_task(self._printer_monitoring_task()),
             asyncio.create_task(self._job_status_task()),
             asyncio.create_task(self._file_discovery_task())
         ])
-        
+
         logger.info("Event service started", tasks=len(self._tasks))
-        
-    async def stop(self):
+
+    async def stop(self) -> None:
         """Stop the event service and cancel all tasks."""
         if not self._running:
             return
-            
+
         logger.info("Stopping event service")
         self._running = False
-        
+
         # Cancel all tasks
         for task in self._tasks:
             if not task.done():
                 task.cancel()
-                
+
         # Wait for tasks to finish
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
-            
+
         self._tasks.clear()
         logger.info("Event service stopped")
-        
-    def subscribe(self, event_type: str, handler: Callable):
+
+    def subscribe(self, event_type: str, handler: Callable) -> None:
         """Subscribe to event notifications."""
         if event_type not in self._event_handlers:
             self._event_handlers[event_type] = []
         self._event_handlers[event_type].append(handler)
-        
-    def unsubscribe(self, event_type: str, handler: Callable):
+
+    def unsubscribe(self, event_type: str, handler: Callable) -> None:
         """Unsubscribe from event notifications."""
         if event_type in self._event_handlers:
             if handler in self._event_handlers[event_type]:

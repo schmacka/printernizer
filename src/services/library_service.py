@@ -69,7 +69,7 @@ class LibraryService:
                    library_path=str(self.library_path),
                    enabled=self.enabled)
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize library folders and verify configuration."""
         if not self.enabled:
             logger.info("Library system disabled")
