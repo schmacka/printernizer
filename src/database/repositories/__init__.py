@@ -10,6 +10,8 @@ from .job_repository import JobRepository
 from .file_repository import FileRepository
 from .idea_repository import IdeaRepository
 from .library_repository import LibraryRepository
+from .snapshot_repository import SnapshotRepository
+from .trending_repository import TrendingRepository
 
 __all__ = [
     'BaseRepository',
@@ -18,4 +20,6 @@ __all__ = [
     'FileRepository',
     'IdeaRepository',
     'LibraryRepository',
+    'SnapshotRepository',
+    'TrendingRepository',
 ]
