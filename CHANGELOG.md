@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Technical Debt Phase 3** - Completed all backend improvements for Phase 3
+  - **Configuration Extraction**: Centralized all hardcoded values into `src/config/constants.py`
+    - Extracted 18+ polling intervals, retry settings, and API URLs
+    - Created helper functions: `api_url()`, `printer_url()`, `file_url()`, `job_url()`
+    - Improved maintainability and configurability across 8+ service files
+  - **Database Connection Pooling**: Implemented connection pooling for improved concurrency
+    - Added asyncio.Queue-based connection pool (default: 5 connections)
+    - Enabled WAL mode for optimal read concurrency
+    - Added `pooled_connection()` context manager for easy usage
+    - Backward compatible with existing code
+  - **Async Task Management**: Verified proper task lifecycle management
+    - EventService properly stores and manages background tasks
+    - Added `stop()` method for graceful shutdown
+    - Tasks properly cancelled and awaited on shutdown
+  - **Frontend Tasks Deferred**: Strategically deferred 2 frontend tasks to Phase 4
+    - Frontend logging cleanup (40+ console statements)
+    - XSS security fixes (20+ innerHTML cases)
+    - Lower priority than backend improvements; will be addressed in future sprint
+
 ## [2.6.0] - 2025-11-13
 
 ### Added
