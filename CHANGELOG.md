@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Technical Debt Phase 4** - Started ongoing quality improvements (LOW priority)
+  - **Type Hints (Batch 1 of 4)**: Added return type hints to 8 methods across 3 core services
+    - config_service.py: Added `-> None` to 3 validation/loading methods
+    - event_service.py: Added `-> None` to 4 lifecycle methods (start, stop, subscribe, unsubscribe)
+    - file_discovery_service.py: Added `-> None` to dependency injection method
+    - Improves IDE autocomplete, type checking, and catches bugs at development time
+    - 31 service files identified with missing type hints; batch 1 addresses 3 files (10%)
+    - Remaining batches to be completed incrementally as ongoing improvements
 - **Technical Debt Phase 3** - Completed all backend improvements for Phase 3
   - **Configuration Extraction**: Centralized all hardcoded values into `src/config/constants.py`
     - Extracted 18+ polling intervals, retry settings, and API URLs

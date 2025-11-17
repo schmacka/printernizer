@@ -696,19 +696,24 @@ finally:
 
 **Target**: Polish and continuous improvement
 **Est. Effort**: Ongoing
-**Status**: ⏳ Not Started
+**Status**: 🔄 In Progress (incremental improvements)
+**Started**: 2025-11-17
 **Scope**: 19 original tasks + 2 deferred frontend tasks from Phase 3 (3.2, 3.3)
 
 ### 4.1 Improve Type Hints
 **Priority**: P3
 **Effort**: Ongoing
-**Status**: ⏳ Not Started
-**Assigned To**: _Unassigned_
+**Status**: 🔄 In Progress (Batch 1 of 4 complete - 10% done)
+**Assigned To**: Claude
+**Started**: 2025-11-17
 
 #### Checklist
-- [ ] **Add Missing Return Types** (10+ functions)
-  - [ ] Identify functions without return types
-  - [ ] Add proper type hints
+- [x] **Add Missing Return Types** (Batch 1: 8 methods across 3 files)
+  - [x] Identify functions without return types (31 files found)
+  - [x] Add type hints to config_service.py (3 methods)
+  - [x] Add type hints to event_service.py (4 methods)
+  - [x] Add type hints to file_discovery_service.py (1 method)
+  - [ ] Add type hints to remaining 28 service files (Batches 2-4)
   - [ ] Use TypedDict for complex structures
 - [ ] **Document Type Ignores**
   - [ ] database.py:351
@@ -723,9 +728,14 @@ finally:
 
 **Notes**: _Improves IDE support and catches bugs early_
 
-**Branch**: _Not created_
-**PR**: _Not created_
-**Completed**: _Not completed_
+**Progress**:
+- **Batch 1** (2025-11-17): Added type hints to 8 methods in 3 core services
+  - config_service.py, event_service.py, file_discovery_service.py
+  - Committed in 12287af
+
+**Branch**: claude/complete-phase-3-01HN3D2tjyE4vfcg33QXNT6V (reusing Phase 3 branch)
+**Commits**: 12287af (batch 1)
+**Completed**: _In progress - ongoing incremental improvements_
 
 ---
 
