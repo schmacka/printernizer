@@ -380,21 +380,34 @@ class BambuLabPrinter(BasePrinter):
                     try:
                         state = self.bambu_client.get_state()
                         alternative_status.name = state if state else 'UNKNOWN'
-                    except:
+                    except (AttributeError, KeyError, TypeError) as e:
+                        logger.debug("Failed to get printer state", printer_id=self.printer_id, error=str(e))
+                        alternative_status.name = 'UNKNOWN'
+                    except Exception as e:
+                        logger.warning("Unexpected error getting printer state", printer_id=self.printer_id, error=str(e), exc_info=True)
                         alternative_status.name = 'UNKNOWN'
                         
                 # Try to get temperature data
                 try:
                     alternative_status.bed_temper = self.bambu_client.get_bed_temperature() or 0.0
                     alternative_status.nozzle_temper = self.bambu_client.get_nozzle_temperature() or 0.0
-                except:
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    logger.debug("Failed to get temperature data", printer_id=self.printer_id, error=str(e))
+                    alternative_status.bed_temper = 0.0
+                    alternative_status.nozzle_temper = 0.0
+                except Exception as e:
+                    logger.warning("Unexpected error getting temperature data", printer_id=self.printer_id, error=str(e), exc_info=True)
                     alternative_status.bed_temper = 0.0
                     alternative_status.nozzle_temper = 0.0
                 
                 # Try to get progress
                 try:
                     alternative_status.print_percent = self.bambu_client.get_percentage() or 0
-                except:
+                except (AttributeError, KeyError, TypeError, ValueError) as e:
+                    logger.debug("Failed to get print progress", printer_id=self.printer_id, error=str(e))
+                    alternative_status.print_percent = 0
+                except Exception as e:
+                    logger.warning("Unexpected error getting print progress", printer_id=self.printer_id, error=str(e), exc_info=True)
                     alternative_status.print_percent = 0
                     
                 # Try to get filename
@@ -409,7 +422,11 @@ class BambuLabPrinter(BasePrinter):
                                 break
                     if not hasattr(alternative_status, 'gcode_file'):
                         alternative_status.gcode_file = None
-                except:
+                except (AttributeError, KeyError, TypeError) as e:
+                    logger.debug("Failed to get filename", printer_id=self.printer_id, error=str(e))
+                    alternative_status.gcode_file = None
+                except Exception as e:
+                    logger.warning("Unexpected error getting filename", printer_id=self.printer_id, error=str(e), exc_info=True)
                     alternative_status.gcode_file = None
                 
                 # If we have temperature data, we can infer printing status

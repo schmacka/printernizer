@@ -225,8 +225,10 @@ class CameraSnapshotService:
                     )
                     try:
                         await connection.client.disconnect()
-                    except:
-                        pass
+                    except (ConnectionError, TimeoutError, OSError) as e:
+                        self._logger.debug("Failed to disconnect dead camera connection (expected)", printer_id=printer_id, error=str(e))
+                    except Exception as e:
+                        self._logger.warning("Unexpected error disconnecting camera", printer_id=printer_id, error=str(e))
                     del self._camera_clients[printer_id]
 
             # Create new camera client
