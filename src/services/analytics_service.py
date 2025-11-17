@@ -1,6 +1,112 @@
 """
 Analytics service for business reporting and statistics.
-This will be expanded in Phase 4 with complete business analytics.
+
+This module provides comprehensive analytics and reporting capabilities for
+3D print operations, including:
+
+- Dashboard statistics (jobs, runtime, material usage, costs)
+- Printer utilization analysis
+- Material consumption tracking and cost estimation
+- Business reporting (revenue, profit, customer analytics)
+- Data export (CSV, JSON formats)
+
+Implementation History:
+    - Initial placeholder implementation with TODOs
+    - Phase 1 (2025-11-17): Complete implementation of all 5 analytics methods
+    - All TODO comments removed, fully functional analytics system
+
+Key Features:
+    - Real-time dashboard statistics
+    - Time-based analytics (daily, weekly, monthly, custom ranges)
+    - Business vs. private job separation
+    - Material cost estimation (PLA, PETG, ABS, TPU, Nylon, ASA)
+    - Power cost estimation based on printer wattage
+    - Printer utilization calculation (24/7 availability baseline)
+    - Data export for external analysis
+
+Usage Examples:
+    ```python
+    from src.services.analytics_service import AnalyticsService
+
+    # Initialize service
+    analytics = AnalyticsService(database)
+
+    # Get dashboard stats
+    stats = await analytics.get_dashboard_stats()
+    print(f"Active printers: {stats['active_printers']}")
+    print(f"Total jobs: {stats['total_jobs']}")
+    print(f"Material used: {stats['material_used']} kg")
+    print(f"Estimated costs: €{stats['estimated_costs']}")
+
+    # Printer usage analysis (last 30 days)
+    usage = await analytics.get_printer_usage(days=30)
+    for printer in usage:
+        print(f"{printer['printer_name']}: {printer['utilization_percent']}% utilization")
+
+    # Material consumption tracking
+    materials = await analytics.get_material_consumption(days=30)
+    print(f"Total: {materials['total_consumption']} kg")
+    print(f"Cost: €{materials['total_cost']}")
+    for material, amount in materials['by_material'].items():
+        print(f"  {material}: {amount} kg")
+
+    # Business report
+    start = datetime(2025, 1, 1)
+    end = datetime(2025, 1, 31)
+    report = await analytics.get_business_report(start, end)
+    print(f"Revenue: €{report['revenue']}")
+    print(f"Profit: €{report['profit']}")
+
+    # Export data
+    from pathlib import Path
+    export_dir = Path("exports")
+    export_dir.mkdir(exist_ok=True)
+
+    result = await analytics.export_data(
+        format="csv",
+        filters={
+            "start_date": "2025-01-01",
+            "end_date": "2025-01-31",
+            "is_business": True
+        }
+    )
+    print(f"Exported to: {result['file_path']}")
+    ```
+
+Cost Estimation:
+    Material Costs (approximate market prices):
+        - PLA: €20/kg
+        - PETG: €25/kg
+        - ABS: €25/kg
+        - TPU: €35/kg
+        - Nylon: €40/kg
+        - ASA: €30/kg
+
+    Power Costs:
+        - Assumption: 200W average printer power consumption
+        - Rate: €0.30/kWh (configurable)
+        - Estimated: €0.002 per minute of printing
+
+    Note: Costs are estimates and should be calibrated to actual
+    material costs and electricity rates.
+
+Performance Considerations:
+    - Dashboard stats: Loads all jobs into memory (consider caching)
+    - Printer usage: Filtered by date range for efficiency
+    - Material consumption: Only processes completed jobs
+    - Export operations: Streams data for large datasets
+
+Error Handling:
+    All methods return fallback values on error to prevent frontend crashes:
+    - Dashboard stats: Returns zeros
+    - Printer usage: Returns empty list
+    - Material consumption: Returns empty breakdown
+    - Export: Returns error information
+
+See Also:
+    - src/database/repositories/job_repository.py - Job data access
+    - src/api/routers/analytics.py - API endpoints
+    - docs/technical-debt/COMPLETION-REPORT.md - Phase 1 implementation
 """
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -14,11 +120,55 @@ logger = structlog.get_logger()
 
 
 class AnalyticsService:
-    """Service for business analytics and reporting."""
+    """
+    Service for business analytics and reporting.
+
+    Provides analytics calculations and reporting capabilities for 3D print
+    operations. Integrates with JobRepository, PrinterRepository, and
+    FileRepository to aggregate data and generate insights.
+
+    The service uses repository pattern for database access and includes
+    comprehensive error handling with fallback values to ensure frontend
+    stability.
+
+    Attributes:
+        database: Database instance for connection management
+        printer_repo: PrinterRepository for printer data access
+        job_repo: JobRepository for job data access
+        file_repo: FileRepository for file data access
+    """
     
     def __init__(self, database: Database, printer_repository: PrinterRepository = None,
                  job_repository: JobRepository = None, file_repository: FileRepository = None):
-        """Initialize analytics service."""
+        """
+        Initialize analytics service with database and repositories.
+
+        The service can use either provided repository instances or create its own
+        from the database connection. This allows for flexible dependency injection
+        and easier testing with mock repositories.
+
+        Args:
+            database: Database instance for connection management
+            printer_repository: Optional PrinterRepository instance. If None, creates
+                a new one from database connection.
+            job_repository: Optional JobRepository instance. If None, creates
+                a new one from database connection.
+            file_repository: Optional FileRepository instance. If None, creates
+                a new one from database connection.
+
+        Example:
+            ```python
+            # Standard initialization (auto-creates repositories)
+            analytics = AnalyticsService(database)
+
+            # With dependency injection (for testing)
+            mock_job_repo = Mock(spec=JobRepository)
+            analytics = AnalyticsService(
+                database,
+                job_repository=mock_job_repo
+            )
+            ```
+        """
         self.database = database
         # Use provided repositories or create new ones from database connection
         self.printer_repo = printer_repository or PrinterRepository(database._connection)
@@ -26,7 +176,48 @@ class AnalyticsService:
         self.file_repo = file_repository or FileRepository(database._connection)
         
     async def get_dashboard_stats(self) -> Dict[str, Any]:
-        """Get main dashboard statistics."""
+        """
+        Get main dashboard statistics for the overview page.
+
+        Calculates comprehensive statistics across all jobs and printers including:
+        - Total job count (business vs. private)
+        - Active printer count
+        - Total runtime across all completed jobs
+        - Total material consumption (in kg)
+        - Estimated costs (material + power)
+
+        Returns:
+            Dictionary containing:
+                - total_jobs (int): Total number of jobs
+                - active_printers (int): Number of currently active printers
+                - total_runtime (int): Total print time in minutes
+                - material_used (float): Total material used in kg
+                - estimated_costs (float): Total estimated costs in EUR
+                - business_jobs (int): Count of business jobs
+                - private_jobs (int): Count of private jobs
+
+            On error, returns all values as 0 to prevent frontend crashes.
+
+        Performance:
+            Loads all jobs into memory. For large datasets (>10,000 jobs),
+            consider implementing caching or pagination.
+
+        Example:
+            ```python
+            stats = await analytics.get_dashboard_stats()
+
+            print(f"Total jobs: {stats['total_jobs']}")
+            print(f"  - Business: {stats['business_jobs']}")
+            print(f"  - Private: {stats['private_jobs']}")
+            print(f"Active printers: {stats['active_printers']}")
+            print(f"Material used: {stats['material_used']:.2f} kg")
+            print(f"Estimated costs: €{stats['estimated_costs']:.2f}")
+            ```
+
+        See Also:
+            - get_printer_usage(): For per-printer statistics
+            - get_material_consumption(): For detailed material breakdown
+        """
         try:
             # Get all jobs
             all_jobs = await self.job_repo.list()

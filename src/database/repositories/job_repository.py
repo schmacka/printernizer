@@ -1,5 +1,87 @@
 """
 Job repository for managing job-related database operations.
+
+This module provides data access methods for 3D print jobs, including job creation,
+tracking, status updates, and analytics queries.
+
+The JobRepository is part of the repository pattern implementation that replaced
+the monolithic Database class. It handles all job-related database operations,
+making it easy to:
+
+- Create and track print jobs
+- Update job status and progress
+- Query jobs with flexible filtering
+- Generate job statistics and analytics
+- Handle duplicate job detection
+
+Database Schema:
+    The jobs table tracks all print jobs with the following key fields:
+    - id (TEXT PRIMARY KEY): Unique job identifier
+    - printer_id (TEXT): Associated printer
+    - job_name (TEXT): Name of the print job
+    - filename (TEXT): Original file name
+    - status (TEXT): Current status (pending, printing, completed, failed, cancelled)
+    - start_time (DATETIME): When the job started
+    - end_time (DATETIME): When the job finished
+    - progress (INTEGER): Print progress (0-100)
+    - material_used (REAL): Amount of material used (grams)
+    - is_business (BOOLEAN): Whether this is a business order
+    - customer_info (TEXT): Customer information (JSON)
+
+    Indexes:
+    - idx_jobs_printer_id: Fast lookup by printer
+    - idx_jobs_status: Fast filtering by status
+    - idx_jobs_unique_print: Prevent duplicate jobs (printer_id + filename + start_time)
+
+Usage Examples:
+    ```python
+    from src.database.repositories import JobRepository
+
+    # Initialize
+    job_repo = JobRepository(db.connection)
+
+    # Create a new job
+    job = {
+        'id': 'bambu_printer1_20250117_103045',
+        'printer_id': 'bambu_a1_001',
+        'printer_type': 'bambu_lab',
+        'job_name': 'calibration_cube.gcode',
+        'filename': 'calibration_cube.3mf',
+        'status': 'pending',
+        'is_business': False
+    }
+    success = await job_repo.create(job)
+
+    # Update job status and progress
+    await job_repo.update('bambu_printer1_20250117_103045', {
+        'status': 'printing',
+        'progress': 50,
+        'start_time': datetime.now().isoformat()
+    })
+
+    # Query jobs
+    active_jobs = await job_repo.list(
+        printer_id='bambu_a1_001',
+        status='printing'
+    )
+
+    # Get business jobs only
+    business_jobs = await job_repo.list(is_business=True)
+
+    # Get job statistics
+    stats = await job_repo.get_statistics()
+    print(f"Success rate: {stats['success_rate']}%")
+    ```
+
+Error Handling:
+    - Duplicate jobs are handled gracefully (returns False from create())
+    - All database errors are logged with context
+    - Retry logic is inherited from BaseRepository
+
+See Also:
+    - src/services/job_service.py - Business logic using this repository
+    - src/api/routers/jobs.py - API endpoints
+    - docs/technical-debt/COMPLETION-REPORT.md - Phase 1 repository extraction
 """
 from typing import Optional, List, Dict, Any
 import sqlite3
@@ -11,7 +93,23 @@ logger = structlog.get_logger()
 
 
 class JobRepository(BaseRepository):
-    """Repository for job-related database operations."""
+    """
+    Repository for job-related database operations.
+
+    Provides CRUD operations and specialized queries for 3D print jobs.
+    Handles duplicate detection, status tracking, and job analytics.
+
+    Key Features:
+        - Duplicate job detection via UNIQUE constraint
+        - Flexible filtering (by printer, status, business flag)
+        - Efficient count queries for pagination
+        - Date range queries for analytics
+        - Job statistics and success rate calculation
+
+    Thread Safety:
+        Operations are atomic but the repository is not thread-safe.
+        Use connection pooling for concurrent access.
+    """
 
     async def create(self, job_data: Dict[str, Any]) -> bool:
         """
