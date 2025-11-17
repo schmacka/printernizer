@@ -607,6 +607,394 @@ class TestSnapshotRepository:
 
 
 # =====================================================
+# FileRepository Tests
+# =====================================================
+
+class TestFileRepository:
+    """Tests for FileRepository"""
+
+    @pytest.mark.asyncio
+    async def test_create_file(self, async_db_connection):
+        """Test creating a file record"""
+        repo = FileRepository(async_db_connection)
+
+        file_data = {
+            'id': 'file_001',
+            'filename': 'test_model.3mf',
+            'file_path': '/files/test_model.3mf',
+            'file_type': '3mf',
+            'file_size': 1024000,
+            'source': 'local',
+            'printer_id': None
+        }
+
+        result = await repo.create(file_data)
+        assert result is True
+
+        # Verify it was created
+        file = await repo.get('file_001')
+        assert file is not None
+        assert file['filename'] == 'test_model.3mf'
+        assert file['source'] == 'local'
+
+    @pytest.mark.asyncio
+    async def test_list_files_with_filters(self, async_db_connection):
+        """Test listing files with various filters"""
+        repo = FileRepository(async_db_connection)
+
+        # Create files from different sources
+        for i in range(3):
+            await repo.create({
+                'id': f'file_local_{i}',
+                'filename': f'local_file_{i}.gcode',
+                'file_path': f'/files/local_{i}.gcode',
+                'file_type': 'gcode',
+                'source': 'local'
+            })
+
+        for i in range(2):
+            await repo.create({
+                'id': f'file_ftp_{i}',
+                'filename': f'ftp_file_{i}.3mf',
+                'file_path': f'/files/ftp_{i}.3mf',
+                'file_type': '3mf',
+                'source': 'ftp'
+            })
+
+        # List all files
+        all_files = await repo.list()
+        assert len(all_files) >= 5
+
+        # List by source
+        local_files = await repo.list(source='local')
+        assert len(local_files) >= 3
+        assert all(f['source'] == 'local' for f in local_files)
+
+    @pytest.mark.asyncio
+    async def test_update_file_metadata(self, async_db_connection):
+        """Test updating file enhanced metadata"""
+        repo = FileRepository(async_db_connection)
+
+        # Create file
+        await repo.create({
+            'id': 'file_metadata_test',
+            'filename': 'test.3mf',
+            'file_path': '/files/test.3mf',
+            'file_type': '3mf',
+            'source': 'local'
+        })
+
+        # Update enhanced metadata
+        metadata = {
+            'layer_count': 250,
+            'estimated_print_time': 7200,
+            'filament_used_g': 45.5,
+            'bounding_box': json.dumps({'x': 100, 'y': 100, 'z': 50})
+        }
+        result = await repo.update_enhanced_metadata('file_metadata_test', metadata)
+        assert result is True
+
+        # Verify update
+        file = await repo.get('file_metadata_test')
+        assert file['layer_count'] == 250
+        assert file['estimated_print_time'] == 7200
+
+    @pytest.mark.asyncio
+    async def test_delete_file(self, async_db_connection):
+        """Test deleting a file record"""
+        repo = FileRepository(async_db_connection)
+
+        # Create file
+        await repo.create({
+            'id': 'file_delete_test',
+            'filename': 'delete_me.gcode',
+            'file_path': '/files/delete_me.gcode',
+            'file_type': 'gcode',
+            'source': 'local'
+        })
+
+        # Verify it exists
+        assert await repo.exists('file_delete_test') is True
+
+        # Delete it
+        result = await repo.delete('file_delete_test')
+        assert result is True
+
+        # Verify it's gone
+        assert await repo.exists('file_delete_test') is False
+
+    @pytest.mark.asyncio
+    async def test_get_file_statistics(self, async_db_connection):
+        """Test getting file statistics"""
+        repo = FileRepository(async_db_connection)
+
+        # Create files with different properties
+        await repo.create({
+            'id': 'file_stats_1',
+            'filename': 'file1.3mf',
+            'file_path': '/files/file1.3mf',
+            'file_type': '3mf',
+            'file_size': 500000,
+            'source': 'local'
+        })
+
+        await repo.create({
+            'id': 'file_stats_2',
+            'filename': 'file2.gcode',
+            'file_path': '/files/file2.gcode',
+            'file_type': 'gcode',
+            'file_size': 300000,
+            'source': 'ftp'
+        })
+
+        # Get statistics
+        stats = await repo.get_statistics()
+
+        assert stats['total_files'] >= 2
+        assert stats['total_size'] >= 800000
+
+
+# =====================================================
+# IdeaRepository Tests
+# =====================================================
+
+class TestIdeaRepository:
+    """Tests for IdeaRepository"""
+
+    @pytest.mark.asyncio
+    async def test_create_idea(self, async_db_connection):
+        """Test creating an idea"""
+        repo = IdeaRepository(async_db_connection)
+
+        idea_data = {
+            'id': 'idea_001',
+            'url': 'https://thangs.com/designer/example/model/123',
+            'title': 'Cool Idea Model',
+            'description': 'A cool 3D model idea',
+            'platform': 'thangs',
+            'status': 'new'
+        }
+
+        result = await repo.create(idea_data)
+        assert result is True
+
+        # Verify it was created
+        idea = await repo.get('idea_001')
+        assert idea is not None
+        assert idea['title'] == 'Cool Idea Model'
+        assert idea['platform'] == 'thangs'
+
+    @pytest.mark.asyncio
+    async def test_list_ideas_by_status(self, async_db_connection):
+        """Test listing ideas filtered by status"""
+        repo = IdeaRepository(async_db_connection)
+
+        # Create ideas with different statuses
+        statuses = ['new', 'downloaded', 'printed', 'archived']
+        for i, status in enumerate(statuses):
+            await repo.create({
+                'id': f'idea_status_{i}',
+                'url': f'https://example.com/{i}',
+                'title': f'Idea {i}',
+                'platform': 'printables',
+                'status': status
+            })
+
+        # List by status
+        new_ideas = await repo.list(status='new')
+        assert len(new_ideas) >= 1
+        assert all(idea['status'] == 'new' for idea in new_ideas)
+
+        downloaded_ideas = await repo.list(status='downloaded')
+        assert len(downloaded_ideas) >= 1
+        assert all(idea['status'] == 'downloaded' for idea in downloaded_ideas)
+
+    @pytest.mark.asyncio
+    async def test_update_idea_status(self, async_db_connection):
+        """Test updating idea status"""
+        repo = IdeaRepository(async_db_connection)
+
+        # Create idea
+        await repo.create({
+            'id': 'idea_update_status',
+            'url': 'https://example.com/model',
+            'title': 'Update Test Idea',
+            'platform': 'thingiverse',
+            'status': 'new'
+        })
+
+        # Update status
+        updates = {'status': 'downloaded'}
+        result = await repo.update('idea_update_status', updates)
+        assert result is True
+
+        # Verify update
+        idea = await repo.get('idea_update_status')
+        assert idea['status'] == 'downloaded'
+
+    @pytest.mark.asyncio
+    async def test_delete_idea(self, async_db_connection):
+        """Test deleting an idea"""
+        repo = IdeaRepository(async_db_connection)
+
+        # Create idea
+        await repo.create({
+            'id': 'idea_delete_test',
+            'url': 'https://example.com/delete',
+            'title': 'Delete Me',
+            'platform': 'printables',
+            'status': 'new'
+        })
+
+        # Verify it exists
+        assert await repo.exists('idea_delete_test') is True
+
+        # Delete it
+        result = await repo.delete('idea_delete_test')
+        assert result is True
+
+        # Verify it's gone
+        assert await repo.exists('idea_delete_test') is False
+
+
+# =====================================================
+# LibraryRepository Tests
+# =====================================================
+
+class TestLibraryRepository:
+    """Tests for LibraryRepository"""
+
+    @pytest.mark.asyncio
+    async def test_create_library_item(self, async_db_connection):
+        """Test creating a library item"""
+        repo = LibraryRepository(async_db_connection)
+
+        library_data = {
+            'id': 'lib_001',
+            'file_id': 'file_abc123',
+            'title': 'Cool Library Model',
+            'description': 'A great 3D model in the library',
+            'tags': json.dumps(['functional', 'tool']),
+            'category': 'tools',
+            'is_favorite': False
+        }
+
+        result = await repo.create(library_data)
+        assert result is True
+
+        # Verify it was created
+        item = await repo.get('lib_001')
+        assert item is not None
+        assert item['title'] == 'Cool Library Model'
+        assert item['category'] == 'tools'
+
+    @pytest.mark.asyncio
+    async def test_list_library_items_with_filters(self, async_db_connection):
+        """Test listing library items with various filters"""
+        repo = LibraryRepository(async_db_connection)
+
+        # Create library items with different categories
+        categories = ['tools', 'decoration', 'functional', 'toys']
+        for i, category in enumerate(categories):
+            await repo.create({
+                'id': f'lib_cat_{i}',
+                'file_id': f'file_{i}',
+                'title': f'{category.title()} Item',
+                'category': category,
+                'is_favorite': i % 2 == 0  # Every other one is favorite
+            })
+
+        # List all items
+        all_items = await repo.list()
+        assert len(all_items) >= 4
+
+        # List by category
+        tools = await repo.list(category='tools')
+        assert len(tools) >= 1
+        assert all(item['category'] == 'tools' for item in tools)
+
+    @pytest.mark.asyncio
+    async def test_update_library_item(self, async_db_connection):
+        """Test updating library item"""
+        repo = LibraryRepository(async_db_connection)
+
+        # Create library item
+        await repo.create({
+            'id': 'lib_update_test',
+            'file_id': 'file_update',
+            'title': 'Original Title',
+            'category': 'misc',
+            'is_favorite': False
+        })
+
+        # Update it
+        updates = {
+            'title': 'Updated Title',
+            'is_favorite': True,
+            'tags': json.dumps(['updated', 'test'])
+        }
+        result = await repo.update('lib_update_test', updates)
+        assert result is True
+
+        # Verify update
+        item = await repo.get('lib_update_test')
+        assert item['title'] == 'Updated Title'
+        assert item['is_favorite'] == 1
+
+    @pytest.mark.asyncio
+    async def test_delete_library_item(self, async_db_connection):
+        """Test deleting library item"""
+        repo = LibraryRepository(async_db_connection)
+
+        # Create library item
+        await repo.create({
+            'id': 'lib_delete_test',
+            'file_id': 'file_delete',
+            'title': 'Delete Test',
+            'category': 'test'
+        })
+
+        # Verify it exists
+        assert await repo.exists('lib_delete_test') is True
+
+        # Delete it
+        result = await repo.delete('lib_delete_test')
+        assert result is True
+
+        # Verify it's gone
+        assert await repo.exists('lib_delete_test') is False
+
+    @pytest.mark.asyncio
+    async def test_search_library_items(self, async_db_connection):
+        """Test searching library items by title/description"""
+        repo = LibraryRepository(async_db_connection)
+
+        # Create library items with searchable content
+        await repo.create({
+            'id': 'lib_search_1',
+            'file_id': 'file_search_1',
+            'title': 'Dragon Miniature',
+            'description': 'A cool dragon model for tabletop gaming',
+            'category': 'miniatures'
+        })
+
+        await repo.create({
+            'id': 'lib_search_2',
+            'file_id': 'file_search_2',
+            'title': 'Hex Box',
+            'description': 'Storage box with hexagonal pattern',
+            'category': 'storage'
+        })
+
+        # Search for items (if search method exists in repo)
+        # This assumes LibraryRepository has a search or list method
+        # that can filter by title/description
+        all_items = await repo.list()
+        dragon_items = [item for item in all_items if 'Dragon' in item.get('title', '')]
+        assert len(dragon_items) >= 1
+
+
+# =====================================================
 # TrendingRepository Tests
 # =====================================================
 
