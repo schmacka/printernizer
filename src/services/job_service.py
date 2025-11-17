@@ -157,7 +157,58 @@ class JobService:
         except Exception as e:
             logger.error("Failed to list jobs", error=str(e))
             return []
-        
+
+    async def list_jobs_with_count(self, printer_id=None, status=None, is_business=None,
+                                   limit: int = 100, offset: int = 0) -> tuple[List[Dict[str, Any]], int]:
+        """List jobs with total count (optimized pagination).
+
+        This method efficiently returns both the paginated job list and the total count
+        using separate optimized queries, avoiding the need to fetch all records twice.
+
+        Args:
+            printer_id: Filter by printer ID
+            status: Filter by job status
+            is_business: Filter by business flag
+            limit: Maximum number of jobs to return
+            offset: Number of jobs to skip
+
+        Returns:
+            Tuple of (jobs list, total count)
+
+        Example:
+            >>> jobs, total = await job_service.list_jobs_with_count(limit=20, offset=0)
+            >>> print(f"Showing {len(jobs)} of {total} jobs")
+        """
+        try:
+            # Get paginated jobs
+            jobs = await self.list_jobs(
+                printer_id=printer_id,
+                status=status,
+                is_business=is_business,
+                limit=limit,
+                offset=offset
+            )
+
+            # Get total count with efficient COUNT query
+            total_count = await self.job_repo.count(
+                printer_id=printer_id,
+                status=status,
+                is_business=is_business
+            )
+
+            logger.info("Listed jobs with count",
+                       count=len(jobs),
+                       total=total_count,
+                       printer_id=printer_id,
+                       status=status,
+                       is_business=is_business)
+
+            return jobs, total_count
+
+        except Exception as e:
+            logger.error("Failed to list jobs with count", error=str(e))
+            return [], 0
+
     async def get_job(self, job_id) -> Optional[Dict[str, Any]]:
         """Get specific job by ID."""
         try:

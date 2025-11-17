@@ -120,6 +120,7 @@ class JobRepository(BaseRepository):
 
     async def list(self, printer_id: Optional[str] = None,
                   status: Optional[str] = None,
+                  is_business: Optional[bool] = None,
                   limit: Optional[int] = None,
                   offset: int = 0) -> List[Dict[str, Any]]:
         """
@@ -128,6 +129,7 @@ class JobRepository(BaseRepository):
         Args:
             printer_id: Filter by printer ID
             status: Filter by job status
+            is_business: Filter by business flag (True/False/None for all)
             limit: Maximum number of jobs to return
             offset: Number of jobs to skip
 
@@ -146,6 +148,10 @@ class JobRepository(BaseRepository):
                 query += " AND status = ?"
                 params.append(status)
 
+            if is_business is not None:
+                query += " AND is_business = ?"
+                params.append(1 if is_business else 0)
+
             query += " ORDER BY created_at DESC"
 
             if limit:
@@ -159,9 +165,52 @@ class JobRepository(BaseRepository):
             logger.error("Failed to list jobs",
                         printer_id=printer_id,
                         status=status,
+                        is_business=is_business,
                         error=str(e),
                         exc_info=True)
             return []
+
+    async def count(self, printer_id: Optional[str] = None,
+                   status: Optional[str] = None,
+                   is_business: Optional[bool] = None) -> int:
+        """
+        Count jobs with optional filtering (efficient COUNT query).
+
+        Args:
+            printer_id: Filter by printer ID
+            status: Filter by job status
+            is_business: Filter by business flag (True/False/None for all)
+
+        Returns:
+            Total count of jobs matching filters
+        """
+        try:
+            query = "SELECT COUNT(*) as count FROM jobs WHERE 1=1"
+            params: List[Any] = []
+
+            if printer_id:
+                query += " AND printer_id = ?"
+                params.append(printer_id)
+
+            if status:
+                query += " AND status = ?"
+                params.append(status)
+
+            if is_business is not None:
+                query += " AND is_business = ?"
+                params.append(1 if is_business else 0)
+
+            row = await self._fetch_one(query, params)
+            return row['count'] if row else 0
+
+        except Exception as e:
+            logger.error("Failed to count jobs",
+                        printer_id=printer_id,
+                        status=status,
+                        is_business=is_business,
+                        error=str(e),
+                        exc_info=True)
+            return 0
 
     async def get_by_date_range(self, start_date: str, end_date: str,
                                 printer_id: Optional[str] = None) -> List[Dict[str, Any]]:

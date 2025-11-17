@@ -291,6 +291,80 @@ class FileService:
 
         return files
 
+    async def get_files_with_count(
+        self,
+        printer_id: Optional[str] = None,
+        include_local: bool = True,
+        status: Optional[str] = None,
+        source: Optional[str] = None,
+        has_thumbnail: Optional[bool] = None,
+        search: Optional[str] = None,
+        limit: Optional[int] = None,
+        order_by: Optional[str] = "created_at",
+        order_dir: Optional[str] = "desc",
+        page: Optional[int] = 1
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """
+        Get files with total count (optimized pagination).
+
+        This method efficiently returns both the paginated file list and the total count,
+        avoiding the need to fetch all records twice.
+
+        Args:
+            printer_id: Filter by specific printer ID
+            include_local: Include local watch folder files
+            status: Filter by file status
+            source: Filter by file source
+            has_thumbnail: Filter by thumbnail availability
+            search: Search term for filename filtering
+            limit: Maximum number of results per page
+            order_by: Field to sort by
+            order_dir: Sort direction ('asc' or 'desc')
+            page: Page number (1-indexed)
+
+        Returns:
+            Tuple of (files list, total count)
+
+        Example:
+            >>> files, total = await file_service.get_files_with_count(limit=20, page=1)
+            >>> print(f"Showing {len(files)} of {total} files")
+
+        Notes:
+            - This method applies filters in memory after fetching from repository
+            - Count reflects the filtered results, not raw database count
+        """
+        # Get all files without pagination first (for accurate count after filtering)
+        all_files = await self.get_files(
+            printer_id=printer_id,
+            include_local=include_local,
+            status=status,
+            source=source,
+            has_thumbnail=has_thumbnail,
+            search=search,
+            limit=None,  # No limit to get all for counting
+            order_by=order_by,
+            order_dir=order_dir,
+            page=1
+        )
+
+        total_count = len(all_files)
+
+        # Now apply pagination to get the subset
+        if limit and page:
+            start_idx = (page - 1) * limit if page > 1 else 0
+            paginated_files = all_files[start_idx:start_idx + limit]
+        else:
+            paginated_files = all_files
+
+        logger.info("Got files with count",
+                   count=len(paginated_files),
+                   total=total_count,
+                   printer_id=printer_id,
+                   status=status,
+                   source=source)
+
+        return paginated_files, total_count
+
     async def get_file_by_id(self, file_id: str) -> Optional[Dict[str, Any]]:
         """
         Get file information by ID.
