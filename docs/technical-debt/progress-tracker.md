@@ -703,16 +703,17 @@ finally:
 ### 4.1 Improve Type Hints
 **Priority**: P3
 **Effort**: Ongoing
-**Status**: 🔄 In Progress (Batches 1-2 complete - 19% done)
+**Status**: 🔄 In Progress (Batches 1-3 complete - 39% done)
 **Assigned To**: Claude
 **Started**: 2025-11-17
 
 #### Checklist
-- [x] **Add Missing Return Types** (Batches 1-2: 13 methods across 6 files)
+- [x] **Add Missing Return Types** (Batches 1-3: 27 methods across 12 files)
   - [x] Identify functions without return types (31 files found)
   - [x] Batch 1: Add type hints to 3 files (config, event, file_discovery)
   - [x] Batch 2: Add type hints to 3 files (camera, bambu_ftp, timelapse)
-  - [ ] Add type hints to remaining 25 service files (Batches 3-4)
+  - [x] Batch 3: Add type hints to 6 files (monitoring, printer_monitoring, printer_connection, file_watcher, material, trending)
+  - [ ] Add type hints to remaining 19 service files (Batch 4)
   - [ ] Use TypedDict for complex structures
 - [ ] **Document Type Ignores**
   - [ ] database.py:351
@@ -735,9 +736,14 @@ finally:
   - camera_snapshot_service.py, bambu_ftp_service.py, timelapse_service.py
   - Added AsyncGenerator type for context managers
   - Committed in b6373a8
+- **Batch 3** (2025-11-17): Added type hints to 14 methods in 6 core services
+  - monitoring_service.py, printer_monitoring_service.py, printer_connection_service.py
+  - file_watcher_service.py, material_service.py, trending_service.py
+  - Enhanced monitoring, initialization, and event handler type safety
+  - Committed in 15c373a
 
 **Branch**: claude/complete-phase-3-01HN3D2tjyE4vfcg33QXNT6V (reusing Phase 3 branch)
-**Commits**: 12287af (batch 1), b6373a8 (batch 2)
+**Commits**: 12287af (batch 1), b6373a8 (batch 2), 15c373a (batch 3)
 **Completed**: _In progress - ongoing incremental improvements_
 
 ---
