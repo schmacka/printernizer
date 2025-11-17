@@ -3,6 +3,11 @@
 from fastapi import Depends, Request
 
 from src.database.database import Database
+from src.database.repositories import (
+    SnapshotRepository,
+    TrendingRepository,
+    IdeaRepository
+)
 from src.services.config_service import ConfigService
 from src.services.printer_service import PrinterService
 from src.services.job_service import JobService
@@ -23,6 +28,27 @@ from src.services.camera_snapshot_service import CameraSnapshotService
 async def get_database(request: Request) -> Database:
     """Get database instance from app state."""
     return request.app.state.database
+
+
+async def get_snapshot_repository(
+    database: Database = Depends(get_database)
+) -> SnapshotRepository:
+    """Get snapshot repository instance."""
+    return SnapshotRepository(database._connection)
+
+
+async def get_trending_repository(
+    database: Database = Depends(get_database)
+) -> TrendingRepository:
+    """Get trending repository instance."""
+    return TrendingRepository(database._connection)
+
+
+async def get_idea_repository(
+    database: Database = Depends(get_database)
+) -> IdeaRepository:
+    """Get idea repository instance."""
+    return IdeaRepository(database._connection)
 
 
 async def get_config_service(request: Request) -> ConfigService:
