@@ -531,11 +531,16 @@ Phase 4 (Low):          [███░░░░░░░] 16% (3/19 tasks) 🔄 I
   - [x] Add localStorage persistence for debug flag
   - [x] Add timestamp formatting
   - [x] Add group/table/time logging methods
-- [x] **Replace Console Statements** (40+ occurrences)
+- [x] **Replace Console Statements** (71+ occurrences total)
   - [x] download-logger.js (6 replacements)
   - [x] theme-switcher.js (5 replacements)
-  - [x] Identified 33 files with console statements
-  - [x] Key files updated (logger integrated)
+  - [x] Batch 3 (31 replacements across 13 files):
+    - main.js, printers.js, files.js, library.js, settings.js
+    - components.js, search.js, utils.js, config.js
+    - error-handler.js, download-queue.js, thumbnail-queue.js
+    - auto-download-init.js
+  - [x] Identified all files with console statements
+  - [x] Debug tools (debug.js, download-debug.js) intentionally retain console for debugging
 - [x] **Add Debug Mode Toggle**
   - [x] Add URL parameter support (?debug=true)
   - [x] Add localStorage API (enableDebug/disableDebug)
