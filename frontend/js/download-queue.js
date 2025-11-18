@@ -55,7 +55,7 @@ class DownloadQueue {
 
         // Check if already in queue or processing
         if (this.isTaskInQueue(task.id) || this.processing.has(task.id)) {
-            console.warn(`Download task ${task.id} already exists`);
+            Logger.warn(`Download task ${task.id} already exists`);
             return false;
         }
 

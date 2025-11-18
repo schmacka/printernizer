@@ -322,7 +322,7 @@ class FileManager {
         try {
             const printerFilter = document.getElementById('filePrinterFilter');
             if (!printerFilter) {
-                console.warn('Printer filter dropdown not found');
+                Logger.warn('Printer filter dropdown not found');
                 return;
             }
 
@@ -349,7 +349,7 @@ class FileManager {
                 });
 
                 if (response.length === 0) {
-                    console.warn('No printers found in response');
+                    Logger.warn('No printers found in response');
                 }
             } else {
                 Logger.error('Invalid printers response format:', response);
@@ -711,7 +711,7 @@ class FileManager {
             const response = await api.getFileMetadata(fileId);
             return response;
         } catch (error) {
-            console.warn('Failed to load metadata for file:', fileId, error);
+            Logger.warn('Failed to load metadata for file:', fileId, error);
             return null;
         }
     }
@@ -730,7 +730,7 @@ class FileManager {
             // Return thumbnail URL
             return `${CONFIG.API_BASE_URL}/files/${fileId}/thumbnail`;
         } catch (error) {
-            console.warn('Failed to load thumbnail for file:', fileId, error);
+            Logger.warn('Failed to load thumbnail for file:', fileId, error);
             return null;
         }
     }
@@ -1449,7 +1449,7 @@ class FileManager {
                     await this.loadWatchFolders();
                     await this.loadDiscoveredFiles();
                 } catch (reloadError) {
-                    console.warn('Error reloading after folder addition:', reloadError);
+                    Logger.warn('Error reloading after folder addition:', reloadError);
                     // Don't show error to user - folder was added successfully
                 }
             }
@@ -1497,11 +1497,11 @@ class FileManager {
                     await this.loadFiles(1);
                     Logger.debug('[removeWatchFolder] UI reload completed');
                 } catch (reloadError) {
-                    console.warn('Error reloading after folder removal:', reloadError);
+                    Logger.warn('Error reloading after folder removal:', reloadError);
                     showToast('warning', 'Hinweis', 'Verzeichnis wurde entfernt, aber Anzeige konnte nicht aktualisiert werden. Bitte Seite neu laden.');
                 }
             } else {
-                console.warn('[removeWatchFolder] Unexpected response status:', response.status);
+                Logger.warn('[removeWatchFolder] Unexpected response status:', response.status);
             }
 
         } catch (error) {

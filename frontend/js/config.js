@@ -5,7 +5,10 @@
 
 // Debug logging helper
 const debugLog = (message, data = {}) => {
-    if (window.location.search.includes('debug=true') || localStorage.getItem('printernizer_debug') === 'true') {
+    if (typeof Logger !== 'undefined' && Logger.isDebug()) {
+        Logger.debug(`[Printernizer Config] ${message}`, data);
+    } else if (window.location.search.includes('debug=true') || localStorage.getItem('printernizer_debug') === 'true') {
+        // Fallback to console.log if Logger not available yet
         console.log(`[Printernizer Config] ${message}`, data);
     }
 };

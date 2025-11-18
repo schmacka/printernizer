@@ -34,16 +34,16 @@ class PrinterCard {
                 </div>
                 <div class="printer-actions">
                     ${this.renderMonitoringToggle()}
-                    <button class="btn btn-sm btn-secondary" onclick="showPrinterDetails('${this.printer.id}')" title="Details anzeigen">
+                    <button class="btn btn-sm btn-secondary" onclick="showPrinterDetails('${sanitizeAttribute(this.printer.id)}')" title="Details anzeigen">
                         <span class="btn-icon">👁️</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="showPrinterFiles('${this.printer.id}')" title="Drucker-Dateien">
+                    <button class="btn btn-sm btn-secondary" onclick="showPrinterFiles('${sanitizeAttribute(this.printer.id)}')" title="Drucker-Dateien">
                         <span class="btn-icon">📁</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="editPrinter('${this.printer.id}')" title="Bearbeiten">
+                    <button class="btn btn-sm btn-secondary" onclick="editPrinter('${sanitizeAttribute(this.printer.id)}')" title="Bearbeiten">
                         <span class="btn-icon">✏️</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="triggerCurrentJobDownload('${this.printer.id}')" title="Aktuelle Druckdatei herunterladen & Thumbnail verarbeiten">
+                    <button class="btn btn-sm btn-secondary" onclick="triggerCurrentJobDownload('${sanitizeAttribute(this.printer.id)}')" title="Aktuelle Druckdatei herunterladen & Thumbnail verarbeiten">
                         <span class="btn-icon">🖼️</span>
                     </button>
                 </div>
@@ -52,7 +52,7 @@ class PrinterCard {
                 <div class="printer-status-row">
                     <div class="printer-status-info">
                         <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
-                        <span class="printer-ip text-muted">${this.printer.ip_address}</span>
+                        <span class="printer-ip text-muted">${escapeHtml(this.printer.ip_address)}</span>
                         ${this.renderLastCommunication()}
                     </div>
                     <div class="printer-quick-stats">
@@ -457,7 +457,7 @@ class PrinterCard {
                     const status = await api.getPrinterStatus(this.printer.id);
                     this.updateRealtimeData(status);
                 } catch (error) {
-                    console.warn(`Failed to update printer ${this.printer.id} status:`, error);
+                    Logger.warn(`Failed to update printer ${this.printer.id} status:`, error);
                 }
             }, CONFIG.PRINTER_STATUS_INTERVAL);
             
@@ -1042,7 +1042,7 @@ class FileListItem {
                 }
             };
             preloadImg.onerror = () => {
-                console.warn('Failed to load animated preview:', animatedUrl);
+                Logger.warn('Failed to load animated preview:', animatedUrl);
             };
             preloadImg.src = animatedUrl;
         };
@@ -1674,7 +1674,7 @@ class DruckerDateienManager {
                         }));
                         files = files.concat(printerFiles);
                     } catch (error) {
-                        console.warn(`Failed to load files for printer ${printer.name}:`, error);
+                        Logger.warn(`Failed to load files for printer ${printer.name}:`, error);
                     }
                 }
             }

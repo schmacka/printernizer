@@ -253,10 +253,10 @@ class JobManager {
         const actionsCell = document.createElement('td');
         actionsCell.innerHTML = `
             <div class="action-buttons">
-                ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(' + job.id + ')">⏸️</button>' : ''}
-                ${job.status === 'paused' ? '<button class="btn-icon" title="Fortsetzen" onclick="jobManager.resumeJob(' + job.id + ')">▶️</button>' : ''}
-                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="Abbrechen" onclick="jobManager.cancelJob(' + job.id + ')">⏹️</button>' : ''}
-                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(' + job.id + ')">ℹ️</button>
+                ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(\'' + sanitizeAttribute(job.id) + '\')">⏸️</button>' : ''}
+                ${job.status === 'paused' ? '<button class="btn-icon" title="Fortsetzen" onclick="jobManager.resumeJob(\'' + sanitizeAttribute(job.id) + '\')">▶️</button>' : ''}
+                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="Abbrechen" onclick="jobManager.cancelJob(\'' + sanitizeAttribute(job.id) + '\')">⏹️</button>' : ''}
+                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(\'' + sanitizeAttribute(job.id) + '\')">ℹ️</button>
             </div>
         `;
         row.appendChild(actionsCell);

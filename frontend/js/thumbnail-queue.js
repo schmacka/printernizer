@@ -49,7 +49,7 @@ class ThumbnailQueue {
 
         // Check if already in queue or processing
         if (this.isTaskInQueue(task.id) || this.processing.has(task.id)) {
-            console.warn(`Thumbnail task ${task.id} already exists`);
+            Logger.warn(`Thumbnail task ${task.id} already exists`);
             return false;
         }
 
@@ -58,7 +58,7 @@ class ThumbnailQueue {
         const typeInfo = this.supportedTypes[fileExt.toLowerCase()];
 
         if (!typeInfo) {
-            console.warn(`Unsupported file type for thumbnail: ${fileExt}`);
+            Logger.warn(`Unsupported file type for thumbnail: ${fileExt}`);
             return false;
         }
 

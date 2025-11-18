@@ -240,17 +240,17 @@ class LibraryManager {
         const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
         return `
-            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${file.checksum}">
+            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${sanitizeAttribute(file.checksum)}">
                 <div class="file-card-thumbnail">
                     ${thumbnailUrl
-                        ? `<img src="${thumbnailUrl}" alt="${file.filename}" loading="lazy">`
+                        ? `<img src="${sanitizeUrl(thumbnailUrl)}" alt="${sanitizeAttribute(file.filename)}" loading="lazy">`
                         : `<div class="thumbnail-placeholder">${this.getFileTypeIcon(file.file_type)}</div>`
                     }
                     ${statusBadge}
                     ${duplicateBadge}
                 </div>
                 <div class="file-card-info">
-                    <div class="file-card-name" title="${file.filename}">${file.filename}</div>
+                    <div class="file-card-name" title="${sanitizeAttribute(file.filename)}">${escapeHtml(file.filename)}</div>
                     <div class="file-card-meta">
                         ${sourceIcon}
                         <span class="file-size">${this.formatFileSize(file.file_size)}</span>
@@ -294,7 +294,7 @@ class LibraryManager {
             // Parse JSON string
             return JSON.parse(sources);
         } catch (e) {
-            console.warn('Failed to parse sources:', e);
+            Logger.warn('Failed to parse sources:', e);
             return [];
         }
     }
@@ -1030,7 +1030,7 @@ class LibraryManager {
     setupDragAndDrop() {
         const libraryGrid = document.getElementById('libraryFilesGrid');
         if (!libraryGrid) {
-            console.warn('Library grid not found, drag-and-drop disabled');
+            Logger.warn('Library grid not found, drag-and-drop disabled');
             return;
         }
 
@@ -1313,7 +1313,7 @@ window.handleManualFileUpload = async function(event) {
         // Reset the file input so the same files can be selected again if needed
         event.target.value = '';
     } else {
-        console.warn('No files selected from file input');
+        Logger.warn('No files selected from file input');
     }
 };
 
