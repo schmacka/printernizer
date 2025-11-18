@@ -15,6 +15,7 @@ import json
 
 import structlog
 
+from src.database.repositories import LibraryRepository
 from src.services.bambu_parser import BambuParser
 from src.services.stl_analyzer import STLAnalyzer
 from src.services.preview_render_service import PreviewRenderService
