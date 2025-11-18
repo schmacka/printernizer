@@ -193,7 +193,7 @@ class JobManager {
             Logger.error('Failed to load jobs:', error);
             const jobsTable = document.getElementById('jobsTableBody');
             if (jobsTable && this.currentPage === 1) {
-                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>Fehler beim Laden: ${error.message}</p></td></tr>`;
+                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>Fehler beim Laden: ${escapeHtml(error.message)}</p></td></tr>`;
             }
         }
     }

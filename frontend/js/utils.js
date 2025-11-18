@@ -626,7 +626,7 @@ function showSettingsModal(settingsTab, sourcePage) {
     if (modalTitle && sourcePage) {
         modalTitle.innerHTML = `
             <button class="breadcrumb-back" onclick="closeSettingsModal()">
-                ← Zurück zu ${sourcePage}
+                ← Zurück zu ${escapeHtml(sourcePage)}
             </button>
             <span class="breadcrumb-separator">/</span>
             <span>Einstellungen</span>
@@ -752,7 +752,7 @@ function updateSettingsBreadcrumb() {
     if (sourcePage) {
         const backButton = breadcrumb.querySelector('.breadcrumb-back');
         if (backButton) {
-            backButton.innerHTML = `← Zurück zu ${sourcePage}`;
+            backButton.innerHTML = `← Zurück zu ${escapeHtml(sourcePage)}`;
         }
         breadcrumb.style.display = 'block';
     } else {
@@ -886,9 +886,9 @@ function getStatusConfig(type, status) {
         'job': CONFIG.JOB_STATUS,
         'file': CONFIG.FILE_STATUS
     };
-    
+
     return configs[type]?.[status] || {
-        label: status,
+        label: escapeHtml(status),  // Escape unknown status values for safety
         icon: '❓',
         class: 'status-unknown'
     };
@@ -1226,7 +1226,9 @@ async function checkForUpdates(currentVersion) {
 
             if (data.update_available) {
                 Logger.debug('[Update Check] Update available:', data.latest_version);
-                updateStatusElement.innerHTML = `<a href="${data.release_url || 'https://github.com/schmacka/printernizer/releases/latest'}" target="_blank" title="Update available: v${data.latest_version}">Update available</a>`;
+                const releaseUrl = sanitizeUrl(data.release_url || 'https://github.com/schmacka/printernizer/releases/latest');
+                const version = escapeHtml(data.latest_version);
+                updateStatusElement.innerHTML = `<a href="${releaseUrl}" target="_blank" title="Update available: v${version}">Update available</a>`;
                 updateStatusElement.className = 'update-status outdated';
 
                 // Show a notification
