@@ -29,6 +29,8 @@ from dataclasses import dataclass
 
 import structlog
 
+from src.config.constants import PollingIntervals
+
 from src.services.bambu_camera_client import BambuLabCameraClient, CameraConnectionError
 from src.constants import CameraConstants
 
@@ -72,7 +74,7 @@ class CameraSnapshotService:
 
         self._logger = logger.bind(service="camera_snapshot")
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the snapshot service and background tasks."""
         if self._running:
             self._logger.warning("Service already running")
@@ -82,7 +84,7 @@ class CameraSnapshotService:
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
         self._logger.info("Camera snapshot service started")
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """Shutdown service and cleanup all connections."""
         self._logger.info("Shutting down camera snapshot service")
         self._running = False
@@ -225,8 +227,10 @@ class CameraSnapshotService:
                     )
                     try:
                         await connection.client.disconnect()
-                    except:
-                        pass
+                    except (ConnectionError, TimeoutError, OSError) as e:
+                        self._logger.debug("Failed to disconnect dead camera connection (expected)", printer_id=printer_id, error=str(e))
+                    except Exception as e:
+                        self._logger.warning("Unexpected error disconnecting camera", printer_id=printer_id, error=str(e))
                     del self._camera_clients[printer_id]
 
             # Create new camera client
@@ -295,7 +299,7 @@ class CameraSnapshotService:
 
         while self._running:
             try:
-                await asyncio.sleep(30)  # Run every 30 seconds
+                await asyncio.sleep(PollingIntervals.CAMERA_SNAPSHOT_INTERVAL)  # Run every 30 seconds
                 await self._cleanup_idle_connections()
             except asyncio.CancelledError:
                 break

@@ -83,27 +83,27 @@ class PrintFileHandler(FileSystemEventHandler):
         self._debounce_events[file_path] = now
         return True
     
-    def on_created(self, event: FileSystemEvent):
+    def on_created(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""
         if not event.is_directory and self.should_process_file(event.src_path):
             if self._debounce_event(event.src_path):
                 logger.info("New print file detected", file_path=event.src_path)
                 asyncio.create_task(self.file_watcher._handle_file_created(event.src_path))
-    
-    def on_modified(self, event: FileSystemEvent):
+
+    def on_modified(self, event: FileSystemEvent) -> None:
         """Handle file modification events."""
         if not event.is_directory and self.should_process_file(event.src_path):
             if self._debounce_event(event.src_path):
                 logger.debug("Print file modified", file_path=event.src_path)
                 asyncio.create_task(self.file_watcher._handle_file_modified(event.src_path))
-    
-    def on_deleted(self, event: FileSystemEvent):
+
+    def on_deleted(self, event: FileSystemEvent) -> None:
         """Handle file deletion events."""
         if not event.is_directory and self.should_process_file(event.src_path):
             logger.info("Print file deleted", file_path=event.src_path)
             asyncio.create_task(self.file_watcher._handle_file_deleted(event.src_path))
     
-    def on_moved(self, event: FileSystemEvent):
+    def on_moved(self, event: FileSystemEvent) -> None:
         """Handle file move/rename events."""
         if hasattr(event, 'dest_path'):
             if not event.is_directory and self.should_process_file(event.dest_path):
@@ -132,7 +132,7 @@ class FileWatcherService:
         # Initialize file handler
         self._file_handler = PrintFileHandler(self)
     
-    async def start(self):
+    async def start(self) -> None:
         """Start file watcher service."""
         if self._is_running:
             logger.warning("File watcher service already running")
@@ -542,7 +542,7 @@ class FileWatcherService:
             'supported_extensions': list(self._file_handler.SUPPORTED_EXTENSIONS)
         }
     
-    async def reload_watch_folders(self):
+    async def reload_watch_folders(self) -> None:
         """Reload watch folders from configuration."""
         if not self._is_running:
             logger.warning("Cannot reload: file watcher not running")

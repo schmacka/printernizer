@@ -14,7 +14,7 @@ let activePrinterCards = new Map();
 async function togglePrinterMonitoring(printerId) {
     const printerCard = activePrinterCards.get(printerId);
     if (!printerCard) {
-        console.error(`Printer card not found for ID: ${printerId}`);
+        Logger.error(`Printer card not found for ID: ${printerId}`);
         return;
     }
 
@@ -27,7 +27,7 @@ async function togglePrinterMonitoring(printerId) {
             showToast('Überwachung gestartet', 'success');
         }
     } catch (error) {
-        console.error('Failed to toggle monitoring:', error);
+        Logger.error('Failed to toggle monitoring:', error);
         showToast(`Fehler: ${error.message}`, 'error');
     }
 }
@@ -62,7 +62,7 @@ async function showPrinterFiles(printerId) {
         druckerDateienManager = fileManager;
 
     } catch (error) {
-        console.error('Failed to show printer files:', error);
+        Logger.error('Failed to show printer files:', error);
         showToast('Fehler beim Laden der Dateien', 'error');
     }
 }
@@ -97,7 +97,7 @@ async function showDruckerDateienManager() {
         druckerDateienManager = fileManager;
 
     } catch (error) {
-        console.error('Failed to show file manager:', error);
+        Logger.error('Failed to show file manager:', error);
         showToast('Fehler beim Laden des Datei-Managers', 'error');
     }
 }
@@ -154,7 +154,7 @@ async function showPrinterStatusHistory(printerId) {
         modal.statusChart = chart;
 
     } catch (error) {
-        console.error('Failed to show status history:', error);
+        Logger.error('Failed to show status history:', error);
         showToast('Fehler beim Laden der Verlaufsdaten', 'error');
     }
 }
@@ -184,7 +184,7 @@ async function downloadFile(fileId) {
     if (druckerDateienManager) {
         await druckerDateienManager.downloadFile(fileId);
     } else {
-        console.error('DruckerDateienManager not initialized');
+        Logger.error('DruckerDateienManager not initialized');
         showToast('Datei-Manager nicht verfügbar', 'error');
     }
 }
@@ -194,7 +194,7 @@ async function downloadFile(fileId) {
  */
 async function downloadAllAvailable() {
     if (!druckerDateienManager) {
-        console.error('DruckerDateienManager not initialized');
+        Logger.error('DruckerDateienManager not initialized');
         return;
     }
 
@@ -216,7 +216,7 @@ async function downloadAllAvailable() {
             await druckerDateienManager.downloadFile(file.id);
             successCount++;
         } catch (error) {
-            console.error(`Failed to download ${file.filename}:`, error);
+            Logger.error(`Failed to download ${file.filename}:`, error);
             errorCount++;
         }
     }
@@ -233,7 +233,7 @@ async function downloadSelected() {
     // Find the active modal and its file manager
     const activeModal = document.querySelector('.modal.show');
     if (!activeModal || !activeModal.fileManager) {
-        console.error('DruckerDateienManager not initialized');
+        Logger.error('DruckerDateienManager not initialized');
         showToast('Datei-Manager nicht verfügbar', 'error');
         return;
     }
@@ -282,7 +282,7 @@ async function downloadSelected() {
                 checkbox.checked = false;
             }
         } catch (error) {
-            console.error(`Failed to download ${file.filename}:`, error);
+            Logger.error(`Failed to download ${file.filename}:`, error);
             errorCount++;
             errors.push(`${file.filename}: ${error.message}`);
         }
@@ -296,7 +296,7 @@ async function downloadSelected() {
     let message = `${successCount} Dateien erfolgreich heruntergeladen`;
     if (errorCount > 0) {
         message += `, ${errorCount} Fehler`;
-        console.error('Download errors:', errors);
+        Logger.error('Download errors:', errors);
     }
 
     showToast(message, errorCount > 0 ? 'warning' : 'success');
@@ -407,7 +407,7 @@ async function deleteLocalFile(fileId) {
         }
         showToast('Datei erfolgreich gelöscht', 'success');
     } catch (error) {
-        console.error('Failed to delete file:', error);
+        Logger.error('Failed to delete file:', error);
         showToast('Fehler beim Löschen der Datei', 'error');
     }
 }
@@ -418,7 +418,7 @@ async function deleteLocalFile(fileId) {
 function updateChartPeriod(hours) {
     // This would be called by the chart component
     // Implementation would depend on which chart is active
-    console.log(`Updating chart period to ${hours} hours`);
+    Logger.debug(`Updating chart period to ${hours} hours`);
 }
 
 /**
@@ -485,10 +485,10 @@ async function initializeMilestone12Features() {
             window.wsManager.addMessageHandler('job_update', handleRealtimeJobUpdate);
         }
 
-        console.log('Milestone 1.2 features initialized successfully');
+        Logger.debug('Milestone 1.2 features initialized successfully');
         
     } catch (error) {
-        console.error('Failed to initialize Milestone 1.2 features:', error);
+        Logger.error('Failed to initialize Milestone 1.2 features:', error);
     }
 }
 
@@ -530,7 +530,7 @@ function handleRealtimeJobUpdate(data) {
  * Enhanced error handling for Milestone 1.2 features
  */
 function handleMilestone12Error(error, context = '') {
-    console.error(`Milestone 1.2 Error ${context}:`, error);
+    Logger.error(`Milestone 1.2 Error ${context}:`, error);
     
     let userMessage = 'Ein unerwarteter Fehler ist aufgetreten';
     

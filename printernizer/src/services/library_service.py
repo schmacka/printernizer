@@ -15,9 +15,16 @@ import json
 
 import structlog
 
+from src.database.repositories import LibraryRepository
 from src.services.bambu_parser import BambuParser
 from src.services.stl_analyzer import STLAnalyzer
 from src.services.preview_render_service import PreviewRenderService
+from src.services.filament_colors import (
+    extract_colors_from_filament_ids,
+    extract_color_from_name,
+    get_primary_color,
+    format_color_list
+)
 import base64
 
 logger = structlog.get_logger()
@@ -36,6 +43,7 @@ class LibraryService:
             event_service: Event service for notifications
         """
         self.database = database
+        self.library_repo = LibraryRepository(database._connection)
         self.config_service = config_service
         self.event_service = event_service
 
@@ -62,7 +70,7 @@ class LibraryService:
                    library_path=str(self.library_path),
                    enabled=self.enabled)
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize library folders and verify configuration."""
         if not self.enabled:
             logger.info("Library system disabled")
@@ -372,7 +380,7 @@ class LibraryService:
 
             # Save to database (handle race condition with UNIQUE constraint)
             try:
-                success = await self.database.create_library_file(file_record)
+                success = await self.library_repo.create_file(file_record)
 
                 if not success:
                     # Database insert failed - likely race condition
@@ -403,7 +411,7 @@ class LibraryService:
             # If this is a duplicate, increment the duplicate_count on the original file
             if is_duplicate and original_file:
                 current_count = original_file.get('duplicate_count', 0)
-                await self.database.update_library_file(original_file['checksum'], {
+                await self.library_repo.update_file(original_file['checksum'], {
                     'duplicate_count': current_count + 1
                 })
                 logger.info("Incremented duplicate count on original file",
@@ -445,7 +453,7 @@ class LibraryService:
         Returns:
             File record or None if not found
         """
-        return await self.database.get_library_file_by_checksum(checksum)
+        return await self.library_repo.get_file_by_checksum(checksum)
 
     async def get_file_by_id(self, file_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -457,7 +465,7 @@ class LibraryService:
         Returns:
             File record or None if not found
         """
-        return await self.database.get_library_file(file_id)
+        return await self.library_repo.get_file(file_id)
 
     async def list_files(self, filters: Dict[str, Any] = None,
                         page: int = 1, limit: int = 50) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -478,9 +486,9 @@ class LibraryService:
         Returns:
             Tuple of (files list, pagination info)
         """
-        return await self.database.list_library_files(filters, page, limit)
+        return await self.library_repo.list_files(filters, page, limit)
 
-    async def add_file_source(self, checksum: str, source_info: Dict[str, Any]):
+    async def add_file_source(self, checksum: str, source_info: Dict[str, Any]) -> None:
         """
         Add a source to an existing file.
 
@@ -508,14 +516,14 @@ class LibraryService:
             sources.append(source_info)
 
             # Update database
-            await self.database.update_library_file(checksum, {
+            await self.library_repo.update_file(checksum, {
                 'sources': json.dumps(sources)
             })
 
             logger.info("Added source to file", checksum=checksum[:16], source_type=source_info.get('type'))
 
         # Add to junction table
-        await self.database.create_library_file_source({
+        await self.library_repo.create_file_source({
             'file_checksum': checksum,
             'source_type': source_info.get('type'),
             'source_id': source_info.get('printer_id') or source_info.get('folder_path'),
@@ -553,8 +561,8 @@ class LibraryService:
                     logger.info("Deleted physical file", path=str(library_path))
 
             # Delete from database
-            await self.database.delete_library_file(checksum)
-            await self.database.delete_library_file_sources(checksum)
+            await self.library_repo.delete_file(checksum)
+            await self.library_repo.delete_file_sources(checksum)
 
             logger.info("File deleted from library", checksum=checksum[:16])
 
@@ -577,7 +585,7 @@ class LibraryService:
         Returns:
             Statistics dictionary
         """
-        return await self.database.get_library_stats()
+        return await self.library_repo.get_stats()
 
     def _map_parser_metadata_to_db(self, parser_metadata: Dict[str, Any], parser_thumbnails: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -728,17 +736,46 @@ class LibraryService:
                 types = [t.strip() for t in types.split(';') if t.strip()]
             db_fields['material_types'] = json.dumps(types)
 
-        # Filament IDs: Unique identifiers for spools
-        # Could be used for color extraction with lookup table
-        # Example: "GFL00;GFL01" = Bambu Lab filament IDs
+        # Filament IDs and Colors: Extract color information from filament IDs
+        # Uses mapping table for Bambu Lab filament IDs (GFL series)
+        # Example: "GFL00;GFL02" → ["Black", "Red"]
+        filament_colors = []
+
         if 'filament_ids' in parser_metadata:
             ids = parser_metadata['filament_ids']
             if isinstance(ids, str):
                 ids = [i.strip() for i in ids.split(';') if i.strip()]
-            # TODO: Implement color extraction from filament ID database
-            # Would need mapping table: filament_id → color_name
-            # For now, just document the IDs are available
-            # db_fields['filament_colors'] = json.dumps(ids)
+                # Extract colors from filament IDs using mapping table
+                filament_colors = extract_colors_from_filament_ids(ids)
+
+        # Fallback: Try to extract color from filename if no filament IDs
+        # This helps with files from other slicers or manually named files
+        if not filament_colors and 'filename' in parser_metadata:
+            filename = parser_metadata['filename']
+            detected_color = extract_color_from_name(filename)
+            if detected_color:
+                filament_colors = [detected_color]
+
+        # Store extracted color information in database
+        if filament_colors:
+            # Store full color list as JSON array (supports multi-color prints)
+            # Example: ["Black", "White", "Red"]
+            db_fields['filament_colors'] = json.dumps(filament_colors)
+
+            # Store primary (first/dominant) color for filtering and sorting
+            # Simplifies queries like "show all red prints"
+            primary_color = get_primary_color(filament_colors)
+            if primary_color:
+                db_fields['primary_color'] = primary_color
+
+            # Store human-readable color string for UI display
+            # Example: "Black & White" or "Red, Green & Blue"
+            db_fields['color_display'] = format_color_list(filament_colors)
+
+            logger.debug("Extracted filament colors",
+                        colors=filament_colors,
+                        primary=primary_color,
+                        display=db_fields['color_display'])
 
         # ==================== COMPATIBILITY INFORMATION ====================
         # Track which printers/slicers created this file for troubleshooting
@@ -848,7 +885,7 @@ class LibraryService:
             self._processing_files.add(checksum)
 
             # Update status to processing
-            await self.database.update_library_file(checksum, {
+            await self.library_repo.update_file(checksum, {
                 'status': 'processing'
             })
 
@@ -965,7 +1002,7 @@ class LibraryService:
                 'last_analyzed': datetime.now().isoformat()
             }
 
-            await self.database.update_library_file(checksum, update_fields)
+            await self.library_repo.update_file(checksum, update_fields)
 
             logger.info("Metadata extraction completed",
                        checksum=checksum[:16],
@@ -973,7 +1010,7 @@ class LibraryService:
 
         except Exception as e:
             logger.error("Metadata extraction failed", checksum=checksum[:16], error=str(e))
-            await self.database.update_library_file(checksum, {
+            await self.library_repo.update_file(checksum, {
                 'status': 'error',
                 'error_message': str(e)
             })

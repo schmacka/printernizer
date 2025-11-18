@@ -29,7 +29,7 @@ class LibraryManager {
      * Initialize library manager
      */
     async initialize() {
-        console.log('Initializing Library Manager');
+        Logger.debug('Initializing Library Manager');
         this.setupEventListeners();
         await this.loadStatistics();
         await this.loadFiles();
@@ -156,7 +156,7 @@ class LibraryManager {
             document.getElementById('statAnalyzed').textContent = stats.files_analyzed || 0;
 
         } catch (error) {
-            console.error('Failed to load statistics:', error);
+            Logger.error('Failed to load statistics:', error);
             this.showError('Fehler beim Laden der Statistiken');
         }
     }
@@ -193,7 +193,7 @@ class LibraryManager {
             this.renderPagination(data.pagination);
 
         } catch (error) {
-            console.error('Failed to load files:', error);
+            Logger.error('Failed to load files:', error);
             this.showError('Fehler beim Laden der Dateien');
         } finally {
             this.isLoading = false;
@@ -485,7 +485,7 @@ class LibraryManager {
             this.setupFileDetailActions(fullFile);
 
         } catch (error) {
-            console.error('Failed to load file details:', error);
+            Logger.error('Failed to load file details:', error);
             content.innerHTML = '<div class="error">Fehler beim Laden der Details</div>';
         }
     }
@@ -734,7 +734,7 @@ class LibraryManager {
      */
     async reprocessFile(checksum) {
         try {
-            console.log('[reprocessFile] Starting re-analysis', checksum.substring(0, 16));
+            Logger.debug('[reprocessFile] Starting re-analysis', checksum.substring(0, 16));
 
             // Show loading state on button
             const btn = document.getElementById('reprocessFileBtn');
@@ -753,7 +753,7 @@ class LibraryManager {
             }
 
             const result = await response.json();
-            console.log('[reprocessFile] Reprocess triggered', result);
+            Logger.debug('[reprocessFile] Reprocess triggered', result);
 
             showToast('success', 'Analyse gestartet', 'Datei wird neu analysiert. Dies kann einige Sekunden dauern.');
 
@@ -761,7 +761,7 @@ class LibraryManager {
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             // Reload file details to show updated metadata
-            console.log('[reprocessFile] Reloading file details');
+            Logger.debug('[reprocessFile] Reloading file details');
             await this.showFileDetail({ checksum });
 
             // Reset button state
@@ -773,7 +773,7 @@ class LibraryManager {
             showToast('success', 'Analyse abgeschlossen', 'Metadaten wurden aktualisiert');
 
         } catch (error) {
-            console.error('[reprocessFile] Failed to reprocess file:', error);
+            Logger.error('[reprocessFile] Failed to reprocess file:', error);
 
             // Reset button state
             const btn = document.getElementById('reprocessFileBtn');
@@ -791,7 +791,7 @@ class LibraryManager {
      */
     async bulkReanalyze() {
         try {
-            console.log('[bulkReanalyze] Starting bulk re-analysis');
+            Logger.debug('[bulkReanalyze] Starting bulk re-analysis');
 
             // Ask for confirmation
             const confirmed = confirm(
@@ -801,7 +801,7 @@ class LibraryManager {
             );
 
             if (!confirmed) {
-                console.log('[bulkReanalyze] User cancelled');
+                Logger.debug('[bulkReanalyze] User cancelled');
                 return;
             }
 
@@ -825,7 +825,7 @@ class LibraryManager {
             }
 
             const result = await response.json();
-            console.log('[bulkReanalyze] Result:', result);
+            Logger.debug('[bulkReanalyze] Result:', result);
 
             // Reset button
             if (btn) {
@@ -850,7 +850,7 @@ class LibraryManager {
             );
 
         } catch (error) {
-            console.error('[bulkReanalyze] Failed:', error);
+            Logger.error('[bulkReanalyze] Failed:', error);
 
             // Reset button
             const btn = document.getElementById('bulkReanalyzeBtn');
@@ -880,7 +880,7 @@ class LibraryManager {
             await this.loadStatistics();
 
         } catch (error) {
-            console.error('Failed to delete file:', error);
+            Logger.error('Failed to delete file:', error);
             this.showError('Fehler beim Löschen der Datei');
         }
     }
@@ -929,7 +929,7 @@ class LibraryManager {
      * Show error message
      */
     showError(message) {
-        console.error(message);
+        Logger.error(message);
         // Could integrate with notification system
         alert(message);
     }
@@ -938,7 +938,7 @@ class LibraryManager {
      * Show success message
      */
     showSuccess(message) {
-        console.log(message);
+        Logger.debug(message);
         // Could integrate with notification system
         alert(message);
     }
@@ -1073,14 +1073,14 @@ class LibraryManager {
             }
         });
 
-        console.log('Drag-and-drop upload enabled for library grid');
+        Logger.debug('Drag-and-drop upload enabled for library grid');
     }
 
     /**
      * Handle dropped files
      */
     async handleFileDrop(files) {
-        console.log('Files dropped:', files.length);
+        Logger.debug('Files dropped:', files.length);
 
         // Validate files
         const validFiles = [];
@@ -1125,7 +1125,7 @@ class LibraryManager {
      * Upload files to the server
      */
     async uploadFiles(files) {
-        console.log('Uploading files:', files.length);
+        Logger.debug('Uploading files:', files.length);
 
         // Show upload overlay
         this.showUploadOverlay(files);
@@ -1152,7 +1152,7 @@ class LibraryManager {
             }
 
             const result = await response.json();
-            console.log('Upload result:', result);
+            Logger.debug('Upload result:', result);
 
             // Show success message
             if (result.success_count > 0) {
@@ -1174,7 +1174,7 @@ class LibraryManager {
             await this.loadStatistics();
 
         } catch (error) {
-            console.error('Upload error:', error);
+            Logger.error('Upload error:', error);
             this.showToast(`Upload failed: ${error.message}`, 'error');
         } finally {
             this.hideUploadOverlay();
@@ -1240,7 +1240,7 @@ class LibraryManager {
         }
 
         // Fallback to simple alert
-        console.log(`[${type.toUpperCase()}] ${message}`);
+        Logger.debug(`[${type.toUpperCase()}] ${message}`);
 
         // Create simple toast
         const toast = document.createElement('div');
@@ -1274,27 +1274,27 @@ const libraryManager = new LibraryManager();
 
 // Export init function for page manager
 libraryManager.init = function() {
-    console.log('Library page initialized');
+    Logger.debug('Library page initialized');
     this.initialize();
 };
 
 // Global function to trigger file upload picker
 // Explicitly attach to window object to ensure it's available globally
 window.triggerFileUpload = function() {
-    console.log('triggerFileUpload called');
+    Logger.debug('triggerFileUpload called');
     const fileInput = document.getElementById('libraryFileInput');
     if (fileInput) {
-        console.log('File input found, triggering click');
+        Logger.debug('File input found, triggering click');
         // iOS Safari requires the click to be triggered directly from user interaction
         // Use try-catch to handle any security restrictions
         try {
             fileInput.click();
         } catch (error) {
-            console.error('Error triggering file input click:', error);
+            Logger.error('Error triggering file input click:', error);
             alert('Unable to open file picker. Please try again.');
         }
     } else {
-        console.error('File input not found');
+        Logger.error('File input not found');
         alert('File input not found. Please refresh the page.');
     }
 };
@@ -1302,12 +1302,12 @@ window.triggerFileUpload = function() {
 // Global function to handle manual file upload
 // Explicitly attach to window object to ensure it's available globally
 window.handleManualFileUpload = async function(event) {
-    console.log('handleManualFileUpload called', event);
+    Logger.debug('handleManualFileUpload called', event);
     const files = Array.from(event.target.files);
-    console.log('Files selected:', files.length, files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+    Logger.debug('Files selected:', files.length, files.map(f => ({ name: f.name, type: f.type, size: f.size })));
 
     if (files.length > 0) {
-        console.log('Processing', files.length, 'file(s) for upload');
+        Logger.debug('Processing', files.length, 'file(s) for upload');
         await libraryManager.handleFileDrop(files);
 
         // Reset the file input so the same files can be selected again if needed
@@ -1320,7 +1320,7 @@ window.handleManualFileUpload = async function(event) {
 // Global function to refresh the library
 // Explicitly attach to window object to ensure it's available globally
 window.refreshLibrary = async function() {
-    console.log('Refreshing library...');
+    Logger.debug('Refreshing library...');
     await libraryManager.loadFiles();
 };
 

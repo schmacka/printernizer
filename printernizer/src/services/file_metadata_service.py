@@ -14,6 +14,7 @@ from datetime import datetime
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import FileRepository
 from src.services.event_service import EventService
 from src.services.bambu_parser import BambuParser
 
@@ -60,6 +61,7 @@ class FileMetadataService:
             event_service: Event service for emitting metadata events
         """
         self.database = database
+        self.file_repo = FileRepository(database._connection)
         self.event_service = event_service
         self.bambu_parser = BambuParser()
 
@@ -107,7 +109,7 @@ class FileMetadataService:
             logger.info("Extracting enhanced metadata", file_id=file_id)
 
             # Get file record
-            file_record = await self.database.get_file(file_id)
+            file_record = await self.file_repo.get(file_id)
             if not file_record:
                 logger.error("File not found", file_id=file_id)
                 return None
@@ -156,7 +158,7 @@ class FileMetadataService:
                 )
 
                 # Update file record with enhanced metadata
-                await self.database.update_file_enhanced_metadata(
+                await self.file_repo.update_enhanced_metadata(
                     file_id=file_id,
                     enhanced_metadata=enhanced_model.model_dump(),
                     last_analyzed=datetime.now()

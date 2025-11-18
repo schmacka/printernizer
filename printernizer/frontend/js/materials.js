@@ -34,7 +34,7 @@ class MaterialsManager {
             // Render initial view
             this.render();
         } catch (error) {
-            console.error('Failed to initialize materials manager:', error);
+            Logger.error('Failed to initialize materials manager:', error);
             this.showError('Fehler beim Laden der Filamente');
         }
     }
@@ -44,7 +44,7 @@ class MaterialsManager {
             // Use ApiClient which properly handles ingress paths
             this.enums = await api.get('materials/types');
         } catch (error) {
-            console.error('Failed to load material types:', error);
+            Logger.error('Failed to load material types:', error);
             // Set default enums if fetch fails
             this.enums = {
                 types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
@@ -71,7 +71,7 @@ class MaterialsManager {
             this.applyClientFilters();
             this.applySorting();
         } catch (error) {
-            console.error('Failed to load materials:', error);
+            Logger.error('Failed to load materials:', error);
             this.showError('Fehler beim Laden der Filamente');
         }
     }
@@ -171,7 +171,7 @@ class MaterialsManager {
             if (statLowStock) statLowStock.textContent = stats.low_stock_count || 0;
             if (statTotalValue) statTotalValue.textContent = `${Number(stats.total_value || 0).toFixed(2)}`;
         } catch (error) {
-            console.error('Error updating stats:', error);
+            Logger.error('Error updating stats:', error);
         }
     }
 
@@ -507,7 +507,7 @@ class MaterialsManager {
             const url = materialId ? `/api/v1/materials/${materialId}` : '/api/v1/materials';
             const method = materialId ? 'PATCH' : 'POST';
 
-            console.log('Saving material:', { url, method, data });
+            Logger.debug('Saving material:', { url, method, data });
 
             const response = await fetch(url, {
                 method,
@@ -517,7 +517,7 @@ class MaterialsManager {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Save failed:', { status: response.status, errorData });
+                Logger.error('Save failed:', { status: response.status, errorData });
                 throw new Error(errorData.detail || `HTTP ${response.status}`);
             }
 
@@ -526,7 +526,7 @@ class MaterialsManager {
             this.render();
             this.showSuccess(materialId ? 'Filament aktualisiert' : 'Filament hinzugefügt');
         } catch (error) {
-            console.error('Failed to save material:', error);
+            Logger.error('Failed to save material:', error);
             this.showError('Fehler beim Speichern: ' + error.message);
         }
     }
@@ -542,7 +542,7 @@ class MaterialsManager {
             this.render();
             this.showSuccess('Filament gelöscht');
         } catch (error) {
-            console.error('Failed to delete material:', error);
+            Logger.error('Failed to delete material:', error);
             this.showError('Fehler beim Löschen');
         }
     }
@@ -645,12 +645,12 @@ class MaterialsManager {
 
     showSuccess(message) {
         // TODO: Implement toast notification
-        console.log('Success:', message);
+        Logger.debug('Success:', message);
     }
 
     showError(message) {
         // TODO: Implement toast notification
-        console.error('Error:', message);
+        Logger.error('Error:', message);
     }
 }
 

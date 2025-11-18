@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import IdeaRepository, TrendingRepository
 from src.models.idea import Idea, TrendingItem
 from src.services.url_parser_service import UrlParserService
 
@@ -17,8 +18,12 @@ logger = structlog.get_logger()
 class IdeaService:
     """Service for managing ideas and trending models."""
 
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, idea_repository: Optional[IdeaRepository] = None,
+                 trending_repository: Optional[TrendingRepository] = None):
         self.db = db
+        # Use provided repositories or create new ones from database connection
+        self.idea_repo = idea_repository or IdeaRepository(db._connection)
+        self.trending_repo = trending_repository or TrendingRepository(db._connection)
         self.url_parser = UrlParserService()
 
     async def create_idea(self, idea_data: Dict[str, Any]) -> Optional[str]:
@@ -45,13 +50,13 @@ class IdeaService:
                 db_data['metadata'] = json.dumps(db_data['metadata'])
 
             # Create idea in database
-            success = await self.db.create_idea(db_data)
+            success = await self.idea_repo.create(db_data)
             if not success:
                 raise RuntimeError("Failed to create idea in database")
 
             # Add tags if provided
             if idea_data.get('tags'):
-                await self.db.add_idea_tags(idea.id, idea_data['tags'])
+                await self.idea_repo.add_tags(idea.id, idea_data['tags'])
 
             logger.info("Idea created", idea_id=idea.id, title=idea.title)
             return idea.id
@@ -64,7 +69,7 @@ class IdeaService:
         """Get idea by ID."""
         try:
             # Get idea from database
-            idea_data = await self.db.get_idea(idea_id)
+            idea_data = await self.idea_repo.get(idea_id)
             if not idea_data:
                 return None
 
@@ -76,7 +81,7 @@ class IdeaService:
                     idea_data['metadata'] = None
 
             # Get tags
-            tags = await self.db.get_idea_tags(idea_id)
+            tags = await self.idea_repo.get_tags(idea_id)
             idea_data['tags'] = tags
 
             return Idea.from_dict(idea_data)
@@ -93,7 +98,7 @@ class IdeaService:
             offset = (page - 1) * page_size
 
             # Get ideas from database
-            ideas_data = await self.db.list_ideas(
+            ideas_data = await self.idea_repo.list(
                 status=filters.get('status'),
                 is_business=filters.get('is_business'),
                 category=filters.get('category'),
@@ -112,7 +117,7 @@ class IdeaService:
                         idea_data['metadata'] = None
 
                 # Get tags for each idea
-                tags = await self.db.get_idea_tags(idea_data['id'])
+                tags = await self.idea_repo.get_tags(idea_data['id'])
                 idea_data['tags'] = tags
 
                 ideas.append(Idea.from_dict(idea_data))
@@ -142,18 +147,18 @@ class IdeaService:
             tags = updates.pop('tags', None)
 
             # Update idea in database
-            success = await self.db.update_idea(idea_id, updates)
+            success = await self.idea_repo.update(idea_id, updates)
             if not success:
                 return False
 
             # Update tags if provided
             if tags is not None:
                 # Remove existing tags and add new ones
-                existing_tags = await self.db.get_idea_tags(idea_id)
+                existing_tags = await self.idea_repo.get_tags(idea_id)
                 if existing_tags:
-                    await self.db.remove_idea_tags(idea_id, existing_tags)
+                    await self.idea_repo.remove_tags(idea_id, existing_tags)
                 if tags:
-                    await self.db.add_idea_tags(idea_id, tags)
+                    await self.idea_repo.add_tags(idea_id, tags)
 
             logger.info("Idea updated", idea_id=idea_id)
             return True
@@ -165,7 +170,7 @@ class IdeaService:
     async def delete_idea(self, idea_id: str) -> bool:
         """Delete an idea."""
         try:
-            success = await self.db.delete_idea(idea_id)
+            success = await self.idea_repo.delete(idea_id)
             if success:
                 logger.info("Idea deleted", idea_id=idea_id)
             return success
@@ -177,7 +182,7 @@ class IdeaService:
     async def update_idea_status(self, idea_id: str, status: str) -> bool:
         """Update idea status."""
         try:
-            success = await self.db.update_idea_status(idea_id, status)
+            success = await self.idea_repo.update_status(idea_id, status)
             if success:
                 logger.info("Idea status updated", idea_id=idea_id, status=status)
             return success
@@ -189,7 +194,7 @@ class IdeaService:
     async def get_all_tags(self) -> List[Dict[str, Any]]:
         """Get all available tags with usage counts."""
         try:
-            return await self.db.get_all_tags()
+            return await self.idea_repo.get_all_tags()
         except Exception as e:
             logger.error("Failed to get all tags", error=str(e))
             return []
@@ -197,7 +202,7 @@ class IdeaService:
     async def get_statistics(self) -> Dict[str, Any]:
         """Get idea statistics."""
         try:
-            return await self.db.get_idea_statistics()
+            return await self.idea_repo.get_statistics()
         except Exception as e:
             logger.error("Failed to get idea statistics", error=str(e))
             return {}
@@ -260,7 +265,7 @@ class IdeaService:
                     'expires_at': expires_at.isoformat()
                 }
 
-                await self.db.upsert_trending(trending_data)
+                await self.trending_repo.upsert(trending_data)
 
             logger.info("Trending models cached", platform=platform, count=len(models))
             return True
@@ -273,7 +278,7 @@ class IdeaService:
                           category: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get trending models from cache."""
         try:
-            trending_data = await self.db.get_trending(platform, category)
+            trending_data = await self.trending_repo.list(platform, category)
             return [TrendingItem.from_dict(item).to_dict() for item in trending_data]
 
         except Exception as e:
@@ -285,7 +290,7 @@ class IdeaService:
         """Save a trending model as a personal idea."""
         try:
             # Get trending item
-            trending_items = await self.db.get_trending()
+            trending_items = await self.trending_repo.list()
             trending_item = next((item for item in trending_items if item['id'] == trending_id), None)
 
             if not trending_item:
@@ -320,7 +325,7 @@ class IdeaService:
     async def cleanup_expired_trending(self) -> bool:
         """Clean up expired trending cache entries."""
         try:
-            success = await self.db.clean_expired_trending()
+            success = await self.trending_repo.clean_expired()
             if success:
                 logger.info("Expired trending items cleaned up")
             return success
