@@ -264,7 +264,7 @@ class NavigationPreferencesUIManager {
         if (window.showToast) {
             window.showToast('success', 'Navigation', message);
         } else {
-            console.log(message);
+            Logger.debug(message);
         }
     }
 
@@ -275,7 +275,7 @@ class NavigationPreferencesUIManager {
         if (window.showToast) {
             window.showToast('error', 'Navigation', message);
         } else {
-            console.error(message);
+            Logger.error(message);
         }
     }
 }

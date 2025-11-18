@@ -26,7 +26,7 @@ class AutoDownloadUI {
         // Start periodic UI updates
         this.startPeriodicUpdates();
 
-        console.log('🖥️ Auto-Download UI initialized');
+        Logger.debug('🖥️ Auto-Download UI initialized');
     }
 
     /**

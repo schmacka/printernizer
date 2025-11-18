@@ -40,7 +40,7 @@ class PrinternizerApp {
      * Initialize the application
      */
     init() {
-        console.log('Initializing Printernizer application');
+        Logger.debug('Initializing Printernizer application');
 
         // Apply navigation preferences
         if (window.navigationPreferencesManager) {
@@ -64,7 +64,7 @@ class PrinternizerApp {
         // Check initial connection
         this.checkSystemHealth();
 
-        console.log('Printernizer application initialized');
+        Logger.debug('Printernizer application initialized');
     }
 
     /**
@@ -132,7 +132,7 @@ class PrinternizerApp {
      */
     showPage(pageName, updateHistory = true) {
         if (!this.isValidPage(pageName)) {
-            console.error('Invalid page name:', pageName);
+            Logger.error('Invalid page name:', pageName);
             return;
         }
         
@@ -163,7 +163,7 @@ class PrinternizerApp {
         if (pageElement) {
             pageElement.classList.add('active');
         } else {
-            console.error(`Could not find page element for: ${pageName}`);
+            Logger.error(`Could not find page element for: ${pageName}`);
         }
         
         if (navElement) {
@@ -201,7 +201,7 @@ class PrinternizerApp {
             }
         }
         
-        console.log(`Navigated to page: ${pageName}`);
+        Logger.debug(`Navigated to page: ${pageName}`);
     }
 
     /**
@@ -210,13 +210,13 @@ class PrinternizerApp {
     setupErrorHandling() {
         // Handle uncaught errors
         window.addEventListener('error', (e) => {
-            console.error('Global error:', e.error);
+            Logger.error('Global error:', e.error);
             showToast('error', 'Anwendungsfehler', 'Ein unerwarteter Fehler ist aufgetreten');
         });
         
         // Handle unhandled promise rejections
         window.addEventListener('unhandledrejection', (e) => {
-            console.error('Unhandled promise rejection:', e.reason);
+            Logger.error('Unhandled promise rejection:', e.reason);
             showToast('error', 'Anwendungsfehler', 'Ein unerwarteter Fehler ist aufgetreten');
         });
     }
@@ -227,10 +227,10 @@ class PrinternizerApp {
     async checkSystemHealth() {
         try {
             const health = await api.getHealth();
-            console.log('System health check:', health);
+            Logger.debug('System health check:', health);
 
             if (health.status === 'healthy') {
-                console.log('System is healthy');
+                Logger.debug('System is healthy');
                 // Store backend status globally for other components
                 window.printernizer = window.printernizer || {};
                 window.printernizer.backendHealthy = true;
@@ -243,7 +243,7 @@ class PrinternizerApp {
                 });
             }
         } catch (error) {
-            console.error('Health check failed:', error);
+            Logger.error('Health check failed:', error);
             window.printernizer = window.printernizer || {};
             window.printernizer.backendHealthy = false;
             showToast('error', 'Verbindungsfehler', 'Backend-Server ist nicht erreichbar', CONFIG.TOAST_DURATION, {
@@ -411,7 +411,7 @@ function setupKeyboardShortcuts() {
  * Application initialization
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing application...');
+    Logger.debug('DOM loaded, initializing application...');
 
     // Create global app instance
     window.app = new PrinternizerApp();
@@ -424,11 +424,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load version after app initialization (with delay to ensure DOM is ready)
     setTimeout(() => {
-        console.log('[Main] Loading app version after initialization');
+        Logger.debug('[Main] Loading app version after initialization');
         if (typeof loadAppVersion === 'function') {
             loadAppVersion();
         } else {
-            console.error('[Main] loadAppVersion function not found');
+            Logger.error('[Main] loadAppVersion function not found');
         }
     }, 500);
 
@@ -447,10 +447,10 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         // Page became hidden - pause refresh intervals
-        console.log('Page hidden, pausing refresh intervals');
+        Logger.debug('Page hidden, pausing refresh intervals');
     } else {
         // Page became visible - resume refresh intervals
-        console.log('Page visible, resuming refresh intervals');
+        Logger.debug('Page visible, resuming refresh intervals');
         
         // Refresh current page if it's been a while
         const currentManager = app.pageManagers[app.currentPage];
@@ -586,8 +586,8 @@ function showFullThumbnail(fileId, filename) {
 }
 
 // Export for debugging purposes
-console.log('Printernizer application ready');
-console.log('Available global objects:', {
+Logger.debug('Printernizer application ready');
+Logger.debug('Available global objects:', {
     app: window.app,
     api: window.api || api,
     wsClient: window.wsClient || wsClient,

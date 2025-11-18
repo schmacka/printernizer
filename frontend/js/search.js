@@ -163,7 +163,7 @@ class SearchManager {
             const suggestions = await api.getSearchSuggestions(query, 10);
             this.renderSuggestions(suggestions);
         } catch (error) {
-            console.error('Failed to load suggestions:', error);
+            Logger.error('Failed to load suggestions:', error);
         }
     }
 
@@ -182,7 +182,7 @@ class SearchManager {
                 this.renderSuggestions(suggestions, 'Recent Searches');
             }
         } catch (error) {
-            console.error('Failed to load search history:', error);
+            Logger.error('Failed to load search history:', error);
         }
     }
 
@@ -261,7 +261,7 @@ class SearchManager {
     async loadSearchResults() {
         const resultsContainer = document.getElementById('search-results-container');
         if (!resultsContainer) {
-            console.error('Search results container not found');
+            Logger.error('Search results container not found');
             return;
         }
 
@@ -283,7 +283,7 @@ class SearchManager {
 
             this.renderSearchResults(results);
         } catch (error) {
-            console.error('Search failed:', error);
+            Logger.error('Search failed:', error);
             resultsContainer.innerHTML = `
                 <div class="error-state">
                     <p>Search failed: ${escapeHtml(error.message)}</p>

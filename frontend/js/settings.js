@@ -17,7 +17,7 @@ class SettingsManager {
      * Initialize settings page
      */
     async init() {
-        console.log('Initializing settings manager');
+        Logger.debug('Initializing settings manager');
 
         // Load current settings
         await this.loadSettings();
@@ -40,25 +40,25 @@ class SettingsManager {
         this.indexSettings();
 
         this.lastRefresh = new Date();
-        console.log('Settings manager initialized');
+        Logger.debug('Settings manager initialized');
     }
 
     /**
      * Switch between settings tabs
      */
     switchTab(tabName) {
-        console.log('Switching to tab:', tabName);
+        Logger.debug('Switching to tab:', tabName);
 
         try {
             // Validate tab name
             if (!tabName || typeof tabName !== 'string') {
-                console.error('Invalid tab name:', tabName);
+                Logger.error('Invalid tab name:', tabName);
                 return;
             }
 
             // Update tab buttons - remove active from all tabs
             const allTabs = document.querySelectorAll('.settings-tab');
-            console.log(`Found ${allTabs.length} tab buttons`);
+            Logger.debug(`Found ${allTabs.length} tab buttons`);
             allTabs.forEach(tab => {
                 tab.classList.remove('active');
                 tab.setAttribute('aria-selected', 'false');
@@ -69,15 +69,15 @@ class SettingsManager {
             if (activeTab) {
                 activeTab.classList.add('active');
                 activeTab.setAttribute('aria-selected', 'true');
-                console.log(`Activated tab button: ${tabName}`);
+                Logger.debug(`Activated tab button: ${tabName}`);
             } else {
-                console.error(`Tab button not found for: ${tabName}`);
+                Logger.error(`Tab button not found for: ${tabName}`);
                 return;
             }
 
             // Update tab content - remove active from all panes
             const allPanes = document.querySelectorAll('.tab-pane');
-            console.log(`Found ${allPanes.length} tab panes`);
+            Logger.debug(`Found ${allPanes.length} tab panes`);
             allPanes.forEach(pane => {
                 pane.classList.remove('active');
                 pane.style.display = 'none';  // Explicitly set display none
@@ -90,18 +90,18 @@ class SettingsManager {
                 activePane.classList.add('active');
                 activePane.style.display = 'block';  // Explicitly set display block
                 activePane.setAttribute('aria-hidden', 'false');
-                console.log(`Activated tab pane: ${tabName}-tab`);
+                Logger.debug(`Activated tab pane: ${tabName}-tab`);
             } else {
-                console.error(`Tab pane not found for: ${tabName}-tab`);
+                Logger.error(`Tab pane not found for: ${tabName}-tab`);
                 return;
             }
 
             // Update current tab tracking
             this.currentTab = tabName;
-            console.log(`Successfully switched to tab: ${tabName}`);
+            Logger.debug(`Successfully switched to tab: ${tabName}`);
 
         } catch (error) {
-            console.error('Error in switchTab:', error);
+            Logger.error('Error in switchTab:', error);
             showToast('error', 'Fehler', 'Tab konnte nicht gewechselt werden');
         }
     }
@@ -235,7 +235,7 @@ class SettingsManager {
 
             showToast('success', 'Export erfolgreich', 'Einstellungen wurden exportiert');
         } catch (error) {
-            console.error('Failed to export settings:', error);
+            Logger.error('Failed to export settings:', error);
             showToast('error', 'Export fehlgeschlagen', 'Einstellungen konnten nicht exportiert werden');
         }
     }
@@ -271,7 +271,7 @@ class SettingsManager {
                 showToast('success', 'Import erfolgreich',
                          `${Object.keys(settings).length} Einstellungen wurden importiert`);
             } catch (error) {
-                console.error('Failed to import settings:', error);
+                Logger.error('Failed to import settings:', error);
                 showToast('error', 'Import fehlgeschlagen',
                          'Einstellungen konnten nicht importiert werden. Prüfen Sie das Dateiformat.');
             }
@@ -299,7 +299,7 @@ class SettingsManager {
             this.currentSettings = await api.getApplicationSettings();
             this.populateSettingsForm();
 
-            console.log('Settings loaded:', this.currentSettings);
+            Logger.debug('Settings loaded:', this.currentSettings);
 
         } catch (error) {
             window.ErrorHandler?.handleSettingsError(error, { operation: 'load' });
@@ -318,11 +318,11 @@ class SettingsManager {
 
         const form = document.getElementById('applicationSettingsForm');
         if (!form) {
-            console.error('Settings form not found');
+            Logger.error('Settings form not found');
             return;
         }
 
-        console.log('Populating settings form with:', this.currentSettings);
+        Logger.debug('Populating settings form with:', this.currentSettings);
 
         // Set form values (inputs inside the form)
         const elements = form.elements;
@@ -331,27 +331,27 @@ class SettingsManager {
             if (key && this.currentSettings.hasOwnProperty(key)) {
                 if (element.type === 'checkbox') {
                     element.checked = this.currentSettings[key];
-                    console.log(`Populated form element: ${key} = ${this.currentSettings[key]} (checkbox)`);
+                    Logger.debug(`Populated form element: ${key} = ${this.currentSettings[key]} (checkbox)`);
                 } else {
                     element.value = this.currentSettings[key];
-                    console.log(`Populated form element: ${key} = ${this.currentSettings[key]}`);
+                    Logger.debug(`Populated form element: ${key} = ${this.currentSettings[key]}`);
                 }
             }
         }
 
         // Also populate inputs associated with the form (using form attribute)
         const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
-        console.log(`Populating ${associatedInputs.length} form-associated inputs`);
+        Logger.debug(`Populating ${associatedInputs.length} form-associated inputs`);
 
         associatedInputs.forEach(element => {
             const key = element.name;
             if (key && this.currentSettings.hasOwnProperty(key)) {
                 if (element.type === 'checkbox') {
                     element.checked = this.currentSettings[key];
-                    console.log(`Populated associated input: ${key} = ${this.currentSettings[key]} (checkbox)`);
+                    Logger.debug(`Populated associated input: ${key} = ${this.currentSettings[key]} (checkbox)`);
                 } else {
                     element.value = this.currentSettings[key];
-                    console.log(`Populated associated input: ${key} = ${this.currentSettings[key]}`);
+                    Logger.debug(`Populated associated input: ${key} = ${this.currentSettings[key]}`);
                 }
             } else if (key) {
                 console.warn(`Associated input ${key} not found in settings`);
@@ -360,7 +360,7 @@ class SettingsManager {
 
         this.isDirty = false;
         this.updateSaveButton();
-        console.log('Form population complete');
+        Logger.debug('Form population complete');
     }
 
     /**
@@ -368,8 +368,8 @@ class SettingsManager {
      */
     async saveSettings() {
         try {
-            console.log('=== SAVE SETTINGS STARTED ===');
-            console.log('isDirty:', this.isDirty);
+            Logger.debug('=== SAVE SETTINGS STARTED ===');
+            Logger.debug('isDirty:', this.isDirty);
 
             if (!this.isDirty) {
                 console.warn('No changes detected - aborting save');
@@ -378,8 +378,8 @@ class SettingsManager {
             }
 
             const formData = this.collectFormData();
-            console.log('Collected form data:', formData);
-            console.log('Number of fields to save:', Object.keys(formData).length);
+            Logger.debug('Collected form data:', formData);
+            Logger.debug('Number of fields to save:', Object.keys(formData).length);
 
             if (Object.keys(formData).length === 0) {
                 console.warn('No data collected - aborting save');
@@ -390,7 +390,7 @@ class SettingsManager {
             showToast('info', 'Speichere Einstellungen', 'Konfiguration wird gespeichert');
 
             const result = await api.updateApplicationSettings(formData);
-            console.log('Save result:', result);
+            Logger.debug('Save result:', result);
 
             showToast('success', 'Einstellungen gespeichert',
                      `${result.updated_fields.length} Einstellungen wurden aktualisiert`);
@@ -399,13 +399,13 @@ class SettingsManager {
             this.updateSaveButton();
 
             // Reload settings to reflect any server-side changes
-            console.log('Reloading settings after save');
+            Logger.debug('Reloading settings after save');
             await this.loadSettings();
 
-            console.log('=== SAVE SETTINGS COMPLETED ===');
+            Logger.debug('=== SAVE SETTINGS COMPLETED ===');
 
         } catch (error) {
-            console.error('Save settings error:', error);
+            Logger.error('Save settings error:', error);
             window.ErrorHandler?.handleSettingsError(error, { operation: 'save' });
             showToast('error', 'Fehler beim Speichern', 'Einstellungen konnten nicht gespeichert werden');
         }
@@ -431,20 +431,20 @@ class SettingsManager {
             if (element.type === 'checkbox') {
                 // Always collect checkbox state
                 formData[element.name] = element.checked;
-                console.log(`Collected form element: ${element.name} = ${element.checked} (checkbox)`);
+                Logger.debug(`Collected form element: ${element.name} = ${element.checked} (checkbox)`);
             } else if (element.type === 'number') {
                 // Collect number if not empty
                 const value = element.value.trim();
                 if (value !== '') {
                     formData[element.name] = parseFloat(value);
-                    console.log(`Collected form element: ${element.name} = ${value} (number)`);
+                    Logger.debug(`Collected form element: ${element.name} = ${value} (number)`);
                 }
             } else if (element.type === 'text' || element.type === 'select-one') {
                 // Collect text/select if not empty
                 const value = element.value.trim();
                 if (value !== '') {
                     formData[element.name] = value;
-                    console.log(`Collected form element: ${element.name} = ${value} (${element.type})`);
+                    Logger.debug(`Collected form element: ${element.name} = ${value} (${element.type})`);
                 }
             }
         }
@@ -452,7 +452,7 @@ class SettingsManager {
         // Also collect from inputs associated with the form (using form attribute)
         // These are inputs outside the form but logically part of it (like library settings)
         const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
-        console.log(`Found ${associatedInputs.length} form-associated inputs`);
+        Logger.debug(`Found ${associatedInputs.length} form-associated inputs`);
 
         associatedInputs.forEach(element => {
             if (!element.name) return;
@@ -460,27 +460,27 @@ class SettingsManager {
             if (element.type === 'checkbox') {
                 // Always collect checkbox state
                 formData[element.name] = element.checked;
-                console.log(`Collected associated input: ${element.name} = ${element.checked} (checkbox)`);
+                Logger.debug(`Collected associated input: ${element.name} = ${element.checked} (checkbox)`);
             } else if (element.type === 'number') {
                 // Collect number if not empty
                 const value = element.value.trim();
                 if (value !== '') {
                     formData[element.name] = parseFloat(value);
-                    console.log(`Collected associated input: ${element.name} = ${value} (number)`);
+                    Logger.debug(`Collected associated input: ${element.name} = ${value} (number)`);
                 }
             } else if (element.type === 'text') {
                 // Collect text if not empty
                 const value = element.value.trim();
                 if (value !== '') {
                     formData[element.name] = value;
-                    console.log(`Collected associated input: ${element.name} = ${value} (text)`);
+                    Logger.debug(`Collected associated input: ${element.name} = ${value} (text)`);
                 } else {
-                    console.log(`Skipped empty associated input: ${element.name} (text)`);
+                    Logger.debug(`Skipped empty associated input: ${element.name} (text)`);
                 }
             }
         });
 
-        console.log('Final form data to be saved:', formData);
+        Logger.debug('Final form data to be saved:', formData);
         return formData;
     }
 
@@ -490,15 +490,15 @@ class SettingsManager {
     setupFormHandlers() {
         const form = document.getElementById('applicationSettingsForm');
         if (!form) {
-            console.error('Settings form not found - cannot setup handlers');
+            Logger.error('Settings form not found - cannot setup handlers');
             return;
         }
 
-        console.log('Setting up form change handlers');
+        Logger.debug('Setting up form change handlers');
 
         // Handler function for marking form as dirty
         const markDirty = (event) => {
-            console.log(`Form changed: ${event.target.name || event.target.id} = ${event.target.value || event.target.checked}`);
+            Logger.debug(`Form changed: ${event.target.name || event.target.id} = ${event.target.value || event.target.checked}`);
             this.isDirty = true;
             this.updateSaveButton();
             this.scheduleAutoSave();
@@ -507,20 +507,20 @@ class SettingsManager {
         // Track changes on form itself (for inputs inside the form)
         form.addEventListener('input', markDirty);
         form.addEventListener('change', markDirty);
-        console.log('Attached event listeners to main form');
+        Logger.debug('Attached event listeners to main form');
 
         // Also track changes on inputs associated with the form (using form attribute)
         // This includes library settings that are visually separate but logically part of the form
         const associatedInputs = document.querySelectorAll('input[form="applicationSettingsForm"]');
-        console.log(`Found ${associatedInputs.length} form-associated inputs for event listeners`);
+        Logger.debug(`Found ${associatedInputs.length} form-associated inputs for event listeners`);
 
         associatedInputs.forEach(input => {
-            console.log(`Attaching listeners to: ${input.name || input.id} (${input.type})`);
+            Logger.debug(`Attaching listeners to: ${input.name || input.id} (${input.type})`);
             input.addEventListener('input', markDirty);
             input.addEventListener('change', markDirty);
         });
 
-        console.log('Form change handlers setup complete');
+        Logger.debug('Form change handlers setup complete');
     }
 
     /**
@@ -552,7 +552,7 @@ class SettingsManager {
         // Auto-save after 30 seconds of inactivity
         this.autoSaveTimeout = setTimeout(() => {
             if (this.isDirty) {
-                console.log('Auto-saving settings...');
+                Logger.debug('Auto-saving settings...');
                 this.saveSettings();
             }
         }, 30000);
@@ -882,7 +882,7 @@ async function validateDownloadsPath() {
         }
 
     } catch (error) {
-        console.error('Failed to validate downloads path:', error);
+        Logger.error('Failed to validate downloads path:', error);
         validationResult.className = 'validation-result error';
         validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
     }
@@ -918,7 +918,7 @@ async function validateLibraryPath() {
         }
 
     } catch (error) {
-        console.error('Failed to validate library path:', error);
+        Logger.error('Failed to validate library path:', error);
         validationResult.className = 'validation-result error';
         validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
     }
@@ -928,7 +928,7 @@ async function checkFfmpegInstallation() {
     const resultDiv = document.getElementById('ffmpegCheckResult');
 
     if (!resultDiv) {
-        console.error('FFmpeg result div not found');
+        Logger.error('FFmpeg result div not found');
         return;
     }
 
@@ -966,7 +966,7 @@ async function checkFfmpegInstallation() {
         }
 
     } catch (error) {
-        console.error('Failed to check ffmpeg:', error);
+        Logger.error('Failed to check ffmpeg:', error);
         resultDiv.className = 'validation-result error';
         resultDiv.innerHTML = '<span class="icon">✗</span> Prüfung fehlgeschlagen';
         showToast('error', 'Fehler', 'FFmpeg-Prüfung konnte nicht durchgeführt werden');
