@@ -23,7 +23,7 @@ class CameraManager {
             this.cameraStatus.set(printerId, status);
             return status;
         } catch (error) {
-            console.error(`Failed to get camera status for printer ${printerId}:`, error);
+            Logger.error(`Failed to get camera status for printer ${printerId}:`, error);
             this.cameraStatus.set(printerId, {
                 has_camera: false,
                 is_available: false,
@@ -57,14 +57,14 @@ class CameraManager {
             }
 
             const snapshot = await response.json();
-            console.log('Snapshot captured:', snapshot);
+            Logger.debug('Snapshot captured:', snapshot);
             
             // Show success notification
             showNotification('Snapshot erfolgreich aufgenommen', 'success');
             
             return snapshot;
         } catch (error) {
-            console.error(`Failed to take snapshot for printer ${printerId}:`, error);
+            Logger.error(`Failed to take snapshot for printer ${printerId}:`, error);
             showNotification(`Snapshot-Fehler: ${error.message}`, 'error');
             throw error;
         }
@@ -244,7 +244,7 @@ class CameraManager {
             
             document.body.appendChild(modal);
         } catch (error) {
-            console.error('Failed to load snapshot history:', error);
+            Logger.error('Failed to load snapshot history:', error);
             showNotification('Fehler beim Laden der Snapshot-Historie', 'error');
         }
     }

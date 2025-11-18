@@ -12,6 +12,7 @@ class PrinterCard {
         this.element = null;
         this.statusUpdateInterval = null;
         this.isMonitoring = false;
+        this.cameraStatus = null; // Will be fetched async
     }
 
     /**
@@ -62,6 +63,7 @@ class PrinterCard {
                 ${this.renderCurrentJob()}
                 ${this.renderTemperatures()}
                 ${this.renderRealtimeProgress()}
+                ${this.renderCameraSection()}
             </div>
         `;
         
@@ -70,7 +72,99 @@ class PrinterCard {
             this.startRealtimeMonitoring();
         }
         
+        // Fetch camera status async and update
+        this.fetchCameraStatus();
+        
         return this.element;
+    }
+
+    /**
+     * Fetch camera status asynchronously
+     */
+    async fetchCameraStatus() {
+        if (!this.element) return;
+        
+        try {
+            const response = await fetch(`/api/v1/printers/${this.printer.id}/camera/status`);
+            if (response.ok) {
+                this.cameraStatus = await response.json();
+                // Update camera section in the DOM
+                const cameraSection = this.element.querySelector('.camera-section');
+                if (cameraSection) {
+                    cameraSection.outerHTML = this.renderCameraSection();
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch camera status:', error);
+        }
+    }
+
+    /**
+     * Render camera section
+     */
+    renderCameraSection() {
+        // Show loading state if camera status not yet fetched
+        if (!this.cameraStatus) {
+            return `
+                <div class="info-section camera-section">
+                    <h4>📷 Kamera</h4>
+                    <div class="info-item">
+                        <span class="text-muted">Lade Kamerastatus...</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // No camera available
+        if (!this.cameraStatus.has_camera) {
+            return `
+                <div class="info-section camera-section">
+                    <h4>📷 Kamera</h4>
+                    <div class="info-item">
+                        <span class="text-muted">Keine Kamera verfügbar</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Camera not available/accessible
+        if (!this.cameraStatus.is_available) {
+            return `
+                <div class="info-section camera-section">
+                    <h4>📷 Kamera</h4>
+                    <div class="info-item">
+                        <span class="text-warning">Kamera nicht verfügbar</span>
+                        ${this.cameraStatus.error_message ? `<br><small class="text-muted">${escapeHtml(this.cameraStatus.error_message)}</small>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Camera available - show stream
+        return `
+            <div class="info-section camera-section">
+                <h4>📷 Kamera</h4>
+                <div class="camera-preview-container">
+                    <img id="camera-stream-${this.printer.id}" 
+                         class="camera-stream" 
+                         src="${this.cameraStatus.stream_url}" 
+                         alt="Live Stream" 
+                         style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+                         onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
+                    <div class="stream-error" style="display: none; padding: 8px; text-align: center;">
+                        <span class="text-muted">Stream nicht verfügbar</span>
+                    </div>
+                </div>
+                <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button class="btn btn-sm btn-primary" 
+                            onclick="event.stopPropagation(); window.open('${this.cameraStatus.stream_url}', '_blank')"
+                            title="Vollbild anzeigen">
+                        🔍 Vollbild
+                    </button>
+                </div>
+            </div>
+        `;
     }
 
 
@@ -178,8 +272,16 @@ class PrinterCard {
      * Render current job section
      */
     renderCurrentJob() {
+        // Always render a job section container for consistent card height
         if (!this.printer.current_job) {
-            return '<p class="text-muted text-center">Kein aktiver Auftrag</p>';
+            return `
+                <div class="current-job current-job-placeholder">
+                    <div class="job-placeholder-content">
+                        <span class="placeholder-icon">📭</span>
+                        <p class="text-muted">Kein aktiver Auftrag</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Handle case where current_job is a string (job name) rather than an object
@@ -255,27 +357,50 @@ class PrinterCard {
      * Render temperatures section
      */
     renderTemperatures() {
+        // Always show temperature section for consistent height
         if (!this.printer.temperatures) {
-            return '';
+            return `
+                <div class="temperatures temperatures-placeholder">
+                    <div class="temp-item">
+                        <div class="temp-label">Düse</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                    <div class="temp-item">
+                        <div class="temp-label">Bett</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                </div>
+            `;
         }
 
         const temps = this.printer.temperatures;
         const tempItems = [];
-        
+
         if (temps.nozzle !== undefined) {
             tempItems.push(this.renderTemperatureItem('nozzle', 'Düse', temps.nozzle));
         }
-        
+
         if (temps.bed !== undefined) {
             tempItems.push(this.renderTemperatureItem('bed', 'Bett', temps.bed));
         }
-        
+
         if (temps.chamber !== undefined) {
             tempItems.push(this.renderTemperatureItem('chamber', 'Kammer', temps.chamber));
         }
 
         if (tempItems.length === 0) {
-            return '';
+            return `
+                <div class="temperatures temperatures-placeholder">
+                    <div class="temp-item">
+                        <div class="temp-label">Düse</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                    <div class="temp-item">
+                        <div class="temp-label">Bett</div>
+                        <div class="temp-value text-muted">--°C</div>
+                    </div>
+                </div>
+            `;
         }
 
         return `
@@ -812,6 +937,11 @@ class FileListItem {
                     e.stopPropagation();
                     this.showFullThumbnail(this.file.id, this.file.filename);
                 });
+
+                // Add hover animation support for STL/3MF files
+                if (thumbnail.classList.contains('supports-animation')) {
+                    this.setupAnimatedThumbnail(thumbnail);
+                }
             }
         }
 
@@ -823,8 +953,16 @@ class FileListItem {
      */
     renderThumbnailOrIcon() {
         if (this.file.has_thumbnail && this.file.id) {
+            // Check if file supports animated preview (STL or 3MF)
+            const supportsAnimation = this.file.file_type &&
+                ['stl', '3mf'].includes(this.file.file_type.toLowerCase());
+
             return `
-                <div class="file-thumbnail enhanced" title="Click to enlarge">
+                <div class="file-thumbnail enhanced ${supportsAnimation ? 'supports-animation' : ''}"
+                     title="Click to enlarge"
+                     data-file-id="${this.file.id}"
+                     data-static-url="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail"
+                     ${supportsAnimation ? `data-animated-url="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail/animated"` : ''}>
                     <img src="${CONFIG.API_BASE_URL}/files/${this.file.id}/thumbnail"
                          alt="Thumbnail for ${escapeHtml(this.file.filename)}"
                          class="thumbnail-image"
@@ -875,6 +1013,72 @@ class FileListItem {
         });
 
         document.body.appendChild(modal);
+    }
+
+    /**
+     * Setup animated thumbnail on hover for 3D files
+     */
+    setupAnimatedThumbnail(thumbnailElement) {
+        const img = thumbnailElement.querySelector('.thumbnail-image');
+        const staticUrl = thumbnailElement.dataset.staticUrl;
+        const animatedUrl = thumbnailElement.dataset.animatedUrl;
+
+        if (!img || !animatedUrl) return;
+
+        let isAnimatedLoaded = false;
+        let isHovering = false;
+        let loadTimeout = null;
+
+        // Preload the animated GIF on first hover
+        const preloadAnimatedGif = () => {
+            if (isAnimatedLoaded) return;
+
+            const preloadImg = new Image();
+            preloadImg.onload = () => {
+                isAnimatedLoaded = true;
+                // If still hovering, swap immediately
+                if (isHovering && img.src !== animatedUrl) {
+                    img.src = animatedUrl;
+                }
+            };
+            preloadImg.onerror = () => {
+                console.warn('Failed to load animated preview:', animatedUrl);
+            };
+            preloadImg.src = animatedUrl;
+        };
+
+        // Mouse enter: load and show animated GIF
+        thumbnailElement.addEventListener('mouseenter', () => {
+            isHovering = true;
+
+            // Start loading after a short delay to avoid loading on quick passes
+            loadTimeout = setTimeout(() => {
+                if (isHovering) {
+                    preloadAnimatedGif();
+
+                    // If already loaded, swap immediately
+                    if (isAnimatedLoaded && img.src !== animatedUrl) {
+                        img.src = animatedUrl;
+                    }
+                }
+            }, 200); // 200ms delay before loading
+        });
+
+        // Mouse leave: restore static image
+        thumbnailElement.addEventListener('mouseleave', () => {
+            isHovering = false;
+
+            // Cancel loading if not started yet
+            if (loadTimeout) {
+                clearTimeout(loadTimeout);
+                loadTimeout = null;
+            }
+
+            // Restore static image
+            if (img.src !== staticUrl) {
+                img.src = staticUrl;
+            }
+        });
     }
 
     /**

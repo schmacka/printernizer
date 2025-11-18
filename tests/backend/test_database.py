@@ -163,25 +163,27 @@ class TestDatabaseSchema:
     def test_database_triggers(self, populated_database):
         """Test database triggers for automatic updates"""
         cursor = populated_database.cursor()
-        
-        # Test printer updated_at trigger
-        original_time = datetime.now()
-        
+
+        # Get a baseline time from the database (SQLite uses UTC)
+        cursor.execute("SELECT datetime('now')")
+        baseline_time_str = cursor.fetchone()[0]
+        baseline_time = datetime.fromisoformat(baseline_time_str)
+
         cursor.execute("""
-            UPDATE printers SET name = 'Updated Printer Name' 
+            UPDATE printers SET name = 'Updated Printer Name'
             WHERE id = 'bambu_a1_001'
         """)
         populated_database.commit()
-        
+
         cursor.execute("""
             SELECT updated_at FROM printers WHERE id = 'bambu_a1_001'
         """)
         updated_time_str = cursor.fetchone()[0]
         updated_time = datetime.fromisoformat(updated_time_str)
-        
-        # updated_at should be newer than when we started
+
+        # updated_at should be at or after the baseline time
         # Note: SQLite CURRENT_TIMESTAMP has second precision, so compare at second level
-        assert updated_time.replace(microsecond=0) >= original_time.replace(microsecond=0)
+        assert updated_time.replace(microsecond=0) >= baseline_time.replace(microsecond=0)
     
     def test_job_status_change_trigger(self, populated_database):
         """Test job status change trigger creates system events"""
@@ -490,6 +492,19 @@ class TestDatabasePerformance:
         """Test that indexes improve query performance"""
         cursor = db_connection.cursor()
         
+        # First create the required printers
+        for i in range(5):
+            cursor.execute("""
+                INSERT INTO printers (id, name, type, ip_address, api_key, is_active)
+                VALUES (?, ?, 'bambu_lab', '192.168.1.' || ?, 'test_key', 1)
+            """, (
+                f'printer_{i}',
+                f'Test Printer {i}',
+                str(100 + i)
+            ))
+        
+        db_connection.commit()
+        
         # Insert many jobs
         for i in range(1000):
             cursor.execute("""
@@ -529,6 +544,19 @@ class TestDatabasePerformance:
     def test_database_size_estimates(self, db_connection):
         """Test database size remains reasonable with realistic data"""
         cursor = db_connection.cursor()
+        
+        # First create the required printers
+        for i in range(2):
+            cursor.execute("""
+                INSERT INTO printers (id, name, type, ip_address, api_key, is_active)
+                VALUES (?, ?, 'bambu_lab', '192.168.1.' || ?, 'test_key', 1)
+            """, (
+                f'printer_{i}',
+                f'Test Printer {i}',
+                str(100 + i)
+            ))
+        
+        db_connection.commit()
         
         # Get initial database size
         cursor.execute("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size()")

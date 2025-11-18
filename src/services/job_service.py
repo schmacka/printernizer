@@ -8,6 +8,7 @@ import uuid
 from datetime import datetime
 import structlog
 from src.database.database import Database
+from src.database.repositories import JobRepository
 from src.services.event_service import EventService
 from src.models.job import Job, JobStatus, JobCreate, JobUpdate
 
@@ -19,6 +20,8 @@ class JobService:
     
     def __init__(self, database: Database, event_service: EventService):
         """Initialize job service."""
+        # Use JobRepository for database operations
+        self.job_repo = JobRepository(database._connection)
         self.database = database
         self.event_service = event_service
 
@@ -53,7 +56,7 @@ class JobService:
     async def get_jobs(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """Get list of print jobs."""
         try:
-            jobs_data = await self.database.list_jobs()
+            jobs_data = await self.job_repo.list()
 
             # Apply pagination
             start = offset
@@ -103,7 +106,7 @@ class JobService:
         """List jobs with optional filtering."""
         try:
             # Use enhanced database method with direct filtering and pagination
-            jobs_data = await self.database.list_jobs(
+            jobs_data = await self.job_repo.list(
                 printer_id=printer_id,
                 status=status,
                 is_business=is_business,
@@ -154,11 +157,62 @@ class JobService:
         except Exception as e:
             logger.error("Failed to list jobs", error=str(e))
             return []
-        
+
+    async def list_jobs_with_count(self, printer_id=None, status=None, is_business=None,
+                                   limit: int = 100, offset: int = 0) -> tuple[List[Dict[str, Any]], int]:
+        """List jobs with total count (optimized pagination).
+
+        This method efficiently returns both the paginated job list and the total count
+        using separate optimized queries, avoiding the need to fetch all records twice.
+
+        Args:
+            printer_id: Filter by printer ID
+            status: Filter by job status
+            is_business: Filter by business flag
+            limit: Maximum number of jobs to return
+            offset: Number of jobs to skip
+
+        Returns:
+            Tuple of (jobs list, total count)
+
+        Example:
+            >>> jobs, total = await job_service.list_jobs_with_count(limit=20, offset=0)
+            >>> print(f"Showing {len(jobs)} of {total} jobs")
+        """
+        try:
+            # Get paginated jobs
+            jobs = await self.list_jobs(
+                printer_id=printer_id,
+                status=status,
+                is_business=is_business,
+                limit=limit,
+                offset=offset
+            )
+
+            # Get total count with efficient COUNT query
+            total_count = await self.job_repo.count(
+                printer_id=printer_id,
+                status=status,
+                is_business=is_business
+            )
+
+            logger.info("Listed jobs with count",
+                       count=len(jobs),
+                       total=total_count,
+                       printer_id=printer_id,
+                       status=status,
+                       is_business=is_business)
+
+            return jobs, total_count
+
+        except Exception as e:
+            logger.error("Failed to list jobs with count", error=str(e))
+            return [], 0
+
     async def get_job(self, job_id) -> Optional[Dict[str, Any]]:
         """Get specific job by ID."""
         try:
-            job_data = await self.database.get_job(str(job_id))
+            job_data = await self.job_repo.get(str(job_id))
             if not job_data:
                 return None
 
@@ -178,13 +232,13 @@ class JobService:
         """Delete a job record."""
         try:
             # Check if job exists first
-            existing_job = await self.database.get_job(str(job_id))
+            existing_job = await self.job_repo.get(str(job_id))
             if not existing_job:
                 logger.warning("Job not found for deletion", job_id=job_id)
                 return False
             
             # Delete the job record from database
-            success = await self.database.delete_job(str(job_id))
+            success = await self.job_repo.delete(str(job_id))
             
             if success:
                 logger.info("Job deleted successfully", job_id=job_id)
@@ -208,7 +262,7 @@ class JobService:
             active_jobs = []
             
             for status in active_statuses:
-                jobs_data = await self.database.list_jobs(status=status)
+                jobs_data = await self.job_repo.list(status=status)
                 active_jobs.extend(jobs_data)
             
             # Convert to Job models
@@ -297,7 +351,7 @@ class JobService:
                     raise ValueError(f"Required field '{field}' is missing or empty")
 
             # Create job in database
-            success = await self.database.create_job(db_job_data)
+            success = await self.job_repo.create(db_job_data)
 
             if success:
                 logger.info("Job created successfully",
@@ -335,7 +389,7 @@ class JobService:
             logger.error("Failed to create job", error=str(e), error_type=type(e).__name__, data=job_data)
             raise
         
-    async def update_job_status(self, job_id: str, status: str, data: Dict[str, Any] = None):
+    async def update_job_status(self, job_id: str, status: str, data: Dict[str, Any] = None) -> None:
         """Update job status."""
         try:
             # Validate status
@@ -369,7 +423,7 @@ class JobService:
                 updates['end_time'] = datetime.now().isoformat()
             
             # Update job in database
-            success = await self.database.update_job(str(job_id), updates)
+            success = await self.job_repo.update(str(job_id), updates)
             
             if success:
                 logger.info("Job status updated", job_id=job_id, status=status)
@@ -391,7 +445,7 @@ class JobService:
         """Get job statistics for dashboard."""
         try:
             # Use optimized database statistics method
-            stats = await self.database.get_job_statistics()
+            stats = await self.job_repo.get_statistics()
             
             # Calculate active jobs from individual status counts
             stats["active_jobs"] = (
@@ -442,7 +496,7 @@ class JobService:
     async def get_jobs_by_date_range(self, start_date: str, end_date: str, is_business: Optional[bool] = None) -> List[Dict[str, Any]]:
         """Get jobs within a date range for reporting purposes."""
         try:
-            jobs_data = await self.database.get_jobs_by_date_range(start_date, end_date, is_business)
+            jobs_data = await self.job_repo.get_by_date_range(start_date, end_date, is_business)
             
             # Convert to Job models
             jobs = []
@@ -497,7 +551,7 @@ class JobService:
             costs['total_cost'] = costs['material_cost'] + costs['power_cost']
             
             # Update the job with calculated costs
-            await self.database.update_job(job_id, {
+            await self.job_repo.update(job_id, {
                 'material_cost': costs['material_cost'],
                 'power_cost': costs['power_cost']
             })
@@ -513,7 +567,7 @@ class JobService:
         """Get all jobs for a specific printer."""
         return await self.list_jobs(printer_id=printer_id, limit=limit, offset=offset)
     
-    async def update_job_progress(self, job_id: str, progress: int, material_used: Optional[float] = None):
+    async def update_job_progress(self, job_id: str, progress: int, material_used: Optional[float] = None) -> bool:
         """Update job progress and optionally material usage."""
         try:
             updates = {
@@ -524,7 +578,7 @@ class JobService:
             if material_used is not None:
                 updates['material_used'] = material_used
             
-            success = await self.database.update_job(str(job_id), updates)
+            success = await self.job_repo.update(str(job_id), updates)
             
             if success:
                 logger.info("Job progress updated", job_id=job_id, progress=progress, material_used=material_used)

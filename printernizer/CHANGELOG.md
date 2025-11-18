@@ -1,3 +1,121 @@
+## [2.6.16] - 2025-11-14
+
+- Add webcam support for Bambu Lab printers
+- feat: Harmonize printer card sizing and improve responsive layout
+- fix: Improve iOS mobile file upload compatibility
+
+## [2.6.15] - 2025-11-14
+
+- Add webcam support for Bambu Lab printers
+- fix: Improve iOS mobile file upload compatibility
+- feat: Add settings accessibility tests and fix tab switching
+
+## [2.6.14] - 2025-11-14
+
+- fix: Improve iOS mobile file upload compatibility
+- feat: Add settings accessibility tests and fix tab switching
+- fix: Remove duplicate div tag in settings general tab
+
+## [2.6.13] - 2025-11-14
+
+- feat: Add settings accessibility tests and fix tab switching
+- fix: Remove duplicate div tag in settings general tab
+- fix: Add missing job_creation_auto_create setting field
+
+## [2.6.12] - 2025-11-14
+
+- fix: Remove duplicate div tag in settings general tab
+- fix: Add missing job_creation_auto_create setting field
+- Add permission fix to Home Assistant add-on
+- Fix dashboard printer list - same API response handling
+
+## [2.6.11] - 2025-11-14
+
+- fix: Add missing job_creation_auto_create setting field
+- Add permission fix to Home Assistant add-on
+- Fix dashboard printer list - same API response handling
+- docs: Update analysis to 82.3% pass rate - ALL ERRORS ELIMINATED
+- test: Fix 7 additional tests - 82.3% pass rate achieved
+
+## [2.6.10] - 2025-11-14
+
+- test: Fix 11 additional tests - 81.1% pass rate achieved
+- docs: Correct test coverage analysis with verified results
+- test: Additional 28 tests fixed - 77.7% pass rate achieved
+- Update version fallback to 2.6.8
+
+## [2.6.9] - 2025-11-14
+
+- Update version fallback to 2.6.8
+- Fix config save on Windows-mounted volumes
+
+## [2.6.8] - 2025-11-14
+
+- fix: Add config volume mount to Docker setup
+- test: Major test suite improvements - 72.8% pass rate achieved
+- Update TEST_COVERAGE_ANALYSIS.md - async errors resolved
+- Update TEST_COVERAGE_ANALYSIS.md with recent fixes
+- Fix database and file service test failures
+- Initial plan
+- fix: Add MIME types to file upload accept attribute for mobile browser support
+
+## [2.6.7] - 2025-11-14
+
+- test: Major test suite improvements - 72.8% pass rate achieved
+- Update TEST_COVERAGE_ANALYSIS.md - async errors resolved
+- Update TEST_COVERAGE_ANALYSIS.md with recent fixes
+- Fix database and file service test failures
+- Initial plan
+- Complete TEST_COVERAGE_ANALYSIS.md update with detailed implementation plan
+- Update TEST_COVERAGE_ANALYSIS.md with current metrics
+- Initial plan for updating TEST_COVERAGE_ANALYSIS.md
+- Initial plan
+- Add implementation summary - 70 tests created for critical services
+- Add file_service tests (20/28 passing, coordinator pattern)
+- fix: Add MIME types to file upload accept attribute for mobile browser support
+- Add printer_service tests (16/29 passing, needs refinement)
+- Add comprehensive tests for job_service (34 tests, 100% pass)
+- Initial plan
+
+## [2.6.6] - 2025-11-13
+
+- feat: Create awesome modern settings page with tabs and comprehensive configuration
+- docs: Add comprehensive test coverage analysis
+- Fix E2E test failures: add missing script closing tag and hashchange handler
+- Add debugging logs to troubleshoot E2E test routing issue
+- Initial plan
+
+## [2.6.5] - 2025-11-13
+
+- feat: Add multi-angle animated GIF previews for 3D models
+- Fix Docker build: Switch to Alpine base image and add Brotli support
+- Fix E2E test failures: add missing script closing tag and hashchange handler
+- Add debugging logs to troubleshoot E2E test routing issue
+- Initial plan
+
+## [2.6.4] - 2025-11-13
+
+- feat: Add multi-angle animated GIF previews for 3D models
+- Fix Docker build: Switch to Alpine base image and add Brotli support
+- feat: Enable global drag and drop file upload from any page
+
+## [2.6.3] - 2025-11-13
+
+- feat: Enable global drag and drop file upload from any page
+- fix: Initialize navigation preferences UI when settings page loads
+- docs: Update CLAUDE.md and deployment docs with branching strategy
+- docs: Add comprehensive E2E test failures analysis document
+- Initial plan
+
+## [2.6.2] - 2025-11-13
+
+- fix: Initialize navigation preferences UI when settings page loads
+- docs: Update CLAUDE.md and deployment docs with branching strategy
+- docs: Add comprehensive E2E test failures analysis document
+- Initial plan
+- Add Raspberry Pi deployment scripts with automated rollback
+- feat: Implement persistent development branch strategy
+
 ## [2.6.1] - 2025-11-13
 
 - feat: Implement jobs and materials frontend features

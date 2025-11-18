@@ -279,7 +279,7 @@
         </div>
 
         <!-- Jobs Page -->
-        <div id="jobs" class="page">
+        <div id="page-jobs" class="page">
             <div class="page-header">
                 <h1>Druckaufträge</h1>
                 <div class="header-actions">
@@ -536,11 +536,12 @@
             </div>
 
             <!-- Hidden file input for manual upload -->
+            <!-- iOS-friendly: simplified accept attribute for better mobile compatibility -->
             <input type="file"
                    id="libraryFileInput"
                    style="display: none;"
                    multiple
-                   accept=".3mf,.stl,.gcode,.obj,.ply"
+                   accept="*/*"
                    onchange="handleManualFileUpload(event)">
 
             <!-- Library Statistics -->
@@ -657,7 +658,7 @@
         </div>
 
         <!-- Materials Page -->
-        <div id="materials" class="page">
+        <div id="page-materials" class="page">
             <div class="page-header">
                 <h1>🧵 Filament-Verwaltung</h1>
                 <div class="header-subtitle">Bestandsverwaltung und Verbrauchstracking</div>
@@ -981,8 +982,16 @@
         <!-- Settings Page -->
         <div id="settings" class="page">
             <div class="page-header">
-                <h1>Einstellungen</h1>
+                <h1>⚙️ Einstellungen</h1>
                 <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="settingsManager.exportSettings()">
+                        <span class="btn-icon">📤</span>
+                        Exportieren
+                    </button>
+                    <button class="btn btn-secondary" onclick="settingsManager.importSettings()">
+                        <span class="btn-icon">📥</span>
+                        Importieren
+                    </button>
                     <button class="btn btn-secondary" onclick="loadSettings()">
                         <span class="btn-icon">🔄</span>
                         Aktualisieren
@@ -994,280 +1003,578 @@
                 </div>
             </div>
 
-            <div class="settings-container">
-                <div class="settings-grid">
-                    <!-- Application Settings -->
-                    <div class="card settings-section">
-                        <div class="card-header">
-                            <h3>Allgemeine Einstellungen</h3>
-                            <span class="card-icon">⚙️</span>
-                        </div>
-                        <div class="card-body">
-                            <form id="applicationSettingsForm" class="settings-form">
-                                <div class="form-group">
-                                    <label for="logLevel">Log-Level</label>
-                                    <select id="logLevel" name="log_level" class="form-control">
-                                        <option value="DEBUG">Debug</option>
-                                        <option value="INFO">Info</option>
-                                        <option value="WARNING">Warning</option>
-                                        <option value="ERROR">Error</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="monitoringInterval">Überwachungsintervall (Sekunden)</label>
-                                    <input type="number" id="monitoringInterval" name="monitoring_interval"
-                                           class="form-control" min="5" max="300" step="5">
-                                    <small class="form-text text-muted">Intervall für Druckerstatusabfragen (5-300 Sekunden)</small>
-                                </div>
+            <!-- Settings Search -->
+            <div class="settings-search-container" style="margin: 0 2rem 1.5rem 2rem;">
+                <input type="text" id="settingsSearch" class="form-control" placeholder="🔍 Einstellungen durchsuchen..."
+                       oninput="settingsManager.filterSettings(this.value)" style="max-width: 400px;">
+            </div>
 
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="jobCreationAutoCreate" name="job_creation_auto_create" form="applicationSettingsForm">
-                                        <span class="checkbox-custom"></span>
-                                        Automatische Auftrags-Erstellung
-                                    </label>
-                                    <small class="form-text text-muted">
-                                        Aufträge automatisch erstellen, wenn ein Druck startet oder beim Start entdeckt wird
-                                    </small>
-                                    <div class="alert alert-info mt-2">
-                                        <strong>⚡ Auto-Jobs:</strong> Aufträge mit <span class="status-badge badge-auto" style="font-size: 0.75rem; padding: 2px 6px;">⚡ Auto</span> Badge wurden automatisch erstellt.
+            <!-- Settings Tabs -->
+            <div class="settings-tabs-container">
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="general" onclick="settingsManager.switchTab('general')">
+                        <span class="tab-icon">⚙️</span>
+                        <span class="tab-label">Allgemein</span>
+                    </button>
+                    <button class="settings-tab" data-tab="jobs" onclick="settingsManager.switchTab('jobs')">
+                        <span class="tab-icon">🖨️</span>
+                        <span class="tab-label">Aufträge & G-Code</span>
+                    </button>
+                    <button class="settings-tab" data-tab="library" onclick="settingsManager.switchTab('library')">
+                        <span class="tab-icon">🗄️</span>
+                        <span class="tab-label">Bibliothek</span>
+                    </button>
+                    <button class="settings-tab" data-tab="files" onclick="settingsManager.switchTab('files')">
+                        <span class="tab-icon">📁</span>
+                        <span class="tab-label">Uploads & Downloads</span>
+                    </button>
+                    <button class="settings-tab" data-tab="timelapse" onclick="settingsManager.switchTab('timelapse')">
+                        <span class="tab-icon">🎬</span>
+                        <span class="tab-label">Timelapse</span>
+                    </button>
+                    <button class="settings-tab" data-tab="watch" onclick="settingsManager.switchTab('watch')">
+                        <span class="tab-icon">👁️</span>
+                        <span class="tab-label">Überwachung</span>
+                    </button>
+                    <button class="settings-tab" data-tab="system" onclick="settingsManager.switchTab('system')">
+                        <span class="tab-icon">💻</span>
+                        <span class="tab-label">System</span>
+                    </button>
+                </div>
+
+                <div class="settings-tab-content">
+                    <!-- General Settings Tab -->
+                    <div class="tab-pane active" id="general-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>⚙️ Allgemeine Einstellungen</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="applicationSettingsForm" class="settings-form">
+                                    <div class="form-group">
+                                        <label for="logLevel">Log-Level 📋</label>
+                                        <select id="logLevel" name="log_level" class="form-control">
+                                            <option value="DEBUG">Debug</option>
+                                            <option value="INFO">Info</option>
+                                            <option value="WARNING">Warning</option>
+                                            <option value="ERROR">Error</option>
+                                        </select>
+                                        <small class="form-text text-muted">Detailgrad der Protokollierung</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="monitoringInterval">Überwachungsintervall (Sekunden) ⏱️</label>
+                                        <input type="number" id="monitoringInterval" name="monitoring_interval"
+                                               class="form-control" min="5" max="300" step="5">
+                                        <small class="form-text text-muted">Intervall für Druckerstatusabfragen (5-300 Sekunden)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="connectionTimeout">Verbindungs-Timeout (Sekunden) ⏳</label>
+                                        <input type="number" id="connectionTimeout" name="connection_timeout"
+                                               class="form-control" min="5" max="60" step="1">
+                                        <small class="form-text text-muted">Maximale Wartezeit für Verbindungen (5-60 Sekunden)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="vatRate">MwSt.-Satz (%) 💰</label>
+                                        <input type="number" id="vatRate" name="vat_rate"
+                                               class="form-control" min="0" max="50" step="0.1">
+                                        <small class="form-text text-muted">Mehrwertsteuersatz für Kostenberechnungen</small>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Jobs & G-Code Tab -->
+                    <div class="tab-pane" id="jobs-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🖨️ Auftrags-Verwaltung</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="jobCreationAutoCreate" name="job_creation_auto_create" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Automatische Auftrags-Erstellung ⚡
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Aufträge automatisch erstellen, wenn ein Druck startet oder beim Start entdeckt wird
+                                        </small>
+                                        <div class="alert alert-info mt-2">
+                                            <strong>⚡ Auto-Jobs:</strong> Aufträge mit <span class="status-badge badge-auto" style="font-size: 0.75rem; padding: 2px 6px;">⚡ Auto</span> Badge wurden automatisch erstellt.
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div class="form-group">
-                                    <label for="connectionTimeout">Verbindungs-Timeout (Sekunden)</label>
-                                    <input type="number" id="connectionTimeout" name="connection_timeout" 
-                                           class="form-control" min="5" max="60" step="1">
-                                    <small class="form-text text-muted">Maximale Wartezeit für Verbindungen (5-60 Sekunden)</small>
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🎨 G-Code Optimierung</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="gcodeOptimizePrintOnly" name="gcode_optimize_print_only" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Nur Druck-Bewegungen anzeigen 🎯
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Filtert Leerfahrten aus der G-Code-Vorschau für bessere Übersicht
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gcodeOptimizationMaxLines">Max. Zeilen für Optimierung 📏</label>
+                                        <input type="number" id="gcodeOptimizationMaxLines" name="gcode_optimization_max_lines"
+                                               class="form-control" min="100" max="100000" step="100" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Maximale Anzahl G-Code-Zeilen zur Verarbeitung (100-100.000)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="gcodeRenderMaxLines">Max. Zeilen für Rendering 🎬</label>
+                                        <input type="number" id="gcodeRenderMaxLines" name="gcode_render_max_lines"
+                                               class="form-control" min="100" max="1000000" step="1000" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Maximale Anzahl Zeilen für 3D-Vorschau (100-1.000.000)</small>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <strong>💡 Tipp:</strong> Höhere Werte bedeuten genauere Vorschau, aber langsamere Performance.
+                                    </div>
                                 </div>
-                                
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Library Tab -->
+                    <div class="tab-pane" id="library-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🗄️ Bibliothek-System</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="libraryEnabled" name="library_enabled" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Bibliothek-System aktivieren ✅
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Automatische Dateiverwaltung mit Deduplizierung und Metadaten
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="libraryPath">Bibliothek-Pfad 📂</label>
+                                        <input type="text" id="libraryPath" name="library_path"
+                                               class="form-control" form="applicationSettingsForm"
+                                               placeholder="z.B. C:\3DLibrary oder ./data/library">
+                                        <small class="form-text text-muted">
+                                            Verzeichnis für die zentrale Datei-Bibliothek (absolut oder relativ)
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="validation-result" id="libraryPathValidationResult" style="display: none;"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-secondary" onclick="validateLibraryPath()">
+                                            <span class="btn-icon">✓</span>
+                                            Pfad validieren
+                                        </button>
+                                    </div>
+
+                                    <div class="alert alert-warning">
+                                        <strong>⚠️ Hinweis:</strong> Nach Änderung des Bibliothek-Pfads ist ein Neustart erforderlich.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>⚙️ Automatisierung</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="libraryAutoOrganize" name="library_auto_organize" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Automatische Organisation 📋
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Dateien aus überwachten Ordnern und Downloads automatisch zur Bibliothek hinzufügen
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="libraryAutoExtractMetadata" name="library_auto_extract_metadata" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Automatische Metadaten-Extraktion 🏷️
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Druckeinstellungen und Modell-Informationen automatisch aus Dateien auslesen
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="libraryAutoDeduplicate" name="library_auto_deduplicate" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Automatische Deduplizierung 🔍
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Doppelte Dateien anhand ihres Inhalts erkennen und zusammenführen
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="libraryPreserveOriginals" name="library_preserve_originals" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Originaldateien bewahren 💾
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Originaldateien nicht löschen, nur kopieren
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🔧 Erweiterte Einstellungen</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label for="libraryChecksumAlgorithm">Prüfsummen-Algorithmus 🔐</label>
+                                        <select id="libraryChecksumAlgorithm" name="library_checksum_algorithm" class="form-control" form="applicationSettingsForm">
+                                            <option value="sha256">SHA-256 (Standard)</option>
+                                            <option value="md5">MD5 (Schneller)</option>
+                                            <option value="sha1">SHA-1</option>
+                                        </select>
+                                        <small class="form-text text-muted">Algorithmus zur Erkennung doppelter Dateien</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="libraryProcessingWorkers">Verarbeitungs-Threads 🔄</label>
+                                        <input type="number" id="libraryProcessingWorkers" name="library_processing_workers"
+                                               class="form-control" min="1" max="16" step="1" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Anzahl paralleler Threads für Dateiverarbeitung (1-16)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="librarySearchEnabled" name="library_search_enabled" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Suchfunktion aktivieren 🔎
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Volltextsuche in Bibliothek aktivieren
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="librarySearchMinLength">Minimale Suchlänge 📏</label>
+                                        <input type="number" id="librarySearchMinLength" name="library_search_min_length"
+                                               class="form-control" min="1" max="10" step="1" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Mindestanzahl Zeichen für Suche (1-10)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Uploads & Downloads Tab -->
+                    <div class="tab-pane" id="files-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>📥 Downloads</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label for="downloadsPath">Download-Verzeichnis 📂</label>
+                                        <input type="text" id="downloadsPath" name="downloads_path" class="form-control"
+                                               placeholder="z.B. C:\Downloads\Printernizer" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Verzeichnis für heruntergeladene Dateien</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="validation-result" id="downloadsPathValidationResult" style="display: none;"></div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-secondary" onclick="validateDownloadsPath()">
+                                            <span class="btn-icon">✓</span>
+                                            Pfad validieren
+                                        </button>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="maxFileSize">Max. Download-Größe (MB) 📦</label>
+                                        <input type="number" id="maxFileSize" name="max_file_size"
+                                               class="form-control" min="1" max="1000" step="1" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Maximale Größe für Datei-Downloads (1-1000 MB)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>📤 Uploads</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="enableUpload" name="enable_upload" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Datei-Upload aktivieren ✅
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Erlaubt das Hochladen von Dateien in die Bibliothek
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="maxUploadSizeMb">Max. Upload-Größe (MB) 📦</label>
+                                        <input type="number" id="maxUploadSizeMb" name="max_upload_size_mb"
+                                               class="form-control" min="1" max="5000" step="1" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Maximale Größe für Datei-Uploads (1-5000 MB)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="allowedUploadExtensions">Erlaubte Dateierweiterungen 📋</label>
+                                        <input type="text" id="allowedUploadExtensions" name="allowed_upload_extensions"
+                                               class="form-control" form="applicationSettingsForm"
+                                               placeholder=".3mf,.stl,.gcode,.obj,.ply">
+                                        <small class="form-text text-muted">Komma-getrennte Liste erlaubter Dateiformate</small>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <strong>💡 Standard-Formate:</strong> .3mf, .stl, .gcode, .obj, .ply
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timelapse Tab -->
+                    <div class="tab-pane" id="timelapse-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🎬 Timelapse-Verarbeitung</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="timelapseEnabled" name="timelapse_enabled" form="applicationSettingsForm">
+                                            <span class="checkbox-custom"></span>
+                                            Timelapse-Funktion aktivieren ✅
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Automatische Verarbeitung von Druckfotos zu Timelapse-Videos
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="timelapseSourceFolder">Quell-Verzeichnis 📂</label>
+                                        <input type="text" id="timelapseSourceFolder" name="timelapse_source_folder"
+                                               class="form-control" form="applicationSettingsForm"
+                                               placeholder="z.B. ./data/timelapse/source">
+                                        <small class="form-text text-muted">Ordner mit Timelapse-Bildern vom Drucker</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="timelapseOutputFolder">Ausgabe-Verzeichnis 🎞️</label>
+                                        <input type="text" id="timelapseOutputFolder" name="timelapse_output_folder"
+                                               class="form-control" form="applicationSettingsForm"
+                                               placeholder="z.B. ./data/timelapse/output">
+                                        <small class="form-text text-muted">Ordner für fertige Timelapse-Videos</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="timelapseOutputStrategy">Ausgabe-Strategie 📋</label>
+                                        <select id="timelapseOutputStrategy" name="timelapse_output_strategy" class="form-control" form="applicationSettingsForm">
+                                            <option value="same">Gleicher Ordner wie Quelle</option>
+                                            <option value="separate">Separater Ausgabe-Ordner</option>
+                                            <option value="both">Beide Orte</option>
+                                        </select>
+                                        <small class="form-text text-muted">Wo sollen fertige Videos gespeichert werden?</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="timelapseAutoProcessTimeout">Auto-Verarbeitungs-Timeout (Sekunden) ⏱️</label>
+                                        <input type="number" id="timelapseAutoProcessTimeout" name="timelapse_auto_process_timeout"
+                                               class="form-control" min="60" max="3600" step="30" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Zeit nach Druckende bis zur automatischen Verarbeitung (60-3600 Sek.)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="timelapseCleanupAgeDays">Automatisches Löschen nach (Tage) 🗑️</label>
+                                        <input type="number" id="timelapseCleanupAgeDays" name="timelapse_cleanup_age_days"
+                                               class="form-control" min="1" max="365" step="1" form="applicationSettingsForm">
+                                        <small class="form-text text-muted">Alte Timelapse-Dateien automatisch löschen nach X Tagen (1-365)</small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>FFmpeg-Verfügbarkeit prüfen 🔧</label>
+                                        <div class="ffmpeg-check-container">
+                                            <button type="button" class="btn btn-secondary" onclick="checkFfmpegInstallation()">
+                                                <span class="btn-icon">🔍</span>
+                                                FFmpeg prüfen
+                                            </button>
+                                            <div id="ffmpegCheckResult" class="validation-result" style="display: none; margin-top: 0.5rem;"></div>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            Prüfen Sie, ob FFmpeg auf dem System installiert ist. FFmpeg wird für die Timelapse-Videogenerierung benötigt.
+                                        </small>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <strong>ℹ️ Hinweis:</strong> Timelapse-Funktion erfordert ffmpeg oder vergleichbare Software.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watch Folders Tab -->
+                    <div class="tab-pane" id="watch-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>👁️ Überwachte Verzeichnisse</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="watchFolderSettingsForm" class="settings-form">
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="watchFoldersEnabled" name="enabled">
+                                            <span class="checkbox-custom"></span>
+                                            Verzeichnisüberwachung aktiviert ✅
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Automatisches Erkennen neuer Dateien in überwachten Ordnern
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="watchFoldersRecursive" name="recursive">
+                                            <span class="checkbox-custom"></span>
+                                            Rekursive Überwachung (Unterverzeichnisse) 📁
+                                        </label>
+                                        <small class="form-text text-muted">
+                                            Auch Unterordner überwachen
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="watchFolders">Überwachte Verzeichnisse 📂</label>
+                                        <div id="watchFoldersList" class="watch-folders-list">
+                                            <!-- Dynamic content -->
+                                        </div>
+                                    </div>
+
+                                    <div class="alert alert-info">
+                                        <strong>💡 Tipp:</strong> Überwachte Ordner werden automatisch nach neuen 3D-Druck-Dateien durchsucht.
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Tab -->
+                    <div class="tab-pane" id="system-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>📊 System-Informationen</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="system-info" id="systemInfo">
+                                    <div class="loading-placeholder">
+                                        <div class="spinner"></div>
+                                        <p>Lade System-Informationen...</p>
+                                    </div>
+                                </div>
+                                <div class="system-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                    <button class="btn btn-danger" onclick="shutdownServer()">
+                                        <span class="btn-icon">⏹️</span>
+                                        Server herunterfahren
+                                    </button>
+                                    <p class="text-muted" style="margin-top: 10px; font-size: 0.875rem;">
+                                        ⚠️ Der Server wird ordnungsgemäß heruntergefahren. Alle Dienste werden gestoppt.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🧭 Navigationsleiste</h3>
+                            </div>
+                            <div class="card-body">
                                 <div class="form-group">
-                                    <label for="downloadsPath">Download-Verzeichnis</label>
-                                    <input type="text" id="downloadsPath" name="downloads_path" class="form-control" placeholder="z.B. C:\Downloads\Printernizer">
-                                    <small class="form-text text-muted">Verzeichnis für heruntergeladene Dateien</small>
+                                    <p class="text-muted">
+                                        Passen Sie die Reihenfolge und Sichtbarkeit der Navigationselemente an.
+                                    </p>
                                 </div>
 
-                                <div class="form-group">
-                                    <div class="validation-result" id="downloadsPathValidationResult" style="display: none;"></div>
+                                <div id="navigationSectionsList" class="navigation-sections-list">
+                                    <!-- Dynamic content will be inserted here -->
                                 </div>
 
-                                <div class="form-group">
-                                    <button type="button" class="btn btn-secondary" onclick="validateDownloadsPath()">
-                                        <span class="btn-icon">✓</span>
-                                        Pfad validieren
+                                <div class="navigation-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                                    <button class="btn btn-secondary" onclick="navigationPreferencesManager.resetNavigationPreferences()">
+                                        <span class="btn-icon">🔄</span>
+                                        Auf Standardeinstellungen zurücksetzen
                                     </button>
                                 </div>
-                                
-                                <div class="form-group">
-                                    <label for="maxFileSize">Max. Dateigröße (MB)</label>
-                                    <input type="number" id="maxFileSize" name="max_file_size" 
-                                           class="form-control" min="1" max="1000" step="1">
-                                    <small class="form-text text-muted">Maximale Größe für Datei-Downloads (1-1000 MB)</small>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="vatRate">MwSt.-Satz (%)</label>
-                                    <input type="number" id="vatRate" name="vat_rate"
-                                           class="form-control" min="0" max="50" step="0.1">
-                                    <small class="form-text text-muted">Mehrwertsteuersatz für Kostenberechnungen</small>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Library System Settings -->
-                    <div class="card settings-section">
-                        <div class="card-header">
-                            <h3>Bibliothek-Einstellungen</h3>
-                            <span class="card-icon">🗄️</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="settings-form">
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="libraryEnabled" name="library_enabled" form="applicationSettingsForm">
-                                        <span class="checkbox-custom"></span>
-                                        Bibliothek-System aktivieren
-                                    </label>
-                                    <small class="form-text text-muted">
-                                        Automatische Dateiverwaltung mit Deduplizierung und Metadaten
-                                    </small>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="libraryPath">Bibliothek-Pfad</label>
-                                    <input type="text" id="libraryPath" name="library_path"
-                                           class="form-control" form="applicationSettingsForm"
-                                           placeholder="z.B. C:\3DLibrary oder ./data/library">
-                                    <small class="form-text text-muted">
-                                        Verzeichnis für die zentrale Datei-Bibliothek (absolut oder relativ)
-                                    </small>
-                                </div>
-
-                                <div class="form-group">
-                                    <div class="validation-result" id="libraryPathValidationResult" style="display: none;"></div>
-                                </div>
-
-                                <div class="form-group">
-                                    <button type="button" class="btn btn-secondary" onclick="validateLibraryPath()">
-                                        <span class="btn-icon">✓</span>
-                                        Pfad validieren
-                                    </button>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="libraryAutoOrganize" name="library_auto_organize" form="applicationSettingsForm">
-                                        <span class="checkbox-custom"></span>
-                                        Automatische Organisation
-                                    </label>
-                                    <small class="form-text text-muted">
-                                        Dateien aus überwachten Ordnern und Downloads automatisch zur Bibliothek hinzufügen
-                                    </small>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="libraryAutoExtractMetadata" name="library_auto_extract_metadata" form="applicationSettingsForm">
-                                        <span class="checkbox-custom"></span>
-                                        Automatische Metadaten-Extraktion
-                                    </label>
-                                    <small class="form-text text-muted">
-                                        Druckeinstellungen und Modell-Informationen automatisch aus Dateien auslesen
-                                    </small>
-                                </div>
-
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="libraryAutoDeduplicate" name="library_auto_deduplicate" form="applicationSettingsForm">
-                                        <span class="checkbox-custom"></span>
-                                        Automatische Deduplizierung
-                                    </label>
-                                    <small class="form-text text-muted">
-                                        Doppelte Dateien anhand ihres Inhalts erkennen und zusammenführen
-                                    </small>
-                                </div>
-
-                                <div class="alert alert-info">
-                                    <strong>ℹ️ Hinweis:</strong> Nach Änderung des Bibliothek-Pfads ist ein Neustart erforderlich.
-                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Navigation Customization -->
-                    <div class="card settings-section">
-                        <div class="card-header">
-                            <h3>Navigationsleiste</h3>
-                            <span class="card-icon">🧭</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="form-group">
-                                <p class="text-muted">
-                                    Passen Sie die Reihenfolge und Sichtbarkeit der Navigationselemente an.
-                                </p>
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>☕ Entwicklung unterstützen</h3>
                             </div>
-
-                            <div id="navigationSectionsList" class="navigation-sections-list">
-                                <!-- Dynamic content will be inserted here -->
-                            </div>
-
-                            <div class="navigation-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                                <button class="btn btn-secondary" onclick="navigationPreferencesManager.resetNavigationPreferences()">
-                                    <span class="btn-icon">🔄</span>
-                                    Auf Standardeinstellungen zurücksetzen
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- System Information -->
-                    <div class="card settings-section">
-                        <div class="card-header">
-                            <h3>System-Informationen</h3>
-                            <span class="card-icon">📊</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="system-info" id="systemInfo">
-                                <div class="loading-placeholder">
-                                    <div class="spinner"></div>
-                                    <p>Lade System-Informationen...</p>
-                                </div>
-                            </div>
-                            <div class="system-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                                <button class="btn btn-danger" onclick="shutdownServer()">
-                                    <span class="btn-icon">⏹️</span>
-                                    Server herunterfahren
-                                </button>
-                                <p class="text-muted" style="margin-top: 10px; font-size: 0.875rem;">
-                                    ⚠️ Der Server wird ordnungsgemäß heruntergefahren. Alle Dienste werden gestoppt.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Support Development -->
-                    <div class="card settings-section">
-                        <div class="card-header">
-                            <h3>Entwicklung unterstützen</h3>
-                            <span class="card-icon">☕</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="support-section">
-                                <p>
-                                    <strong>Printernizer</strong> ist ein Open-Source-Projekt, das mit Leidenschaft entwickelt wird.
-                                    Wenn dir diese Software hilft, deine 3D-Drucker zu verwalten, würde ich mich über deine Unterstützung freuen!
-                                </p>
-                                <div class="support-actions">
-                                    <a href="https://buymeacoffee.com/porcus3d" target="_blank" class="btn btn-support btn-lg">
-                                        ☕ Einen Kaffee spendieren
-                                    </a>
-                                    <div class="support-info">
-                                        <p class="text-muted">
-                                            Deine Unterstützung hilft dabei, neue Features zu entwickeln und die Software zu verbessern.
-                                        </p>
+                            <div class="card-body">
+                                <div class="support-section">
+                                    <p>
+                                        <strong>Printernizer</strong> ist ein Open-Source-Projekt, das mit Leidenschaft entwickelt wird.
+                                        Wenn dir diese Software hilft, deine 3D-Drucker zu verwalten, würde ich mich über deine Unterstützung freuen!
+                                    </p>
+                                    <div class="support-actions">
+                                        <a href="https://buymeacoffee.com/porcus3d" target="_blank" class="btn btn-support btn-lg">
+                                            ☕ Einen Kaffee spendieren
+                                        </a>
+                                        <div class="support-info">
+                                            <p class="text-muted">
+                                                Deine Unterstützung hilft dabei, neue Features zu entwickeln und die Software zu verbessern.
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Watch Folders -->
-                    <div class="card settings-section">
-                        <div class="card-header">
-                            <h3>Überwachte Verzeichnisse</h3>
-                            <span class="card-icon">📂</span>
-                        </div>
-                        <div class="card-body">
-                            <form id="watchFolderSettingsForm" class="settings-form">
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="watchFoldersEnabled" name="enabled">
-                                        <span class="checkbox-custom"></span>
-                                        Verzeichnisüberwachung aktiviert
-                                    </label>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="watchFoldersRecursive" name="recursive">
-                                        <span class="checkbox-custom"></span>
-                                        Rekursive Überwachung (Unterverzeichnisse)
-                                    </label>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="watchFolders">Überwachte Verzeichnisse</label>
-                                    <div id="watchFoldersList" class="watch-folders-list">
-                                        <!-- Dynamic content -->
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- Debug Page -->
@@ -2116,8 +2423,9 @@
     <script src="js/library.js"></script>
     <script src="js/materials.js"></script>
     <script src="js/search.js"></script>
+    <script src="js/global-drag-drop.js"></script>
 
-    <script src="js/main.js?v=1.1"></script>
+    <script src="js/main.js?v=1.5"></script>
 
     <!-- Create Job Modal -->
     <div id="jobModal" class="modal job-modal">
@@ -2189,57 +2497,6 @@
                 <button type="submit" form="createJobForm" class="btn btn-primary submit-job-btn">
                     <span class="btn-icon">➕</span>
                     Create Job
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Material Modal (Legacy/Jobs) -->
-    <div id="addMaterialModal" class="modal material-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add Material</h3>
-                <button class="modal-close" onclick="closeMaterialModal()">&times;</button>
-            </div>
-            <form id="addMaterialForm" class="modal-body">
-                <div class="form-group">
-                    <label for="materialName">Name</label>
-                    <input type="text" id="materialName" name="material_name" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="materialType">Type</label>
-                    <select id="materialType" name="material_type" class="form-control">
-                        <option value="PLA">PLA</option>
-                        <option value="PETG">PETG</option>
-                        <option value="ABS">ABS</option>
-                        <option value="TPU">TPU</option>
-                        <option value="Nylon">Nylon</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="materialColor">Color</label>
-                    <input type="text" id="materialColor" name="color" class="form-control">
-                </div>
-                
-                <div class="form-group">
-                    <label for="materialWeight">Weight (g)</label>
-                    <input type="number" id="materialWeight" name="weight" class="form-control" min="0">
-                </div>
-                
-                <div class="form-group">
-                    <label for="materialCost">Cost (EUR)</label>
-                    <input type="number" id="materialCost" name="cost" class="form-control" min="0" step="0.01">
-                </div>
-            </form>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeMaterialModal()">
-                    Cancel
-                </button>
-                <button type="submit" form="addMaterialForm" class="btn btn-primary submit-material-btn">
-                    <span class="btn-icon">➕</span>
-                    Add Material
                 </button>
             </div>
         </div>

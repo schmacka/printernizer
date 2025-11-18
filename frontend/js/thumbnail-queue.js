@@ -27,7 +27,7 @@ class ThumbnailQueue {
      * Initialize the thumbnail queue
      */
     async init() {
-        console.log('🖼️ Initializing Thumbnail Queue');
+        Logger.debug('🖼️ Initializing Thumbnail Queue');
 
         // Start processing queue
         this.startProcessing();
@@ -74,7 +74,7 @@ class ThumbnailQueue {
         // Insert in priority order
         this.insertByPriority(task);
 
-        console.log(`🖼️ Added thumbnail task: ${task.id} (${task.fileType}, method: ${task.method})`);
+        Logger.debug(`🖼️ Added thumbnail task: ${task.id} (${task.fileType}, method: ${task.method})`);
 
         // Trigger immediate processing if not busy
         if (!this.isProcessing) {
@@ -157,7 +157,7 @@ class ThumbnailQueue {
         const task = this.queue.shift();
         this.processing.set(task.id, task);
 
-        console.log(`🖼️ Processing thumbnail: ${task.id} (${task.method})`);
+        Logger.debug(`🖼️ Processing thumbnail: ${task.id} (${task.method})`);
 
         try {
             task.status = 'processing';
@@ -177,13 +177,13 @@ class ThumbnailQueue {
             this.processing.delete(task.id);
             this.completed.set(task.id, task);
 
-            console.log(`✅ Thumbnail completed: ${task.id}`);
+            Logger.debug(`✅ Thumbnail completed: ${task.id}`);
 
             // Notify download queue of completion
             this.notifyThumbnailComplete(task, result);
 
         } catch (error) {
-            console.error(`❌ Thumbnail processing failed: ${task.id}`, error);
+            Logger.error(`❌ Thumbnail processing failed: ${task.id}`, error);
 
             task.attempts += 1;
             task.lastError = error.message;
@@ -194,7 +194,7 @@ class ThumbnailQueue {
                 setTimeout(() => {
                     task.status = 'retrying';
                     this.insertByPriority(task);
-                    console.log(`🔄 Retrying thumbnail: ${task.id} (attempt ${task.attempts + 1})`);
+                    Logger.debug(`🔄 Retrying thumbnail: ${task.id} (attempt ${task.attempts + 1})`);
                 }, 10000); // 10 second delay
 
             } else {
@@ -205,7 +205,7 @@ class ThumbnailQueue {
                 this.processing.delete(task.id);
                 this.failed.set(task.id, task);
 
-                console.error(`💥 Thumbnail permanently failed: ${task.id}`);
+                Logger.error(`💥 Thumbnail permanently failed: ${task.id}`);
             }
         }
 
@@ -234,7 +234,7 @@ class ThumbnailQueue {
      */
     async extractThumbnail(task) {
         try {
-            console.log(`🔍 Extracting thumbnail from ${task.fileType} file: ${task.fileId}`);
+            Logger.debug(`🔍 Extracting thumbnail from ${task.fileType} file: ${task.fileId}`);
 
             const response = await api.extractFileThumbnail(task.fileId);
 
@@ -250,7 +250,7 @@ class ThumbnailQueue {
             };
 
         } catch (error) {
-            console.error('Thumbnail extraction failed:', error);
+            Logger.error('Thumbnail extraction failed:', error);
             throw error;
         }
     }
@@ -260,7 +260,7 @@ class ThumbnailQueue {
      */
     async generateThumbnail(task) {
         try {
-            console.log(`🎨 Generating thumbnail for ${task.fileType} file: ${task.fileId}`);
+            Logger.debug(`🎨 Generating thumbnail for ${task.fileType} file: ${task.fileId}`);
 
             const response = await api.generateFileThumbnail(task.fileId);
 
@@ -276,7 +276,7 @@ class ThumbnailQueue {
             };
 
         } catch (error) {
-            console.error('Thumbnail generation failed:', error);
+            Logger.error('Thumbnail generation failed:', error);
             throw error;
         }
     }
@@ -286,7 +286,7 @@ class ThumbnailQueue {
      */
     async analyzeThumbnail(task) {
         try {
-            console.log(`📊 Analyzing G-code for thumbnail: ${task.fileId}`);
+            Logger.debug(`📊 Analyzing G-code for thumbnail: ${task.fileId}`);
 
             const response = await api.analyzeGcodeThumbnail(task.fileId);
 
@@ -303,7 +303,7 @@ class ThumbnailQueue {
             };
 
         } catch (error) {
-            console.error('G-code analysis failed:', error);
+            Logger.error('G-code analysis failed:', error);
             throw error;
         }
     }
@@ -418,7 +418,7 @@ class ThumbnailQueue {
             task.status = 'cancelled';
             this.processing.delete(taskId);
 
-            console.log(`❌ Cancelled thumbnail processing: ${taskId}`);
+            Logger.debug(`❌ Cancelled thumbnail processing: ${taskId}`);
             return true;
         }
 
@@ -429,7 +429,7 @@ class ThumbnailQueue {
      * Shutdown queue processing
      */
     async shutdown() {
-        console.log('🛑 Shutting down Thumbnail Queue');
+        Logger.debug('🛑 Shutting down Thumbnail Queue');
 
         if (this.processInterval) {
             clearInterval(this.processInterval);
@@ -443,7 +443,7 @@ class ThumbnailQueue {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('🖼️ Thumbnail Queue shut down');
+        Logger.debug('🖼️ Thumbnail Queue shut down');
     }
 }
 

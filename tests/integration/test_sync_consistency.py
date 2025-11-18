@@ -22,7 +22,7 @@ class TestCodebaseSyncConsistency:
     @pytest.fixture
     def project_root(self):
         """Get project root directory."""
-        return Path(__file__).parent.parent
+        return Path(__file__).parent.parent.parent
 
     @pytest.fixture
     def standalone_main(self, project_root):
@@ -180,7 +180,7 @@ class TestDeploymentModeDetection:
 
         Ensures deployment documentation stays up to date.
         """
-        claude_md = Path(__file__).parent.parent / "CLAUDE.md"
+        claude_md = Path(__file__).parent.parent.parent / "CLAUDE.md"
         content = claude_md.read_text(encoding="utf-8")
 
         required_modes = [

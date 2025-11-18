@@ -38,19 +38,17 @@ class AutoDownloadUI {
 
         if (dashboardContainer) {
             const statusCard = document.createElement('div');
-            statusCard.className = 'overview-card auto-download-status-card';
+            statusCard.className = 'card overview-card';
             statusCard.innerHTML = `
+                <div class="card-header">
+                    <h3>Auto-Download</h3>
+                    <span class="card-icon">🤖</span>
+                </div>
                 <div class="card-body">
-                    <div id="auto-download-status">
-                        <div class="auto-download-status inactive">
-                            <div class="status-indicator offline"></div>
-                            <div class="status-info">
-                                <div class="status-title">Auto-Download System</div>
-                                <div class="status-details">Initializing...</div>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-primary" onclick="autoDownloadUI.showManagementPanel()" style="margin-top: 0.5rem;">
+                    <div class="stat-number" id="auto-download-count">-</div>
+                    <div class="stat-label" id="auto-download-label">Initializing</div>
+                    <div class="stat-detail" id="auto-download-detail">System starting...</div>
+                    <button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showManagementPanel()" style="margin-top: 1rem;">
                         <span class="btn-icon">⚙️</span> Verwalten
                     </button>
                 </div>
@@ -94,6 +92,9 @@ class AutoDownloadUI {
                 `Failed to download from ${task.printerName}: ${task.lastError}`);
         }
 
+        // Update dashboard card
+        this.updateDashboardCard();
+
         // Update UI if management panel is open
         if (this.isVisible) {
             this.updateQueueDisplay();
@@ -114,6 +115,9 @@ class AutoDownloadUI {
                 `Could not process thumbnail for ${task.filename || 'file'}`);
         }
 
+        // Update dashboard card
+        this.updateDashboardCard();
+
         // Update UI if management panel is open
         if (this.isVisible) {
             this.updateQueueDisplay();
@@ -132,6 +136,55 @@ class AutoDownloadUI {
             }
         });
         document.dispatchEvent(event);
+    }
+
+    /**
+     * Update the dashboard card with current stats
+     */
+    updateDashboardCard() {
+        if (!this.autoDownloadManager) return;
+
+        const stats = this.autoDownloadManager.getStats();
+        const countElement = document.getElementById('auto-download-count');
+        const labelElement = document.getElementById('auto-download-label');
+        const detailElement = document.getElementById('auto-download-detail');
+
+        if (!countElement || !labelElement || !detailElement) return;
+
+        // Calculate active tasks (queued + processing)
+        const activeDownloads = stats.downloads.queued + stats.downloads.processing;
+        const activeThumbnails = stats.thumbnails.queued + stats.thumbnails.processing;
+        const totalActive = activeDownloads + activeThumbnails;
+
+        // Update count
+        countElement.textContent = totalActive;
+
+        // Update label based on activity
+        if (totalActive > 0) {
+            labelElement.textContent = 'Active Tasks';
+        } else if (stats.system.active) {
+            labelElement.textContent = 'System Active';
+        } else {
+            labelElement.textContent = 'System Inactive';
+        }
+
+        // Update detail text
+        const detailParts = [];
+        if (activeDownloads > 0) {
+            detailParts.push(`${activeDownloads} download${activeDownloads !== 1 ? 's' : ''}`);
+        }
+        if (activeThumbnails > 0) {
+            detailParts.push(`${activeThumbnails} thumbnail${activeThumbnails !== 1 ? 's' : ''}`);
+        }
+        if (detailParts.length === 0) {
+            if (stats.downloads.completed > 0 || stats.thumbnails.completed > 0) {
+                detailElement.textContent = `${stats.downloads.completed} downloads today`;
+            } else {
+                detailElement.textContent = stats.system.active ? 'Monitoring...' : 'Idle';
+            }
+        } else {
+            detailElement.textContent = detailParts.join(', ');
+        }
     }
 
     /**
@@ -687,11 +740,18 @@ class AutoDownloadUI {
      * Start periodic UI updates
      */
     startPeriodicUpdates() {
+        // Initial update
+        this.updateDashboardCard();
+
         this.updateInterval = setInterval(() => {
+            // Always update dashboard card
+            this.updateDashboardCard();
+
+            // Update management panel if visible
             if (this.isVisible) {
                 this.updateQueueDisplay();
             }
-        }, 5000); // Update every 5 seconds when visible
+        }, 5000); // Update every 5 seconds
     }
 
     /**

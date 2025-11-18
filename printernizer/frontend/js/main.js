@@ -3,10 +3,25 @@
  * Handles page routing, navigation, and application initialization
  */
 
+const AVAILABLE_PAGES = [
+    'dashboard',
+    'printers',
+    'jobs',
+    'timelapses',
+    'files',
+    'library',
+    'materials',
+    'ideas',
+    'settings',
+    'debug'
+];
+
 // Main application class
 class PrinternizerApp {
     constructor() {
-        this.currentPage = 'dashboard';
+        this.availablePages = AVAILABLE_PAGES;
+        this.entryPath = window.__ENTRY_PATH__ || window.location.pathname;
+        this.currentPage = this.resolveInitialPage();
         this.pageManagers = {
             dashboard: typeof dashboard !== 'undefined' ? dashboard : null,
             printers: typeof printerManager !== 'undefined' ? printerManager : null,
@@ -35,8 +50,13 @@ class PrinternizerApp {
         // Setup navigation
         this.setupNavigation();
 
-        // Initialize current page
-        this.showPage(this.currentPage);
+        // Initialize global drag and drop
+        if (window.globalDragDropManager) {
+            window.globalDragDropManager.init();
+        }
+
+        // Initialize current page without creating duplicate history entries
+        this.showPage(this.currentPage, false);
 
         // Setup global error handling
         this.setupErrorHandling();
@@ -92,24 +112,26 @@ class PrinternizerApp {
 
         // Handle back/forward browser navigation
         window.addEventListener('popstate', (e) => {
-            const page = e.state?.page || 'dashboard';
+            const page = this.isValidPage(e.state?.page) ? e.state.page : this.resolveInitialPage();
             this.showPage(page, false);
         });
 
-        // Set initial browser state
-        const currentHash = window.location.hash.slice(1) || 'dashboard';
-        if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
-            this.currentPage = currentHash;
-        }
+        // Handle hash changes (for direct navigation and E2E tests)
+        window.addEventListener('hashchange', () => {
+            const newHash = window.location.hash.slice(1);
+            if (this.isValidPage(newHash) && newHash !== this.currentPage) {
+                this.showPage(newHash, false);
+            }
+        });
 
-        history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
+        this.updateHistoryState(this.currentPage, 'replace');
     }
 
     /**
      * Show specific page
      */
     showPage(pageName, updateHistory = true) {
-        if (!['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(pageName)) {
+        if (!this.isValidPage(pageName)) {
             console.error('Invalid page name:', pageName);
             return;
         }
@@ -131,11 +153,17 @@ class PrinternizerApp {
         });
         
         // Show selected page
-        const pageElement = document.getElementById(pageName);
+        // Try page-prefixed ID first (for E2E test compatibility), then fall back to pageName
+        let pageElement = document.getElementById(`page-${pageName}`);
+        if (!pageElement) {
+            pageElement = document.getElementById(pageName);
+        }
         const navElement = document.querySelector(`[data-page="${pageName}"]`);
         
         if (pageElement) {
             pageElement.classList.add('active');
+        } else {
+            console.error(`Could not find page element for: ${pageName}`);
         }
         
         if (navElement) {
@@ -148,7 +176,7 @@ class PrinternizerApp {
         
         // Update browser history
         if (updateHistory) {
-            history.pushState({ page: pageName }, '', `#${pageName}`);
+            this.updateHistoryState(pageName, 'push');
         }
         
         // Initialize new page manager
@@ -233,6 +261,61 @@ class PrinternizerApp {
             document.body.classList.add('app-loading');
         } else {
             document.body.classList.remove('app-loading');
+        }
+    }
+
+    isValidPage(pageName) {
+        return typeof pageName === 'string' && this.availablePages.includes(pageName);
+    }
+
+    resolveInitialPage() {
+        const coercedInitial = typeof window.__INITIAL_PAGE__ === 'string'
+            ? window.__INITIAL_PAGE__.trim()
+            : null;
+        if (this.isValidPage(coercedInitial)) {
+            return coercedInitial;
+        }
+
+        const hashPage = window.location.hash.slice(1);
+        if (this.isValidPage(hashPage)) {
+            return hashPage;
+        }
+
+        const pathPage = this.getPageFromPath(window.location.pathname);
+        if (this.isValidPage(pathPage)) {
+            return pathPage;
+        }
+
+        return 'dashboard';
+    }
+
+    getPageFromPath(pathname = '') {
+        if (!pathname) {
+            return null;
+        }
+        const segments = pathname.split('/').filter(Boolean);
+        if (!segments.length) {
+            return null;
+        }
+        const lastSegment = segments[segments.length - 1];
+        if (!lastSegment || lastSegment === 'index.html') {
+            return null;
+        }
+        const cleanSegment = lastSegment.endsWith('.html')
+            ? lastSegment.replace('.html', '')
+            : lastSegment;
+        return cleanSegment;
+    }
+
+    updateHistoryState(page, mode = 'push') {
+        const basePath = (this.entryPath || window.location.pathname || '/').split('#')[0] || '/';
+        const url = `${basePath}#${page}`;
+        const state = { page };
+
+        if (mode === 'replace') {
+            history.replaceState(state, '', url);
+        } else {
+            history.pushState(state, '', url);
         }
     }
 }

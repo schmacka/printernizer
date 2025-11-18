@@ -29,7 +29,7 @@ class UrlParserService:
             self.session = aiohttp.ClientSession(headers=headers, timeout=timeout)
         return self.session
 
-    async def close(self):
+    async def close(self) -> None:
         """Close HTTP session."""
         if self.session:
             await self.session.close()

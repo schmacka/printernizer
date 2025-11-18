@@ -74,8 +74,11 @@ class PortConstants:
     BAMBU_FTP_PORT: int = 990
     """Bambu Lab FTP port (implicit TLS)"""
 
-    BAMBU_CAMERA_PORT: int = 8080
-    """Bambu Lab camera stream and HTTP endpoints"""
+    BAMBU_CAMERA_PORT: int = 6000
+    """Bambu Lab A1/P1 camera TCP port (proprietary protocol)"""
+
+    BAMBU_CAMERA_PORT_RTSP: int = 322
+    """Bambu Lab X1 series RTSP port (future support)"""
 
     MQTT_DEFAULT_PORT: int = 1883
     """Home Assistant MQTT default port"""
@@ -331,6 +334,86 @@ class FTPPathConstants:
     """FTP path for timelapse files"""
 
 
+class CameraConstants:
+    """
+    Camera streaming and snapshot configuration constants.
+
+    Controls Bambu Lab camera protocol parameters, connection management,
+    frame processing, and resource limits for camera services.
+    """
+
+    # Bambu Lab Camera Protocol
+    CAMERA_USERNAME: str = "bblp"
+    """Bambu Lab camera authentication username (fixed)"""
+
+    # Frame Management
+    FRAME_CACHE_TTL_SECONDS: int = 5
+    """Snapshot cache validity duration"""
+
+    JPEG_CHUNK_SIZE: int = 4096
+    """TCP read chunk size for JPEG data"""
+
+    MJPEG_TARGET_FPS: int = 30
+    """Target frame rate for MJPEG streams"""
+
+    MJPEG_FRAME_DELAY_SECONDS: float = 0.033
+    """Delay between frames (~30 FPS)"""
+
+    # Connection Management
+    CAMERA_CONNECTION_TIMEOUT_SECONDS: int = 10
+    """Camera TCP connection timeout"""
+
+    CAMERA_RECONNECT_DELAY_SECONDS: int = 5
+    """Delay between reconnection attempts"""
+
+    CAMERA_MAX_RECONNECT_ATTEMPTS: int = 3
+    """Maximum reconnection attempts before giving up"""
+
+    CAMERA_IDLE_TIMEOUT_SECONDS: int = 60
+    """Close camera connection after this many seconds of inactivity"""
+
+    # Resource Limits
+    MAX_VIEWERS_PER_PRINTER: int = 5
+    """Maximum concurrent stream viewers per printer"""
+
+    # Authentication Packet Structure
+    AUTH_PACKET_SIZE: int = 80
+    """Size of authentication packet in bytes"""
+
+    AUTH_PAYLOAD_SIZE: int = 0x40
+    """Authentication payload size (64 bytes)"""
+
+    AUTH_PACKET_TYPE: int = 0x3000
+    """Authentication packet type identifier"""
+
+    AUTH_USERNAME_FIELD_SIZE: int = 32
+    """Username field size in auth packet (bytes 16-47)"""
+
+    AUTH_PASSWORD_FIELD_SIZE: int = 32
+    """Password field size in auth packet (bytes 48-79)"""
+
+    # Frame Header Structure
+    FRAME_HEADER_SIZE: int = 16
+    """Size of frame header in bytes"""
+
+    # JPEG Validation
+    JPEG_MIN_SIZE_BYTES: int = 1024
+    """Minimum reasonable JPEG size (1KB)"""
+
+    JPEG_MAX_SIZE_BYTES: int = 10_000_000
+    """Maximum reasonable JPEG size (10MB)"""
+
+    JPEG_START_MARKER: bytes = b'\xff\xd8'
+    """JPEG start-of-image marker"""
+
+    JPEG_END_MARKER: bytes = b'\xff\xd9'
+    """JPEG end-of-image marker"""
+
+    # MJPEG Streaming
+    MJPEG_BOUNDARY: str = "frame"
+    """Multipart boundary for MJPEG streaming"""
+
+
 class FileExtensionConstants:
     """
     Common file extension constants.
@@ -378,5 +461,6 @@ ALL_CONSTANT_CLASSES = [
     GCodeConstants,
     MQTTTopicConstants,
     FTPPathConstants,
+    CameraConstants,
     FileExtensionConstants,
 ]

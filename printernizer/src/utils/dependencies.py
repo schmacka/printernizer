@@ -17,6 +17,7 @@ from src.services.url_parser_service import UrlParserService
 from src.services.material_service import MaterialService
 from src.services.timelapse_service import TimelapseService
 from src.services.search_service import SearchService
+from src.services.camera_snapshot_service import CameraSnapshotService
 
 
 async def get_database(request: Request) -> Database:
@@ -94,3 +95,8 @@ async def get_search_service(
     file_service = request.app.state.file_service if request else None
     idea_service = IdeaService(database)
     return SearchService(database, file_service, idea_service)
+
+
+async def get_camera_snapshot_service(request: Request) -> CameraSnapshotService:
+    """Get camera snapshot service instance from app state."""
+    return request.app.state.camera_snapshot_service

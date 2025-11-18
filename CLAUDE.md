@@ -96,7 +96,18 @@ See [RELEASE.md](RELEASE.md) for complete release workflow and troubleshooting.
 
 Printernizer supports multiple deployment methods:
 
-### 1. Docker Deployment (Testing)
+### 1. Python Standalone (Development)
+
+Run Printernizer directly as a Python application:
+
+```bash
+pip install -r requirements.txt
+python src/main.py
+```
+
+Used for local development and testing on your machine.
+
+### 2. Docker Standalone (Testing)
 
 Used for testing on the `development` branch:
 
@@ -106,14 +117,14 @@ docker pull ghcr.io/schmacka/printernizer:development
 docker-compose up -d
 ```
 
-### 2. Home Assistant Add-on (Production)
+### 3. Home Assistant Add-on (Production)
 
 Used for production deployments from `master` branch:
 - Install via Home Assistant Add-on Store
 - Automatically uses latest stable release
 - Auto-updates from `master` branch
 
-### 3. Raspberry Pi Deployment (Production)
+### 4. Raspberry Pi Deployment (Production Alternative)
 
 Quick deployment script for Raspberry Pi (uses `master` branch by default):
 

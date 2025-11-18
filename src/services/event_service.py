@@ -7,6 +7,8 @@ from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 import structlog
 
+from src.config.constants import PollingIntervals
+
 logger = structlog.get_logger()
 
 
@@ -42,57 +44,57 @@ class EventService:
             'new_files_found': 0
         }
         
-    async def start(self):
+    async def start(self) -> None:
         """Start the event service and background tasks."""
         if self._running:
             logger.warning("Event service already running")
             return
-            
+
         self._running = True
         logger.info("Starting event service")
-        
+
         # Start background monitoring tasks
         self._tasks.extend([
             asyncio.create_task(self._printer_monitoring_task()),
             asyncio.create_task(self._job_status_task()),
             asyncio.create_task(self._file_discovery_task())
         ])
-        
+
         logger.info("Event service started", tasks=len(self._tasks))
-        
-    async def stop(self):
+
+    async def stop(self) -> None:
         """Stop the event service and cancel all tasks."""
         if not self._running:
             return
-            
+
         logger.info("Stopping event service")
         self._running = False
-        
+
         # Cancel all tasks
         for task in self._tasks:
             if not task.done():
                 task.cancel()
-                
+
         # Wait for tasks to finish
         if self._tasks:
             await asyncio.gather(*self._tasks, return_exceptions=True)
-            
+
         self._tasks.clear()
         logger.info("Event service stopped")
-        
-    def subscribe(self, event_type: str, handler: Callable):
+
+    def subscribe(self, event_type: str, handler: Callable) -> None:
         """Subscribe to event notifications."""
         if event_type not in self._event_handlers:
             self._event_handlers[event_type] = []
         self._event_handlers[event_type].append(handler)
-        
-    def unsubscribe(self, event_type: str, handler: Callable):
+
+    def unsubscribe(self, event_type: str, handler: Callable) -> None:
         """Unsubscribe from event notifications."""
         if event_type in self._event_handlers:
             if handler in self._event_handlers[event_type]:
                 self._event_handlers[event_type].remove(handler)
                 
-    async def emit_event(self, event_type: str, data: Dict[str, Any]):
+    async def emit_event(self, event_type: str, data: Dict[str, Any]) -> None:
         """Emit an event to all subscribers."""
         if event_type not in self._event_handlers:
             return
@@ -115,7 +117,7 @@ class EventService:
         while self._running:
             try:
                 if not self.printer_service:
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(PollingIntervals.PRINTER_STATUS_CHECK)
                     continue
                 
                 # Get current printer status from all printers
@@ -208,14 +210,14 @@ class EventService:
                     
                 except Exception as e:
                     logger.error("Error getting printer list", error=str(e))
-                
-                await asyncio.sleep(30)  # 30-second polling interval
+
+                await asyncio.sleep(PollingIntervals.PRINTER_STATUS_CHECK)  # 30-second polling interval
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error in printer monitoring", error=str(e))
-                await asyncio.sleep(60)  # Wait longer on error
+                await asyncio.sleep(PollingIntervals.PRINTER_STATUS_ERROR_BACKOFF)  # Wait longer on error
                 
         logger.info("Printer monitoring task stopped")
         
@@ -226,7 +228,7 @@ class EventService:
         while self._running:
             try:
                 if not self.job_service:
-                    await asyncio.sleep(10)
+                    await asyncio.sleep(PollingIntervals.JOB_STATUS_CHECK)
                     continue
                 
                 # Get active jobs to monitor
@@ -319,14 +321,14 @@ class EventService:
                     
                 except Exception as e:
                     logger.error("Error getting active jobs", error=str(e))
-                
-                await asyncio.sleep(10)  # 10-second job polling
+
+                await asyncio.sleep(PollingIntervals.JOB_STATUS_CHECK)  # 10-second job polling
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error in job monitoring", error=str(e))
-                await asyncio.sleep(30)
+                await asyncio.sleep(PollingIntervals.JOB_STATUS_ERROR_BACKOFF)
                 
         logger.info("Job status monitoring task stopped")
         
@@ -337,7 +339,7 @@ class EventService:
         while self._running:
             try:
                 if not self.file_service:
-                    await asyncio.sleep(300)
+                    await asyncio.sleep(PollingIntervals.FILE_DISCOVERY_CHECK)
                     continue
                 
                 new_files_found = []
@@ -438,14 +440,14 @@ class EventService:
                     
                 except Exception as e:
                     logger.error("Error during file discovery", error=str(e))
-                
-                await asyncio.sleep(300)  # 5-minute file discovery interval
+
+                await asyncio.sleep(PollingIntervals.FILE_DISCOVERY_CHECK)  # 5-minute file discovery interval
                 
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error("Error in file discovery task", error=str(e))
-                await asyncio.sleep(600)  # Wait longer on error
+                await asyncio.sleep(PollingIntervals.FILE_DISCOVERY_ERROR_BACKOFF)  # Wait longer on error
                 
         logger.info("File discovery task stopped")
         
@@ -473,7 +475,7 @@ class EventService:
             }
         }
     
-    def set_services(self, printer_service=None, job_service=None, file_service=None, database=None):
+    def set_services(self, printer_service=None, job_service=None, file_service=None, database=None) -> None:
         """Set service dependencies after initialization."""
         if printer_service:
             self.printer_service = printer_service
@@ -540,7 +542,7 @@ class EventService:
             logger.error("Force discovery failed", error=str(e))
             return {"error": str(e)}
     
-    async def reset_monitoring_state(self):
+    async def reset_monitoring_state(self) -> None:
         """Reset all monitoring state - useful for testing or after configuration changes."""
         logger.info("Resetting event service monitoring state")
         self.last_printer_status.clear()

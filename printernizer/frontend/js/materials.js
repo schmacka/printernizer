@@ -6,7 +6,8 @@
 class MaterialsManager {
     constructor() {
         this.materials = [];
-        this.viewMode = localStorage.getItem('materialsViewMode') || 'cards';
+        const storedView = localStorage.getItem('materialsViewMode');
+        this.viewMode = storedView === 'cards' ? 'cards' : 'table';
         this.currentFilters = {
             type: '',
             brand: '',
@@ -137,16 +138,21 @@ class MaterialsManager {
     }
 
     setViewMode(mode) {
+        if (!['cards', 'table'].includes(mode)) {
+            mode = 'table';
+        }
+
         this.viewMode = mode;
         localStorage.setItem('materialsViewMode', mode);
+        this.updateViewButtons();
+        this.render();
+    }
 
-        // Update button states
+    updateViewButtons() {
         const cardsBtn = document.getElementById('cardsViewBtn');
         const tableBtn = document.getElementById('tableViewBtn');
-        if (cardsBtn) cardsBtn.classList.toggle('active', mode === 'cards');
-        if (tableBtn) tableBtn.classList.toggle('active', mode === 'table');
-
-        this.render();
+        if (cardsBtn) cardsBtn.classList.toggle('active', this.viewMode === 'cards');
+        if (tableBtn) tableBtn.classList.toggle('active', this.viewMode === 'table');
     }
 
     async updateStats() {
@@ -172,6 +178,8 @@ class MaterialsManager {
     render() {
         const cardsContainer = document.getElementById('materialsCardsView');
         const tableContainer = document.getElementById('materialsTableView');
+
+        this.updateViewButtons();
 
         if (this.viewMode === 'cards') {
             // Show cards, hide table
@@ -374,8 +382,7 @@ class MaterialsManager {
         // Show modal
         const modal = document.getElementById('materialModal');
         if (modal) {
-            modal.style.display = 'flex';
-            modal.classList.add('show');
+            showModal('materialModal');
         }
     }
 
@@ -543,8 +550,7 @@ class MaterialsManager {
     closeModal() {
         const modal = document.getElementById('materialModal');
         if (modal) {
-            modal.style.display = 'none';
-            modal.classList.remove('show');
+            window.closeModal('materialModal');
         }
         // Reset form
         const form = document.getElementById('materialForm');

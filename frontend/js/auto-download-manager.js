@@ -27,7 +27,7 @@ class AutoDownloadManager {
      * Initialize the auto-download system
      */
     async init() {
-        console.log('🚀 Initializing Auto-Download Manager');
+        Logger.debug('🚀 Initializing Auto-Download Manager');
 
         try {
             // Initialize components
@@ -51,7 +51,7 @@ class AutoDownloadManager {
             this.updateSystemStatus();
 
         } catch (error) {
-            console.error('Failed to initialize Auto-Download Manager:', error);
+            Logger.error('Failed to initialize Auto-Download Manager:', error);
             this.logger.error('system', 'Failed to initialize Auto-Download Manager', error);
         }
     }
@@ -240,7 +240,7 @@ class AutoDownloadManager {
      * Stop the auto-download system
      */
     async shutdown() {
-        console.log('🛑 Shutting down Auto-Download Manager');
+        Logger.debug('🛑 Shutting down Auto-Download Manager');
 
         this.isActive = false;
 

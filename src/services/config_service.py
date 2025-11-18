@@ -34,7 +34,7 @@ class PrinterConfig:
         """Validate printer configuration after initialization."""
         self._validate_config()
         
-    def _validate_config(self):
+    def _validate_config(self) -> None:
         """Validate printer configuration based on type."""
         if self.type == "bambu_lab":
             if not self.ip_address or not self.access_code:
@@ -236,7 +236,7 @@ class ConfigService:
         self._printers: Dict[str, PrinterConfig] = {}
         self._load_printer_configs()
         
-    def _load_printer_configs(self):
+    def _load_printer_configs(self) -> None:
         """Load printer configurations from file and environment variables."""
         # First, try to load from environment variables
         self._load_from_environment()
@@ -265,7 +265,7 @@ class ConfigService:
             logger.error("Failed to load printer config", error=str(e), path=str(self.config_path))
             self._create_default_config()
             
-    def _load_from_environment(self):
+    def _load_from_environment(self) -> None:
         """Load printer configurations from environment variables."""
         # Environment variable format: PRINTERNIZER_PRINTER_{ID}_{FIELD}
         # Example: PRINTERNIZER_PRINTER_BAMBU_A1_01_IP_ADDRESS=192.168.1.100
@@ -394,7 +394,12 @@ class ConfigService:
             if self.config_path.exists():
                 backup_path = self.config_path.with_suffix('.backup')
                 import shutil
-                shutil.copy2(self.config_path, backup_path)
+                try:
+                    # Use copy() instead of copy2() to avoid permission errors on mounted volumes
+                    # copy2() tries to preserve metadata which fails on Windows-mounted volumes
+                    shutil.copy(self.config_path, backup_path)
+                except (PermissionError, OSError) as backup_error:
+                    logger.warning("Could not create config backup, continuing with save", error=str(backup_error))
             
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 json.dump(config_data, f, indent=2, ensure_ascii=False)
@@ -402,6 +407,7 @@ class ConfigService:
             logger.info("Saved printer configuration", path=str(self.config_path))
         except Exception as e:
             logger.error("Failed to save printer config", error=str(e))
+            raise  # Re-raise so caller knows save failed
             
     def validate_printer_connection(self, printer_id: str) -> Dict[str, Any]:
         """Validate printer connection configuration."""
@@ -595,16 +601,34 @@ class ConfigService:
             "monitoring_interval": settings.printer_polling_interval,
             "connection_timeout": settings.connection_timeout,
             "cors_origins": self._get_cors_origins_list(settings.cors_origins),
+            # Job creation settings
+            "job_creation_auto_create": settings.job_creation_auto_create,
             # G-code optimization settings
             "gcode_optimize_print_only": settings.gcode_optimize_print_only,
             "gcode_optimization_max_lines": settings.gcode_optimization_max_lines,
             "gcode_render_max_lines": settings.gcode_render_max_lines,
+            # Upload settings
+            "enable_upload": settings.enable_upload,
+            "max_upload_size_mb": settings.max_upload_size_mb,
+            "allowed_upload_extensions": settings.allowed_upload_extensions,
             # Library System settings
             "library_enabled": settings.library_enabled,
             "library_path": str(settings.library_path),
             "library_auto_organize": settings.library_auto_organize,
             "library_auto_extract_metadata": settings.library_auto_extract_metadata,
-            "library_auto_deduplicate": getattr(settings, 'library_auto_deduplicate', True)
+            "library_auto_deduplicate": getattr(settings, 'library_auto_deduplicate', True),
+            "library_preserve_originals": settings.library_preserve_originals,
+            "library_checksum_algorithm": settings.library_checksum_algorithm,
+            "library_processing_workers": settings.library_processing_workers,
+            "library_search_enabled": settings.library_search_enabled,
+            "library_search_min_length": settings.library_search_min_length,
+            # Timelapse settings
+            "timelapse_enabled": settings.timelapse_enabled,
+            "timelapse_source_folder": str(settings.timelapse_source_folder),
+            "timelapse_output_folder": str(settings.timelapse_output_folder),
+            "timelapse_output_strategy": settings.timelapse_output_strategy,
+            "timelapse_auto_process_timeout": settings.timelapse_auto_process_timeout,
+            "timelapse_cleanup_age_days": settings.timelapse_cleanup_age_days
         }
 
     def _get_cors_origins_list(self, cors_origins_str: str) -> List[str]:
@@ -624,8 +648,20 @@ class ConfigService:
         updatable_settings = {
             "log_level", "monitoring_interval", "connection_timeout",
             "max_file_size", "vat_rate", "downloads_path",
+            # Job creation settings
+            "job_creation_auto_create",
+            # G-code optimization settings
+            "gcode_optimize_print_only", "gcode_optimization_max_lines", "gcode_render_max_lines",
+            # Upload settings
+            "enable_upload", "max_upload_size_mb", "allowed_upload_extensions",
+            # Library settings
             "library_enabled", "library_path", "library_auto_organize",
-            "library_auto_extract_metadata", "library_auto_deduplicate"
+            "library_auto_extract_metadata", "library_auto_deduplicate",
+            "library_preserve_originals", "library_checksum_algorithm",
+            "library_processing_workers", "library_search_enabled", "library_search_min_length",
+            # Timelapse settings
+            "timelapse_enabled", "timelapse_source_folder", "timelapse_output_folder",
+            "timelapse_output_strategy", "timelapse_auto_process_timeout", "timelapse_cleanup_age_days"
         }
 
         logger.info("Processing settings update", settings_dict=settings_dict, updatable_settings=updatable_settings)

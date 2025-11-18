@@ -1,6 +1,74 @@
 """
 Database connection and management for Printernizer.
 SQLite database with async support for job tracking and printer management.
+
+DEPRECATION NOTICE:
+-------------------
+Many methods in this class have been superseded by the Repository pattern (Phase 1 refactoring).
+The following repositories are now the preferred way to interact with the database:
+
+- PrinterRepository (src/database/repositories/printer_repository.py)
+  Replaces: create_printer, get_printer, list_printers, update_printer_status
+
+- JobRepository (src/database/repositories/job_repository.py)
+  Replaces: create_job, get_job, list_jobs, update_job, delete_job, get_jobs_by_date_range, get_job_statistics
+
+- FileRepository (src/database/repositories/file_repository.py)
+  Replaces: create_file, list_files, update_file, delete_local_file, get_file_statistics
+
+- SnapshotRepository (src/database/repositories/snapshot_repository.py)
+  Replaces: create_snapshot, get_snapshot_by_id, list_snapshots, delete_snapshot, update_snapshot_validation
+
+- TrendingRepository (src/database/repositories/trending_repository.py)
+  Replaces: upsert_trending, get_trending, clean_expired_trending
+
+- IdeaRepository (src/database/repositories/idea_repository.py)
+  Replaces: create_idea, get_idea, list_ideas, update_idea, delete_idea, update_idea_status,
+           add_idea_tags, remove_idea_tags, get_idea_tags, get_all_tags
+
+- LibraryRepository (src/database/repositories/library_repository.py)
+  Replaces: create_library_file, get_library_file, list_library_files, update_library_file,
+           delete_library_file, get_library_stats
+
+The old methods are maintained for backward compatibility during the migration period.
+New code should use the repository classes directly.
+
+Example migration:
+    # Old way (deprecated)
+    printer = await db.get_printer(printer_id)
+
+    # New way (preferred)
+    printer_repo = PrinterRepository(db.get_connection())
+    printer = await printer_repo.get(printer_id)
+
+See docs/technical-debt/progress-tracker.md for migration status.
+
+CONNECTION POOLING (Phase 3):
+-----------------------------
+The Database class now supports connection pooling for improved concurrency.
+
+Usage examples:
+    # Using pooled connections (recommended for concurrent operations)
+    async with db.pooled_connection() as conn:
+        async with conn.execute("SELECT * FROM jobs") as cursor:
+            rows = await cursor.fetchall()
+
+    # Or manually acquire/release
+    conn = await db.acquire_connection()
+    try:
+        # Use connection
+        pass
+    finally:
+        await db.release_connection(conn)
+
+    # Legacy usage (backward compatible)
+    conn = db.get_connection()
+    # Use connection directly
+
+Configuration:
+    - Default pool size: 5 connections
+    - Customize: Database(db_path, pool_size=10)
+    - Uses WAL mode for optimal read concurrency
 """
 import asyncio
 import aiosqlite
@@ -17,34 +85,52 @@ logger = structlog.get_logger()
 
 
 class Database:
-    """SQLite database manager for Printernizer."""
-    
-    def __init__(self, db_path: Optional[str] = None):
-        """Initialize database connection."""
+    """SQLite database manager for Printernizer with connection pooling."""
+
+    def __init__(self, db_path: Optional[str] = None, pool_size: int = 5):
+        """
+        Initialize database with connection pooling.
+
+        Args:
+            db_path: Path to SQLite database file
+            pool_size: Number of connections in the pool (default: 5)
+        """
         if db_path is None:
             db_path = Path(__file__).parent.parent.parent / "data" / "printernizer.db"
-        
+
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Connection pooling
+        self._pool_size = pool_size
+        self._connection_pool: asyncio.Queue[aiosqlite.Connection] = asyncio.Queue(maxsize=pool_size)
+        self._pool_semaphore = asyncio.Semaphore(pool_size)
+        self._pool_initialized = False
+
+        # Backward compatibility: maintain single connection reference for old code
         self._connection: Optional[aiosqlite.Connection] = None
         
     async def initialize(self):
-        """Initialize database and create tables."""
-        logger.info("Initializing database", path=str(self.db_path))
-        
+        """Initialize database, connection pool, and create tables."""
+        logger.info("Initializing database with connection pool", path=str(self.db_path), pool_size=self._pool_size)
+
+        # Create main connection for backward compatibility and initial setup
         self._connection = await aiosqlite.connect(str(self.db_path))
         self._connection.row_factory = aiosqlite.Row
-        
+
         # Enable foreign key constraints
         await self._connection.execute("PRAGMA foreign_keys = ON")
-        
+
         # Create tables
         await self._create_tables()
-        
+
         # Run migrations
         await self._run_migrations()
-        
-        logger.info("Database initialized successfully")
+
+        # Initialize connection pool
+        await self._initialize_pool()
+
+        logger.info("Database initialized successfully", pool_size=self._pool_size)
         
     async def _create_tables(self):
         """Create database tables if they don't exist."""
@@ -394,9 +480,109 @@ class Database:
         except Exception as e:
             logger.error("db.select.failed", error=str(e), sql=sql.split('\n')[0][:140])
             return []
-        
+
+    # ============================================================================
+    # Connection Pool Management
+    # ============================================================================
+
+    async def _initialize_pool(self):
+        """Initialize the connection pool with configured number of connections."""
+        if self._pool_initialized:
+            logger.warning("Connection pool already initialized")
+            return
+
+        logger.info("Initializing connection pool", size=self._pool_size)
+
+        for i in range(self._pool_size):
+            conn = await aiosqlite.connect(str(self.db_path))
+            conn.row_factory = aiosqlite.Row
+            await conn.execute("PRAGMA foreign_keys = ON")
+            # Optimize for concurrent reads
+            await conn.execute("PRAGMA journal_mode = WAL")
+            await conn.execute("PRAGMA synchronous = NORMAL")
+            await self._connection_pool.put(conn)
+
+        self._pool_initialized = True
+        logger.info("Connection pool initialized", connections=self._pool_size)
+
+    async def acquire_connection(self) -> aiosqlite.Connection:
+        """
+        Acquire a connection from the pool.
+
+        Returns:
+            aiosqlite.Connection: Database connection from pool
+
+        Raises:
+            RuntimeError: If pool not initialized
+        """
+        if not self._pool_initialized:
+            # Fallback to main connection if pool not initialized
+            logger.warning("Pool not initialized, using main connection")
+            return self._connection
+
+        # Acquire semaphore slot
+        await self._pool_semaphore.acquire()
+
+        # Get connection from pool
+        conn = await self._connection_pool.get()
+        logger.debug("Connection acquired from pool", pool_size=self._connection_pool.qsize())
+        return conn
+
+    async def release_connection(self, conn: aiosqlite.Connection):
+        """
+        Release a connection back to the pool.
+
+        Args:
+            conn: Connection to release back to pool
+        """
+        if not self._pool_initialized:
+            # Nothing to release if pool not used
+            return
+
+        # Return connection to pool
+        await self._connection_pool.put(conn)
+
+        # Release semaphore slot
+        self._pool_semaphore.release()
+        logger.debug("Connection released to pool", pool_size=self._connection_pool.qsize())
+
+    @asynccontextmanager
+    async def pooled_connection(self):
+        """
+        Get a database connection from pool as async context manager.
+
+        Usage:
+            async with db.pooled_connection() as conn:
+                async with conn.execute("SELECT * FROM jobs") as cursor:
+                    rows = await cursor.fetchall()
+
+        Yields:
+            aiosqlite.Connection: Database connection from pool
+        """
+        conn = await self.acquire_connection()
+        try:
+            yield conn
+        finally:
+            await self.release_connection(conn)
+
     async def close(self):
-        """Close database connection."""
+        """Close all database connections including pool."""
+        logger.info("Closing database connections")
+
+        # Close pool connections
+        if self._pool_initialized:
+            closed_count = 0
+            while not self._connection_pool.empty():
+                try:
+                    conn = await asyncio.wait_for(self._connection_pool.get(), timeout=1.0)
+                    await conn.close()
+                    closed_count += 1
+                except asyncio.TimeoutError:
+                    break
+            logger.info("Closed pool connections", count=closed_count)
+            self._pool_initialized = False
+
+        # Close main connection
         if self._connection:
             await self._connection.close()
             logger.info("Database connection closed")
@@ -2157,4 +2343,189 @@ class Database:
             )
         except Exception as e:
             logger.error("Failed to add search analytics", error=str(e))
+            return False
+
+    # ==========================================
+    # Snapshot Methods
+    # ==========================================
+
+    async def create_snapshot(self, snapshot_data: Dict[str, Any]) -> Optional[int]:
+        """Create a new snapshot record.
+
+        Args:
+            snapshot_data: Dictionary containing snapshot information
+
+        Returns:
+            Snapshot ID if successful, None otherwise
+        """
+        try:
+            metadata_json = json.dumps(snapshot_data.get('metadata')) if snapshot_data.get('metadata') else None
+
+            cursor = await self._connection.execute(
+                """INSERT INTO snapshots (
+                    job_id, printer_id, filename, original_filename,
+                    file_size, content_type, storage_path,
+                    captured_at, capture_trigger, width, height,
+                    is_valid, notes, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    snapshot_data.get('job_id'),
+                    snapshot_data['printer_id'],
+                    snapshot_data['filename'],
+                    snapshot_data.get('original_filename'),
+                    snapshot_data['file_size'],
+                    snapshot_data.get('content_type', 'image/jpeg'),
+                    snapshot_data['storage_path'],
+                    snapshot_data.get('captured_at', datetime.now().isoformat()),
+                    snapshot_data.get('capture_trigger', 'manual'),
+                    snapshot_data.get('width'),
+                    snapshot_data.get('height'),
+                    snapshot_data.get('is_valid', True),
+                    snapshot_data.get('notes'),
+                    metadata_json
+                )
+            )
+            await self._connection.commit()
+
+            logger.info("Snapshot created", snapshot_id=cursor.lastrowid, filename=snapshot_data['filename'])
+            return cursor.lastrowid
+
+        except Exception as e:
+            logger.error("Failed to create snapshot", error=str(e), snapshot_data=snapshot_data)
+            return None
+
+    async def get_snapshot_by_id(self, snapshot_id: int) -> Optional[Dict[str, Any]]:
+        """Get snapshot by ID with context information.
+
+        Args:
+            snapshot_id: Snapshot ID
+
+        Returns:
+            Snapshot dictionary with context data, or None if not found
+        """
+        try:
+            sql = """
+                SELECT * FROM v_snapshots_with_context
+                WHERE id = ?
+            """
+            row = await self._fetch_one(sql, [snapshot_id])
+
+            if row:
+                snapshot = dict(row)
+                # Parse JSON metadata
+                if snapshot.get('metadata'):
+                    try:
+                        snapshot['metadata'] = json.loads(snapshot['metadata'])
+                    except (json.JSONDecodeError, TypeError):
+                        snapshot['metadata'] = None
+                return snapshot
+
+            return None
+
+        except Exception as e:
+            logger.error("Failed to get snapshot", error=str(e), snapshot_id=snapshot_id)
+            return None
+
+    async def list_snapshots(
+        self,
+        printer_id: Optional[str] = None,
+        job_id: Optional[int] = None,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """List snapshots with optional filters.
+
+        Args:
+            printer_id: Filter by printer ID
+            job_id: Filter by job ID
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of snapshot dictionaries with context data
+        """
+        try:
+            conditions = []
+            params = []
+
+            if printer_id:
+                conditions.append("printer_id = ?")
+                params.append(printer_id)
+
+            if job_id:
+                conditions.append("job_id = ?")
+                params.append(job_id)
+
+            where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+            sql = f"""
+                SELECT * FROM v_snapshots_with_context
+                {where_clause}
+                ORDER BY captured_at DESC
+                LIMIT ? OFFSET ?
+            """
+            params.extend([limit, offset])
+
+            rows = await self._fetch_all(sql, params)
+
+            snapshots = []
+            for row in rows:
+                snapshot = dict(row)
+                # Parse JSON metadata
+                if snapshot.get('metadata'):
+                    try:
+                        snapshot['metadata'] = json.loads(snapshot['metadata'])
+                    except (json.JSONDecodeError, TypeError):
+                        snapshot['metadata'] = None
+                snapshots.append(snapshot)
+
+            return snapshots
+
+        except Exception as e:
+            logger.error("Failed to list snapshots", error=str(e), printer_id=printer_id, job_id=job_id)
+            return []
+
+    async def delete_snapshot(self, snapshot_id: int) -> bool:
+        """Delete a snapshot record.
+
+        Args:
+            snapshot_id: Snapshot ID to delete
+
+        Returns:
+            True if deleted, False otherwise
+        """
+        try:
+            return await self._execute_write(
+                "DELETE FROM snapshots WHERE id = ?",
+                (snapshot_id,)
+            )
+        except Exception as e:
+            logger.error("Failed to delete snapshot", error=str(e), snapshot_id=snapshot_id)
+            return False
+
+    async def update_snapshot_validation(
+        self,
+        snapshot_id: int,
+        is_valid: bool,
+        validation_error: Optional[str] = None
+    ) -> bool:
+        """Update snapshot validation status.
+
+        Args:
+            snapshot_id: Snapshot ID
+            is_valid: Whether snapshot is valid
+            validation_error: Error message if invalid
+
+        Returns:
+            True if updated, False otherwise
+        """
+        try:
+            return await self._execute_write(
+                """UPDATE snapshots
+                   SET is_valid = ?, validation_error = ?, last_validated_at = ?
+                   WHERE id = ?""",
+                (is_valid, validation_error, datetime.now().isoformat(), snapshot_id)
+            )
+        except Exception as e:
+            logger.error("Failed to update snapshot validation", error=str(e), snapshot_id=snapshot_id)
             return False

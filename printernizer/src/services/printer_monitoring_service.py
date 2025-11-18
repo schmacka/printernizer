@@ -654,6 +654,10 @@ class PrinterMonitoringService:
             status: Current printer status
             is_startup: True if this is called during system startup/reconnection
         """
+        # Check if auto-creation is enabled
+        if not self.auto_create_jobs:
+            return
+
         # Only create for printing status with a known file
         if status.status != PrinterStatus.PRINTING or not status.current_job:
             return
@@ -697,7 +701,17 @@ class PrinterMonitoringService:
                 return
 
             # Check database (handles restarts, cache misses)
-            # Use print_start_time for lookup to find jobs across restarts
+            # First, check for any active/running job with same filename (prevents auto-creating when manual job exists)
+            existing_active = await self._find_active_job(printer_id, filename)
+            if existing_active:
+                logger.info("Active job already exists (manual or auto)",
+                           job_id=existing_active['id'],
+                           job_status=existing_active.get('status'),
+                           job_name=existing_active.get('job_name'))
+                self._auto_job_cache[printer_id].add(job_key)
+                return
+
+            # Then check for jobs with matching start_time to find jobs across restarts
             existing = await self._find_existing_job(printer_id, filename, deduplication_time)
             if existing:
                 logger.info("Job already exists in database",
@@ -710,6 +724,43 @@ class PrinterMonitoringService:
             # Create the job!
             await self._create_auto_job(status, discovery_time, is_startup)
             self._auto_job_cache[printer_id].add(job_key)
+
+    async def _find_active_job(self, printer_id: str, filename: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if there's an active/running job with the same filename.
+
+        This prevents auto-creating a job when a manual job already exists.
+
+        Args:
+            printer_id: Printer identifier
+            filename: Job filename
+
+        Returns:
+            Active job dict if found, None otherwise
+        """
+        # Clean filename for comparison
+        clean_filename = filename
+        if clean_filename.startswith('cache/'):
+            clean_filename = clean_filename[6:]
+
+        # Get recent jobs for this printer with 'running' or 'pending' status
+        for status in ['running', 'pending', 'paused']:
+            jobs = await self.database.list_jobs(
+                printer_id=printer_id,
+                status=status,
+                limit=50
+            )
+
+            for job in jobs:
+                job_filename = job.get('filename', '')
+                if job_filename.startswith('cache/'):
+                    job_filename = job_filename[6:]
+
+                # Match by filename
+                if job_filename == clean_filename:
+                    return job
+
+        return None
 
     def _make_job_key(self, printer_id: str, filename: str, reference_time: datetime) -> str:
         """

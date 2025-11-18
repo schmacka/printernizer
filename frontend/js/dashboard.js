@@ -15,7 +15,7 @@ class Dashboard {
      * Initialize dashboard page
      */
     init() {
-        console.log('Initializing dashboard');
+        Logger.debug('Initializing dashboard');
 
         // Load initial data (pass true to indicate initial load)
         this.loadDashboard(true);
@@ -61,7 +61,7 @@ class Dashboard {
 
             this.lastRefresh = new Date();
         } catch (error) {
-            console.error('Failed to load dashboard:', error);
+            Logger.error('Failed to load dashboard:', error);
             this.showDashboardError(error);
         }
     }
@@ -128,7 +128,7 @@ class Dashboard {
                 }
             }
         } catch (error) {
-            console.error('Failed to check startup discovered printers:', error);
+            Logger.error('Failed to check startup discovered printers:', error);
             // Silently fail - don't disrupt dashboard loading
         }
     }
@@ -182,7 +182,7 @@ class Dashboard {
         try {
             await api.clearStartupDiscoveredPrinters();
         } catch (error) {
-            console.error('Failed to clear discovered printers:', error);
+            Logger.error('Failed to clear discovered printers:', error);
         }
     }
 
@@ -205,7 +205,7 @@ class Dashboard {
             
             this.statisticsCache = stats;
         } catch (error) {
-            console.error('Failed to load overview statistics:', error);
+            Logger.error('Failed to load overview statistics:', error);
             this.showOverviewCardsError();
         }
     }
@@ -338,11 +338,15 @@ class Dashboard {
             // Clear existing printers
             this.printers.clear();
             
-            if (response && Array.isArray(response) && response.length > 0) {
+            // API returns {printers: [], total_count: N, pagination: {...}}
+            const printers = response?.printers || response;
+            const printersArray = Array.isArray(printers) ? printers : (Array.isArray(response) ? response : []);
+            
+            if (printersArray.length > 0) {
                 // Create printer cards
                 printerGrid.innerHTML = '';
                 
-                response.forEach(printer => {
+                printersArray.forEach(printer => {
                     const printerCard = new PrinterCard(printer);
                     const cardElement = printerCard.render();
                     printerGrid.appendChild(cardElement);
@@ -355,7 +359,7 @@ class Dashboard {
                 printerGrid.innerHTML = this.renderEmptyPrintersState();
             }
         } catch (error) {
-            console.error('Failed to load printers:', error);
+            Logger.error('Failed to load printers:', error);
             const printerGrid = document.getElementById('printerGrid');
             if (printerGrid) {
                 printerGrid.innerHTML = this.renderPrintersError(error);
@@ -430,7 +434,7 @@ class Dashboard {
                 recentJobsContainer.innerHTML = this.renderEmptyJobsState();
             }
         } catch (error) {
-            console.error('Failed to load recent jobs:', error);
+            Logger.error('Failed to load recent jobs:', error);
             const recentJobsContainer = document.getElementById('recentJobs');
             if (recentJobsContainer) {
                 recentJobsContainer.innerHTML = this.renderJobsError(error);
@@ -612,7 +616,7 @@ class Dashboard {
                 printedFilesContainer.innerHTML = this.renderEmptyPrintedFilesState();
             }
         } catch (error) {
-            console.error('Failed to load recent printed files:', error);
+            Logger.error('Failed to load recent printed files:', error);
             const printedFilesContainer = document.getElementById('recentPrintedFiles');
             if (printedFilesContainer) {
                 printedFilesContainer.innerHTML = this.renderPrintedFilesError(error);
@@ -812,7 +816,7 @@ class Dashboard {
      */
     async refreshDashboard() {
         try {
-            console.log('Refreshing dashboard data');
+            Logger.debug('Refreshing dashboard data');
             
             // Only refresh if not currently loading
             if (document.querySelector('.loading-placeholder')) {
@@ -829,7 +833,7 @@ class Dashboard {
             
             this.lastRefresh = new Date();
         } catch (error) {
-            console.error('Failed to refresh dashboard:', error);
+            Logger.error('Failed to refresh dashboard:', error);
         }
     }
 
@@ -852,7 +856,7 @@ class Dashboard {
                 });
             }
         } catch (error) {
-            console.error('Failed to update printer status:', error);
+            Logger.error('Failed to update printer status:', error);
         }
     }
 
@@ -998,7 +1002,7 @@ async function showPrinterDetails(printerId) {
             }
         }, 500);
     } catch (error) {
-        console.error('Failed to show printer details:', error);
+        Logger.error('Failed to show printer details:', error);
         showToast('error', 'Fehler', 'Drucker-Details konnten nicht geladen werden');
     }
 }
@@ -1057,7 +1061,7 @@ async function triggerCurrentJobDownload(printerId) {
         // Reload dashboard section to display thumbnail if new
         refreshDashboard();
     } catch (error) {
-        console.error('Failed to trigger current job download:', error);
+        Logger.error('Failed to trigger current job download:', error);
         const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Abrufen der Druckdatei';
         showToast('error', 'Fehler', message);
     }

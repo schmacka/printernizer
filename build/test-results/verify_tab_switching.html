@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings Tab Switching Test</title>
+    <style>
+        .settings-tab {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .settings-tab.active {
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        .tab-pane {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        #test-results {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+        }
+        .pass { color: green; font-weight: bold; }
+        .fail { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Settings Tab Switching Test</h1>
+
+    <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="general" onclick="switchTab('general')">General</button>
+        <button class="settings-tab" data-tab="jobs" onclick="switchTab('jobs')">Jobs</button>
+        <button class="settings-tab" data-tab="library" onclick="switchTab('library')">Library</button>
+    </div>
+
+    <div class="settings-tab-content">
+        <div class="tab-pane active" id="general-tab">
+            <h2>General Settings</h2>
+            <p>This is the general settings content.</p>
+        </div>
+        <div class="tab-pane" id="jobs-tab">
+            <h2>Jobs Settings</h2>
+            <p>This is the jobs settings content.</p>
+        </div>
+        <div class="tab-pane" id="library-tab">
+            <h2>Library Settings</h2>
+            <p>This is the library settings content.</p>
+        </div>
+    </div>
+
+    <div id="test-results">
+        <h3>Test Results:</h3>
+        <div id="results"></div>
+    </div>
+
+    <button onclick="runTests()" style="margin-top: 20px; padding: 10px 20px; font-size: 16px;">Run Automated Tests</button>
+
+    <script>
+        function switchTab(tabName) {
+            console.log('Switching to tab:', tabName);
+
+            try {
+                // Validate tab name
+                if (!tabName || typeof tabName !== 'string') {
+                    console.error('Invalid tab name:', tabName);
+                    return;
+                }
+
+                // Update tab buttons - remove active from all tabs
+                const allTabs = document.querySelectorAll('.settings-tab');
+                console.log(`Found ${allTabs.length} tab buttons`);
+                allTabs.forEach(tab => {
+                    tab.classList.remove('active');
+                    tab.setAttribute('aria-selected', 'false');
+                });
+
+                // Add active to the clicked tab
+                const activeTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
+                if (activeTab) {
+                    activeTab.classList.add('active');
+                    activeTab.setAttribute('aria-selected', 'true');
+                    console.log(`Activated tab button: ${tabName}`);
+                } else {
+                    console.error(`Tab button not found for: ${tabName}`);
+                    return;
+                }
+
+                // Update tab content - remove active from all panes
+                const allPanes = document.querySelectorAll('.tab-pane');
+                console.log(`Found ${allPanes.length} tab panes`);
+                allPanes.forEach(pane => {
+                    pane.classList.remove('active');
+                    pane.style.display = 'none';  // Explicitly set display none
+                    pane.setAttribute('aria-hidden', 'true');
+                });
+
+                // Add active to the target pane
+                const activePane = document.getElementById(`${tabName}-tab`);
+                if (activePane) {
+                    activePane.classList.add('active');
+                    activePane.style.display = 'block';  // Explicitly set display block
+                    activePane.setAttribute('aria-hidden', 'false');
+                    console.log(`Activated tab pane: ${tabName}-tab`);
+                } else {
+                    console.error(`Tab pane not found for: ${tabName}-tab`);
+                    return;
+                }
+
+                console.log(`Successfully switched to tab: ${tabName}`);
+
+            } catch (error) {
+                console.error('Error in switchTab:', error);
+            }
+        }
+
+        function runTests() {
+            const results = [];
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            // Test 1: Switch to jobs tab
+            switchTab('jobs');
+            setTimeout(() => {
+                const jobsTabActive = document.querySelector('.settings-tab[data-tab="jobs"]').classList.contains('active');
+                const jobsPaneVisible = document.getElementById('jobs-tab').classList.contains('active');
+                const generalPaneHidden = !document.getElementById('general-tab').classList.contains('active');
+
+                const test1Pass = jobsTabActive && jobsPaneVisible && generalPaneHidden;
+                results.push({
+                    name: 'Test 1: Switch to jobs tab',
+                    pass: test1Pass,
+                    details: `Tab active: ${jobsTabActive}, Pane visible: ${jobsPaneVisible}, General hidden: ${generalPaneHidden}`
+                });
+
+                // Test 2: Switch to library tab
+                switchTab('library');
+                setTimeout(() => {
+                    const libraryTabActive = document.querySelector('.settings-tab[data-tab="library"]').classList.contains('active');
+                    const libraryPaneVisible = document.getElementById('library-tab').classList.contains('active');
+                    const jobsPaneHidden = !document.getElementById('jobs-tab').classList.contains('active');
+
+                    const test2Pass = libraryTabActive && libraryPaneVisible && jobsPaneHidden;
+                    results.push({
+                        name: 'Test 2: Switch to library tab',
+                        pass: test2Pass,
+                        details: `Tab active: ${libraryTabActive}, Pane visible: ${libraryPaneVisible}, Jobs hidden: ${jobsPaneHidden}`
+                    });
+
+                    // Test 3: Switch back to general tab
+                    switchTab('general');
+                    setTimeout(() => {
+                        const generalTabActive = document.querySelector('.settings-tab[data-tab="general"]').classList.contains('active');
+                        const generalPaneVisible = document.getElementById('general-tab').classList.contains('active');
+                        const libraryPaneHidden = !document.getElementById('library-tab').classList.contains('active');
+
+                        const test3Pass = generalTabActive && generalPaneVisible && libraryPaneHidden;
+                        results.push({
+                            name: 'Test 3: Switch back to general tab',
+                            pass: test3Pass,
+                            details: `Tab active: ${generalTabActive}, Pane visible: ${generalPaneVisible}, Library hidden: ${libraryPaneHidden}`
+                        });
+
+                        // Display all results
+                        results.forEach(result => {
+                            const div = document.createElement('div');
+                            div.innerHTML = `
+                                <p class="${result.pass ? 'pass' : 'fail'}">
+                                    ${result.pass ? '✓' : '✗'} ${result.name}: ${result.pass ? 'PASS' : 'FAIL'}
+                                </p>
+                                <p style="margin-left: 20px; font-size: 12px;">${result.details}</p>
+                            `;
+                            resultsDiv.appendChild(div);
+                        });
+
+                        const allPass = results.every(r => r.pass);
+                        const summary = document.createElement('div');
+                        summary.innerHTML = `<h4 class="${allPass ? 'pass' : 'fail'}">Overall: ${allPass ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'}</h4>`;
+                        resultsDiv.appendChild(summary);
+
+                    }, 500);
+                }, 500);
+            }, 500);
+        }
+    </script>
+</body>
+</html>
