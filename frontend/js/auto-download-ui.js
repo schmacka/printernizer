@@ -413,9 +413,9 @@ class AutoDownloadUI {
                     ${task.result && section === 'completed' ? `<div class="task-success">✅ ${escapeHtml(task.result.message || 'Completed successfully')}</div>` : ''}
                 </div>
                 <div class="task-actions">
-                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${task.id}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${task.id}')">Retry</button>` : ''}
-                    ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${task.id}')">Details</button>` : ''}
+                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
+                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}')">Retry</button>` : ''}
+                    ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${sanitizeAttribute(task.id)}')">Details</button>` : ''}
                 </div>
             </div>
         `;
@@ -478,18 +478,18 @@ class AutoDownloadUI {
         return `
             <div class="task-item ${section}">
                 <div class="task-info">
-                    <div class="task-title">${task.filename || 'Unknown File'}</div>
-                    <div class="task-subtitle">${task.fileType?.toUpperCase()} • Method: ${task.method} • Priority: ${task.priority}</div>
+                    <div class="task-title">${escapeHtml(task.filename || 'Unknown File')}</div>
+                    <div class="task-subtitle">${task.fileType?.toUpperCase()} • Method: ${escapeHtml(task.method)} • Priority: ${task.priority}</div>
                     <div class="task-timing">
                         Created: ${new Date(task.createdAt).toLocaleString('de-DE')}
                         ${task.startedAt ? ` • Started: ${new Date(task.startedAt).toLocaleString('de-DE')}` : ''}
                         ${section === 'processing' ? ` • Elapsed: ${elapsed}s` : ''}
                     </div>
-                    ${task.lastError ? `<div class="task-error">Error: ${task.lastError}</div>` : ''}
+                    ${task.lastError ? `<div class="task-error">Error: ${escapeHtml(task.lastError)}</div>` : ''}
                 </div>
                 <div class="task-actions">
-                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${task.id}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${task.id}')">Retry</button>` : ''}
+                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
+                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${sanitizeAttribute(task.id)}')">Retry</button>` : ''}
                 </div>
             </div>
         `;
@@ -511,8 +511,8 @@ class AutoDownloadUI {
                 html += `
                     <div class="history-item">
                         <div class="history-info">
-                            <strong>${item.result.filename || 'Unknown File'}</strong>
-                            <span class="history-printer">from ${item.printerId}</span>
+                            <strong>${escapeHtml(item.result.filename || 'Unknown File')}</strong>
+                            <span class="history-printer">from ${escapeHtml(item.printerId)}</span>
                         </div>
                         <div class="history-time">${new Date(item.timestamp).toLocaleString('de-DE')}</div>
                     </div>
@@ -530,8 +530,8 @@ class AutoDownloadUI {
                 html += `
                     <div class="error-item">
                         <div class="error-info">
-                            <strong>${error.category}</strong>: ${error.message}
-                            ${error.data.taskId ? `<span class="error-task">Task: ${error.data.taskId}</span>` : ''}
+                            <strong>${escapeHtml(error.category)}</strong>: ${escapeHtml(error.message)}
+                            ${error.data.taskId ? `<span class="error-task">Task: ${escapeHtml(error.data.taskId)}</span>` : ''}
                         </div>
                         <div class="error-time">${new Date(error.timestamp).toLocaleString('de-DE')}</div>
                     </div>
@@ -683,7 +683,7 @@ class AutoDownloadUI {
                                 <strong>Priority:</strong> ${task.priority}
                             </div>
                             <div class="detail-item">
-                                <strong>Printer:</strong> ${escapeHtml(task.printerName || 'Unknown')} (${task.printerId})
+                                <strong>Printer:</strong> ${escapeHtml(task.printerName || 'Unknown')} (${escapeHtml(task.printerId)})
                             </div>
                             <div class="detail-item">
                                 <strong>Job/File:</strong> ${escapeHtml(task.jobName || task.filename || 'Unknown')}
@@ -721,7 +721,7 @@ class AutoDownloadUI {
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                     ${task.status === 'failed' && task.attempts < task.maxAttempts ?
-                        `<button class="btn btn-primary" onclick="autoDownloadUI.retryTask('download', '${task.id}'); this.closest('.modal').remove();">Retry Task</button>` : ''}
+                        `<button class="btn btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}'); this.closest('.modal').remove();">Retry Task</button>` : ''}
                 </div>
             </div>
         `;

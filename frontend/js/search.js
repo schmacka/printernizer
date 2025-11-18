@@ -388,10 +388,10 @@ class SearchManager {
         const physicalProps = metadata.physical_properties || {};
 
         return `
-            <div class="result-card file-card" data-id="${result.id}">
+            <div class="result-card file-card" data-id="${sanitizeAttribute(result.id)}">
                 <div class="card-thumbnail">
                     ${result.thumbnail_url ?
-                        `<img src="${result.thumbnail_url}" alt="${escapeHtml(result.title)}" />` :
+                        `<img src="${sanitizeUrl(result.thumbnail_url)}" alt="${escapeHtml(result.title)}" />` :
                         '<div class="placeholder-thumbnail">📄</div>'
                     }
                 </div>
@@ -410,7 +410,7 @@ class SearchManager {
                         }
                     </div>
                     <div class="card-actions">
-                        <button class="btn-primary btn-sm" onclick="viewFileDetails('${result.id}')">View Details</button>
+                        <button class="btn-primary btn-sm" onclick="viewFileDetails('${sanitizeAttribute(result.id)}')">View Details</button>
                     </div>
                 </div>
                 <div class="card-relevance">
@@ -427,10 +427,10 @@ class SearchManager {
         const metadata = result.metadata || {};
 
         return `
-            <div class="result-card idea-card" data-id="${result.id}">
+            <div class="result-card idea-card" data-id="${sanitizeAttribute(result.id)}">
                 <div class="card-thumbnail">
                     ${result.thumbnail_url ?
-                        `<img src="${result.thumbnail_url}" alt="${escapeHtml(result.title)}" />` :
+                        `<img src="${sanitizeUrl(result.thumbnail_url)}" alt="${escapeHtml(result.title)}" />` :
                         '<div class="placeholder-thumbnail">💡</div>'
                     }
                 </div>
@@ -442,17 +442,17 @@ class SearchManager {
                     }
                     <div class="card-metadata">
                         ${metadata.status ?
-                            `<span class="metadata-item status-${metadata.status}">${metadata.status}</span>` : ''
+                            `<span class="metadata-item status-${sanitizeAttribute(metadata.status)}">${escapeHtml(metadata.status)}</span>` : ''
                         }
                         ${metadata.category ?
-                            `<span class="metadata-item">📂 ${metadata.category}</span>` : ''
+                            `<span class="metadata-item">📂 ${escapeHtml(metadata.category)}</span>` : ''
                         }
                         ${metadata.is_business ?
                             '<span class="metadata-item">🏢 Business</span>' : ''
                         }
                     </div>
                     <div class="card-actions">
-                        <button class="btn-primary btn-sm" onclick="viewIdeaDetails('${result.id}')">View Details</button>
+                        <button class="btn-primary btn-sm" onclick="viewIdeaDetails('${sanitizeAttribute(result.id)}')">View Details</button>
                     </div>
                 </div>
                 <div class="card-relevance">
