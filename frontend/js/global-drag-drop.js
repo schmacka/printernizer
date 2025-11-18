@@ -15,7 +15,7 @@ class GlobalDragDropManager {
      * Initialize global drag and drop
      */
     init() {
-        console.log('Initializing global drag-and-drop manager');
+        Logger.debug('Initializing global drag-and-drop manager');
 
         // Create drop overlay
         this.createDropOverlay();
@@ -23,7 +23,7 @@ class GlobalDragDropManager {
         // Setup event listeners on document
         this.setupEventListeners();
 
-        console.log('Global drag-and-drop enabled');
+        Logger.debug('Global drag-and-drop enabled');
     }
 
     /**
@@ -172,7 +172,7 @@ class GlobalDragDropManager {
      * Handle dropped files
      */
     async handleFileDrop(files) {
-        console.log('Files dropped globally:', files.length);
+        Logger.debug('Files dropped globally:', files.length);
 
         // Validate files
         const validFiles = [];
@@ -215,7 +215,7 @@ class GlobalDragDropManager {
      * Upload files to the server
      */
     async uploadFiles(files) {
-        console.log('Uploading files globally:', files.length);
+        Logger.debug('Uploading files globally:', files.length);
 
         // Show upload overlay
         this.showUploadOverlay(files);
@@ -240,7 +240,7 @@ class GlobalDragDropManager {
             }
 
             const result = await response.json();
-            console.log('Upload result:', result);
+            Logger.debug('Upload result:', result);
 
             // Show success message
             if (result.success_count > 0) {
@@ -264,7 +264,7 @@ class GlobalDragDropManager {
             }
 
         } catch (error) {
-            console.error('Upload error:', error);
+            Logger.error('Upload error:', error);
             this.showToast(`Upload failed: ${error.message}`, 'error');
         } finally {
             this.hideUploadOverlay();
@@ -341,7 +341,7 @@ class GlobalDragDropManager {
             window.showToast(message, type);
         } else {
             // Fallback to console
-            console.log(`[${type.toUpperCase()}] ${message}`);
+            Logger.debug(`[${type.toUpperCase()}] ${message}`);
         }
     }
 }

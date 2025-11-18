@@ -613,7 +613,7 @@ function openPageSettings(settingsTab, sourcePage = null, useModal = true) {
 function showSettingsModal(settingsTab, sourcePage) {
     const modal = document.getElementById('settingsModal');
     if (!modal) {
-        console.error('Settings modal not found');
+        Logger.error('Settings modal not found');
         return;
     }
 
@@ -626,7 +626,7 @@ function showSettingsModal(settingsTab, sourcePage) {
     if (modalTitle && sourcePage) {
         modalTitle.innerHTML = `
             <button class="breadcrumb-back" onclick="closeSettingsModal()">
-                ← Zurück zu ${sourcePage}
+                ← Zurück zu ${escapeHtml(sourcePage)}
             </button>
             <span class="breadcrumb-separator">/</span>
             <span>Einstellungen</span>
@@ -651,7 +651,7 @@ function loadSettingsIntoModal(settingsTab) {
     // Clone the settings tab content
     const tabPane = document.getElementById(`${settingsTab}-tab`);
     if (!tabPane) {
-        console.error(`Settings tab not found: ${settingsTab}`);
+        Logger.error(`Settings tab not found: ${settingsTab}`);
         return;
     }
 
@@ -752,7 +752,7 @@ function updateSettingsBreadcrumb() {
     if (sourcePage) {
         const backButton = breadcrumb.querySelector('.breadcrumb-back');
         if (backButton) {
-            backButton.innerHTML = `← Zurück zu ${sourcePage}`;
+            backButton.innerHTML = `← Zurück zu ${escapeHtml(sourcePage)}`;
         }
         breadcrumb.style.display = 'block';
     } else {
@@ -806,7 +806,7 @@ async function saveModalSettings() {
             throw new Error('Failed to save settings');
         }
     } catch (error) {
-        console.error('Error saving settings:', error);
+        Logger.error('Error saving settings:', error);
         showToast('error', 'Fehler', 'Einstellungen konnten nicht gespeichert werden');
     }
 }
@@ -886,9 +886,9 @@ function getStatusConfig(type, status) {
         'job': CONFIG.JOB_STATUS,
         'file': CONFIG.FILE_STATUS
     };
-    
+
     return configs[type]?.[status] || {
-        label: status,
+        label: escapeHtml(status),  // Escape unknown status values for safety
         icon: '❓',
         class: 'status-unknown'
     };
@@ -1151,34 +1151,34 @@ function initSystemTime() {
  * Fetch and display application version in footer
  */
 async function loadAppVersion() {
-    console.log('[Version] Loading app version...');
+    Logger.debug('[Version] Loading app version...');
 
     const versionElement = document.getElementById('appVersion');
     if (!versionElement) {
-        console.error('[Version] ERROR: appVersion element not found in DOM');
-        console.log('[Version] Available elements with "version":',
+        Logger.error('[Version] ERROR: appVersion element not found in DOM');
+        Logger.debug('[Version] Available elements with "version":',
             Array.from(document.querySelectorAll('[id*="version"]')).map(el => el.id));
         return;
     }
 
-    console.log('[Version] Found appVersion element:', versionElement);
+    Logger.debug('[Version] Found appVersion element:', versionElement);
 
     try {
-        console.log('[Version] Fetching health endpoint...');
+        Logger.debug('[Version] Fetching health endpoint...');
         const response = await fetch(`${CONFIG.API_BASE_URL}/health`, {
             cache: 'no-cache' // Force fresh data
         });
 
-        console.log('[Version] Response status:', response.status, response.statusText);
+        Logger.debug('[Version] Response status:', response.status, response.statusText);
 
         if (response.ok) {
             const data = await response.json();
-            console.log('[Version] Health data received:', data);
+            Logger.debug('[Version] Health data received:', data);
 
             const version = data.version || 'unknown';
-            console.log('[Version] Setting version to:', version);
+            Logger.debug('[Version] Setting version to:', version);
             versionElement.textContent = version;
-            console.log('[Version] Version element content now:', versionElement.textContent);
+            Logger.debug('[Version] Version element content now:', versionElement.textContent);
 
             // Store version globally
             window.printernizer = window.printernizer || {};
@@ -1187,11 +1187,11 @@ async function loadAppVersion() {
             // Check for updates
             checkForUpdates(version);
         } else {
-            console.error('[Version] Health endpoint returned non-OK status:', response.status);
+            Logger.error('[Version] Health endpoint returned non-OK status:', response.status);
             versionElement.textContent = 'error';
         }
     } catch (error) {
-        console.error('[Version] Failed to load version:', error);
+        Logger.error('[Version] Failed to load version:', error);
         versionElement.textContent = 'error';
     }
 }
@@ -1200,11 +1200,11 @@ async function loadAppVersion() {
  * Check for available updates from GitHub
  */
 async function checkForUpdates(currentVersion) {
-    console.log('[Update Check] Checking for updates...');
+    Logger.debug('[Update Check] Checking for updates...');
 
     const updateStatusElement = document.getElementById('updateStatus');
     if (!updateStatusElement) {
-        console.error('[Update Check] updateStatus element not found');
+        Logger.error('[Update Check] updateStatus element not found');
         return;
     }
 
@@ -1215,7 +1215,7 @@ async function checkForUpdates(currentVersion) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log('[Update Check] Update check data:', data);
+            Logger.debug('[Update Check] Update check data:', data);
 
             if (data.check_failed) {
                 console.warn('[Update Check] Update check failed:', data.error_message);
@@ -1225,8 +1225,10 @@ async function checkForUpdates(currentVersion) {
             }
 
             if (data.update_available) {
-                console.log('[Update Check] Update available:', data.latest_version);
-                updateStatusElement.innerHTML = `<a href="${data.release_url || 'https://github.com/schmacka/printernizer/releases/latest'}" target="_blank" title="Update available: v${data.latest_version}">Update available</a>`;
+                Logger.debug('[Update Check] Update available:', data.latest_version);
+                const releaseUrl = sanitizeUrl(data.release_url || 'https://github.com/schmacka/printernizer/releases/latest');
+                const version = escapeHtml(data.latest_version);
+                updateStatusElement.innerHTML = `<a href="${releaseUrl}" target="_blank" title="Update available: v${version}">Update available</a>`;
                 updateStatusElement.className = 'update-status outdated';
 
                 // Show a notification
@@ -1244,15 +1246,15 @@ async function checkForUpdates(currentVersion) {
                     }
                 );
             } else {
-                console.log('[Update Check] Version is current');
+                Logger.debug('[Update Check] Version is current');
                 updateStatusElement.textContent = 'Up to date';
                 updateStatusElement.className = 'update-status current';
             }
         } else {
-            console.error('[Update Check] Update check endpoint returned non-OK status:', response.status);
+            Logger.error('[Update Check] Update check endpoint returned non-OK status:', response.status);
         }
     } catch (error) {
-        console.error('[Update Check] Failed to check for updates:', error);
+        Logger.error('[Update Check] Failed to check for updates:', error);
         // Silently fail - don't show error to user for update check
     }
 }

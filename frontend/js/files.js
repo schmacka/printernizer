@@ -19,7 +19,7 @@ class FileManager {
      * Initialize file management page
      */
     async init() {
-        console.log('Initializing file management');
+        Logger.debug('Initializing file management');
 
         // Load files
         this.loadFiles();
@@ -80,7 +80,7 @@ class FileManager {
             }
             
         } catch (error) {
-            console.error('Failed to load file statistics:', error);
+            Logger.error('Failed to load file statistics:', error);
             const statsContainer = document.getElementById('filesStats');
             if (statsContainer) {
                 statsContainer.innerHTML = this.renderFileStatisticsError();
@@ -181,7 +181,7 @@ class FileManager {
             this.currentPage = page;
             
         } catch (error) {
-            console.error('Failed to load files:', error);
+            Logger.error('Failed to load files:', error);
             const filesList = document.getElementById('filesList');
             if (filesList && this.currentPage === 1) {
                 filesList.innerHTML = this.renderFilesError(error);
@@ -326,9 +326,9 @@ class FileManager {
                 return;
             }
 
-            console.log('Loading printer options for filter dropdown...');
+            Logger.debug('Loading printer options for filter dropdown...');
             const response = await api.getPrinters();
-            console.log('Printers API response:', response);
+            Logger.debug('Printers API response:', response);
 
             // Clear existing options (except "All Printers")
             const firstOption = printerFilter.firstElementChild;
@@ -339,24 +339,24 @@ class FileManager {
 
             // Add printer options
             if (response && Array.isArray(response)) {
-                console.log(`Adding ${response.length} printers to filter dropdown`);
+                Logger.debug(`Adding ${response.length} printers to filter dropdown`);
                 response.forEach(printer => {
                     const option = document.createElement('option');
                     option.value = printer.id;
                     option.textContent = printer.name;
                     printerFilter.appendChild(option);
-                    console.log(`Added printer: ${printer.name} (${printer.id})`);
+                    Logger.debug(`Added printer: ${printer.name} (${printer.id})`);
                 });
 
                 if (response.length === 0) {
                     console.warn('No printers found in response');
                 }
             } else {
-                console.error('Invalid printers response format:', response);
+                Logger.error('Invalid printers response format:', response);
             }
         } catch (error) {
-            console.error('Failed to load printer options:', error);
-            console.error('Error details:', {
+            Logger.error('Failed to load printer options:', error);
+            Logger.error('Error details:', {
                 message: error.message,
                 stack: error.stack
             });
@@ -480,7 +480,7 @@ class FileManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to refresh files:', error);
+            Logger.error('Failed to refresh files:', error);
         }
     }
 
@@ -532,7 +532,7 @@ class FileManager {
             }
             
         } catch (error) {
-            console.error('Failed to start download:', error);
+            Logger.error('Failed to start download:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : CONFIG.ERROR_MESSAGES.DOWNLOAD_FAILED;
             showToast('error', 'Download-Fehler', message);
         }
@@ -585,7 +585,7 @@ class FileManager {
                 }
                 
             } catch (error) {
-                console.error('Failed to check download progress:', error);
+                Logger.error('Failed to check download progress:', error);
                 
                 // Stop monitoring on persistent errors
                 if (attempts > 5) {
@@ -676,7 +676,7 @@ class FileManager {
             }
             
         } catch (error) {
-            console.error('Failed to load file preview:', error);
+            Logger.error('Failed to load file preview:', error);
             content.innerHTML = this.renderPreviewError(fileItem, error);
         }
     }
@@ -698,7 +698,7 @@ class FileManager {
             // Render the enhanced metadata
             metadataContainer.innerHTML = enhancedMetadata.render();
         } catch (error) {
-            console.error('Failed to load enhanced metadata:', error);
+            Logger.error('Failed to load enhanced metadata:', error);
             metadataContainer.innerHTML = enhancedMetadata.renderError();
         }
     }
@@ -1005,7 +1005,7 @@ class FileManager {
             this.loadFileStatistics();
             
         } catch (error) {
-            console.error('Failed to delete local file:', error);
+            Logger.error('Failed to delete local file:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Löschen der lokalen Datei';
             showToast('error', 'Fehler', message);
         }
@@ -1033,7 +1033,7 @@ class FileManager {
             }
             
         } catch (error) {
-            console.error('Failed to load cleanup candidates:', error);
+            Logger.error('Failed to load cleanup candidates:', error);
             showToast('error', 'Fehler', 'Bereinigungs-Kandidaten konnten nicht geladen werden');
         }
     }
@@ -1059,7 +1059,7 @@ class FileManager {
             container.innerHTML = this.renderWatchFolders(settings, status);
             
         } catch (error) {
-            console.error('Failed to load watch folders:', error);
+            Logger.error('Failed to load watch folders:', error);
             const container = document.getElementById('watchFoldersContainer');
             if (container) {
                 container.innerHTML = this.renderWatchFoldersError(error);
@@ -1227,7 +1227,7 @@ class FileManager {
             container.innerHTML = this.renderDiscoveredFilesTable(files, pagination);
 
         } catch (error) {
-            console.error('Failed to load discovered files:', error);
+            Logger.error('Failed to load discovered files:', error);
             container.innerHTML = `
                 <div class="error-state">
                     <div class="error-icon">⚠️</div>
@@ -1455,7 +1455,7 @@ class FileManager {
             }
 
         } catch (error) {
-            console.error('Failed to add watch folder:', error);
+            Logger.error('Failed to add watch folder:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Hinzufügen des Verzeichnisses';
             showToast('error', 'Fehler', message);
             // Don't close modal on error so user can see the error and try again
@@ -1470,32 +1470,32 @@ class FileManager {
      * Remove a watch folder
      */
     async removeWatchFolder(folderPath) {
-        console.log('[removeWatchFolder] Called with folderPath:', folderPath);
+        Logger.debug('[removeWatchFolder] Called with folderPath:', folderPath);
 
         const confirmed = confirm(`Möchten Sie das Verzeichnis "${folderPath}" wirklich aus der Überwachung entfernen?`);
         if (!confirmed) {
-            console.log('[removeWatchFolder] User cancelled');
+            Logger.debug('[removeWatchFolder] User cancelled');
             return;
         }
 
         try {
-            console.log('[removeWatchFolder] Calling API to remove folder');
+            Logger.debug('[removeWatchFolder] Calling API to remove folder');
             showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
 
             const response = await api.removeWatchFolder(folderPath);
-            console.log('[removeWatchFolder] API response:', response);
+            Logger.debug('[removeWatchFolder] API response:', response);
 
             if (response.status === 'removed') {
                 showToast('success', 'Erfolgreich entfernt', `Verzeichnis "${folderPath}" wurde entfernt und zugehörige Dateien werden aktualisiert`);
 
                 // Reload watch folders and discovered files
                 try {
-                    console.log('[removeWatchFolder] Reloading UI components');
+                    Logger.debug('[removeWatchFolder] Reloading UI components');
                     await this.loadWatchFolders();
                     await this.loadDiscoveredFiles();
                     // Also reload the main file list to remove files from removed folder
                     await this.loadFiles(1);
-                    console.log('[removeWatchFolder] UI reload completed');
+                    Logger.debug('[removeWatchFolder] UI reload completed');
                 } catch (reloadError) {
                     console.warn('Error reloading after folder removal:', reloadError);
                     showToast('warning', 'Hinweis', 'Verzeichnis wurde entfernt, aber Anzeige konnte nicht aktualisiert werden. Bitte Seite neu laden.');
@@ -1505,7 +1505,7 @@ class FileManager {
             }
 
         } catch (error) {
-            console.error('[removeWatchFolder] Failed to remove watch folder:', error);
+            Logger.error('[removeWatchFolder] Failed to remove watch folder:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Entfernen des Verzeichnisses';
             showToast('error', 'Fehler beim Entfernen', message);
         }
@@ -1615,7 +1615,7 @@ async function activateWatchFolder(folderPath) {
             fileManager.loadWatchFolders();
         }
     } catch (error) {
-        console.error('Failed to activate watch folder:', error);
+        Logger.error('Failed to activate watch folder:', error);
         const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Aktivieren des Verzeichnisses';
         showToast('error', 'Fehler', message);
     }
@@ -1636,7 +1636,7 @@ async function deactivateWatchFolder(folderPath) {
             fileManager.loadWatchFolders();
         }
     } catch (error) {
-        console.error('Failed to deactivate watch folder:', error);
+        Logger.error('Failed to deactivate watch folder:', error);
         const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Deaktivieren des Verzeichnisses';
         showToast('error', 'Fehler', message);
     }
@@ -1675,7 +1675,7 @@ async function validateWatchFolderPath() {
         }
 
     } catch (error) {
-        console.error('Failed to validate watch folder:', error);
+        Logger.error('Failed to validate watch folder:', error);
         validationResult.className = 'validation-result error';
         validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
     }

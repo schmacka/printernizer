@@ -95,7 +95,7 @@ class PrinterCard {
                 }
             }
         } catch (error) {
-            console.error('Failed to fetch camera status:', error);
+            Logger.error('Failed to fetch camera status:', error);
         }
     }
 
@@ -465,7 +465,7 @@ class PrinterCard {
             this.element.classList.add('monitoring-active');
             
         } catch (error) {
-            console.error('Failed to start monitoring:', error);
+            Logger.error('Failed to start monitoring:', error);
             showToast('Überwachung konnte nicht gestartet werden', 'error');
         }
     }
@@ -493,7 +493,7 @@ class PrinterCard {
             this.element.classList.remove('monitoring-active');
             
         } catch (error) {
-            console.error('Failed to stop monitoring:', error);
+            Logger.error('Failed to stop monitoring:', error);
             showToast('Überwachung konnte nicht gestoppt werden', 'error');
         }
     }
@@ -1685,7 +1685,7 @@ class DruckerDateienManager {
             this.applyFilters();
             
         } catch (error) {
-            console.error('Failed to load files:', error);
+            Logger.error('Failed to load files:', error);
             this.showError('Fehler beim Laden der Dateien');
         }
     }
@@ -1976,7 +1976,7 @@ class DruckerDateienManager {
             showToast(`Datei "${file.filename}" erfolgreich heruntergeladen`, 'success');
 
         } catch (error) {
-            console.error('Download failed:', error);
+            Logger.error('Download failed:', error);
             file.status = 'available'; // Reset status
             this.downloadProgress.delete(fileId);
             this.applyFilters();
