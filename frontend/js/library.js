@@ -240,17 +240,17 @@ class LibraryManager {
         const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
         return `
-            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${file.checksum}">
+            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${sanitizeAttribute(file.checksum)}">
                 <div class="file-card-thumbnail">
                     ${thumbnailUrl
-                        ? `<img src="${thumbnailUrl}" alt="${file.filename}" loading="lazy">`
+                        ? `<img src="${sanitizeUrl(thumbnailUrl)}" alt="${sanitizeAttribute(file.filename)}" loading="lazy">`
                         : `<div class="thumbnail-placeholder">${this.getFileTypeIcon(file.file_type)}</div>`
                     }
                     ${statusBadge}
                     ${duplicateBadge}
                 </div>
                 <div class="file-card-info">
-                    <div class="file-card-name" title="${file.filename}">${file.filename}</div>
+                    <div class="file-card-name" title="${sanitizeAttribute(file.filename)}">${escapeHtml(file.filename)}</div>
                     <div class="file-card-meta">
                         ${sourceIcon}
                         <span class="file-size">${this.formatFileSize(file.file_size)}</span>
