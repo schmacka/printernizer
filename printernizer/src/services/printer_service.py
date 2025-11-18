@@ -106,7 +106,7 @@ class PrinterService:
                    monitoring=True,
                    control=True)
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """
         Initialize printer service and load configured printers.
 
@@ -772,7 +772,7 @@ class PrinterService:
     # GRACEFUL SHUTDOWN
     # ========================================================================
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         """
         Gracefully shutdown printer service.
 

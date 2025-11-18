@@ -51,7 +51,7 @@ function showLoading(containerId) {
 
 // Initialize Ideas page
 function initializeIdeas() {
-    console.log('Initializing Ideas page...');
+    Logger.debug('Initializing Ideas page...');
 
     try {
         // Initialize event listeners
@@ -59,19 +59,19 @@ function initializeIdeas() {
 
         // Load initial data
         loadIdeasStatistics().catch(error => {
-            console.warn('Failed to load ideas statistics:', error);
+            Logger.warn('Failed to load ideas statistics:', error);
         });
 
         loadMyIdeas().catch(error => {
-            console.warn('Failed to load ideas:', error);
+            Logger.warn('Failed to load ideas:', error);
         });
 
         // Set up periodic refresh for trending content
         setInterval(refreshTrendingIfActive, 5 * 60 * 1000); // Every 5 minutes
 
-        console.log('Ideas page initialized successfully');
+        Logger.debug('Ideas page initialized successfully');
     } catch (error) {
-        console.error('Error initializing Ideas page:', error);
+        Logger.error('Error initializing Ideas page:', error);
     }
 }
 
@@ -95,7 +95,7 @@ function setupIdeasEventListeners() {
             if (filterElement) {
                 filterElement.addEventListener('change', applyIdeasFilters);
             } else {
-                console.warn(`Filter element not found: ${filterId}`);
+                Logger.warn(`Filter element not found: ${filterId}`);
             }
         });
 
@@ -105,9 +105,9 @@ function setupIdeasEventListeners() {
         // Business checkbox listeners for customer info toggle
         setupBusinessCheckboxListeners();
 
-        console.log('Ideas event listeners setup completed');
+        Logger.debug('Ideas event listeners setup completed');
     } catch (error) {
-        console.error('Error setting up Ideas event listeners:', error);
+        Logger.error('Error setting up Ideas event listeners:', error);
     }
 }
 
@@ -118,30 +118,30 @@ function setupFormSubmissions() {
         const addIdeaForm = document.getElementById('addIdeaForm');
         if (addIdeaForm) {
             addIdeaForm.addEventListener('submit', handleAddIdea);
-            console.log('Add idea form listener attached');
+            Logger.debug('Add idea form listener attached');
         } else {
-            console.warn('Add idea form not found');
+            Logger.warn('Add idea form not found');
         }
 
         // Edit Idea Form
         const editIdeaForm = document.getElementById('editIdeaForm');
         if (editIdeaForm) {
             editIdeaForm.addEventListener('submit', handleEditIdea);
-            console.log('Edit idea form listener attached');
+            Logger.debug('Edit idea form listener attached');
         } else {
-            console.warn('Edit idea form not found');
+            Logger.warn('Edit idea form not found');
         }
 
         // Import Idea Form
         const importIdeaForm = document.getElementById('importIdeaForm');
         if (importIdeaForm) {
             importIdeaForm.addEventListener('submit', handleImportIdea);
-            console.log('Import idea form listener attached');
+            Logger.debug('Import idea form listener attached');
         } else {
-            console.warn('Import idea form not found');
+            Logger.warn('Import idea form not found');
         }
     } catch (error) {
-        console.error('Error setting up form submissions:', error);
+        Logger.error('Error setting up form submissions:', error);
     }
 }
 
@@ -199,26 +199,26 @@ function showIdeasTab(tabName) {
 // Data Loading Functions
 async function loadIdeasStatistics() {
     try {
-        console.log('Loading ideas statistics...');
+        Logger.debug('Loading ideas statistics...');
         const response = await fetch(`${API_BASE_URL}/api/v1/ideas/stats/overview`);
         if (response.ok) {
             const stats = await response.json();
-            console.log('Statistics loaded:', stats);
+            Logger.debug('Statistics loaded:', stats);
             ideasState.statistics = stats;
             displayIdeasStatistics(stats);
         } else {
-            console.error('Failed to load statistics:', response.status, response.statusText);
+            Logger.error('Failed to load statistics:', response.status, response.statusText);
             showErrorInContainer('ideasStats', 'Fehler beim Laden der Statistiken');
         }
     } catch (error) {
-        console.error('Error loading ideas statistics:', error);
+        Logger.error('Error loading ideas statistics:', error);
         showErrorInContainer('ideasStats', 'Fehler beim Laden der Statistiken');
     }
 }
 
 async function loadMyIdeas() {
     try {
-        console.log('Loading my ideas...');
+        Logger.debug('Loading my ideas...');
         showLoading('myIdeasContainer');
 
         const queryParams = new URLSearchParams();
@@ -229,20 +229,20 @@ async function loadMyIdeas() {
         if (ideasState.filters.source) queryParams.set('source_type', ideasState.filters.source);
 
         const url = `${API_BASE_URL}/api/v1/ideas/?${queryParams}`;
-        console.log('Fetching ideas from:', url);
+        Logger.debug('Fetching ideas from:', url);
 
         const response = await fetch(url);
         if (response.ok) {
             const data = await response.json();
-            console.log('Ideas loaded:', data);
+            Logger.debug('Ideas loaded:', data);
             ideasState.ideas = data.ideas || [];
             displayMyIdeas(ideasState.ideas);
         } else {
-            console.error('Failed to load ideas:', response.status, response.statusText);
+            Logger.error('Failed to load ideas:', response.status, response.statusText);
             showErrorInContainer('myIdeasContainer', 'Fehler beim Laden der Ideen');
         }
     } catch (error) {
-        console.error('Error loading ideas:', error);
+        Logger.error('Error loading ideas:', error);
         showErrorInContainer('myIdeasContainer', 'Fehler beim Laden der Ideen');
     }
 }
@@ -261,7 +261,7 @@ async function loadBookmarks() {
             throw new Error('Failed to load bookmarks');
         }
     } catch (error) {
-        console.error('Error loading bookmarks:', error);
+        Logger.error('Error loading bookmarks:', error);
         showError('bookmarksContainer', 'Fehler beim Laden der Lesezeichen');
     }
 }
@@ -280,7 +280,7 @@ async function loadTrending() {
             throw new Error('Failed to load trending models');
         }
     } catch (error) {
-        console.error('Error loading trending models:', error);
+        Logger.error('Error loading trending models:', error);
         showError('trendingContainer', 'Fehler beim Laden der Trending-Modelle');
     }
 }
@@ -316,10 +316,10 @@ function displayIdeasStatistics(stats) {
 
 function displayMyIdeas(ideas) {
     try {
-        console.log('Displaying ideas:', ideas);
+        Logger.debug('Displaying ideas:', ideas);
         const container = document.getElementById('myIdeasContainer');
         if (!container) {
-            console.error('myIdeasContainer not found');
+            Logger.error('myIdeasContainer not found');
             return;
         }
 
@@ -343,7 +343,7 @@ function displayMyIdeas(ideas) {
             try {
                 return createIdeaCard(idea);
             } catch (cardError) {
-                console.error('Error creating idea card:', cardError, idea);
+                Logger.error('Error creating idea card:', cardError, idea);
                 return `<div class="error-card">Error loading idea: ${idea.title || 'Unknown'}</div>`;
             }
         }).join('');
@@ -353,9 +353,9 @@ function displayMyIdeas(ideas) {
                 ${itemsHtml}
             </div>
         `;
-        console.log('Ideas displayed successfully');
+        Logger.debug('Ideas displayed successfully');
     } catch (error) {
-        console.error('Error displaying ideas:', error);
+        Logger.error('Error displaying ideas:', error);
         showErrorInContainer('myIdeasContainer', 'Fehler beim Anzeigen der Ideen');
     }
 }
@@ -604,12 +604,12 @@ function createTrendingCard(item) {
 // Action Functions
 function showAddIdeaDialog() {
     try {
-        console.log('Opening add idea dialog...');
+        Logger.debug('Opening add idea dialog...');
         clearIdeaForm('addIdeaForm');
         if (typeof showModal === 'function') {
             showModal('addIdeaModal');
         } else {
-            console.error('showModal function not available');
+            Logger.error('showModal function not available');
             // Fallback: show modal manually
             const modal = document.getElementById('addIdeaModal');
             if (modal) {
@@ -618,7 +618,7 @@ function showAddIdeaDialog() {
             }
         }
     } catch (error) {
-        console.error('Error opening add idea dialog:', error);
+        Logger.error('Error opening add idea dialog:', error);
     }
 }
 
@@ -652,7 +652,7 @@ async function editIdea(ideaId) {
             throw new Error('Failed to load idea details');
         }
     } catch (error) {
-        console.error('Error loading idea for editing:', error);
+        Logger.error('Error loading idea for editing:', error);
         showNotification('Fehler beim Laden der Idee', 'error');
     }
 }
@@ -670,7 +670,7 @@ async function viewIdeaDetails(ideaId) {
             throw new Error('Failed to load idea details');
         }
     } catch (error) {
-        console.error('Error loading idea details:', error);
+        Logger.error('Error loading idea details:', error);
         showError('ideaDetailsContent', 'Fehler beim Laden der Details');
     }
 }
@@ -690,7 +690,7 @@ async function planIdea(ideaId) {
             throw new Error('Failed to plan idea');
         }
     } catch (error) {
-        console.error('Error planning idea:', error);
+        Logger.error('Error planning idea:', error);
         showNotification('Fehler beim Planen der Idee', 'error');
     }
 }
@@ -710,7 +710,7 @@ async function startPrint(ideaId) {
             throw new Error('Failed to start print');
         }
     } catch (error) {
-        console.error('Error starting print:', error);
+        Logger.error('Error starting print:', error);
         showNotification('Fehler beim Starten des Drucks', 'error');
     }
 }
@@ -735,7 +735,7 @@ async function saveTrendingAsIdea(trendingId) {
             throw new Error('Failed to save trending as idea');
         }
     } catch (error) {
-        console.error('Error saving trending as idea:', error);
+        Logger.error('Error saving trending as idea:', error);
         showNotification('Fehler beim Speichern', 'error');
     }
 }
@@ -776,12 +776,12 @@ async function handleAddIdea(event) {
         });
 
         if (response.ok) {
-            console.log('Idea created successfully');
+            Logger.debug('Idea created successfully');
             try {
                 if (typeof showNotification === 'function') {
                     showNotification('Idee erfolgreich erstellt', 'success');
                 } else {
-                    console.log('Idee erfolgreich erstellt');
+                    Logger.debug('Idee erfolgreich erstellt');
                 }
                 if (typeof closeModal === 'function') {
                     closeModal('addIdeaModal');
@@ -789,14 +789,14 @@ async function handleAddIdea(event) {
                 loadMyIdeas();
                 loadIdeasStatistics();
             } catch (notifError) {
-                console.error('Error with notification/modal:', notifError);
+                Logger.error('Error with notification/modal:', notifError);
             }
         } else {
             const error = await response.json();
             throw new Error(error.detail || 'Failed to create idea');
         }
     } catch (error) {
-        console.error('Error creating idea:', error);
+        Logger.error('Error creating idea:', error);
         try {
             if (typeof showNotification === 'function') {
                 showNotification('Fehler beim Erstellen der Idee: ' + error.message, 'error');
@@ -804,7 +804,7 @@ async function handleAddIdea(event) {
                 alert('Fehler beim Erstellen der Idee: ' + error.message);
             }
         } catch (notifError) {
-            console.error('Error showing notification:', notifError);
+            Logger.error('Error showing notification:', notifError);
         }
     }
 }
@@ -855,7 +855,7 @@ async function handleEditIdea(event) {
             throw new Error(error.detail || 'Failed to update idea');
         }
     } catch (error) {
-        console.error('Error updating idea:', error);
+        Logger.error('Error updating idea:', error);
         showNotification('Fehler beim Aktualisieren der Idee: ' + error.message, 'error');
     }
 }
@@ -904,7 +904,7 @@ async function handleImportIdea(event) {
             throw new Error(error.detail || 'Failed to import idea');
         }
     } catch (error) {
-        console.error('Error importing idea:', error);
+        Logger.error('Error importing idea:', error);
         showNotification('Fehler beim Importieren: ' + error.message, 'error');
     }
 }
@@ -1175,7 +1175,7 @@ async function refreshTrending() {
 
         showNotification('Trending-Daten aktualisiert', 'success');
     } catch (error) {
-        console.error('Error refreshing trending:', error);
+        Logger.error('Error refreshing trending:', error);
         showNotification('Fehler beim Aktualisieren der Trending-Daten', 'error');
     }
 }
@@ -1212,7 +1212,7 @@ async function previewImportUrl() {
         }, 1000);
 
     } catch (error) {
-        console.error('Error previewing URL:', error);
+        Logger.error('Error previewing URL:', error);
         showNotification('Fehler beim Laden der URL-Vorschau', 'error');
     }
 }

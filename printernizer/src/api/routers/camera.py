@@ -17,7 +17,8 @@ from src.services.printer_service import PrinterService
 from src.services.camera_snapshot_service import CameraSnapshotService
 from src.services.bambu_camera_client import CameraConnectionError
 from src.database.database import Database
-from src.utils.dependencies import get_printer_service, get_camera_snapshot_service, get_database
+from src.database.repositories import SnapshotRepository
+from src.utils.dependencies import get_printer_service, get_camera_snapshot_service, get_database, get_snapshot_repository
 from src.utils.errors import (
     PrinterNotFoundError,
     ServiceUnavailableError,
@@ -99,7 +100,7 @@ async def take_snapshot(
     snapshot_data: SnapshotCreate,
     printer_service: PrinterService = Depends(get_printer_service),
     camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service),
-    database: Database = Depends(get_database)
+    snapshot_repository: SnapshotRepository = Depends(get_snapshot_repository)
 ):
     """Take a camera snapshot and save it."""
     printer_id_str = str(printer_id)
@@ -175,14 +176,14 @@ async def take_snapshot(
         'notes': snapshot_data.notes
     }
 
-    snapshot_id = await database.create_snapshot(snapshot_db_data)
+    snapshot_id = await snapshot_repository.create(snapshot_db_data)
 
     if not snapshot_id:
         logger.error("Failed to create snapshot database record", printer_id=printer_id_str)
         raise ServiceUnavailableError("Failed to save snapshot to database")
 
     # Get full snapshot record with context
-    snapshot_record = await database.get_snapshot_by_id(snapshot_id)
+    snapshot_record = await snapshot_repository.get(snapshot_id)
 
     snapshot_response = SnapshotResponse(
         id=snapshot_id,
@@ -217,12 +218,12 @@ async def list_snapshots(
     printer_id: UUID,
     limit: int = 50,
     offset: int = 0,
-    database: Database = Depends(get_database)
+    snapshot_repository: SnapshotRepository = Depends(get_snapshot_repository)
 ):
     """List snapshots for a printer."""
     printer_id_str = str(printer_id)
 
-    snapshots = await database.list_snapshots(
+    snapshots = await snapshot_repository.list(
         printer_id=printer_id_str,
         limit=limit,
         offset=offset
@@ -254,10 +255,10 @@ async def list_snapshots(
 @router.get("/snapshots/{snapshot_id}/download")
 async def download_snapshot(
     snapshot_id: int,
-    database: Database = Depends(get_database)
+    snapshot_repository: SnapshotRepository = Depends(get_snapshot_repository)
 ):
     """Download a snapshot file."""
-    snapshot = await database.get_snapshot_by_id(snapshot_id)
+    snapshot = await snapshot_repository.get(snapshot_id)
 
     if not snapshot:
         raise NotFoundError(resource_type="snapshot", resource_id=str(snapshot_id))

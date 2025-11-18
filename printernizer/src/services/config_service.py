@@ -34,7 +34,7 @@ class PrinterConfig:
         """Validate printer configuration after initialization."""
         self._validate_config()
         
-    def _validate_config(self):
+    def _validate_config(self) -> None:
         """Validate printer configuration based on type."""
         if self.type == "bambu_lab":
             if not self.ip_address or not self.access_code:
@@ -236,7 +236,7 @@ class ConfigService:
         self._printers: Dict[str, PrinterConfig] = {}
         self._load_printer_configs()
         
-    def _load_printer_configs(self):
+    def _load_printer_configs(self) -> None:
         """Load printer configurations from file and environment variables."""
         # First, try to load from environment variables
         self._load_from_environment()
@@ -265,7 +265,7 @@ class ConfigService:
             logger.error("Failed to load printer config", error=str(e), path=str(self.config_path))
             self._create_default_config()
             
-    def _load_from_environment(self):
+    def _load_from_environment(self) -> None:
         """Load printer configurations from environment variables."""
         # Environment variable format: PRINTERNIZER_PRINTER_{ID}_{FIELD}
         # Example: PRINTERNIZER_PRINTER_BAMBU_A1_01_IP_ADDRESS=192.168.1.100

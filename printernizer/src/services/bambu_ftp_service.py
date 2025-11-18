@@ -19,7 +19,7 @@ import socket
 import asyncio
 import time
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, AsyncGenerator
 from datetime import datetime
 import structlog
 from contextlib import asynccontextmanager
@@ -181,7 +181,7 @@ class BambuFTPService:
             raise
 
     @asynccontextmanager
-    async def ftp_connection(self):
+    async def ftp_connection(self) -> AsyncGenerator[ftplib.FTP_TLS, None]:
         """
         Async context manager for FTP connections with automatic cleanup.
 

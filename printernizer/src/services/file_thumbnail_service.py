@@ -14,6 +14,7 @@ import os
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import FileRepository
 from src.services.event_service import EventService
 from src.services.bambu_parser import BambuParser
 from src.services.preview_render_service import PreviewRenderService
@@ -64,6 +65,7 @@ class FileThumbnailService:
             printer_service: Optional printer service for API thumbnail downloads
         """
         self.database = database
+        self.file_repo = FileRepository(database._connection)
         self.event_service = event_service
         self.printer_service = printer_service
         self.bambu_parser = BambuParser()
@@ -171,7 +173,7 @@ class FileThumbnailService:
             }
 
             # Merge parsed metadata with existing metadata
-            existing_file = await self.database.get_file(file_id)
+            existing_file = await self.file_repo.get(file_id)
             if existing_file:
                 existing_metadata = existing_file.get('metadata', {}) or {}
                 merged_metadata = {**existing_metadata, **metadata}
@@ -179,7 +181,7 @@ class FileThumbnailService:
             else:
                 update_data['metadata'] = metadata
 
-            success = await self.database.update_file(file_id, update_data)
+            success = await self.file_repo.update(file_id, update_data)
 
             if success:
                 success_msg = f"Successfully processed {len(thumbnails)} thumbnails"
@@ -421,7 +423,7 @@ class FileThumbnailService:
         file_id: str,
         status: str,
         details: Optional[str] = None
-    ):
+    ) -> None:
         """
         Log a thumbnail processing attempt for debugging.
 
@@ -469,7 +471,7 @@ class FileThumbnailService:
             return self.thumbnail_processing_log[:limit]
         return self.thumbnail_processing_log
 
-    def set_printer_service(self, printer_service):
+    def set_printer_service(self, printer_service) -> None:
         """
         Set printer service dependency.
 

@@ -14,7 +14,7 @@ class PrinterManager {
      * Initialize printer management page
      */
     init() {
-        console.log('Initializing printer management');
+        Logger.debug('Initializing printer management');
 
         // Scroll to top of page
         window.scrollTo(0, 0);
@@ -78,7 +78,7 @@ class PrinterManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to check startup discovered printers:', error);
+            Logger.error('Failed to check startup discovered printers:', error);
             // Silently fail - don't disrupt printer page loading
         }
     }
@@ -122,7 +122,7 @@ class PrinterManager {
                 printersList.innerHTML = this.renderEmptyPrintersState();
             }
         } catch (error) {
-            console.error('Failed to load printers:', error);
+            Logger.error('Failed to load printers:', error);
             const printersList = document.getElementById('printersList');
             if (printersList) {
                 printersList.innerHTML = this.renderPrintersError(error);
@@ -583,7 +583,7 @@ class PrinterManager {
             showToast('info', 'Details', `Drucker: ${printer.name}\nStatus: ${printer.status}\nIP: ${printer.ip_address}`);
             
         } catch (error) {
-            console.error('Failed to load printer details:', error);
+            Logger.error('Failed to load printer details:', error);
             showToast('error', 'Fehler', 'Drucker-Details konnten nicht geladen werden');
         }
     }
@@ -605,7 +605,7 @@ class PrinterManager {
             showModal('editPrinterModal');
             
         } catch (error) {
-            console.error('Failed to load printer for editing:', error);
+            Logger.error('Failed to load printer for editing:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Drucker-Daten';
             showToast('error', 'Fehler', message);
         }
@@ -626,7 +626,7 @@ class PrinterManager {
             showToast('success', 'Erfolg', CONFIG.SUCCESS_MESSAGES.PRINTER_REMOVED);
             this.loadPrinters();
         } catch (error) {
-            console.error('Failed to delete printer:', error);
+            Logger.error('Failed to delete printer:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Löschen des Druckers';
             showToast('error', 'Fehler', message);
         }
@@ -649,7 +649,7 @@ class PrinterManager {
             }
             
         } catch (error) {
-            console.error('Connection test failed:', error);
+            Logger.error('Connection test failed:', error);
             showToast('error', 'Verbindungsfehler', 'Verbindungstest fehlgeschlagen');
         }
     }
@@ -681,7 +681,7 @@ class PrinterManager {
             this.refreshPrinters();
             
         } catch (error) {
-            console.error('Failed to pause print:', error);
+            Logger.error('Failed to pause print:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Pausieren des Druckauftrags';
             showToast('error', 'Fehler', message);
         }
@@ -707,7 +707,7 @@ class PrinterManager {
             this.refreshPrinters();
             
         } catch (error) {
-            console.error('Failed to resume print:', error);
+            Logger.error('Failed to resume print:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Fortsetzen des Druckauftrags';
             showToast('error', 'Fehler', message);
         }
@@ -733,7 +733,7 @@ class PrinterManager {
             this.refreshPrinters();
             
         } catch (error) {
-            console.error('Failed to stop print:', error);
+            Logger.error('Failed to stop print:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Stoppen des Druckauftrags';
             showToast('error', 'Fehler', message);
         }
@@ -761,7 +761,7 @@ class PrinterManager {
             // Refresh printers to get updated thumbnail/file id flags
             this.refreshPrinters();
         } catch (error) {
-            console.error('Failed to download current job file:', error);
+            Logger.error('Failed to download current job file:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Herunterladen der aktuellen Datei';
             showToast('error', 'Fehler', message);
         }
@@ -785,7 +785,7 @@ class PrinterManager {
             showToast('info', 'Drucker-Statistiken', message);
             
         } catch (error) {
-            console.error('Failed to load printer statistics:', error);
+            Logger.error('Failed to load printer statistics:', error);
             showToast('error', 'Fehler', 'Statistiken konnten nicht geladen werden');
         }
     }
@@ -827,7 +827,7 @@ class PrinterManager {
                 });
             }
         } catch (error) {
-            console.error('Failed to refresh printers:', error);
+            Logger.error('Failed to refresh printers:', error);
         }
     }
 
@@ -952,7 +952,7 @@ async function discoverPrinters() {
         }
 
     } catch (error) {
-        console.error('Failed to discover printers:', error);
+        Logger.error('Failed to discover printers:', error);
         discoveredList.innerHTML = `
             <div class="error-state">
                 <div class="error-icon">⚠️</div>
@@ -1069,7 +1069,7 @@ function addDiscoveredPrinter(ipAddress, type, name) {
             // Trigger change event to show printer-specific fields
             typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
 
-            console.log('Pre-filled discovered printer:', {
+            Logger.debug('Pre-filled discovered printer:', {
                 name: name,
                 ip: ipAddress,
                 type: formType
@@ -1104,7 +1104,7 @@ async function loadNetworkInterfaces() {
             });
         }
     } catch (error) {
-        console.error('Failed to load network interfaces:', error);
+        Logger.error('Failed to load network interfaces:', error);
     }
 }
 

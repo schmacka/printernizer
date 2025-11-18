@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 import json
 
+from src.config.constants import PollingIntervals
 from src.utils.error_handling import error_handler, ErrorSeverity
 from src.utils.config import get_settings
 
@@ -37,18 +38,18 @@ class MonitoringService:
         self.last_alert_times = {}
         self.alert_cooldown = 3600  # 1 hour cooldown for same alert type
         
-    async def start_monitoring(self):
+    async def start_monitoring(self) -> None:
         """Start the monitoring service."""
         logger.info("Starting monitoring service")
-        
+
         # Start monitoring tasks
         asyncio.create_task(self._error_monitoring_loop())
         asyncio.create_task(self._health_check_loop())
         asyncio.create_task(self._cleanup_old_logs_loop())
-        
+
         logger.info("Monitoring service started")
-    
-    async def _error_monitoring_loop(self):
+
+    async def _error_monitoring_loop(self) -> None:
         """Monitor error rates and patterns."""
         while True:
             try:
@@ -56,9 +57,9 @@ class MonitoringService:
                 await asyncio.sleep(self.monitoring_config["check_interval"])
             except Exception as e:
                 logger.error("Error monitoring loop failed", error=str(e))
-                await asyncio.sleep(60)  # Wait 1 minute before retry
-    
-    async def _health_check_loop(self):
+                await asyncio.sleep(PollingIntervals.MONITORING_SERVICE_RETRY)  # Wait 1 minute before retry
+
+    async def _health_check_loop(self) -> None:
         """Perform periodic health checks."""
         while True:
             try:
@@ -66,17 +67,17 @@ class MonitoringService:
                 await asyncio.sleep(self.monitoring_config["check_interval"])
             except Exception as e:
                 logger.error("Health check loop failed", error=str(e))
-                await asyncio.sleep(60)  # Wait 1 minute before retry
+                await asyncio.sleep(PollingIntervals.MONITORING_SERVICE_RETRY)  # Wait 1 minute before retry
     
     async def _cleanup_old_logs_loop(self):
         """Clean up old log files."""
         while True:
             try:
                 await self._cleanup_old_logs()
-                await asyncio.sleep(86400)  # Run daily
+                await asyncio.sleep(PollingIntervals.MONITORING_SERVICE_DAILY)  # Run daily
             except Exception as e:
                 logger.error("Log cleanup loop failed", error=str(e))
-                await asyncio.sleep(3600)  # Wait 1 hour before retry
+                await asyncio.sleep(PollingIntervals.MONITORING_SERVICE_ERROR_BACKOFF)  # Wait 1 hour before retry
     
     async def _check_error_rates(self):
         """Check error rates and trigger alerts if necessary."""

@@ -107,25 +107,14 @@ async def list_jobs(
     # Calculate offset for database-level pagination
     offset = (page - 1) * limit
 
-    # Get paginated jobs from service with database-level pagination
-    paginated_jobs = await job_service.list_jobs(
+    # Get paginated jobs with total count (optimized with separate COUNT query)
+    paginated_jobs, total_items = await job_service.list_jobs_with_count(
         printer_id=printer_id,
         status=job_status,
         is_business=is_business,
         limit=limit,
         offset=offset
     )
-
-    # Get total count for pagination metadata
-    # TODO: Optimize by adding count-only query to avoid fetching all records
-    all_jobs_count = await job_service.list_jobs(
-        printer_id=printer_id,
-        status=job_status,
-        is_business=is_business,
-        limit=None,
-        offset=0
-    )
-    total_items = len(all_jobs_count)
     total_pages = max(1, (total_items + limit - 1) // limit)
 
     # Transform jobs to response format

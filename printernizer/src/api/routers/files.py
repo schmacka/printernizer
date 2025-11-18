@@ -82,11 +82,8 @@ async def list_files(
     logger.info("Listing files", printer_id=printer_id, status=status, source=source,
                has_thumbnail=has_thumbnail, search=search, limit=limit, page=page)
 
-    # Calculate offset for database-level pagination
-    offset = (page - 1) * limit if page > 1 else 0
-
-    # Get paginated files from service with database-level pagination
-    paginated_files = await file_service.get_files(
+    # Get paginated files with total count (optimized to avoid fetching all records twice)
+    paginated_files, total_items = await file_service.get_files_with_count(
         printer_id=printer_id,
         status=status,
         source=source,
@@ -97,21 +94,6 @@ async def list_files(
         order_dir=order_dir,
         page=page
     )
-
-    # Get total count for pagination metadata
-    # TODO: Optimize by adding count-only query to avoid fetching all records
-    all_files_count = await file_service.get_files(
-        printer_id=printer_id,
-        status=status,
-        source=source,
-        has_thumbnail=has_thumbnail,
-        search=search,
-        limit=None,
-        order_by=order_by,
-        order_dir=order_dir,
-        page=1
-    )
-    total_items = len(all_files_count)
     total_pages = max(1, (total_items + limit - 1) // limit) if limit else 1
 
     logger.info("Got files from service", total=total_items, page_count=len(paginated_files))

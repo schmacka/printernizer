@@ -119,7 +119,7 @@ class NavigationPreferences {
 
             return merged;
         } catch (error) {
-            console.error('Error loading navigation preferences:', error);
+            Logger.error('Error loading navigation preferences:', error);
             return this.defaultSections;
         }
     }
@@ -138,7 +138,7 @@ class NavigationPreferences {
 
             return true;
         } catch (error) {
-            console.error('Error saving navigation preferences:', error);
+            Logger.error('Error saving navigation preferences:', error);
             return false;
         }
     }
@@ -157,7 +157,7 @@ class NavigationPreferences {
 
             return true;
         } catch (error) {
-            console.error('Error resetting navigation preferences:', error);
+            Logger.error('Error resetting navigation preferences:', error);
             return false;
         }
     }
@@ -177,7 +177,7 @@ class NavigationPreferences {
         const section = preferences.find(s => s.id === sectionId);
 
         if (!section) {
-            console.error('Section not found:', sectionId);
+            Logger.error('Section not found:', sectionId);
             return false;
         }
 

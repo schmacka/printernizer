@@ -92,6 +92,98 @@
     background: var(--gray-50);
 }
 
+/* Settings Modal - Large */
+.settings-modal .modal-content {
+    max-width: 900px;
+    max-height: 85vh;
+}
+
+.modal-large {
+    max-width: 900px !important;
+}
+
+.settings-modal-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    flex: 1;
+}
+
+.modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.modal-tab-selector {
+    padding: var(--spacing-2) var(--spacing-3);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    font-size: var(--font-size-sm);
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-tab-selector:hover {
+    border-color: var(--primary-color);
+}
+
+.modal-tab-selector:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.settings-modal-body {
+    padding: var(--spacing-4);
+    max-height: calc(85vh - 180px);
+    overflow-y: auto;
+}
+
+/* Breadcrumb Components */
+.settings-breadcrumb {
+    padding: var(--spacing-3) var(--spacing-6);
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.breadcrumb-back {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    padding: var(--spacing-2) var(--spacing-3);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.breadcrumb-back:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.breadcrumb-separator {
+    color: var(--gray-400);
+    margin: 0 var(--spacing-2);
+}
+
+/* Breadcrumb in modal title */
+.settings-modal-title .breadcrumb-back {
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-1) var(--spacing-2);
+}
+
+.settings-modal-title .breadcrumb-separator {
+    font-size: var(--font-size-sm);
+}
+
 /* Form Components */
 .printer-specific-fields {
     border: 1px solid var(--gray-200);
