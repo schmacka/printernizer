@@ -229,24 +229,24 @@ class MaterialsManager {
         const isLowStock = percentage < 20;
 
         return `
-            <div class="material-card ${isLowStock ? 'low-stock' : ''}" data-id="${material.id}">
+            <div class="material-card ${isLowStock ? 'low-stock' : ''}" data-id="${sanitizeAttribute(material.id)}">
                 <div class="material-card-header">
                     <div class="material-type">${this.formatMaterialType(material.material_type)}</div>
                     <div class="material-actions">
-                        <button class="btn-icon" onclick="materialsManager.editMaterial('${material.id}')" title="Bearbeiten">
+                        <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="Bearbeiten">
                             ✏️
                         </button>
-                        <button class="btn-icon" onclick="materialsManager.deleteMaterial('${material.id}')" title="Löschen">
+                        <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="Löschen">
                             🗑️
                         </button>
                     </div>
                 </div>
 
                 <div class="material-card-body">
-                    <div class="material-brand">${material.brand}</div>
+                    <div class="material-brand">${escapeHtml(material.brand)}</div>
                     <div class="material-color">
-                        <span class="color-indicator" style="background-color: ${this.getColorHex(material.color)}"></span>
-                        ${material.color}
+                        <span class="color-indicator" style="background-color: ${sanitizeAttribute(this.getColorHex(material.color))}"></span>
+                        ${escapeHtml(material.color)}
                     </div>
 
                     <div class="material-weight">
@@ -257,7 +257,7 @@ class MaterialsManager {
                         <div class="progress-fill ${isLowStock ? 'low' : ''}" style="width: ${percentage}%"></div>
                     </div>
 
-                    ${material.notes ? `<div class="material-notes">${material.notes}</div>` : ''}
+                    ${material.notes ? `<div class="material-notes">${escapeHtml(material.notes)}</div>` : ''}
                 </div>
 
                 <div class="material-card-footer">
@@ -311,12 +311,12 @@ class MaterialsManager {
         const isLowStock = percentage < 20;
 
         return `
-            <tr class="${isLowStock ? 'low-stock' : ''}" data-id="${material.id}">
+            <tr class="${isLowStock ? 'low-stock' : ''}" data-id="${sanitizeAttribute(material.id)}">
                 <td>${this.formatMaterialType(material.material_type)}</td>
-                <td>${material.brand}</td>
+                <td>${escapeHtml(material.brand)}</td>
                 <td>
-                    <span class="color-indicator" style="background-color: ${this.getColorHex(material.color)}"></span>
-                    ${material.color}
+                    <span class="color-indicator" style="background-color: ${sanitizeAttribute(this.getColorHex(material.color))}"></span>
+                    ${escapeHtml(material.color)}
                 </td>
                 <td>
                     <strong>${remaining.toFixed(0)}g</strong> / ${total}g
@@ -327,10 +327,10 @@ class MaterialsManager {
                 <td>${parseFloat(material.cost_per_kg).toFixed(2)} €/kg</td>
                 <td>${this.formatDate(material.purchase_date)}</td>
                 <td class="actions">
-                    <button class="btn-icon" onclick="materialsManager.editMaterial('${material.id}')" title="Bearbeiten">
+                    <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="Bearbeiten">
                         ✏️
                     </button>
-                    <button class="btn-icon" onclick="materialsManager.deleteMaterial('${material.id}')" title="Löschen">
+                    <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="Löschen">
                         🗑️
                     </button>
                 </td>
