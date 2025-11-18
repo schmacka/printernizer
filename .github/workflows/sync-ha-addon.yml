@@ -15,7 +15,7 @@ on:
     paths:
       - 'src/**'
       - 'frontend/**'
-      - 'scripts/sync-ha-addon.sh'
+      - 'scripts/deployment/sync-ha-addon.sh'
       - '.github/workflows/sync-ha-addon.yml'
   workflow_dispatch:  # Allow manual trigger
 
@@ -51,8 +51,8 @@ jobs:
 
       - name: Run sync script
         run: |
-          chmod +x scripts/sync-ha-addon.sh
-          ./scripts/sync-ha-addon.sh
+          chmod +x scripts/deployment/sync-ha-addon.sh
+          ./scripts/deployment/sync-ha-addon.sh
 
       - name: Check for sync changes
         id: check_changes
