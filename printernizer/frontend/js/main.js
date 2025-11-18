@@ -187,7 +187,7 @@ class PrinternizerApp {
                 newManager.init();
             }, 50);
         } else if (!newManager) {
-            console.warn(`Page manager for '${pageName}' not found or not loaded yet`);
+            Logger.warn(`Page manager for '${pageName}' not found or not loaded yet`);
             // Try to get manager from global scope
             const globalManagerName = pageName === 'settings' ? 'settingsManager' : 
                                     pageName === 'debug' ? 'debugManager' : null;

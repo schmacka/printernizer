@@ -1218,7 +1218,7 @@ async function checkForUpdates(currentVersion) {
             Logger.debug('[Update Check] Update check data:', data);
 
             if (data.check_failed) {
-                console.warn('[Update Check] Update check failed:', data.error_message);
+                Logger.warn('[Update Check] Update check failed:', data.error_message);
                 // Don't show anything if check failed
                 updateStatusElement.textContent = '';
                 return;

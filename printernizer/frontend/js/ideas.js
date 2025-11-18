@@ -414,10 +414,10 @@ function createIdeaCard(idea) {
     const sourceIcon = getSourceIcon(idea.source_type);
 
     return `
-        <div class="idea-card" data-idea-id="${idea.id}">
+        <div class="idea-card" data-idea-id="${sanitizeAttribute(idea.id)}">
             <div class="card-header">
                 <div class="card-status">
-                    <span class="status-badge status-${idea.status}">${statusEmoji} ${idea.status}</span>
+                    <span class="status-badge status-${sanitizeAttribute(idea.status)}">${statusEmoji} ${escapeHtml(idea.status)}</span>
                 </div>
                 <div class="card-priority">
                     <span class="priority-stars">${priorityStars}</span>
@@ -463,22 +463,22 @@ function createIdeaCard(idea) {
             </div>
 
             <div class="card-actions">
-                <button class="btn btn-small btn-secondary" onclick="viewIdeaDetails('${idea.id}')">
+                <button class="btn btn-small btn-secondary" onclick="viewIdeaDetails('${sanitizeAttribute(idea.id)}')">
                     <span class="btn-icon">👁️</span>
                     Details
                 </button>
-                <button class="btn btn-small btn-secondary" onclick="editIdea('${idea.id}')">
+                <button class="btn btn-small btn-secondary" onclick="editIdea('${sanitizeAttribute(idea.id)}')">
                     <span class="btn-icon">✏️</span>
                     Bearbeiten
                 </button>
                 ${idea.status === 'idea' ? `
-                    <button class="btn btn-small btn-primary" onclick="planIdea('${idea.id}')">
+                    <button class="btn btn-small btn-primary" onclick="planIdea('${sanitizeAttribute(idea.id)}')">
                         <span class="btn-icon">📅</span>
                         Planen
                     </button>
                 ` : ''}
                 ${idea.status === 'planned' ? `
-                    <button class="btn btn-small btn-primary" onclick="startPrint('${idea.id}')">
+                    <button class="btn btn-small btn-primary" onclick="startPrint('${sanitizeAttribute(idea.id)}')">
                         <span class="btn-icon">🖨️</span>
                         Drucken
                     </button>
@@ -493,10 +493,10 @@ function createBookmarkCard(bookmark) {
     const businessIcon = bookmark.is_business ? '🏢' : '👤';
 
     return `
-        <div class="bookmark-card" data-idea-id="${bookmark.id}">
+        <div class="bookmark-card" data-idea-id="${sanitizeAttribute(bookmark.id)}">
             <div class="card-thumbnail">
                 ${bookmark.thumbnail_path ? `
-                    <img src="${bookmark.thumbnail_path}" alt="${escapeHtml(bookmark.title)}" loading="lazy">
+                    <img src="${sanitizeUrl(bookmark.thumbnail_path)}" alt="${escapeHtml(bookmark.title)}" loading="lazy">
                 ` : `
                     <div class="placeholder-thumbnail">
                         <span class="placeholder-icon">${platformIcon}</span>
@@ -526,15 +526,15 @@ function createBookmarkCard(bookmark) {
             </div>
 
             <div class="card-actions">
-                <button class="btn btn-small btn-secondary" onclick="openExternalUrl('${bookmark.source_url}')">
+                <button class="btn btn-small btn-secondary" onclick="openExternalUrl('${sanitizeAttribute(bookmark.source_url)}')">
                     <span class="btn-icon">🔗</span>
                     Öffnen
                 </button>
-                <button class="btn btn-small btn-secondary" onclick="editIdea('${bookmark.id}')">
+                <button class="btn btn-small btn-secondary" onclick="editIdea('${sanitizeAttribute(bookmark.id)}')">
                     <span class="btn-icon">✏️</span>
                     Bearbeiten
                 </button>
-                <button class="btn btn-small btn-primary" onclick="planIdea('${bookmark.id}')">
+                <button class="btn btn-small btn-primary" onclick="planIdea('${sanitizeAttribute(bookmark.id)}')">
                     <span class="btn-icon">📅</span>
                     Planen
                 </button>
@@ -547,10 +547,10 @@ function createTrendingCard(item) {
     const platformIcon = getSourceIcon(item.platform);
 
     return `
-        <div class="trending-card" data-trending-id="${item.id}">
+        <div class="trending-card" data-trending-id="${sanitizeAttribute(item.id)}">
             <div class="card-thumbnail">
                 ${item.thumbnail_local_path ? `
-                    <img src="${item.thumbnail_local_path}" alt="${escapeHtml(item.title)}" loading="lazy">
+                    <img src="${sanitizeUrl(item.thumbnail_local_path)}" alt="${escapeHtml(item.title)}" loading="lazy">
                 ` : `
                     <div class="placeholder-thumbnail">
                         <span class="placeholder-icon">${platformIcon}</span>
@@ -588,11 +588,11 @@ function createTrendingCard(item) {
             </div>
 
             <div class="card-actions">
-                <button class="btn btn-small btn-secondary" onclick="openExternalUrl('${item.url}')">
+                <button class="btn btn-small btn-secondary" onclick="openExternalUrl('${sanitizeAttribute(item.url)}')">
                     <span class="btn-icon">🔗</span>
                     Öffnen
                 </button>
-                <button class="btn btn-small btn-primary" onclick="saveTrendingAsIdea('${item.id}')">
+                <button class="btn btn-small btn-primary" onclick="saveTrendingAsIdea('${sanitizeAttribute(item.id)}')">
                     <span class="btn-icon">💾</span>
                     Speichern
                 </button>

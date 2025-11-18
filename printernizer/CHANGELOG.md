@@ -1,3 +1,29 @@
+## [2.6.18] - 2025-11-18
+
+- docs: Update progress tracker with Phase 2 XSS completion
+- security(frontend): Apply XSS fixes to auto-download-ui.js and search.js
+- security(frontend): Apply XSS fixes to printers.js
+- security(frontend): Apply XSS fixes to components.js and dashboard.js
+- docs: Update progress tracker with Phase 1 XSS completion
+- security(frontend): Apply XSS fixes to library.js
+- security(frontend): Apply XSS fixes to jobs.js and materials.js
+- security(frontend): Apply XSS fixes to ideas.js
+- docs: Update progress tracker with session results
+- fix(frontend): Implement toast notifications in MaterialsManager
+- docs: Create comprehensive XSS remediation guide and update tracker
+- docs: Update progress tracker with batch 3 logger replacements (31 files)
+- refactor(frontend): Replace console statements with Logger utility
+- Add missing LibraryRepository import to library_service.py
+- Initial plan
+- fix(ci): Fix GitHub Actions workflow failures
+- security(frontend): Fix XSS vulnerabilities in innerHTML assignments
+- refactor(frontend): Replace console statements with Logger utility
+- docs: Document remaining repositories (Library, Snapshot, Trending)
+- docs: Document FileRepository and IdeaRepository
+- docs: Update progress tracker with Phase 4 documentation work
+- docs: Enhance PrinterRepository documentation
+- docs: Add comprehensive documentation to core modules
+
 ## [2.6.17] - 2025-11-18
 
 - Add missing LibraryRepository import to library_service.py
