@@ -644,13 +644,13 @@ class MaterialsManager {
     }
 
     showSuccess(message) {
-        // TODO: Implement toast notification
         Logger.debug('Success:', message);
+        showToast('success', 'Erfolg', message);
     }
 
     showError(message) {
-        // TODO: Implement toast notification
         Logger.error('Error:', message);
+        showToast('error', 'Fehler', message);
     }
 }
 
