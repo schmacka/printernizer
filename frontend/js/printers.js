@@ -146,7 +146,7 @@ class PrinterManager {
                 <div class="printer-tile-status">
                     <span class="status-badge ${status.class}">${status.icon}</span>
                 </div>
-                <div class="printer-tile-type" style="background-color: ${printerType.color};">
+                <div class="printer-tile-type" style="background-color: ${sanitizeAttribute(printerType.color)};">
                     ${printerType.label}
                 </div>
             </div>
@@ -167,14 +167,14 @@ class PrinterManager {
 
             <div class="printer-tile-footer">
                 <div class="printer-tile-actions">
-                    <button class="btn-icon" onclick="printerManager.showPrinterDetails('${printer.id}')" title="Details anzeigen">
+                    <button class="btn-icon" onclick="printerManager.showPrinterDetails('${sanitizeAttribute(printer.id)}')" title="Details anzeigen">
                         👁️
                     </button>
-                    <button class="btn-icon" onclick="printerManager.editPrinter('${printer.id}')" title="Bearbeiten">
+                    <button class="btn-icon" onclick="printerManager.editPrinter('${sanitizeAttribute(printer.id)}')" title="Bearbeiten">
                         ✏️
                     </button>
                     ${this.renderTilePrinterControls(printer)}
-                    <button class="btn-icon btn-error-icon" onclick="printerManager.deletePrinter('${printer.id}')" title="Löschen">
+                    <button class="btn-icon btn-error-icon" onclick="printerManager.deletePrinter('${sanitizeAttribute(printer.id)}')" title="Löschen">
                         🗑️
                     </button>
                 </div>
@@ -1023,7 +1023,7 @@ function createDiscoveredPrinterCard(printer) {
         </div>
         <div class="card-footer">
             ${!printer.already_added ? `
-                <button class="btn btn-primary" onclick="addDiscoveredPrinter('${escapeHtml(printer.ip)}', '${printer.type}', '${escapeHtml(printer.name || printer.hostname)}')">
+                <button class="btn btn-primary" onclick="addDiscoveredPrinter('${sanitizeAttribute(printer.ip)}', '${sanitizeAttribute(printer.type)}', '${sanitizeAttribute(printer.name || printer.hostname)}')">
                     <span class="btn-icon">➕</span>
                     Hinzufügen
                 </button>
