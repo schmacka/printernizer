@@ -1,3 +1,28 @@
+## [2.6.17] - 2025-11-18
+
+- Add missing LibraryRepository import to library_service.py
+- Initial plan
+- fix(ci): Fix GitHub Actions workflow failures
+- security(frontend): Fix XSS vulnerabilities in innerHTML assignments
+- refactor(frontend): Replace console statements with Logger utility
+- docs: Document remaining repositories (Library, Snapshot, Trending)
+- docs: Document FileRepository and IdeaRepository
+- docs: Update progress tracker with Phase 4 documentation work
+- docs: Enhance PrinterRepository documentation
+- docs: Add comprehensive documentation to core modules
+- refactor: Complete Phase 4 type hints - 100% coverage across all services
+- feat: Complete Phase 3 frontend security improvements (Tasks 3.2 & 3.3)
+- test: Add comprehensive test coverage for Phases 1-3 technical debt
+- docs: Mark Phase 4 Task 4.1 as SUBSTANTIALLY COMPLETE
+- refactor: Phase 4 - Add type hints to core services (batch 4/4 FINAL)
+- docs: Update progress tracker for Phase 4 Batch 3 completion
+- refactor: Phase 4 - Add type hints to core services (batch 3/4)
+- docs: Update progress tracker for Phase 4 Batch 2 completion
+- refactor: Phase 4 - Add type hints to core services (batch 2/4)
+- docs: Update progress tracker for Phase 4 start
+- refactor: Phase 4 - Add type hints to core services (batch 1/4)
+- docs: Mark Phase 3 as COMPLETE - Backend tasks finished
+
 ## [2.6.16] - 2025-11-14
 
 - Add webcam support for Bambu Lab printers
