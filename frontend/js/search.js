@@ -28,7 +28,7 @@ class SearchManager {
     renderSearchBar() {
         const navContainer = document.querySelector('.nav-container') || document.querySelector('nav');
         if (!navContainer) {
-            console.warn('Navigation container not found for search bar');
+            Logger.warn('Navigation container not found for search bar');
             return;
         }
 

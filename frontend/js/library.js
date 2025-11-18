@@ -294,7 +294,7 @@ class LibraryManager {
             // Parse JSON string
             return JSON.parse(sources);
         } catch (e) {
-            console.warn('Failed to parse sources:', e);
+            Logger.warn('Failed to parse sources:', e);
             return [];
         }
     }
@@ -1030,7 +1030,7 @@ class LibraryManager {
     setupDragAndDrop() {
         const libraryGrid = document.getElementById('libraryFilesGrid');
         if (!libraryGrid) {
-            console.warn('Library grid not found, drag-and-drop disabled');
+            Logger.warn('Library grid not found, drag-and-drop disabled');
             return;
         }
 
@@ -1313,7 +1313,7 @@ window.handleManualFileUpload = async function(event) {
         // Reset the file input so the same files can be selected again if needed
         event.target.value = '';
     } else {
-        console.warn('No files selected from file input');
+        Logger.warn('No files selected from file input');
     }
 };
 

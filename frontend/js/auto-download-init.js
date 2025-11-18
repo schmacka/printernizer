@@ -20,7 +20,7 @@ class AutoDownloadSystemInitializer {
      */
     async initialize() {
         if (this.initialized) {
-            console.warn('Auto-Download System already initialized');
+            Logger.warn('Auto-Download System already initialized');
             return;
         }
 
@@ -155,7 +155,7 @@ class AutoDownloadSystemInitializer {
             // Stop checking after 30 seconds
             setTimeout(() => {
                 clearInterval(checkWebSocket);
-                console.warn('WebSocket manager not found, auto-detection may be limited');
+                Logger.warn('WebSocket manager not found, auto-detection may be limited');
             }, 30000);
         }
     }

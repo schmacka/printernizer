@@ -945,7 +945,7 @@ async function discoverPrinters() {
 
         // Show errors if any
         if (response.errors && response.errors.length > 0) {
-            console.warn('Discovery errors:', response.errors);
+            Logger.warn('Discovery errors:', response.errors);
             response.errors.forEach(error => {
                 showNotification(error, 'warning');
             });

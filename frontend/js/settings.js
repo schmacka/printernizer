@@ -312,7 +312,7 @@ class SettingsManager {
      */
     populateSettingsForm() {
         if (!this.currentSettings) {
-            console.warn('No current settings to populate');
+            Logger.warn('No current settings to populate');
             return;
         }
 
@@ -354,7 +354,7 @@ class SettingsManager {
                     Logger.debug(`Populated associated input: ${key} = ${this.currentSettings[key]}`);
                 }
             } else if (key) {
-                console.warn(`Associated input ${key} not found in settings`);
+                Logger.warn(`Associated input ${key} not found in settings`);
             }
         });
 
@@ -372,7 +372,7 @@ class SettingsManager {
             Logger.debug('isDirty:', this.isDirty);
 
             if (!this.isDirty) {
-                console.warn('No changes detected - aborting save');
+                Logger.warn('No changes detected - aborting save');
                 showToast('info', 'Keine Änderungen', 'Es wurden keine Änderungen vorgenommen');
                 return;
             }
@@ -382,7 +382,7 @@ class SettingsManager {
             Logger.debug('Number of fields to save:', Object.keys(formData).length);
 
             if (Object.keys(formData).length === 0) {
-                console.warn('No data collected - aborting save');
+                Logger.warn('No data collected - aborting save');
                 showToast('warning', 'Keine Daten', 'Keine Formulardaten gefunden');
                 return;
             }
@@ -417,7 +417,7 @@ class SettingsManager {
     collectFormData() {
         const form = document.getElementById('applicationSettingsForm');
         if (!form) {
-            console.warn('Settings form not found');
+            Logger.warn('Settings form not found');
             return {};
         }
 

@@ -457,7 +457,7 @@ class PrinterCard {
                     const status = await api.getPrinterStatus(this.printer.id);
                     this.updateRealtimeData(status);
                 } catch (error) {
-                    console.warn(`Failed to update printer ${this.printer.id} status:`, error);
+                    Logger.warn(`Failed to update printer ${this.printer.id} status:`, error);
                 }
             }, CONFIG.PRINTER_STATUS_INTERVAL);
             
@@ -1042,7 +1042,7 @@ class FileListItem {
                 }
             };
             preloadImg.onerror = () => {
-                console.warn('Failed to load animated preview:', animatedUrl);
+                Logger.warn('Failed to load animated preview:', animatedUrl);
             };
             preloadImg.src = animatedUrl;
         };
@@ -1674,7 +1674,7 @@ class DruckerDateienManager {
                         }));
                         files = files.concat(printerFiles);
                     } catch (error) {
-                        console.warn(`Failed to load files for printer ${printer.name}:`, error);
+                        Logger.warn(`Failed to load files for printer ${printer.name}:`, error);
                     }
                 }
             }
