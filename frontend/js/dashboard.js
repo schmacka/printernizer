@@ -448,7 +448,7 @@ class Dashboard {
     createJobPreviewCard(job) {
         const card = document.createElement('div');
         card.className = 'job-preview-card';
-        card.setAttribute('data-job-id', job.id);
+        card.setAttribute('data-job-id', sanitizeAttribute(job.id));
 
         const status = getStatusConfig('job', job.status);
 
@@ -494,7 +494,7 @@ class Dashboard {
             if (fileId && hasThumb) {
                 return `
                     <div class="job-preview-thumbnail">
-                        <img src="${CONFIG.API_BASE_URL}/files/${fileId}/thumbnail"
+                        <img src="${CONFIG.API_BASE_URL}/files/${sanitizeAttribute(fileId)}/thumbnail"
                              alt="Print Preview"
                              class="job-thumbnail-image"
                              onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
@@ -630,14 +630,14 @@ class Dashboard {
     createPrintedFilePreviewCard(file) {
         const card = document.createElement('div');
         card.className = 'printed-file-preview-card';
-        card.setAttribute('data-file-id', file.id);
+        card.setAttribute('data-file-id', sanitizeAttribute(file.id));
 
         const fileTypeIcon = this.getFileTypeIcon(file.filename);
 
         card.innerHTML = `
             <div class="printed-file-thumbnail">
                 ${file.has_thumbnail ?
-                    `<img src="${CONFIG.API_BASE_URL}/files/${file.id}/thumbnail"
+                    `<img src="${CONFIG.API_BASE_URL}/files/${sanitizeAttribute(file.id)}/thumbnail"
                          alt="File Preview"
                          class="printed-file-thumbnail-image"
                          onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
