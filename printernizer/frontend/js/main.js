@@ -555,7 +555,7 @@ function showFullThumbnail(fileId, filename) {
                 <button class="thumbnail-modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
             </div>
             <div class="thumbnail-modal-body">
-                <img src="${api.baseURL}/files/${fileId}/thumbnail"
+                <img src="${api.baseURL}/files/${sanitizeAttribute(fileId)}/thumbnail"
                      alt="Full size thumbnail"
                      class="full-thumbnail-image"
                      onerror="this.nextElementSibling.style.display='block'; this.style.display='none'">

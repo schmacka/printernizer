@@ -182,7 +182,7 @@ class NavigationPreferences {
         }
 
         if (section.required) {
-            console.warn('Cannot hide required section:', sectionId);
+            Logger.warn('Cannot hide required section:', sectionId);
             return false;
         }
 

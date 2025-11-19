@@ -297,7 +297,7 @@ class GlobalDragDropManager {
         const filesList = document.getElementById('uploadFilesList');
         filesList.innerHTML = files.map(file => `
             <div class="upload-file-item">
-                <span class="upload-file-name">${file.name}</span>
+                <span class="upload-file-name">${escapeHtml(file.name)}</span>
                 <span class="upload-file-size">${this.formatFileSize(file.size)}</span>
                 <span class="upload-spinner">⏳</span>
             </div>

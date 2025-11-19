@@ -319,7 +319,7 @@ function selectAllFiles() {
     // Find the active modal and its file manager
     const activeModal = document.querySelector('.modal.show');
     if (!activeModal || !activeModal.fileManager) {
-        console.warn('No active file manager found');
+        Logger.warn('No active file manager found');
         return;
     }
 
@@ -340,7 +340,7 @@ function selectNone() {
     // Find the active modal and its file manager
     const activeModal = document.querySelector('.modal.show');
     if (!activeModal || !activeModal.fileManager) {
-        console.warn('No active file manager found');
+        Logger.warn('No active file manager found');
         return;
     }
 
@@ -361,7 +361,7 @@ function selectAvailable() {
     // Find the active modal and its file manager
     const activeModal = document.querySelector('.modal.show');
     if (!activeModal || !activeModal.fileManager) {
-        console.warn('No active file manager found');
+        Logger.warn('No active file manager found');
         return;
     }
 
