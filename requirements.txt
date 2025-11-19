@@ -87,3 +87,10 @@ beautifulsoup4==4.12.2
 
 # Image Processing for Thumbnails (Ideas feature)
 Pillow>=10.0.0
+
+# Documentation - MkDocs Material for GitHub Pages
+mkdocs-material>=9.5.0
+mkdocstrings[python]>=0.24.0  # Auto-generate Python API docs from docstrings
+mkdocs-awesome-pages-plugin>=2.9.0  # Better page organization
+mkdocs-git-revision-date-localized-plugin>=1.2.0  # Show last update dates
+pymdown-extensions>=10.7.0  # Enhanced markdown features
