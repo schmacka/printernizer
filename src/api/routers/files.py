@@ -13,7 +13,9 @@ from src.models.file import File, FileStatus, FileSource, WatchFolderSettings, W
 from src.services.file_service import FileService
 from src.services.config_service import ConfigService
 from src.services.file_thumbnail_service import FileThumbnailService
-from src.utils.dependencies import get_file_service, get_config_service, get_thumbnail_service
+from src.services.printer_service import PrinterService
+from src.models.printer import PrinterType
+from src.utils.dependencies import get_file_service, get_config_service, get_thumbnail_service, get_printer_service
 from src.utils.errors import (
     FileNotFoundError as PrinternizerFileNotFoundError,
     FileDownloadError,
@@ -25,6 +27,44 @@ from src.utils.errors import (
 
 logger = structlog.get_logger()
 router = APIRouter()
+
+
+# Printer capabilities by type (bed size in mm)
+PRINTER_CAPABILITIES = {
+    PrinterType.BAMBU_LAB: {
+        'bed_size_x': 256,
+        'bed_size_y': 256,
+        'bed_size_z': 256,
+        'name': 'Bambu Lab A1'
+    },
+    PrinterType.PRUSA_CORE: {
+        'bed_size_x': 250,
+        'bed_size_y': 220,
+        'bed_size_z': 220,
+        'name': 'Prusa Core One'
+    }
+}
+
+
+def get_printer_capabilities(printer_type: PrinterType) -> Dict[str, Any]:
+    """
+    Get printer capabilities based on printer type.
+
+    Args:
+        printer_type: Type of printer
+
+    Returns:
+        Dictionary with printer capabilities including bed dimensions
+    """
+    return PRINTER_CAPABILITIES.get(
+        printer_type,
+        {
+            'bed_size_x': 200,
+            'bed_size_y': 200,
+            'bed_size_z': 200,
+            'name': 'Unknown'
+        }
+    )
 
 
 class FileResponse(BaseModel):
@@ -1048,11 +1088,12 @@ async def analyze_file(
 async def check_printer_compatibility(
     file_id: str,
     printer_id: str,
-    file_service: FileService = Depends(get_file_service)
+    file_service: FileService = Depends(get_file_service),
+    printer_service: PrinterService = Depends(get_printer_service)
 ):
     """
     Check if file is compatible with specific printer.
-    
+
     Analyzes:
     - Print bed size requirements
     - Material compatibility
@@ -1061,40 +1102,58 @@ async def check_printer_compatibility(
     """
     try:
         logger.info("Checking compatibility", file_id=file_id, printer_id=printer_id)
-        
+
         # Get enhanced metadata
         metadata = await get_enhanced_metadata(file_id, force_refresh=False, file_service=file_service)
-        
-        # TODO: Get actual printer capabilities from printer service
-        # For now, provide basic compatibility check
-        
+
+        # Get actual printer capabilities from printer service
+        printer = await printer_service.get_printer(printer_id)
+        if not printer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Printer {printer_id} not found"
+            )
+
+        # Get capabilities based on printer type
+        capabilities = get_printer_capabilities(printer.type)
+
         compatibility = {
             'file_id': file_id,
             'printer_id': printer_id,
+            'printer_name': printer.name,
+            'printer_type': printer.type.value,
             'compatible': True,  # Default to compatible
             'issues': [],
             'warnings': [],
-            'recommendations': []
+            'recommendations': [],
+            'printer_capabilities': {
+                'bed_size_x': capabilities['bed_size_x'],
+                'bed_size_y': capabilities['bed_size_y'],
+                'bed_size_z': capabilities['bed_size_z']
+            }
         }
-        
-        # Check physical dimensions if available
+
+        # Check physical dimensions against actual printer capabilities
         if metadata.physical_properties:
-            # Bambu Lab A1 bed size: 256 x 256 x 256 mm
-            # This is a simplified check - should get actual printer specs
-            max_bed_size = 256
-            
-            if metadata.physical_properties.width and metadata.physical_properties.width > max_bed_size:
+            if metadata.physical_properties.width and metadata.physical_properties.width > capabilities['bed_size_x']:
                 compatibility['compatible'] = False
                 compatibility['issues'].append({
                     'type': 'size',
-                    'message': f'Model width ({metadata.physical_properties.width}mm) exceeds printer bed size'
+                    'message': f'Model width ({metadata.physical_properties.width}mm) exceeds printer bed size ({capabilities["bed_size_x"]}mm)'
                 })
-            
-            if metadata.physical_properties.depth and metadata.physical_properties.depth > max_bed_size:
+
+            if metadata.physical_properties.depth and metadata.physical_properties.depth > capabilities['bed_size_y']:
                 compatibility['compatible'] = False
                 compatibility['issues'].append({
                     'type': 'size',
-                    'message': f'Model depth ({metadata.physical_properties.depth}mm) exceeds printer bed size'
+                    'message': f'Model depth ({metadata.physical_properties.depth}mm) exceeds printer bed size ({capabilities["bed_size_y"]}mm)'
+                })
+
+            if metadata.physical_properties.height and metadata.physical_properties.height > capabilities['bed_size_z']:
+                compatibility['compatible'] = False
+                compatibility['issues'].append({
+                    'type': 'size',
+                    'message': f'Model height ({metadata.physical_properties.height}mm) exceeds printer build height ({capabilities["bed_size_z"]}mm)'
                 })
         
         # Check if printer is in compatible printers list
