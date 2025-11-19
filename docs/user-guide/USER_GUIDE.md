@@ -66,7 +66,7 @@ venv\Scripts\activate
 pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
 
 # 4. Start Printernizer
-run.bat
+python -m src.main
 ```
 
 **Linux/macOS:**
@@ -99,7 +99,7 @@ After starting, access Printernizer at:
 
 ### First-Time Setup
 
-1. **Start Printernizer** using `run.bat` (Windows) or `./run.sh` (Linux/macOS)
+1. **Start Printernizer** using `python -m src.main` (Windows) or `./run.sh` (Linux/macOS)
 2. **Open your browser** to http://localhost:8000
 3. **Add your first printer** via the Dashboard
 
@@ -536,7 +536,7 @@ Solutions:
 tail -f logs/printernizer.log
 
 # Python console output
-# Check terminal where you ran run.bat or run.sh
+# Check terminal where you ran the startup command
 ```
 
 **Enable debug logging:**

@@ -48,15 +48,11 @@ cp .env.example .env
 # Edit .env with your settings
 
 # 5. Start the application
-# Windows:
-run.bat
-
 # Linux/Mac:
 ./run.sh
 
-# Or manually:
-cd src
-python main.py
+# Or manually (Windows/Linux/Mac):
+python -m src.main
 ```
 
 **Access the application:**
