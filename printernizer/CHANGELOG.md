@@ -1,3 +1,25 @@
+## [2.7.1] - 2025-11-19
+
+- fix: Implement printer capabilities check in compatibility endpoint
+- docs: Update completion report with Phase 3 & 4 achievements
+- docs: Update technical debt README with current achievements
+- docs: Update progress tracker - Phase 4 Documentation COMPLETE
+- Complete Phase 3: XSS remediation and logging cleanup
+- Initial plan
+- docs: Update progress tracker with Phase 2 XSS completion
+- security(frontend): Apply XSS fixes to auto-download-ui.js and search.js
+- security(frontend): Apply XSS fixes to printers.js
+- security(frontend): Apply XSS fixes to components.js and dashboard.js
+- docs: Update progress tracker with Phase 1 XSS completion
+- security(frontend): Apply XSS fixes to library.js
+- security(frontend): Apply XSS fixes to jobs.js and materials.js
+- security(frontend): Apply XSS fixes to ideas.js
+- docs: Update progress tracker with session results
+- fix(frontend): Implement toast notifications in MaterialsManager
+- docs: Create comprehensive XSS remediation guide and update tracker
+- docs: Update progress tracker with batch 3 logger replacements (31 files)
+- refactor(frontend): Replace console statements with Logger utility
+
 ## [2.6.19] - 2025-11-19
 
 - Complete Phase 3: XSS remediation and logging cleanup
