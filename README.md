@@ -28,7 +28,7 @@ Enterprise-grade fleet management with real-time monitoring, automated file hand
 
 ## 🎯 Overview
 
-![Printernizer Dashboard](docs/screenshots/01-dashboard.png)
+![Printernizer Dashboard](docs-archive/screenshots/01-dashboard.png)
 
 Printernizer is a **complete production-ready** 3D printer management system that provides:
 
@@ -315,14 +315,14 @@ Add your printers via the web interface or JSON configuration:
 ## 🖥️ User Interface
 
 ### Dashboard
-![Dashboard Overview](docs/screenshots/01-dashboard.png)
+![Dashboard Overview](docs-archive/screenshots/01-dashboard.png)
 
 - **Real-time printer status cards** with temperatures and job progress
 - **Connection monitoring** with signal strength indicators
 - **German business overview** with today's statistics
 
 ### Drucker-Dateien (File Management)
-![File Management Interface](docs/screenshots/02-file-management.png)
+![File Management Interface](docs-archive/screenshots/02-file-management.png)
 
 - **Unified file listing** from all connected printers
 - **One-click downloads** with progress bars
@@ -330,14 +330,14 @@ Add your printers via the web interface or JSON configuration:
 - **Smart filtering** by printer, status, and file type
 
 ### Job Management
-![Jobs and Printers View](docs/screenshots/03-jobs-printers.png)
+![Jobs and Printers View](docs-archive/screenshots/03-jobs-printers.png)
 
 - **Real-time job tracking** with layer-by-layer progress
 - **German business calculations** (material cost + VAT)
 - **Job history** with success rates and analytics
 
 ### Printer Configuration
-![Printer Status Card](docs/screenshots/04-printer-status-card.png)
+![Printer Status Card](docs-archive/screenshots/04-printer-status-card.png)
 
 - **Add/edit printers** with connection testing
 - **Monitor connection quality** and response times
