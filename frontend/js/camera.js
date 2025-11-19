@@ -180,23 +180,23 @@ class CameraManager {
                 <div class="modal-body">
                     <div class="camera-full-view">
                         <img class="camera-stream-full" 
-                             src="${status.stream_url}" 
+                             src="${sanitizeUrl(status.stream_url)}" 
                              alt="Live Stream" 
                              onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error').style.display='block';">
                         <div class="stream-error" style="display: none;">
                             <p>Stream nicht verfügbar</p>
-                            <button class="btn btn-secondary" onclick="this.previousElementSibling.src='${status.stream_url}'; this.previousElementSibling.style.display='block'; this.style.display='none';">
+                            <button class="btn btn-secondary" onclick="this.previousElementSibling.src='${sanitizeUrl(status.stream_url)}'; this.previousElementSibling.style.display='block'; this.style.display='none';">
                                 🔄 Erneut versuchen
                             </button>
                         </div>
                     </div>
                     <div class="camera-modal-controls">
                         <button class="btn btn-primary" 
-                                onclick="cameraManager.takeSnapshot('${printerId}', null, 'manual')">
+                                onclick="cameraManager.takeSnapshot('${sanitizeAttribute(printerId)}', null, 'manual')">
                             📸 Snapshot aufnehmen
                         </button>
                         <button class="btn btn-secondary" 
-                                onclick="cameraManager.showSnapshotHistory('${printerId}')">
+                                onclick="cameraManager.showSnapshotHistory('${sanitizeAttribute(printerId)}')">
                             🖼️ Snapshot-Historie
                         </button>
                     </div>

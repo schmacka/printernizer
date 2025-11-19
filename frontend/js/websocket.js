@@ -725,7 +725,7 @@ class PrinternizerWebSocketHandler {
 
             if (layerInfo && jobData.layer_current && jobData.layer_total) {
                 layerInfo.innerHTML = `
-                    <span>Schicht: ${jobData.layer_current}/${jobData.layer_total}</span>
+                    <span>Schicht: ${escapeHtml(String(jobData.layer_current))}/${escapeHtml(String(jobData.layer_total))}</span>
                     <span>Verbleibend: ${formatDuration(jobData.estimated_remaining || 0)}</span>
                 `;
             }

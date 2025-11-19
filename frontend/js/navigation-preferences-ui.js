@@ -33,7 +33,7 @@ class NavigationPreferencesUIManager {
 
         container.innerHTML = sections.map((section, index) => `
             <div class="navigation-section-item"
-                 data-section-id="${section.id}"
+                 data-section-id="${sanitizeAttribute(section.id)}"
                  data-index="${index}"
                  draggable="true">
                 <div class="navigation-section-handle" title="Ziehen zum Verschieben">
@@ -42,19 +42,19 @@ class NavigationPreferencesUIManager {
                 <div class="navigation-section-content">
                     <div class="navigation-section-icon">${section.icon}</div>
                     <div class="navigation-section-info">
-                        <div class="navigation-section-label">${section.label}</div>
-                        <div class="navigation-section-description">${section.description}</div>
+                        <div class="navigation-section-label">${escapeHtml(section.label)}</div>
+                        <div class="navigation-section-description">${escapeHtml(section.description)}</div>
                     </div>
                 </div>
                 <div class="navigation-section-controls">
                     <button class="btn-icon-small"
-                            onclick="navigationPreferencesManager.moveSectionUp('${section.id}')"
+                            onclick="navigationPreferencesManager.moveSectionUp('${sanitizeAttribute(section.id)}')"
                             title="Nach oben"
                             ${index === 0 ? 'disabled' : ''}>
                         ⬆️
                     </button>
                     <button class="btn-icon-small"
-                            onclick="navigationPreferencesManager.moveSectionDown('${section.id}')"
+                            onclick="navigationPreferencesManager.moveSectionDown('${sanitizeAttribute(section.id)}')"
                             title="Nach unten"
                             ${index === sections.length - 1 ? 'disabled' : ''}>
                         ⬇️
@@ -63,7 +63,7 @@ class NavigationPreferencesUIManager {
                         <input type="checkbox"
                                ${section.visible ? 'checked' : ''}
                                ${section.required ? 'disabled' : ''}
-                               onchange="navigationPreferencesManager.toggleSectionVisibility('${section.id}')">
+                               onchange="navigationPreferencesManager.toggleSectionVisibility('${sanitizeAttribute(section.id)}')">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
