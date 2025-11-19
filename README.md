@@ -1,247 +1,239 @@
 # Printernizer 🖨️
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![GitHub Release](https://img.shields.io/github/v/release/schmacka/printernizer)](https://github.com/schmacka/printernizer/releases/latest)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi)](https://fastapi.tiangolo.com)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![Documentation](https://img.shields.io/badge/docs-MkDocs-blue)](https://schmacka.github.io/printernizer/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**Professional 3D Printer Management System for Bambu Lab A1 and Prusa Core One**
+**Professional 3D Printer Management System for Bambu Lab & Prusa Core One**
 
-Enterprise-grade fleet management with real-time monitoring, automated file handling, and business analytics. Perfect for 3D printing services, educational institutions, and production environments.
+Enterprise-grade fleet management with real-time monitoring, automated job tracking, file management, and business analytics. Perfect for 3D printing services, maker spaces, educational institutions, and production environments.
 
-## 📋 Table of Contents
+[📖 Documentation](https://schmacka.github.io/printernizer/) • [🚀 Quick Start](#-quick-start) • [✨ Features](#-features) • [🐳 Deployment](#-deployment-options) • [🤝 Contributing](CONTRIBUTING.md)
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Quick Start](#-quick-start)
-- [Prerequisites](#-prerequisites)
-- [Configuration](#-configuration)
-- [Architecture](#-architecture)
-- [User Interface](#-user-interface)
-- [Development](#-development)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Commercial Licensing](#commercial-license)
-- [Support](#-support)
+---
 
 ## 🎯 Overview
 
-![Printernizer Dashboard](docs-archive/screenshots/01-dashboard.png)
+Printernizer is a **production-ready** 3D printer management system that transforms how you monitor and manage your 3D printing operations. Built with modern web technologies and designed for both individual makers and enterprise environments.
 
-Printernizer is a **complete production-ready** 3D printer management system that provides:
+### Why Printernizer?
 
-- 🔄 **Real-time printer monitoring** - Live status, temperature, and job progress via MQTT & HTTP APIs
-- 📁 **Unified file management** - Seamless file handling with one-click downloads and status tracking
-- 🏢 **Business-ready interface** - Professional dashboard with compliance features and analytics
-- ⚡ **WebSocket real-time updates** - Live dashboard with instant status updates
-- 🚀 **Enterprise deployment** - Docker, Kubernetes, monitoring, and CI/CD ready
-- 🔧 **Easy setup** - Multiple deployment options with comprehensive documentation
+- **🔄 Real-Time Monitoring** - Live printer status, temperatures, and job progress via MQTT & HTTP APIs
+- **📁 Unified File Management** - Seamless file handling across all printers with one-click downloads
+- **🤖 Automated Job Tracking** - Automatically detect and track print jobs across your printer fleet
+- **📊 Business Analytics** - Professional dashboards with cost tracking, material consumption, and reporting
+- **⚡ Instant Updates** - WebSocket-powered live dashboard with zero page refresh
+- **🌐 Multi-Deployment** - Docker, Home Assistant, Raspberry Pi, or standalone Python
+- **📱 Mobile Ready** - Fully responsive interface works on any device
+
+### Status: Production Ready (v2.7.0)
+
+✅ **Stable** • ✅ **Tested** • ✅ **Documented** • ✅ **Multi-Platform**
+
+---
 
 ## ✨ Features
 
 ### 🖨️ Printer Support
+
 - **Bambu Lab A1** - Full MQTT integration with real-time status updates
-- **Prusa Core One** - HTTP API integration via PrusaLink
-- **Auto-discovery** - Automatically find printers on your network (SSDP + mDNS)
-- **Multi-printer management** - Simultaneous monitoring of multiple printers
-- **Connection health monitoring** - Automatic retry and error handling
+- **Prusa Core One** - Complete PrusaLink HTTP API integration
+- **Auto-Discovery** - Automatic printer detection via SSDP + mDNS
+- **Multi-Printer Fleet** - Monitor unlimited printers simultaneously
+- **Connection Health** - Automatic retry, reconnection, and error handling
+- **Live Monitoring** - 30-second polling with WebSocket push updates
 
-### 📊 Real-time Monitoring
-- **Live status updates** - Current printer state, temperatures, progress
-- **Job tracking** - Layer-by-layer progress with time estimates
-- **WebSocket connectivity** - Instant updates without page refresh
-- **Mobile responsive** - Full functionality on phones and tablets
+### 📊 Real-Time Monitoring & Job Management
 
-### 📁 File Management
-- **Unified file browser** - See files from all printers in one place
-- **One-click downloads** - Direct download from printer storage
-- **Status tracking** - Visual indicators for file availability and download status
-- **Smart filtering** - Filter by printer, status, and file type
-- **3D preview thumbnails** - Automatic thumbnail generation for STL, 3MF, GCODE, and BGCODE files
-- **Intelligent caching** - 30-day cache for fast preview loading
+- **Live Dashboard** - Real-time printer status cards with temperatures and progress
+- **Automated Job Creation** - Automatically detect and create job entries when prints start
+- **Layer-by-Layer Tracking** - Detailed progress monitoring with time estimates
+- **Job History** - Complete print history with success rates and analytics
+- **Business Classification** - Distinguish between business orders and personal projects
+- **WebSocket Updates** - Instant UI updates without page refresh
+- **Mobile Responsive** - Full functionality on phones and tablets
 
-### 🏢 Business Features
-- **Professional dashboard** - Clean, business-ready interface
-- **Analytics and reporting** - Usage statistics and performance metrics
-- **Multi-user support** - Role-based access control
-- **GDPR compliance** - Data privacy and retention controls
+### 📁 Advanced File Management
 
-### 🚀 Deployment Options
+- **Unified File Browser** - See files from all printers in one centralized view
+- **One-Click Downloads** - Direct download from any printer storage
+- **Smart Status Tracking** - Visual indicators: 📁 Available, ✓ Downloaded, 💾 Local
+- **Drag-and-Drop Upload** - Intuitive file upload to library
+- **Intelligent Filtering** - Filter by printer, status, file type, and more
+- **3D Preview System** - Automatic thumbnail generation for STL, 3MF, GCODE, BGCODE
+- **Metadata Extraction** - Comprehensive metadata parsing from 3D files
+- **Storage Analytics** - Track storage usage and optimize disk space
 
-**Choose the deployment method that fits your needs:**
+### 🎬 Timelapse Management
 
-1. **Python Standalone** - Direct Python installation
-   - Best for: Development, testing, local installation
-   - Setup time: 5 minutes
-   - [Quick Start](#option-1-python-development-setup)
+- **Automated Monitoring** - Watch folders for timelapse images with auto-detection
+- **FlickerFree Integration** - High-quality video processing with deflicker algorithm
+- **Gallery UI** - Modern video gallery with thumbnails and fullscreen playback
+- **Job Linking** - Automatically link timelapse videos to print jobs
+- **Processing Queue** - Sequential processing with real-time status updates
+- **Storage Management** - Track video storage and cleanup recommendations
 
-2. **Docker Standalone** - Containerized deployment
-   - Best for: Production servers, NAS systems
-   - Setup time: 5 minutes
-   - [Docker Guide](docker/README.md)
+### 📈 Enhanced 3D Model Metadata
 
-3. **Home Assistant Add-on** - Integrated with Home Assistant
-   - Best for: Home Assistant users, 24/7 operation
-   - Setup time: 10 minutes
-   - [Add-on Guide](printernizer/README.md)
+- **Physical Properties** - Dimensions, volume, surface area, object count
+- **Print Settings** - Layer height, nozzle size, walls, infill, supports, temperatures
+- **Material Requirements** - Weight, length, type, colors, waste calculations
+- **Cost Breakdown** - Material cost, energy cost, per-gram cost, total estimates
+- **Quality Metrics** - Complexity score, difficulty level, success probability
+- **Printer Compatibility** - Compatible printer checks, slicer info, profile validation
 
-## ✅ Current Status: **PRODUCTION READY**
+### 💼 Business & Analytics Features
 
-[![GitHub Release](https://img.shields.io/github/v/release/schmacka/printernizer)](https://github.com/schmacka/printernizer/releases/latest)
-[![GitHub commits since latest release](https://img.shields.io/github/commits-since/schmacka/printernizer/latest)](https://github.com/schmacka/printernizer/commits/master)
+- **Professional Dashboard** - Clean, business-ready interface with today's statistics
+- **Cost Calculations** - Material cost, power consumption, time-based pricing
+- **VAT Support** - Built-in VAT calculations (configurable rate, default 19%)
+- **Material Tracking** - Monitor material usage and consumption
+- **Export Capabilities** - CSV/JSON export for accounting software integration
+- **Analytics Reports** - Usage statistics, performance metrics, success rates
+- **Multi-Currency** - Configurable currency (EUR default)
+- **GDPR Compliance** - Data privacy and retention controls
 
-**Check your version**: Visit `/api/v1/update-check` endpoint or check `/api/v1/health` for current version info.
+### 🔐 Security & Compliance
 
-**Core functionality implemented and tested:**
-- ✅ Complete backend with FastAPI + async SQLite
-- ✅ Professional web interface with mobile-responsive design
-- ✅ Full printer integration (Bambu Lab A1 + Prusa Core One)
-- ✅ Real-time monitoring with WebSocket updates
-- ✅ File management and download system
-- ✅ 3D preview system (STL, 3MF, GCODE, BGCODE rendering)
-- ✅ System optimization (error handling, monitoring, health checks)
-- ✅ Business analytics and reporting features
-- ✅ **Docker containerization** (standalone & Home Assistant)
-- ✅ **Multi-architecture support** (x86_64, ARM64, ARMv7)
+- **Secure Credentials** - Safe printer credential storage
+- **Input Validation** - Comprehensive input sanitization
+- **CORS Protection** - Domain whitelist configuration
+- **GDPR/DSGVO Ready** - Privacy-compliant data handling
+- **SSL/TLS Support** - HTTPS enforcement for production
+- **Health Monitoring** - Built-in health checks and status endpoints
 
-**Coming Soon:**
-- 🔄 Kubernetes orchestration (planned)
-- 🔄 Advanced HA integration (MQTT discovery, sensors, automations)
-- 🔄 Watch folders and automation (planned)
+### 🛠️ Developer Features
+
+- **REST API** - Complete FastAPI-based REST API with OpenAPI/Swagger docs
+- **WebSocket API** - Real-time event streaming for custom integrations
+- **Database Migrations** - Automatic schema migrations with SQLite
+- **Extensible Architecture** - Service-based design for easy customization
+- **Comprehensive Testing** - 562+ tests including unit, integration, and E2E tests
+- **Prometheus Metrics** - Built-in monitoring and metrics export
+- **Health Endpoints** - `/api/v1/health` and `/api/v1/update-check`
+
+---
+
+## 📋 Prerequisites
+
+### System Requirements
+
+- **Python 3.11+** (for development/standalone)
+- **Docker & Docker Compose** (recommended for production)
+- **Modern Web Browser** with WebSocket support
+- **Network Access** to your 3D printers
+
+### Printer Requirements
+
+- **Bambu Lab A1**: IP address, Access Code (8 digits), Serial Number
+- **Prusa Core One**: IP address, PrusaLink API Key
+
+---
 
 ## 🚀 Quick Start
 
-Choose your preferred deployment method below.
+Choose your preferred deployment method:
 
-### Option 1: Python Standalone (Development)
+### Option 1: Docker (Recommended for Production)
 
 ```bash
-# 1. Create virtual environment (optional but recommended)
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
+# Clone the repository
+git clone https://github.com/schmacka/printernizer.git
+cd printernizer/docker
 
-# 2. Install core dependencies
-pip install fastapi uvicorn aiosqlite aiohttp websockets pydantic paho-mqtt python-dotenv aiofiles structlog trimesh numpy-stl matplotlib scipy
-
-# 3. Create environment file (already exists)
-# Edit .env with your printer configurations if needed
-
-# 4. Start the backend
-# Linux/Mac:
-./run.sh
-# Or manually (Windows/Linux/Mac):
-python -m src.main
-
-# 5. Start the frontend (optional - open new terminal)
-cd frontend
-python -m http.server 3000
-
-# 6. Access the application
-# Backend API: http://localhost:8000
-# Frontend: http://localhost:3000 (if started separately)
-# API Docs: http://localhost:8000/docs
-```
-
-### Option 2: Docker Standalone (Production)
-
-Run Printernizer in a Docker container for production deployments:
-
-**Using Docker Compose (Recommended):**
-```bash
-# From project root
-cd docker
+# Start with Docker Compose
 docker-compose up -d
 
 # Access the application
 # Web Interface: http://localhost:8000
 # API Documentation: http://localhost:8000/docs
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
 ```
 
-**Using Build Script:**
-```bash
-# From project root
-./build-docker.sh
-docker run -d -p 8000:8000 --name printernizer printernizer:latest
-```
+### Option 2: Home Assistant Add-on
 
-⚠️ **Important**: If building manually, you must use the repository root as the build context. See [docker/README.md](docker/README.md) for details.
-
-**Features:**
-- Persistent data storage via Docker volumes
-- Automatic restarts
-- Resource isolation
-- Easy backup and migration
-- Production-ready configuration
-
-For detailed instructions, see [docker/README.md](docker/README.md)
-
-### Option 3: Home Assistant Add-on (24/7 Integration)
-
-Install as a Home Assistant Add-on for seamless integration:
-
-**Via Repository:**
 1. In Home Assistant: **Settings → Add-ons → Add-on Store**
 2. Click **⋮** menu → **Repositories**
 3. Add: `https://github.com/schmacka/printernizer`
-4. Find **Printernizer** in store and click **Install**
+4. Find **Printernizer** and click **Install**
 5. Configure your printers in the **Configuration** tab
 6. Click **Start** and enable **Start on boot**
 7. Access via **Open Web UI**
 
-**Features:**
-- Integrated with Home Assistant UI
-- Automatic updates
-- Configuration via HA interface
-- Persistent storage in `/data`
-- Multi-architecture support (RPi, x86_64, etc.)
-- Ingress support for secure access
+### Option 3: Raspberry Pi Quick Setup
 
-For detailed instructions, see [printernizer/README.md](printernizer/README.md)
+```bash
+# Production (master branch)
+curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/master/scripts/pi-deployment/pi-setup.sh | bash
 
-## 📋 Prerequisites
+# Testing (development branch)
+curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/development/scripts/pi-deployment/pi-setup.sh | bash
+```
 
-### System Requirements
-- **Python 3.11+** (for development)
-- **Docker & Docker Compose** (recommended)
-- **Modern web browser** with WebSocket support
-- **Network access** to your 3D printers
+### Option 4: Python Standalone (Development)
 
-### 3D Printer Requirements
-- **Bambu Lab A1**: IP address, Access Code (8 digits), Serial Number
-- **Prusa Core One**: IP address, PrusaLink API Key
+```bash
+# Clone and setup
+git clone https://github.com/schmacka/printernizer.git
+cd printernizer
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the application
+./run.sh  # On Windows: run.bat
+
+# Access the application
+# Web Interface: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+For detailed installation instructions, see the [**Installation Guide**](https://schmacka.github.io/printernizer/getting-started/installation/).
+
+---
+
+## 🐳 Deployment Options
+
+| Method | Best For | Setup Time | Documentation |
+|--------|----------|------------|---------------|
+| **Docker Standalone** | Production servers, NAS | 5 minutes | [Guide](docker/README.md) |
+| **Home Assistant** | 24/7 operation, HA users | 10 minutes | [Guide](printernizer/README.md) |
+| **Raspberry Pi** | Dedicated device | 10 minutes | [Script](scripts/pi-deployment/) |
+| **Python Standalone** | Development, testing | 5 minutes | [Quick Start](#option-4-python-standalone-development) |
+
+**Features by Deployment:**
+- ✅ All methods support multi-architecture (x86_64, ARM64, ARMv7)
+- ✅ Persistent data storage via volumes/directories
+- ✅ Automatic restarts and recovery
+- ✅ Environment-based configuration
+
+---
 
 ## ⚙️ Configuration
 
-### Environment Variables (.env)
+### Environment Variables
+
+Create a `.env` file (or use Home Assistant configuration UI):
 
 ```bash
 # Application Settings
-ENVIRONMENT=development
+ENVIRONMENT=production
 PORT=8000
 LOG_LEVEL=info
 
-# German Business Settings  
+# Business Settings
 TIMEZONE=Europe/Berlin
 CURRENCY=EUR
 VAT_RATE=0.19
-BUSINESS_LOCATION=Kornwestheim, Deutschland
 
 # Database
 DATABASE_PATH=./data/printernizer.db
-
-# CORS (add your domain)
-CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
 
 # Printer Settings
 PRINTER_POLLING_INTERVAL=30
@@ -251,13 +243,13 @@ MAX_CONCURRENT_DOWNLOADS=5
 ENABLE_WEBSOCKETS=true
 
 # Security (Production)
-SECURE_SSL_REDIRECT=false  # Set to true in production
-SESSION_COOKIE_SECURE=false  # Set to true in production
+SECURE_SSL_REDIRECT=true
+SESSION_COOKIE_SECURE=true
 ```
 
-### Printer Configuration
+### Add Your Printers
 
-Add your printers via the web interface or JSON configuration:
+Configure printers via the web interface or `config/printers.json`:
 
 ```json
 {
@@ -270,7 +262,7 @@ Add your printers via the web interface or JSON configuration:
       "serial_number": "AC12345678"
     },
     {
-      "name": "Prusa Core One #1", 
+      "name": "Prusa Core One #1",
       "type": "prusa",
       "ip_address": "192.168.1.101",
       "api_key": "your-prusalink-api-key"
@@ -279,148 +271,232 @@ Add your printers via the web interface or JSON configuration:
 }
 ```
 
-**Security Note - Credential Management**:
-- `config/printers.json` contains sensitive printer credentials (API keys, access codes)
-- This file is in `.gitignore` and should NEVER be committed to version control
-- Create your own `config/printers.json` from `config/printers.example.json`
-- For production deployments, use environment variables or secrets management
-- See [SECURITY.md](SECURITY.md) for detailed security guidelines
+⚠️ **Security Note**: Never commit `config/printers.json` to version control. Use environment variables or secrets management for production.
+
+For complete configuration reference, see [**Configuration Guide**](https://schmacka.github.io/printernizer/getting-started/configuration/).
+
+---
+
+## 📖 Documentation
+
+Comprehensive documentation is available on **GitHub Pages**:
+
+### 👉 [**https://schmacka.github.io/printernizer/**](https://schmacka.github.io/printernizer/)
+
+**Quick Links:**
+
+- [📘 Getting Started](https://schmacka.github.io/printernizer/getting-started/installation/) - Installation and setup
+- [📗 User Guide](https://schmacka.github.io/printernizer/user-guide/) - How to use all features
+- [📙 API Reference](https://schmacka.github.io/printernizer/api-reference/) - Complete API documentation
+- [📕 Architecture](https://schmacka.github.io/printernizer/architecture/) - System design and technical details
+- [📔 Development](https://schmacka.github.io/printernizer/development/contributing/) - Contributing guidelines
+- [📓 Deployment](https://schmacka.github.io/printernizer/deployment/) - Production deployment guides
+- [📄 Changelog](https://schmacka.github.io/printernizer/changelog/) - Version history
+
+**API Documentation (Interactive):**
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Browser   │◄──►│   FastAPI       │◄──►│   SQLite DB     │
-│   (Frontend)    │    │   Backend       │    │   (Data)        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌─────────────────┐              │
-         │              │   WebSocket     │              │
-         └─────────────►│   Real-time     │◄─────────────┘
-                        │   Updates       │
-                        └─────────────────┘
-                                 │
-                    ┌─────────────────────────────────┐
-                    │          Printers               │
-                    │  ┌─────────────┐ ┌────────────┐ │
-                    │  │ Bambu Lab   │ │ Prusa Core │ │
-                    │  │ A1 (MQTT)   │ │ One (HTTP) │ │
-                    │  └─────────────┘ └────────────┘ │
-                    └─────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                     Web Browser (Frontend)                   │
+│              Modern UI with WebSocket Support                │
+└────────────┬────────────────────────────────────────────────┘
+             │
+             │ HTTP/REST + WebSocket
+             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   FastAPI Backend (Python)                   │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │   API Layer  │  │   Services   │  │  WebSocket Hub   │  │
+│  │  (Routers)   │  │   (Logic)    │  │  (Real-time)     │  │
+│  └──────────────┘  └──────────────┘  └──────────────────┘  │
+│                            │                                  │
+│                            ▼                                  │
+│                  ┌──────────────────┐                        │
+│                  │  SQLite Database │                        │
+│                  │  (Async Access)  │                        │
+│                  └──────────────────┘                        │
+└────────────┬────────────────────────────────────────────────┘
+             │
+             │ MQTT (Bambu) / HTTP (Prusa)
+             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    3D Printer Fleet                          │
+│  ┌────────────────┐              ┌─────────────────┐        │
+│  │  Bambu Lab A1  │              │ Prusa Core One  │        │
+│  │  (MQTT/FTP)    │              │  (PrusaLink)    │        │
+│  └────────────────┘              └─────────────────┘        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 🖥️ User Interface
+**Key Components:**
+- **FastAPI Backend** - Async Python web framework
+- **SQLite Database** - Lightweight, serverless database with migrations
+- **WebSocket Hub** - Real-time event broadcasting
+- **Service Layer** - Business logic and printer integrations
+- **Frontend** - Modern vanilla JavaScript with responsive design
 
-### Dashboard
-![Dashboard Overview](docs-archive/screenshots/01-dashboard.png)
+For detailed architecture documentation, see [**Architecture Overview**](https://schmacka.github.io/printernizer/architecture/).
 
-- **Real-time printer status cards** with temperatures and job progress
-- **Connection monitoring** with signal strength indicators
-- **German business overview** with today's statistics
+---
 
-### Drucker-Dateien (File Management)
-![File Management Interface](docs-archive/screenshots/02-file-management.png)
+## 🛠️ Development
 
-- **Unified file listing** from all connected printers
-- **One-click downloads** with progress bars
-- **Status tracking**: 📁 Available, ✓ Downloaded, 💾 Local
-- **Smart filtering** by printer, status, and file type
+### Development Setup
 
-### Job Management
-![Jobs and Printers View](docs-archive/screenshots/03-jobs-printers.png)
+```bash
+# Clone and setup
+git clone https://github.com/schmacka/printernizer.git
+cd printernizer
 
-- **Real-time job tracking** with layer-by-layer progress
-- **German business calculations** (material cost + VAT)
-- **Job history** with success rates and analytics
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
 
-### Printer Configuration
-![Printer Status Card](docs-archive/screenshots/04-printer-status-card.png)
+# Install dependencies (including dev dependencies)
+pip install -r requirements.txt
 
-- **Add/edit printers** with connection testing
-- **Monitor connection quality** and response times
-- **Start/stop monitoring** for each printer individually
+# Run tests
+pytest
 
-## 📱 Features
+# Run with coverage
+pytest --cov=src tests/
 
-### ✅ Real-time Monitoring
-- Live temperature monitoring (bed + nozzle)
-- Job progress with estimated completion times
-- Connection status with automatic recovery
-- WebSocket updates every 30 seconds
+# Start development server (with auto-reload)
+python -m src.main
+```
 
-### ✅ German Business Compliance
-- Complete German language interface
-- 19% VAT calculations with EUR currency
-- GDPR-compliant data handling
-- Europe/Berlin timezone for all timestamps
-- German business reporting formats
+### Project Structure
 
-### ✅ File Management System
-- Automatic file discovery on connected printers
-- Download progress tracking with speeds
-- Local file organization by printer/date
-- Bulk download operations
-- Storage cleanup and optimization
+```
+printernizer/
+├── src/                    # Application source code (PRIMARY)
+│   ├── api/               # FastAPI routers and endpoints
+│   ├── services/          # Business logic services
+│   ├── models/            # Data models and schemas
+│   ├── database/          # Database management
+│   ├── printers/          # Printer integrations (Bambu/Prusa)
+│   └── utils/             # Utility functions
+├── frontend/              # Web interface (PRIMARY)
+│   ├── js/                # JavaScript modules
+│   ├── css/               # Stylesheets
+│   └── index.html         # Main HTML
+├── tests/                 # Test suites (562+ tests)
+├── docs/                  # Documentation (MkDocs)
+├── docker/                # Docker configurations
+├── printernizer/          # Home Assistant add-on (auto-synced)
+├── scripts/               # Utility scripts
+└── migrations/            # Database migrations
+```
 
-### ✅ Enterprise Features
-- Multi-printer fleet management
-- Business vs. private job classification
-- Cost tracking (materials + power + labor)
-- Export capabilities for German accounting software
-- Advanced analytics and reporting
+⚠️ **Important**: Edit code in `/src/` and `/frontend/` only. The `/printernizer/` directory is auto-synced for Home Assistant deployment.
+
+### Contributing
+
+We welcome contributions! Please read our [**Contributing Guide**](CONTRIBUTING.md) for:
+
+- Code of conduct
+- Development workflow
+- Testing requirements
+- Pull request process
+- Release procedures
+
+**Quick Contribution Steps:**
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Commit: `git commit -m "feat: Add amazing feature"`
+5. Push: `git push origin feature/amazing-feature`
+6. Open a Pull Request
+
+---
+
+## 🧪 Testing
+
+Printernizer includes comprehensive testing with **562+ tests**:
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=src tests/
+
+# Run specific test categories
+pytest tests/backend/          # Unit tests
+pytest tests/integration/      # Integration tests
+pytest tests/e2e/             # End-to-end tests (Playwright)
+
+# Run performance tests
+pytest tests/performance/
+```
+
+**Test Coverage:**
+- ✅ Unit Tests - Core functionality and business logic
+- ✅ Integration Tests - Service interactions and database operations
+- ✅ E2E Tests - Full user workflows with Playwright
+- ✅ Performance Tests - Startup time, query optimization
+
+For testing guidelines, see [**Testing Guide**](https://schmacka.github.io/printernizer/testing/).
+
+---
 
 ## 📊 API Endpoints
 
 ### Core Endpoints
+
 ```bash
-# Health Check
-GET /api/v1/health
+# Health & Status
+GET  /api/v1/health                        # Health check
+GET  /api/v1/update-check                  # Version check
 
 # Printer Management
-GET /api/v1/printers
-POST /api/v1/printers
-GET /api/v1/printers/{id}
-GET /api/v1/printers/{id}/status
-POST /api/v1/printers/{id}/monitoring/start
-
-# File Management (Drucker-Dateien)
-GET /api/v1/printers/{id}/files
-POST /api/v1/printers/{id}/files/{filename}/download
-GET /api/v1/files
+GET  /api/v1/printers                      # List all printers
+POST /api/v1/printers                      # Add printer
+GET  /api/v1/printers/{id}                 # Get printer details
+GET  /api/v1/printers/{id}/status          # Get live status
+POST /api/v1/printers/{id}/monitoring/start # Start monitoring
+GET  /api/v1/printers/discover             # Auto-discover printers
 
 # Job Management
-GET /api/v1/jobs
-GET /api/v1/printers/{id}/jobs/current
-POST /api/v1/printers/{id}/jobs/sync
+GET  /api/v1/jobs                          # List all jobs
+POST /api/v1/jobs                          # Create job (manual or auto)
+GET  /api/v1/jobs/{id}                     # Get job details
+GET  /api/v1/printers/{id}/jobs/current    # Get current job
+POST /api/v1/printers/{id}/jobs/sync       # Sync job status
+
+# File Management
+GET  /api/v1/files                         # List all files
+GET  /api/v1/printers/{id}/files           # List printer files
+POST /api/v1/printers/{id}/files/{name}/download  # Download file
+GET  /api/v1/files/{id}/metadata           # Get file metadata
+POST /api/v1/files/{id}/thumbnail/extract  # Extract thumbnail
+
+# Timelapse Management
+GET  /api/v1/timelapses                    # List timelapses
+GET  /api/v1/timelapses/{id}               # Get timelapse details
+POST /api/v1/timelapses/process            # Trigger processing
 
 # Business Analytics
-GET /api/v1/analytics/summary
-GET /api/v1/analytics/export
+GET  /api/v1/analytics/summary             # Analytics summary
+GET  /api/v1/analytics/export              # Export data (CSV/JSON)
 
-# Real-time Updates
-WebSocket: ws://localhost:8000/ws
+# Real-Time Updates
+WebSocket: ws://localhost:8000/ws          # WebSocket connection
 ```
 
-## 🐳 Docker Services
+**Interactive API Documentation:**
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
 
-### Development
-```bash
-# Start all services
-docker-compose up -d
+For complete API documentation, see [**API Reference**](https://schmacka.github.io/printernizer/api-reference/).
 
-# View logs
-docker-compose logs -f printernizer-backend
-
-# Stop services
-docker-compose down
-```
-
-### Production Stack
-- **printernizer-backend**: FastAPI application server
-- **printernizer-frontend**: Nginx serving static files  
-- **printernizer-redis**: Session storage and caching
-- **prometheus**: Metrics collection
-- **grafana**: Monitoring dashboards
+---
 
 ## 🔧 Troubleshooting
 
@@ -431,325 +507,174 @@ docker-compose down
 # Check Python version (requires 3.11+)
 python --version
 
-# Install dependencies
-pip install -r requirements.txt
+# Reinstall dependencies
+pip install --force-reinstall -r requirements.txt
 
 # Check database permissions
 ls -la data/
 ```
 
-**Frontend can't connect to backend:**
-```bash
-# Verify backend is running
-curl http://localhost:8000/api/v1/health
-
-# Check CORS configuration in .env
-# Add your frontend URL to CORS_ORIGINS
-```
-
 **Printer connection issues:**
 ```bash
-# Test printer connectivity
+# Test network connectivity
 ping 192.168.1.100
 
-# Check printer API access
-# Bambu Lab: Verify Access Code on printer display
-# Prusa: Verify PrusaLink is enabled and API key is correct
-```
+# Verify printer API access
+# Bambu Lab: Check Access Code on printer display
+# Prusa: Ensure PrusaLink is enabled in printer settings
 
-### Logs and Debugging
-
-```bash
-# Backend logs
+# Check logs
 tail -f logs/printernizer.log
-
-# Docker logs
-docker-compose logs -f printernizer-backend
-
-# Database inspection
-sqlite3 data/printernizer.db ".tables"
 ```
 
-## 📈 Monitoring
-
-### Health Checks
-- **Backend**: `GET /api/v1/health`
-- **Database**: Connection test on startup
-- **Printers**: Real-time connectivity monitoring
-
-### Metrics (Prometheus)
-- Printer response times
-- WebSocket connection counts  
-- File download statistics
-- German business calculations
-
-### Dashboards (Grafana)
-- Real-time printer monitoring
-- Business analytics dashboard
-- System performance metrics
-
-## 🌍 German Market Features
-
-### Language Localization
-- Complete German interface ("Drucker", "Aufträge", "Dateien")
-- German date/time formatting (DD.MM.YYYY HH:mm)
-- German error messages and notifications
-- Professional business terminology
-
-### Business Compliance
-- **19% VAT calculations** with German precision
-- **GDPR/DSGVO compliance** with 7-year data retention
-- **EUR currency formatting** (1.234,56 €)
-- **Kornwestheim, Germany** as business location
-- **Export compatibility** with German accounting software (DATEV)
-
-## 🔐 Security
-
-### Production Security Features
-- HTTPS/SSL enforcement
-- Security headers (HSTS, CSP, X-Frame-Options)
-- CORS protection with domain whitelist
-- Input validation and sanitization
-- Sealed secrets for printer credentials
-
-### GDPR Compliance
-- Data protection by design
-- User consent management
-- Right to erasure implementation
-- Data retention policies
-- Privacy-compliant logging
-
-## 🚀 Deployment Options
-
-### 1. Local Development
+**Docker container issues:**
 ```bash
-# Linux/Mac: ./run.sh
-# Or manually: python -m src.main
-# Access: http://localhost:8000
+# Check container logs
+docker-compose logs -f
+
+# Restart containers
+docker-compose restart
+
+# Rebuild containers
+docker-compose down && docker-compose up -d --build
 ```
 
-### 2. Docker Development
+**WebSocket connection failures:**
 ```bash
-docker-compose up -d
-# Access: http://localhost:3000
+# Check CORS configuration in .env
+CORS_ORIGINS=http://localhost:3000,https://yourdomain.com
+
+# Verify WebSocket is enabled
+ENABLE_WEBSOCKETS=true
+
+# Check firewall rules (allow port 8000)
 ```
 
-### 3. Production Server
-```bash
-docker-compose -f docker-compose.yml up -d
-# With SSL termination and domain configuration
-```
+For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.github.io/printernizer/user-guide/troubleshooting/).
 
-### 4. Kubernetes Production
-```bash
-kubectl apply -f production.yml
-# Full enterprise deployment with auto-scaling
-```
+---
 
-## 📝 Support & Documentation
+## 🗺️ Roadmap
 
-### Additional Documentation
-- **User Guide**: [`docs/user-guides/USER_GUIDE.md`](docs/user-guides/USER_GUIDE.md) - Complete user documentation
-- **API Documentation**: http://localhost:8000/docs (Swagger UI)
-- **Development Plan**: [`docs/development/development-plan.md`](docs/development/development-plan.md) - Complete project roadmap
-- **Preview Rendering**: [`docs/features/PREVIEW_RENDERING.md`](docs/features/PREVIEW_RENDERING.md) - 3D preview system documentation
-- **Server Improvements**: [`docs/fixes/SERVER_IMPROVEMENTS.md`](docs/fixes/SERVER_IMPROVEMENTS.md) - Optimization and monitoring
+### Current Version: 2.7.0 (Production Ready) ✅
 
-### Getting Help
-1. Check the troubleshooting section above
-2. Review the logs for error messages
-3. Verify printer network connectivity
-4. Test API endpoints manually
+**Completed Features:**
+- ✅ Complete backend with FastAPI + async SQLite
+- ✅ Full printer integration (Bambu Lab A1 + Prusa Core One)
+- ✅ Real-time monitoring with WebSocket updates
+- ✅ Advanced file management and download system
+- ✅ Automated job creation and tracking
+- ✅ Timelapse management system
+- ✅ Enhanced 3D model metadata extraction
+- ✅ Business analytics and reporting
+- ✅ Docker containerization (standalone & Home Assistant)
+- ✅ Multi-architecture support (x86_64, ARM64, ARMv7)
+- ✅ Comprehensive documentation (GitHub Pages)
+- ✅ 562+ tests with CI/CD pipeline
 
-## 🛠️ Development
+### Coming Soon
 
-### Single Source Architecture
+- 🔄 **Advanced Home Assistant Integration** - MQTT discovery, sensors, automations
+- 🔄 **Watch Folders** - Automatic file monitoring and processing
+- 🔄 **Kubernetes Orchestration** - Production-grade orchestration
+- 🔄 **Multi-User Authentication** - Role-based access control
+- 🔄 **Advanced Analytics** - Predictive maintenance, failure analysis
+- 🔄 **Additional Printer Support** - More printer models and brands
 
-**IMPORTANT for Contributors**: Printernizer uses a single-source architecture with automated synchronization to support three deployment methods (Python, Docker, Home Assistant) without code duplication.
+### Future Vision
 
-**✅ Correct Workflow - Edit Once**:
-```bash
-# Edit application code in THESE directories ONLY:
-/src/                    # Backend code (EDIT HERE)
-/frontend/               # Frontend code (EDIT HERE)
+- 📱 Mobile app (iOS/Android)
+- 🎮 Klipper firmware integration
+- 🤖 AI-powered print optimization
+- 🌐 Cloud synchronization options
+- 📊 Advanced business reporting
 
-# DO NOT edit these directories (they are auto-synced):
-/printernizer/src/       # Auto-synced copy (DO NOT TOUCH)
-/printernizer/frontend/  # Auto-synced copy (DO NOT TOUCH)
-```
+Have a feature request? [Open an issue](https://github.com/schmacka/printernizer/issues) or join the discussion!
 
-**🔄 Automatic Synchronization**:
-1. **Pre-commit hook** - Automatically syncs when you commit changes
-2. **GitHub Actions** - Validates sync on push to master
-3. **Manual sync** - Run if needed:
-   ```bash
-   # Linux/Mac
-   ./scripts/sync-ha-addon.sh
-
-   # Windows
-   scripts\sync-ha-addon.bat
-   ```
-
-**Why This Design**:
-- Home Assistant build system requires files in `printernizer/` directory
-- Single source prevents version drift and merge conflicts
-- Developers work in one place, automation handles deployment variants
-
-### Project Structure
-```
-printernizer/
-├── src/                    # Application source code (EDIT HERE)
-│   ├── api/               # FastAPI routers and endpoints
-│   ├── services/          # Business logic services
-│   ├── models/            # Data models and schemas
-│   ├── database/          # Database management
-│   └── utils/             # Utility functions
-├── frontend/              # Web interface files (EDIT HERE)
-├── printernizer/          # Home Assistant add-on
-│   ├── src/               # Auto-synced from /src (DO NOT EDIT)
-│   ├── frontend/          # Auto-synced from /frontend (DO NOT EDIT)
-│   ├── Dockerfile         # HA-specific build
-│   ├── config.yaml        # HA add-on configuration
-│   └── run.sh             # HA startup script
-├── scripts/               # Utility scripts
-│   ├── sync-ha-addon.sh   # Sync script (Linux/Mac)
-│   └── sync-ha-addon.bat  # Sync script (Windows)
-├── tests/                 # Test suites
-├── docs/                  # Documentation
-└── .git-hooks/            # Pre-commit automation
-    └── pre-commit         # Auto-sync hook
-```
-
-### Running Tests
-```bash
-# Run all tests
-python -m pytest
-
-# Run with coverage
-python -m pytest --cov=src tests/
-
-# Run specific test category
-python -m pytest tests/backend/
-```
-
-**💡 GitHub Copilot Users**: We have a custom agent for test setup and execution! See [`.github/COPILOT_AGENT_SETUP.md`](.github/COPILOT_AGENT_SETUP.md) for details on creating a specialized test agent.
-
-### Code Quality
-```bash
-# Format code
-black src/ tests/
-
-# Lint code
-pylint src/
-
-# Type checking
-mypy src/
-```
-
-### Performance & Troubleshooting
-
-- **Startup Performance** - If experiencing slow backend startup, see [Startup Performance Analysis](docs/development/STARTUP_PERFORMANCE_ANALYSIS.md) for optimization strategies
-- **Debug Procedures** - For system troubleshooting, see [Debug Procedures](docs/development/DEBUG_PROCEDURES.md)
-
-## 🚀 Deployment
-
-### Current Deployment Options
-
-**Python Application (Recommended)**
-```bash
-# Production deployment with systemd or similar
-sudo systemctl enable printernizer
-sudo systemctl start printernizer
-```
-
-**Development Server**
-```bash
-# Simple development deployment
-nohup python src/main.py &
-```
-
-### Planned Deployment Options
-
-**Docker Deployment (Coming Soon)**
-- Single container deployment
-- Multi-service orchestration with databases
-- Production-ready containerization
-
-**Kubernetes Deployment (Coming Soon)**
-- Scalable production deployment
-- High availability configuration
-- Advanced monitoring and alerting
-
-### Production Considerations
-- Configure SSL/TLS for HTTPS
-- Set up proper logging and monitoring
-- Configure backup strategies for SQLite database
-- Use reverse proxy (nginx/Apache) for production
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Quick Start for Contributors
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-### Reporting Issues
-- Use GitHub Issues for bug reports and feature requests
-- Provide detailed information about your environment
-- Include steps to reproduce for bugs
+---
 
 ## 📄 License
 
-Printernizer is dual-licensed to balance open source collaboration with sustainable development:
+Printernizer is **dual-licensed** to balance open source collaboration with sustainable development:
 
 ### Open Source License
-- **AGPL-3.0** for open source projects, personal use, and contributions
-- Free to use, modify, and distribute under AGPL terms
-- Perfect for developers, researchers, and open source projects
+
+**AGPL-3.0** for open source projects, personal use, and contributions.
+
+- ✅ Free to use, modify, and distribute under AGPL terms
+- ✅ Perfect for developers, researchers, and open source projects
+- ✅ Community contributions welcome
 
 ### Commercial License
-- Required for commercial SaaS, enterprise deployments, and proprietary modifications
-- Removes AGPL obligations and provides commercial use rights
-- Includes technical support and priority updates
-- Contact: sebastian@porcus3d.de
 
-See the [LICENSE](LICENSE) file for complete terms and commercial licensing details.
+Required for commercial SaaS, enterprise deployments, and proprietary modifications.
 
-## 🆘 Support
+- 🏢 Removes AGPL obligations
+- 🏢 Commercial use rights
+- 🏢 Technical support and priority updates
+- 📧 Contact: sebastian@porcus3d.de
 
-- 📖 **Documentation**: Check the [docs/](docs/) directory
+See the [LICENSE](LICENSE) file for complete terms and [SECURITY.md](SECURITY.md) for security policies.
+
+---
+
+## 🙏 Acknowledgments
+
+Printernizer is built with excellent open source technologies:
+
+- [**FastAPI**](https://fastapi.tiangolo.com/) - Modern, fast web framework
+- [**SQLite**](https://sqlite.org/) - Lightweight, embedded database
+- [**paho-mqtt**](https://www.eclipse.org/paho/) - MQTT client library
+- [**Trimesh**](https://trimesh.org/) - 3D geometry processing
+- [**Material for MkDocs**](https://squidfunk.github.io/mkdocs-material/) - Documentation theme
+- [**Playwright**](https://playwright.dev/) - End-to-end testing
+
+Special thanks to:
+- Bambu Lab for their API documentation
+- Prusa Research for PrusaLink
+- All our contributors and users
+
+---
+
+## 💬 Support & Community
+
+### Getting Help
+
+- 📖 **Documentation**: [GitHub Pages](https://schmacka.github.io/printernizer/)
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/schmacka/printernizer/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/schmacka/printernizer/discussions)
 - 📧 **Security Issues**: See [SECURITY.md](SECURITY.md)
 
-### ☕ Support Development
+### Support Development
 
-If Printernizer helps you manage your 3D printers and you'd like to support its continued development:
+If Printernizer helps you manage your 3D printers, consider supporting its development:
 
 [![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/porcus3d)
 
-**[Support us on Buy Me a Coffee](https://buymeacoffee.com/porcus3d)**
+**[☕ Buy Me a Coffee](https://buymeacoffee.com/porcus3d)**
 
 Your support helps us:
 - 🚀 Develop new features and improvements
 - 🐛 Fix bugs and maintain code quality
-- 📚 Create better documentation and tutorials
-- 🌍 Expand printer compatibility and integrations
-
-Every contribution, no matter how small, is greatly appreciated and helps make Printernizer better for everyone!
-
-## 🙏 Acknowledgments
-
-- Built with [FastAPI](https://fastapi.tiangolo.com/) and [SQLite](https://sqlite.org/)
-- Bambu Lab integration via [bambulabs-api](https://github.com/matthewbaggett/bambulabs-api)
-- Prusa integration via PrusaLink HTTP API
-- Frontend uses modern web standards and WebSocket connectivity
+- 📚 Create better documentation
+- 🌍 Expand printer compatibility
 
 ---
 
-**Printernizer** - Professional 3D Printer Management System
-*Making 3D printing fleet management simple and efficient*
+## ⭐ Star History
+
+If you find Printernizer useful, please consider giving it a ⭐ on GitHub!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=schmacka/printernizer&type=Date)](https://star-history.com/#schmacka/printernizer&Date)
+
+---
+
+<div align="center">
+
+**Printernizer** - Professional 3D Printer Management Made Simple
+
+[Website](https://schmacka.github.io/printernizer/) • [Documentation](https://schmacka.github.io/printernizer/) • [GitHub](https://github.com/schmacka/printernizer) • [Releases](https://github.com/schmacka/printernizer/releases)
+
+Made with ❤️ by the Printernizer community
+
+</div>
