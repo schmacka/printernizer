@@ -260,7 +260,10 @@ extra:
 #   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 # Validation
-strict: false  # Set to true in production after initial setup
+# TODO: Re-enable strict mode after fixing documentation warnings (136 warnings present)
+# Strict mode treats all warnings as errors. Currently disabled to allow documentation
+# to build and deploy while underlying issues are investigated and fixed.
+strict: false
 
 # Watch additional files
 watch:
