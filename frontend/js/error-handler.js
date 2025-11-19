@@ -242,7 +242,7 @@ class ErrorHandler {
             <div style="font-weight: bold; margin-bottom: 4px;">
                 ${this.getSeverityIcon(errorInfo.severity)} ${errorInfo.category.toUpperCase()} ERROR
             </div>
-            <div style="font-size: 14px;">${errorInfo.userMessage}</div>
+            <div style="font-size: 14px;">${escapeHtml(errorInfo.userMessage)}</div>
             <div style="position: absolute; top: 8px; right: 8px; cursor: pointer; font-size: 18px;" onclick="this.parentElement.remove()">×</div>
         `;
 

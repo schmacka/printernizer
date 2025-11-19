@@ -641,7 +641,7 @@ class VideoPlayerModal {
         }
 
         if (timelapse.job_id) {
-            metadata.push(`<div class="metadata-item"><strong>Verknüpft:</strong> <a href="#jobs/${timelapse.job_id}">Auftrag anzeigen</a></div>`);
+            metadata.push(`<div class="metadata-item"><strong>Verknüpft:</strong> <a href="#jobs/${sanitizeAttribute(timelapse.job_id)}">Auftrag anzeigen</a></div>`);
         }
 
         document.getElementById('videoPlayerMetadata').innerHTML = metadata.join('');
