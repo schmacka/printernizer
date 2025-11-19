@@ -1,0 +1,267 @@
+# Printernizer Documentation - MkDocs Material Configuration
+# Professional 3D print management system for Bambu Lab and Prusa printers
+
+# Site metadata
+site_name: Printernizer Documentation
+site_description: Professional 3D print management system for Bambu Lab and Prusa printers with automated job tracking, file management, and business analytics
+site_author: Printernizer Contributors
+site_url: https://schmacka.github.io/printernizer/
+
+# Repository
+repo_name: schmacka/printernizer
+repo_url: https://github.com/schmacka/printernizer
+edit_uri: edit/master/docs/
+
+# Copyright
+copyright: Copyright &copy; 2024 Printernizer Contributors
+
+# Theme configuration - Material with community-friendly styling
+theme:
+  name: material
+  language: en
+
+  # Logo and favicon
+  # logo: assets/logo.png  # Add when available
+  # favicon: assets/favicon.png  # Add when available
+
+  # Color palette - vibrant and approachable
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  # Font
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  # Features
+  features:
+    - navigation.instant        # Instant loading
+    - navigation.instant.progress  # Progress indicator
+    - navigation.tracking       # URL updates on scroll
+    - navigation.tabs           # Top-level tabs
+    - navigation.tabs.sticky    # Sticky tabs
+    - navigation.sections       # Section navigation
+    - navigation.expand         # Expand all sections
+    - navigation.path           # Breadcrumbs
+    - navigation.indexes        # Section index pages
+    - navigation.top            # Back to top button
+    - navigation.footer         # Footer navigation
+    - toc.follow                # Sidebar follows scroll
+    - toc.integrate             # Integrate TOC into navigation
+    - search.suggest            # Search suggestions
+    - search.highlight          # Highlight search results
+    - search.share              # Share search results
+    - content.code.copy         # Copy code button
+    - content.code.annotate     # Code annotations
+    - content.action.edit       # Edit page link
+    - content.action.view       # View source link
+    - content.tooltips          # Improved tooltips
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Configuration: getting-started/configuration.md
+  - User Guide:
+      - Overview: user-guide/index.md
+      - User Guide: user-guide/USER_GUIDE.md
+      - Settings Reference: user-guide/SETTINGS_REFERENCE.md
+      - API Automated Jobs: user-guide/api-automated-job-creation.md
+      - Troubleshooting: user-guide/troubleshooting.md
+  - Architecture:
+      - Overview: architecture/index.md
+      - Service Architecture: architecture/service_architecture.md
+      - API Specification: architecture/api_specification.md
+      - Data Models: architecture/data_models.md
+      - Event Contracts: architecture/EVENT_CONTRACTS.md
+      - Event Flows: architecture/EVENT_FLOWS.md
+      - Algorithms: architecture/ALGORITHMS.md
+      - Repository Pattern: architecture/repository-pattern.md
+  - API Reference:
+      - Overview: api-reference/index.md
+      - Printers API: api-reference/printers.md
+      - Jobs API: api-reference/jobs.md
+      - Files API: api-reference/files.md
+      - Analytics API: api-reference/analytics.md
+      - WebSocket API: api-reference/websocket.md
+  - Features:
+      - Overview: features/index.md
+      - Auto File Download: features/auto-file-download.md
+      - Job Monitoring: features/job-monitoring.md
+      - File Management: features/file-management.md
+      - Business Analytics: features/business-analytics.md
+      - Metadata System: features/metadata.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Development Workflow: development/workflow.md
+      - Code Sync: development/code-sync.md
+      - Testing Guide: development/testing.md
+      - Debugging: development/debugging.md
+  - Deployment:
+      - Overview: deployment/index.md
+      - Docker Standalone: deployment/docker.md
+      - Home Assistant Add-on: deployment/home-assistant.md
+      - Raspberry Pi: deployment/raspberry-pi.md
+      - Production Deployment: deployment/production.md
+  - Testing:
+      - Overview: testing/index.md
+      - Unit Testing: testing/unit-testing.md
+      - Integration Testing: testing/integration-testing.md
+      - E2E Testing: testing/e2e-testing.md
+      - Coverage Reports: testing/coverage.md
+  - Changelog: changelog.md
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+      lang: en
+
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+      fallback_to_build_date: true
+
+  - awesome-pages:
+      collapse_single_pages: false
+      strict: false
+
+  - mkdocstrings:
+      enabled: true
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            group_by_category: true
+            docstring_style: google
+            docstring_section_style: table
+            merge_init_into_class: true
+            show_if_no_docstring: false
+            annotations_path: brief
+            show_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            separate_signature: false
+            line_length: 80
+
+# Markdown extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # PyMdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: schmacka
+      repo: printernizer
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      auto_append:
+        - includes/abbreviations.md
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+# Extra configuration
+extra:
+  # Social links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/schmacka/printernizer
+      name: GitHub Repository
+    - icon: fontawesome/solid/paper-plane
+      link: https://github.com/schmacka/printernizer/issues
+      name: Report an Issue
+
+  # Version selector (for future use)
+  version:
+    provider: mike
+    default: latest
+
+  # Analytics (add when available)
+  # analytics:
+  #   provider: google
+  #   property: G-XXXXXXXXXX
+
+  # Generator notice
+  generator: true
+
+# Extra CSS (optional customizations)
+# extra_css:
+#   - stylesheets/extra.css  # Add when needed
+
+# Extra JavaScript (optional enhancements)
+# extra_javascript:
+#   - javascripts/extra.js  # Add when needed
+#   # MathJax for mathematical formulas (if needed)
+#   - javascripts/mathjax.js
+#   - https://polyfill.io/v3/polyfill.min.js?features=es6
+#   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Validation
+strict: false  # Set to true in production after initial setup
+
+# Watch additional files
+watch:
+  - src/
+  - docs/
