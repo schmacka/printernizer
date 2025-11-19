@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2025-11-19
+
+### 🎉 Major Milestone: Technical Debt Remediation Complete
+
+**Zero TODOs Remaining** - All 88 identified technical debt issues across 4 phases have been addressed (68% of original 130 issues, all core work complete).
+
+### Added
+- **Printer Compatibility Checks**: Implemented dynamic printer capabilities lookup in file compatibility endpoint
+  - Added `PRINTER_CAPABILITIES` lookup dictionary for Bambu Lab and Prusa Core One bed dimensions
+  - Enhanced compatibility checks with actual printer data from database
+  - Added Z-axis height validation against printer bed height
+  - Fixed final TODO in codebase (files.py:1068)
+
 ### Changed
 - **Technical Debt Phase 4** - Ongoing quality improvements (LOW priority)
   - **Test Coverage Expansion (Task 4.3 COMPLETE)**: ✅ Added 72 comprehensive tests covering Phases 1-3 improvements
