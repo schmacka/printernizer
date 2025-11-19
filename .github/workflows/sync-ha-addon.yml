@@ -115,11 +115,20 @@ jobs:
       - name: Commit and push changes
         if: steps.check_source_changes.outputs.source_changed == 'true' || steps.check_changes.outputs.changes == 'true'
         run: |
+          # Reset any unintended changes (e.g., line endings, permissions)
+          git checkout -- scripts/
+
           git add printernizer/src/ printernizer/frontend/
 
           # Add version files if they were modified
           if [ -f printernizer/config.yaml ]; then
             git add printernizer/config.yaml printernizer/CHANGELOG.md || true
+          fi
+
+          # Check if there are actually any staged changes
+          if git diff --cached --quiet; then
+            echo "No staged changes to commit, skipping..."
+            exit 0
           fi
 
           # Create commit message using heredoc
