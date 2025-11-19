@@ -26,7 +26,7 @@ class AutoDownloadUI {
         // Start periodic UI updates
         this.startPeriodicUpdates();
 
-        console.log('🖥️ Auto-Download UI initialized');
+        Logger.debug('🖥️ Auto-Download UI initialized');
     }
 
     /**
@@ -38,19 +38,17 @@ class AutoDownloadUI {
 
         if (dashboardContainer) {
             const statusCard = document.createElement('div');
-            statusCard.className = 'overview-card auto-download-status-card';
+            statusCard.className = 'card overview-card';
             statusCard.innerHTML = `
+                <div class="card-header">
+                    <h3>Auto-Download</h3>
+                    <span class="card-icon">🤖</span>
+                </div>
                 <div class="card-body">
-                    <div id="auto-download-status">
-                        <div class="auto-download-status inactive">
-                            <div class="status-indicator offline"></div>
-                            <div class="status-info">
-                                <div class="status-title">Auto-Download System</div>
-                                <div class="status-details">Initializing...</div>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="btn btn-sm btn-primary" onclick="autoDownloadUI.showManagementPanel()" style="margin-top: 0.5rem;">
+                    <div class="stat-number" id="auto-download-count">-</div>
+                    <div class="stat-label" id="auto-download-label">Initializing</div>
+                    <div class="stat-detail" id="auto-download-detail">System starting...</div>
+                    <button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showManagementPanel()" style="margin-top: 1rem;">
                         <span class="btn-icon">⚙️</span> Verwalten
                     </button>
                 </div>
@@ -94,6 +92,9 @@ class AutoDownloadUI {
                 `Failed to download from ${task.printerName}: ${task.lastError}`);
         }
 
+        // Update dashboard card
+        this.updateDashboardCard();
+
         // Update UI if management panel is open
         if (this.isVisible) {
             this.updateQueueDisplay();
@@ -114,6 +115,9 @@ class AutoDownloadUI {
                 `Could not process thumbnail for ${task.filename || 'file'}`);
         }
 
+        // Update dashboard card
+        this.updateDashboardCard();
+
         // Update UI if management panel is open
         if (this.isVisible) {
             this.updateQueueDisplay();
@@ -132,6 +136,55 @@ class AutoDownloadUI {
             }
         });
         document.dispatchEvent(event);
+    }
+
+    /**
+     * Update the dashboard card with current stats
+     */
+    updateDashboardCard() {
+        if (!this.autoDownloadManager) return;
+
+        const stats = this.autoDownloadManager.getStats();
+        const countElement = document.getElementById('auto-download-count');
+        const labelElement = document.getElementById('auto-download-label');
+        const detailElement = document.getElementById('auto-download-detail');
+
+        if (!countElement || !labelElement || !detailElement) return;
+
+        // Calculate active tasks (queued + processing)
+        const activeDownloads = stats.downloads.queued + stats.downloads.processing;
+        const activeThumbnails = stats.thumbnails.queued + stats.thumbnails.processing;
+        const totalActive = activeDownloads + activeThumbnails;
+
+        // Update count
+        countElement.textContent = totalActive;
+
+        // Update label based on activity
+        if (totalActive > 0) {
+            labelElement.textContent = 'Active Tasks';
+        } else if (stats.system.active) {
+            labelElement.textContent = 'System Active';
+        } else {
+            labelElement.textContent = 'System Inactive';
+        }
+
+        // Update detail text
+        const detailParts = [];
+        if (activeDownloads > 0) {
+            detailParts.push(`${activeDownloads} download${activeDownloads !== 1 ? 's' : ''}`);
+        }
+        if (activeThumbnails > 0) {
+            detailParts.push(`${activeThumbnails} thumbnail${activeThumbnails !== 1 ? 's' : ''}`);
+        }
+        if (detailParts.length === 0) {
+            if (stats.downloads.completed > 0 || stats.thumbnails.completed > 0) {
+                detailElement.textContent = `${stats.downloads.completed} downloads today`;
+            } else {
+                detailElement.textContent = stats.system.active ? 'Monitoring...' : 'Idle';
+            }
+        } else {
+            detailElement.textContent = detailParts.join(', ');
+        }
     }
 
     /**
@@ -360,9 +413,9 @@ class AutoDownloadUI {
                     ${task.result && section === 'completed' ? `<div class="task-success">✅ ${escapeHtml(task.result.message || 'Completed successfully')}</div>` : ''}
                 </div>
                 <div class="task-actions">
-                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${task.id}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${task.id}')">Retry</button>` : ''}
-                    ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${task.id}')">Details</button>` : ''}
+                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
+                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}')">Retry</button>` : ''}
+                    ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${sanitizeAttribute(task.id)}')">Details</button>` : ''}
                 </div>
             </div>
         `;
@@ -425,18 +478,18 @@ class AutoDownloadUI {
         return `
             <div class="task-item ${section}">
                 <div class="task-info">
-                    <div class="task-title">${task.filename || 'Unknown File'}</div>
-                    <div class="task-subtitle">${task.fileType?.toUpperCase()} • Method: ${task.method} • Priority: ${task.priority}</div>
+                    <div class="task-title">${escapeHtml(task.filename || 'Unknown File')}</div>
+                    <div class="task-subtitle">${task.fileType?.toUpperCase()} • Method: ${escapeHtml(task.method)} • Priority: ${task.priority}</div>
                     <div class="task-timing">
                         Created: ${new Date(task.createdAt).toLocaleString('de-DE')}
                         ${task.startedAt ? ` • Started: ${new Date(task.startedAt).toLocaleString('de-DE')}` : ''}
                         ${section === 'processing' ? ` • Elapsed: ${elapsed}s` : ''}
                     </div>
-                    ${task.lastError ? `<div class="task-error">Error: ${task.lastError}</div>` : ''}
+                    ${task.lastError ? `<div class="task-error">Error: ${escapeHtml(task.lastError)}</div>` : ''}
                 </div>
                 <div class="task-actions">
-                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${task.id}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${task.id}')">Retry</button>` : ''}
+                    ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
+                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${sanitizeAttribute(task.id)}')">Retry</button>` : ''}
                 </div>
             </div>
         `;
@@ -458,8 +511,8 @@ class AutoDownloadUI {
                 html += `
                     <div class="history-item">
                         <div class="history-info">
-                            <strong>${item.result.filename || 'Unknown File'}</strong>
-                            <span class="history-printer">from ${item.printerId}</span>
+                            <strong>${escapeHtml(item.result.filename || 'Unknown File')}</strong>
+                            <span class="history-printer">from ${escapeHtml(item.printerId)}</span>
                         </div>
                         <div class="history-time">${new Date(item.timestamp).toLocaleString('de-DE')}</div>
                     </div>
@@ -477,8 +530,8 @@ class AutoDownloadUI {
                 html += `
                     <div class="error-item">
                         <div class="error-info">
-                            <strong>${error.category}</strong>: ${error.message}
-                            ${error.data.taskId ? `<span class="error-task">Task: ${error.data.taskId}</span>` : ''}
+                            <strong>${escapeHtml(error.category)}</strong>: ${escapeHtml(error.message)}
+                            ${error.data.taskId ? `<span class="error-task">Task: ${escapeHtml(error.data.taskId)}</span>` : ''}
                         </div>
                         <div class="error-time">${new Date(error.timestamp).toLocaleString('de-DE')}</div>
                     </div>
@@ -630,7 +683,7 @@ class AutoDownloadUI {
                                 <strong>Priority:</strong> ${task.priority}
                             </div>
                             <div class="detail-item">
-                                <strong>Printer:</strong> ${escapeHtml(task.printerName || 'Unknown')} (${task.printerId})
+                                <strong>Printer:</strong> ${escapeHtml(task.printerName || 'Unknown')} (${escapeHtml(task.printerId)})
                             </div>
                             <div class="detail-item">
                                 <strong>Job/File:</strong> ${escapeHtml(task.jobName || task.filename || 'Unknown')}
@@ -668,7 +721,7 @@ class AutoDownloadUI {
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                     ${task.status === 'failed' && task.attempts < task.maxAttempts ?
-                        `<button class="btn btn-primary" onclick="autoDownloadUI.retryTask('download', '${task.id}'); this.closest('.modal').remove();">Retry Task</button>` : ''}
+                        `<button class="btn btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}'); this.closest('.modal').remove();">Retry Task</button>` : ''}
                 </div>
             </div>
         `;
@@ -687,11 +740,18 @@ class AutoDownloadUI {
      * Start periodic UI updates
      */
     startPeriodicUpdates() {
+        // Initial update
+        this.updateDashboardCard();
+
         this.updateInterval = setInterval(() => {
+            // Always update dashboard card
+            this.updateDashboardCard();
+
+            // Update management panel if visible
             if (this.isVisible) {
                 this.updateQueueDisplay();
             }
-        }, 5000); // Update every 5 seconds when visible
+        }, 5000); // Update every 5 seconds
     }
 
     /**

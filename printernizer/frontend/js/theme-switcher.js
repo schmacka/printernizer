@@ -43,7 +43,7 @@ class ThemeSwitcher {
         try {
             return localStorage.getItem(this.THEME_KEY);
         } catch (error) {
-            console.warn('Could not access localStorage:', error);
+            Logger.warn('Could not access localStorage', error);
             return null;
         }
     }
@@ -56,7 +56,7 @@ class ThemeSwitcher {
         try {
             localStorage.setItem(this.THEME_KEY, theme);
         } catch (error) {
-            console.warn('Could not save theme to localStorage:', error);
+            Logger.warn('Could not save theme to localStorage', error);
         }
     }
 
@@ -103,7 +103,7 @@ class ThemeSwitcher {
         // Dispatch custom event for other components
         window.dispatchEvent(new CustomEvent('themeChange', { detail: { theme } }));
 
-        console.log(`Theme applied: ${theme}`);
+        Logger.info(`Theme applied: ${theme}`);
     }
 
     /**
@@ -146,9 +146,9 @@ class ThemeSwitcher {
         const toggleBtn = document.getElementById('themeToggle');
         if (toggleBtn) {
             toggleBtn.addEventListener('click', () => this.toggleTheme());
-            console.log('Theme toggle button initialized');
+            Logger.debug('Theme toggle button initialized');
         } else {
-            console.warn('Theme toggle button not found in DOM');
+            Logger.warn('Theme toggle button not found in DOM');
         }
     }
 
@@ -204,7 +204,7 @@ class ThemeSwitcher {
         if (theme === this.THEME_LIGHT || theme === this.THEME_DARK) {
             this.applyTheme(theme, true);
         } else {
-            console.warn(`Invalid theme: ${theme}. Use 'light' or 'dark'.`);
+            Logger.warn(`Invalid theme: ${theme}. Use 'light' or 'dark'.`);
         }
     }
 }

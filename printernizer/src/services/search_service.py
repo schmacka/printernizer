@@ -11,7 +11,9 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import structlog
 
+from src.config.constants import file_url
 from src.database.database import Database
+from src.database.repositories import FileRepository, LibraryRepository, IdeaRepository
 from src.models.search import (
     SearchSource, SearchFilters, SearchResult, SearchResultGroup,
     SearchResults, SearchHistoryEntry, ResultType, SearchSuggestion
@@ -54,11 +56,11 @@ class SearchCache:
                 del self.results_cache[cache_key]
         return None
 
-    def set_search_results(self, cache_key: str, results: SearchResults):
+    def set_search_results(self, cache_key: str, results: SearchResults) -> None:
         """Cache search results."""
         self.results_cache[cache_key] = (results, time.time())
 
-    def invalidate_file(self, file_id: str):
+    def invalidate_file(self, file_id: str) -> None:
         """Invalidate caches when file is updated/deleted."""
         # Clear results cache (contains this file)
         self.results_cache.clear()
@@ -67,12 +69,12 @@ class SearchCache:
         if file_id in self.metadata_cache:
             del self.metadata_cache[file_id]
 
-    def invalidate_idea(self, idea_id: str):
+    def invalidate_idea(self, idea_id: str) -> None:
         """Invalidate caches when idea is updated/deleted."""
         # Clear results cache
         self.results_cache.clear()
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         """Clear all caches."""
         self.results_cache.clear()
         self.external_cache.clear()
@@ -92,6 +94,10 @@ class SearchService:
             idea_service: IdeaService instance (optional)
         """
         self.database = database
+        # Initialize repositories for domain-specific operations
+        self.file_repo = FileRepository(database._connection)
+        self.library_repo = LibraryRepository(database._connection)
+        self.idea_repo = IdeaRepository(database._connection)
         self.file_service = file_service
         self.idea_service = idea_service
         self.cache = SearchCache()
@@ -208,13 +214,13 @@ class SearchService:
 
             for file_id in file_ids:
                 # Get file from database
-                file_data = await self.database.get_file(file_id)
+                file_data = await self.file_repo.get(file_id)
                 if file_data:
                     files.append(dict(file_data))
 
                 # Also try library
                 if not file_data:
-                    file_data = await self.database.get_library_file(file_id)
+                    file_data = await self.library_repo.get_file(file_id)
                     if file_data:
                         files.append(dict(file_data))
 
@@ -255,7 +261,7 @@ class SearchService:
             ideas = []
 
             for idea_id in idea_ids:
-                idea_data = await self.database.get_idea(idea_id)
+                idea_data = await self.idea_repo.get(idea_id)
                 if idea_data:
                     ideas.append(dict(idea_data))
 
@@ -317,7 +323,7 @@ class SearchService:
             result_type=ResultType.FILE,
             title=file_data.get('filename', 'Unknown'),
             description=file_data.get('display_name'),
-            thumbnail_url=f"/api/v1/files/{file_data.get('id')}/thumbnail" if file_data.get('id') else None,
+            thumbnail_url=file_url(file_data.get('id'), 'thumbnail') if file_data.get('id') else None,
             metadata=metadata,
             relevance_score=relevance_score,
             match_highlights=match_highlights,

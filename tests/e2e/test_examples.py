@@ -38,7 +38,7 @@ class TestPrintWorkflow:
         
         # Step 4: Try to add printer (will work if backend is running)
         try:
-            add_button = app_page.locator("button:has-text('Add Printer')")
+            add_button = app_page.locator("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
             if add_button.count() > 0:
                 printers.open_add_printer_modal()
                 
@@ -60,7 +60,7 @@ class TestPrintWorkflow:
         jobs.navigate(base_url)
         
         # Step 6: Verify jobs page loaded
-        expect(app_page).to_have_url(f"{base_url}/jobs.html")
+        expect(app_page).to_have_url(f"{base_url}/#jobs")
         
         # Step 7: Check for create job button
         create_button = app_page.locator(jobs.create_job_button_selector)

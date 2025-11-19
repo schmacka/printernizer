@@ -15,7 +15,7 @@ class TimelapseManager {
      * Initialize timelapses management page
      */
     init() {
-        console.log('Initializing timelapses management');
+        Logger.debug('Initializing timelapses management');
 
         // Load timelapses
         this.loadTimelapses();
@@ -89,7 +89,7 @@ class TimelapseManager {
             }
 
         } catch (error) {
-            console.error('Failed to load timelapses:', error);
+            Logger.error('Failed to load timelapses:', error);
             const timelapsesList = document.getElementById('timelapsesList');
             if (timelapsesList) {
                 timelapsesList.innerHTML = '<div class="error-message">Fehler beim Laden der Zeitraffer-Videos</div>';
@@ -109,7 +109,7 @@ class TimelapseManager {
             }
 
         } catch (error) {
-            console.error('Failed to load timelapse stats:', error);
+            Logger.error('Failed to load timelapse stats:', error);
         }
     }
 
@@ -183,7 +183,7 @@ class TimelapseManager {
      * Handle timelapse update from WebSocket
      */
     handleTimelapseUpdate(data) {
-        console.log('Timelapse update:', data);
+        Logger.debug('Timelapse update:', data);
 
         // Reload timelapses and stats
         this.loadTimelapses();
@@ -194,7 +194,7 @@ class TimelapseManager {
      * Handle timelapse deleted from WebSocket
      */
     handleTimelapseDeleted(data) {
-        console.log('Timelapse deleted:', data);
+        Logger.debug('Timelapse deleted:', data);
 
         // Remove from display
         const card = this.timelapses.get(data.id);
@@ -228,7 +228,7 @@ class TimelapseManager {
             this.loadTimelapses();
             this.loadStats();
         } catch (error) {
-            console.error('Failed to trigger processing:', error);
+            Logger.error('Failed to trigger processing:', error);
             showToast('Fehler beim Starten der Verarbeitung', 'error');
         }
     }
@@ -254,7 +254,7 @@ class TimelapseManager {
 
             this.loadStats();
         } catch (error) {
-            console.error('Failed to delete timelapse:', error);
+            Logger.error('Failed to delete timelapse:', error);
             showToast('Fehler beim Löschen', 'error');
         }
     }
@@ -267,7 +267,7 @@ class TimelapseManager {
             await api.toggleTimelapsePin(timelapseId);
             this.loadTimelapses();
         } catch (error) {
-            console.error('Failed to toggle pin:', error);
+            Logger.error('Failed to toggle pin:', error);
             showToast('Fehler beim Ändern des Pin-Status', 'error');
         }
     }
@@ -641,7 +641,7 @@ class VideoPlayerModal {
         }
 
         if (timelapse.job_id) {
-            metadata.push(`<div class="metadata-item"><strong>Verknüpft:</strong> <a href="#jobs/${timelapse.job_id}">Auftrag anzeigen</a></div>`);
+            metadata.push(`<div class="metadata-item"><strong>Verknüpft:</strong> <a href="#jobs/${sanitizeAttribute(timelapse.job_id)}">Auftrag anzeigen</a></div>`);
         }
 
         document.getElementById('videoPlayerMetadata').innerHTML = metadata.join('');

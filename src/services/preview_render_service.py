@@ -25,6 +25,7 @@ try:
     from matplotlib import pyplot as plt
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from mpl_toolkits.mplot3d import Axes3D
+    from PIL import Image
     RENDERING_AVAILABLE = True
 except ImportError as e:
     RENDERING_AVAILABLE = False
@@ -58,7 +59,7 @@ class PreviewRenderService:
 
         # Load settings
         settings = get_settings()
-        
+
         # GCODE rendering configuration
         self.gcode_config = {
             'enabled': True,  # Enabled for testing
@@ -68,9 +69,18 @@ class PreviewRenderService:
             'optimize_print_only': settings.gcode_optimize_print_only,
             'optimization_max_lines': settings.gcode_optimization_max_lines
         }
-        
+
         # Initialize G-code analyzer
         self.gcode_analyzer = GcodeAnalyzer(optimize_enabled=self.gcode_config['optimize_print_only'])
+
+        # Animated preview configuration
+        self.animation_config = {
+            'enabled': True,  # Enable multi-angle animated previews
+            'angles': [0, 90, 180, 270],  # Azimuth angles to render
+            'frame_duration': 500,  # Milliseconds per frame
+            'elevation': 45,  # Fixed elevation angle
+            'loop': 0,  # 0 = infinite loop
+        }
 
         # Cache settings
         self.cache_duration = timedelta(days=30)
@@ -80,7 +90,9 @@ class PreviewRenderService:
         self.stats = {
             'renders_generated': 0,
             'renders_cached': 0,
-            'render_failures': 0
+            'render_failures': 0,
+            'animated_renders_generated': 0,
+            'animated_renders_cached': 0
         }
 
     async def get_or_generate_preview(
@@ -147,6 +159,238 @@ class PreviewRenderService:
         except Exception as e:
             logger.error(f"Failed to generate preview for {file_path}: {e}", exc_info=True)
             self.stats['render_failures'] += 1
+            return None
+
+    async def get_or_generate_animated_preview(
+        self,
+        file_path: str,
+        file_type: str,
+        size: Tuple[int, int] = (512, 512)
+    ) -> Optional[bytes]:
+        """
+        Get cached animated GIF preview or generate new one.
+
+        Args:
+            file_path: Path to the 3D file
+            file_type: Type of file (stl, 3mf)
+            size: Desired thumbnail size (width, height)
+
+        Returns:
+            GIF image as bytes, or None if generation failed
+        """
+        if not RENDERING_AVAILABLE:
+            logger.warning("Preview rendering not available - libraries not installed")
+            return None
+
+        if not self.animation_config['enabled']:
+            logger.debug("Animated previews disabled")
+            return None
+
+        # Only generate animated previews for mesh files (STL, 3MF)
+        file_type_lower = file_type.lower()
+        if file_type_lower not in ['stl', '3mf']:
+            logger.debug(f"Animated previews not supported for {file_type}")
+            return None
+
+        try:
+            # Check cache first
+            cache_key = self._get_cache_key(file_path, size)
+            cache_path = self.cache_dir / f"{cache_key}-animated.gif"
+
+            if cache_path.exists():
+                # Check if cache is still valid
+                file_age = datetime.now() - datetime.fromtimestamp(cache_path.stat().st_mtime)
+                if file_age < self.cache_duration:
+                    logger.debug(f"Using cached animated preview: {cache_path}")
+                    with open(cache_path, 'rb') as f:
+                        self.stats['animated_renders_cached'] += 1
+                        return f.read()
+
+            # Generate new animated preview
+            logger.info(f"Generating animated preview for {file_path}", file_type=file_type, size=size)
+
+            # Run rendering in executor to avoid blocking
+            loop = asyncio.get_event_loop()
+            gif_bytes = await asyncio.wait_for(
+                loop.run_in_executor(None, self._render_animated_file, file_path, file_type, size),
+                timeout=self._render_timeout * len(self.animation_config['angles'])  # More time for multiple frames
+            )
+
+            if gif_bytes:
+                # Cache the result
+                with open(cache_path, 'wb') as f:
+                    f.write(gif_bytes)
+
+                self.stats['animated_renders_generated'] += 1
+                logger.info(f"Successfully generated and cached animated preview: {cache_path}")
+                return gif_bytes
+            else:
+                self.stats['render_failures'] += 1
+                return None
+
+        except asyncio.TimeoutError:
+            logger.error(f"Animated preview rendering timed out for {file_path}")
+            self.stats['render_failures'] += 1
+            return None
+        except Exception as e:
+            logger.error(f"Failed to generate animated preview for {file_path}: {e}", exc_info=True)
+            self.stats['render_failures'] += 1
+            return None
+
+    def _render_animated_file(
+        self,
+        file_path: str,
+        file_type: str,
+        size: Tuple[int, int]
+    ) -> Optional[bytes]:
+        """
+        Render file to animated GIF with multiple camera angles (synchronous, run in executor).
+
+        Args:
+            file_path: Path to the file
+            file_type: File type (stl, 3mf)
+            size: Desired size
+
+        Returns:
+            GIF bytes or None
+        """
+        try:
+            # Load mesh
+            file_type_lower = file_type.lower()
+            if file_type_lower == 'stl':
+                mesh = trimesh.load_mesh(file_path)
+            elif file_type_lower == '3mf':
+                mesh = trimesh.load(file_path)
+                if isinstance(mesh, trimesh.Scene):
+                    mesh = trimesh.util.concatenate(
+                        [geom for geom in mesh.geometry.values() if isinstance(geom, trimesh.Trimesh)]
+                    )
+            else:
+                logger.warning(f"Unsupported file type for animation: {file_type}")
+                return None
+
+            if mesh.is_empty:
+                logger.warning(f"Empty mesh in file: {file_path}")
+                return None
+
+            # Generate frames for each angle
+            frames = []
+            angles = self.animation_config['angles']
+            elevation = self.animation_config['elevation']
+
+            for azimuth in angles:
+                frame_bytes = self._render_mesh_at_angle(mesh, size, azimuth, elevation)
+                if frame_bytes:
+                    # Convert PNG bytes to PIL Image
+                    frame_image = Image.open(BytesIO(frame_bytes))
+                    frames.append(frame_image)
+                else:
+                    logger.warning(f"Failed to render frame at angle {azimuth}")
+
+            if not frames:
+                logger.error("No frames generated for animated preview")
+                return None
+
+            # Create GIF
+            gif_buffer = BytesIO()
+            frames[0].save(
+                gif_buffer,
+                format='GIF',
+                save_all=True,
+                append_images=frames[1:],
+                duration=self.animation_config['frame_duration'],
+                loop=self.animation_config['loop'],
+                optimize=False  # Disable optimization for speed
+            )
+
+            gif_buffer.seek(0)
+            logger.info(f"Generated animated GIF with {len(frames)} frames")
+            return gif_buffer.read()
+
+        except Exception as e:
+            logger.error(f"Failed to render animated file {file_path}: {e}")
+            return None
+
+    def _render_mesh_at_angle(
+        self,
+        mesh: 'trimesh.Trimesh',
+        size: Tuple[int, int],
+        azimuth: float,
+        elevation: float
+    ) -> Optional[bytes]:
+        """
+        Render mesh at a specific camera angle.
+
+        Args:
+            mesh: Trimesh object (already centered and normalized)
+            size: Desired size
+            azimuth: Azimuth angle in degrees
+            elevation: Elevation angle in degrees
+
+        Returns:
+            PNG bytes
+        """
+        try:
+            # Clone mesh to avoid modifying original
+            mesh_copy = mesh.copy()
+
+            # Center and normalize
+            mesh_copy.vertices -= mesh_copy.centroid
+            scale = 1.0 / max(mesh_copy.extents)
+            mesh_copy.vertices *= scale
+
+            # Create figure
+            dpi = self.stl_config['dpi']
+            fig_width = size[0] / dpi
+            fig_height = size[1] / dpi
+
+            fig = plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
+            ax = fig.add_subplot(111, projection='3d')
+
+            # Set colors
+            fig.patch.set_facecolor(self.stl_config['background_color'])
+            ax.set_facecolor(self.stl_config['background_color'])
+
+            # Plot mesh
+            ax.plot_trisurf(
+                mesh_copy.vertices[:, 0],
+                mesh_copy.vertices[:, 1],
+                mesh_copy.vertices[:, 2],
+                triangles=mesh_copy.faces,
+                color=self.stl_config['face_color'],
+                edgecolor=self.stl_config['edge_color'],
+                linewidth=self.stl_config['edge_width'],
+                alpha=0.9,
+                shade=True
+            )
+
+            # Set camera angle
+            ax.view_init(elev=elevation, azim=azimuth)
+            ax.set_axis_off()
+
+            # Set equal aspect ratio
+            max_range = 0.5
+            ax.set_xlim([-max_range, max_range])
+            ax.set_ylim([-max_range, max_range])
+            ax.set_zlim([-max_range, max_range])
+
+            # Save to bytes
+            buf = BytesIO()
+            plt.savefig(
+                buf,
+                format='png',
+                dpi=dpi,
+                bbox_inches='tight',
+                pad_inches=0.1,
+                facecolor=self.stl_config['background_color']
+            )
+            plt.close(fig)
+
+            buf.seek(0)
+            return buf.read()
+
+        except Exception as e:
+            logger.error(f"Failed to render mesh at angle {azimuth}: {e}")
             return None
 
     def _render_file(
@@ -515,18 +759,20 @@ class PreviewRenderService:
             if older_than_days is not None:
                 cutoff_time = datetime.now() - timedelta(days=older_than_days)
 
-            for cache_file in self.cache_dir.glob("*.png"):
-                if cache_file.is_file():
-                    if cutoff_time is None:
-                        # Remove all
-                        cache_file.unlink()
-                        removed_count += 1
-                    else:
-                        # Check age
-                        file_time = datetime.fromtimestamp(cache_file.stat().st_mtime)
-                        if file_time < cutoff_time:
+            # Clear both PNG and GIF cache files
+            for pattern in ["*.png", "*.gif"]:
+                for cache_file in self.cache_dir.glob(pattern):
+                    if cache_file.is_file():
+                        if cutoff_time is None:
+                            # Remove all
                             cache_file.unlink()
                             removed_count += 1
+                        else:
+                            # Check age
+                            file_time = datetime.fromtimestamp(cache_file.stat().st_mtime)
+                            if file_time < cutoff_time:
+                                cache_file.unlink()
+                                removed_count += 1
 
             logger.info(f"Cleared {removed_count} preview cache files")
 
@@ -537,16 +783,20 @@ class PreviewRenderService:
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get rendering statistics."""
-        cache_size = sum(
-            f.stat().st_size for f in self.cache_dir.glob("*.png") if f.is_file()
-        )
-        cache_count = len(list(self.cache_dir.glob("*.png")))
+        png_files = list(self.cache_dir.glob("*.png"))
+        gif_files = list(self.cache_dir.glob("*.gif"))
+
+        cache_size = sum(f.stat().st_size for f in png_files + gif_files if f.is_file())
+        cache_count = len(png_files) + len(gif_files)
 
         return {
             **self.stats,
             'cache_size_mb': round(cache_size / (1024 * 1024), 2),
             'cache_file_count': cache_count,
-            'rendering_available': RENDERING_AVAILABLE
+            'cache_png_count': len(png_files),
+            'cache_gif_count': len(gif_files),
+            'rendering_available': RENDERING_AVAILABLE,
+            'animation_enabled': self.animation_config['enabled']
         }
 
     def update_config(self, config: Dict[str, Any]) -> None:
@@ -564,6 +814,9 @@ class PreviewRenderService:
             # Update analyzer optimization setting
             if 'optimize_print_only' in config['gcode_rendering']:
                 self.gcode_analyzer.optimize_enabled = config['gcode_rendering']['optimize_print_only']
+
+        if 'animation' in config:
+            self.animation_config.update(config['animation'])
 
         if 'cache_duration_days' in config:
             self.cache_duration = timedelta(days=config['cache_duration_days'])

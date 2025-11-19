@@ -9,7 +9,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -28,6 +27,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Build artifacts and test results
+# Note: build/ directory contains build scripts (tracked)
+# but test-results/ subdirectory contains generated output (ignored)
+build/test-results/
+
 # PyInstaller
 *.manifest
 *.spec
@@ -45,6 +49,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+coverage.json
 test-results.xml
 printer-test-results.xml
 *.cover
@@ -133,6 +138,10 @@ nul
 /backend_*.txt
 /backend_*.log
 backend_pid.txt
+
+# Camera test files with credentials
+test_camera_connection*.py
+test_snapshot.jpg
 
 # Temporary test scripts in scripts/ folder
 scripts/test_*.py

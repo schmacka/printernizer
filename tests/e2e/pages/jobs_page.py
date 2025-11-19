@@ -11,25 +11,27 @@ class JobsPage:
     def __init__(self, page: Page):
         self.page = page
         
-        # Selectors
-        self.jobs_table_selector = ".jobs-table, #jobsTable"
-        self.job_row_selector = ".job-row, tr.job"
-        self.create_job_button_selector = "button:has-text('Create Job'), #createJobBtn"
+        # Selectors - matching actual HTML structure
+        self.jobs_table_selector = "#jobsTable, .jobs-table"
+        self.job_row_selector = "#jobsTableBody tr, .job-row"
+        self.create_job_button_selector = "#createJobBtn, button:has-text('Create Job')"
         self.job_modal_selector = "#jobModal, .job-modal"
-        self.job_name_input_selector = "input[name='job_name'], #jobName"
-        self.file_select_selector = "select[name='file'], #fileSelect"
-        self.printer_select_selector = "select[name='printer'], #printerSelect"
-        self.business_checkbox_selector = "input[name='is_business'], #isBusiness"
-        self.customer_name_input_selector = "input[name='customer_name'], #customerName"
-        self.submit_job_button_selector = "button[type='submit'], .submit-job-btn"
+        self.job_name_input_selector = "#jobName, input[name='job_name']"
+        self.file_select_selector = "#fileSelect, select[name='file']"
+        self.printer_select_selector = "#printerSelect, select[name='printer']"
+        self.business_checkbox_selector = "#isBusiness, input[name='is_business']"
+        self.customer_name_input_selector = "#customerName, input[name='customer_name']"
+        self.submit_job_button_selector = ".submit-job-btn, button[type='submit'][form='createJobForm']"
         self.job_status_selector = ".job-status"
         
     def navigate(self, base_url: str):
         """Navigate to jobs page"""
-        self.page.goto(f"{base_url}/#jobs")
+        self.page.goto(f"{base_url}/#jobs", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
+        # Wait for app initialization (main.js to execute)
+        self.page.wait_for_function("() => window.app && window.app.currentPage")
         # Wait for the jobs page section to be visible
-        self.page.wait_for_selector("#page-jobs", state="visible", timeout=5000)
+        self.page.wait_for_selector("#page-jobs.active", state="visible", timeout=5000)
         
     def open_create_job_modal(self):
         """Open the create job modal"""

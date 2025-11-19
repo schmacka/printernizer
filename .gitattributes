@@ -1,0 +1,76 @@
+# Git attributes for Printernizer
+# Prevents line ending issues on Windows/Linux/Mac
+
+# Auto-detect text files and normalize to LF on commit
+* text=auto eol=lf
+
+# Explicitly declare files that should always have LF line endings (Unix)
+*.sh text eol=lf
+*.bash text eol=lf
+entrypoint.sh text eol=lf
+
+# Python files
+*.py text eol=lf
+*.pyi text eol=lf
+
+# Web files
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.xml text eol=lf
+
+# Config files
+*.conf text eol=lf
+*.config text eol=lf
+*.ini text eol=lf
+*.toml text eol=lf
+.env* text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.dockerignore text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+requirements.txt text eol=lf
+Makefile text eol=lf
+
+# SQL files
+*.sql text eol=lf
+
+# Markdown files
+*.md text eol=lf
+*.markdown text eol=lf
+
+# Windows-specific files (should use CRLF)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files (don't normalize)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.3mf binary
+*.stl binary
+*.obj binary
+*.gcode binary

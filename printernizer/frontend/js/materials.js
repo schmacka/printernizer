@@ -6,7 +6,8 @@
 class MaterialsManager {
     constructor() {
         this.materials = [];
-        this.viewMode = localStorage.getItem('materialsViewMode') || 'cards';
+        const storedView = localStorage.getItem('materialsViewMode');
+        this.viewMode = storedView === 'cards' ? 'cards' : 'table';
         this.currentFilters = {
             type: '',
             brand: '',
@@ -33,7 +34,7 @@ class MaterialsManager {
             // Render initial view
             this.render();
         } catch (error) {
-            console.error('Failed to initialize materials manager:', error);
+            Logger.error('Failed to initialize materials manager:', error);
             this.showError('Fehler beim Laden der Filamente');
         }
     }
@@ -43,7 +44,7 @@ class MaterialsManager {
             // Use ApiClient which properly handles ingress paths
             this.enums = await api.get('materials/types');
         } catch (error) {
-            console.error('Failed to load material types:', error);
+            Logger.error('Failed to load material types:', error);
             // Set default enums if fetch fails
             this.enums = {
                 types: ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon'],
@@ -70,7 +71,7 @@ class MaterialsManager {
             this.applyClientFilters();
             this.applySorting();
         } catch (error) {
-            console.error('Failed to load materials:', error);
+            Logger.error('Failed to load materials:', error);
             this.showError('Fehler beim Laden der Filamente');
         }
     }
@@ -137,16 +138,21 @@ class MaterialsManager {
     }
 
     setViewMode(mode) {
+        if (!['cards', 'table'].includes(mode)) {
+            mode = 'table';
+        }
+
         this.viewMode = mode;
         localStorage.setItem('materialsViewMode', mode);
+        this.updateViewButtons();
+        this.render();
+    }
 
-        // Update button states
+    updateViewButtons() {
         const cardsBtn = document.getElementById('cardsViewBtn');
         const tableBtn = document.getElementById('tableViewBtn');
-        if (cardsBtn) cardsBtn.classList.toggle('active', mode === 'cards');
-        if (tableBtn) tableBtn.classList.toggle('active', mode === 'table');
-
-        this.render();
+        if (cardsBtn) cardsBtn.classList.toggle('active', this.viewMode === 'cards');
+        if (tableBtn) tableBtn.classList.toggle('active', this.viewMode === 'table');
     }
 
     async updateStats() {
@@ -165,13 +171,15 @@ class MaterialsManager {
             if (statLowStock) statLowStock.textContent = stats.low_stock_count || 0;
             if (statTotalValue) statTotalValue.textContent = `${Number(stats.total_value || 0).toFixed(2)}`;
         } catch (error) {
-            console.error('Error updating stats:', error);
+            Logger.error('Error updating stats:', error);
         }
     }
 
     render() {
         const cardsContainer = document.getElementById('materialsCardsView');
         const tableContainer = document.getElementById('materialsTableView');
+
+        this.updateViewButtons();
 
         if (this.viewMode === 'cards') {
             // Show cards, hide table
@@ -221,24 +229,24 @@ class MaterialsManager {
         const isLowStock = percentage < 20;
 
         return `
-            <div class="material-card ${isLowStock ? 'low-stock' : ''}" data-id="${material.id}">
+            <div class="material-card ${isLowStock ? 'low-stock' : ''}" data-id="${sanitizeAttribute(material.id)}">
                 <div class="material-card-header">
                     <div class="material-type">${this.formatMaterialType(material.material_type)}</div>
                     <div class="material-actions">
-                        <button class="btn-icon" onclick="materialsManager.editMaterial('${material.id}')" title="Bearbeiten">
+                        <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="Bearbeiten">
                             ✏️
                         </button>
-                        <button class="btn-icon" onclick="materialsManager.deleteMaterial('${material.id}')" title="Löschen">
+                        <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="Löschen">
                             🗑️
                         </button>
                     </div>
                 </div>
 
                 <div class="material-card-body">
-                    <div class="material-brand">${material.brand}</div>
+                    <div class="material-brand">${escapeHtml(material.brand)}</div>
                     <div class="material-color">
-                        <span class="color-indicator" style="background-color: ${this.getColorHex(material.color)}"></span>
-                        ${material.color}
+                        <span class="color-indicator" style="background-color: ${sanitizeAttribute(this.getColorHex(material.color))}"></span>
+                        ${escapeHtml(material.color)}
                     </div>
 
                     <div class="material-weight">
@@ -249,7 +257,7 @@ class MaterialsManager {
                         <div class="progress-fill ${isLowStock ? 'low' : ''}" style="width: ${percentage}%"></div>
                     </div>
 
-                    ${material.notes ? `<div class="material-notes">${material.notes}</div>` : ''}
+                    ${material.notes ? `<div class="material-notes">${escapeHtml(material.notes)}</div>` : ''}
                 </div>
 
                 <div class="material-card-footer">
@@ -303,12 +311,12 @@ class MaterialsManager {
         const isLowStock = percentage < 20;
 
         return `
-            <tr class="${isLowStock ? 'low-stock' : ''}" data-id="${material.id}">
+            <tr class="${isLowStock ? 'low-stock' : ''}" data-id="${sanitizeAttribute(material.id)}">
                 <td>${this.formatMaterialType(material.material_type)}</td>
-                <td>${material.brand}</td>
+                <td>${escapeHtml(material.brand)}</td>
                 <td>
-                    <span class="color-indicator" style="background-color: ${this.getColorHex(material.color)}"></span>
-                    ${material.color}
+                    <span class="color-indicator" style="background-color: ${sanitizeAttribute(this.getColorHex(material.color))}"></span>
+                    ${escapeHtml(material.color)}
                 </td>
                 <td>
                     <strong>${remaining.toFixed(0)}g</strong> / ${total}g
@@ -319,10 +327,10 @@ class MaterialsManager {
                 <td>${parseFloat(material.cost_per_kg).toFixed(2)} €/kg</td>
                 <td>${this.formatDate(material.purchase_date)}</td>
                 <td class="actions">
-                    <button class="btn-icon" onclick="materialsManager.editMaterial('${material.id}')" title="Bearbeiten">
+                    <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="Bearbeiten">
                         ✏️
                     </button>
-                    <button class="btn-icon" onclick="materialsManager.deleteMaterial('${material.id}')" title="Löschen">
+                    <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="Löschen">
                         🗑️
                     </button>
                 </td>
@@ -374,8 +382,7 @@ class MaterialsManager {
         // Show modal
         const modal = document.getElementById('materialModal');
         if (modal) {
-            modal.style.display = 'flex';
-            modal.classList.add('show');
+            showModal('materialModal');
         }
     }
 
@@ -500,7 +507,7 @@ class MaterialsManager {
             const url = materialId ? `/api/v1/materials/${materialId}` : '/api/v1/materials';
             const method = materialId ? 'PATCH' : 'POST';
 
-            console.log('Saving material:', { url, method, data });
+            Logger.debug('Saving material:', { url, method, data });
 
             const response = await fetch(url, {
                 method,
@@ -510,7 +517,7 @@ class MaterialsManager {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Save failed:', { status: response.status, errorData });
+                Logger.error('Save failed:', { status: response.status, errorData });
                 throw new Error(errorData.detail || `HTTP ${response.status}`);
             }
 
@@ -519,7 +526,7 @@ class MaterialsManager {
             this.render();
             this.showSuccess(materialId ? 'Filament aktualisiert' : 'Filament hinzugefügt');
         } catch (error) {
-            console.error('Failed to save material:', error);
+            Logger.error('Failed to save material:', error);
             this.showError('Fehler beim Speichern: ' + error.message);
         }
     }
@@ -535,7 +542,7 @@ class MaterialsManager {
             this.render();
             this.showSuccess('Filament gelöscht');
         } catch (error) {
-            console.error('Failed to delete material:', error);
+            Logger.error('Failed to delete material:', error);
             this.showError('Fehler beim Löschen');
         }
     }
@@ -543,8 +550,7 @@ class MaterialsManager {
     closeModal() {
         const modal = document.getElementById('materialModal');
         if (modal) {
-            modal.style.display = 'none';
-            modal.classList.remove('show');
+            window.closeModal('materialModal');
         }
         // Reset form
         const form = document.getElementById('materialForm');
@@ -638,13 +644,13 @@ class MaterialsManager {
     }
 
     showSuccess(message) {
-        // TODO: Implement toast notification
-        console.log('Success:', message);
+        Logger.debug('Success:', message);
+        showToast('success', 'Erfolg', message);
     }
 
     showError(message) {
-        // TODO: Implement toast notification
-        console.error('Error:', message);
+        Logger.error('Error:', message);
+        showToast('error', 'Fehler', message);
     }
 }
 

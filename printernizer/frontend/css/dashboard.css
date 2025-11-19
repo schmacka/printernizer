@@ -47,8 +47,16 @@
 /* Printer Grid */
 .printer-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
     gap: var(--spacing-6);
+}
+
+/* Container query support with fallback */
+@supports (container-type: inline-size) {
+    .printer-grid {
+        container-type: inline-size;
+        container-name: printer-grid;
+    }
 }
 
 .printer-card {
@@ -56,7 +64,30 @@
     border: 1px solid var(--gray-200);
     border-radius: var(--radius-lg);
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    min-height: 420px;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Container query adjustments - progressive enhancement */
+@supports (container-type: inline-size) {
+    @container printer-grid (max-width: 500px) {
+        .printer-card {
+            max-width: 100%;
+        }
+
+        .printer-body {
+            padding: var(--spacing-4);
+        }
+    }
+
+    @container printer-grid (min-width: 1200px) {
+        .printer-card {
+            max-width: 450px;
+        }
+    }
 }
 
 .printer-card:hover {
@@ -118,6 +149,9 @@
 
 .printer-body {
     padding: var(--spacing-6);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .printer-status-row {
@@ -144,6 +178,32 @@
     border-radius: var(--radius-md);
     padding: var(--spacing-4);
     margin-bottom: var(--spacing-4);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.current-job-placeholder {
+    background: var(--gray-100);
+    border: 2px dashed var(--gray-300);
+}
+
+.job-placeholder-content {
+    text-align: center;
+    padding: var(--spacing-2);
+}
+
+.placeholder-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: var(--spacing-2);
+    opacity: 0.5;
+}
+
+.job-placeholder-content .text-muted {
+    margin: 0;
+    font-size: var(--font-size-sm);
 }
 
 .job-name {
@@ -186,6 +246,10 @@
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: var(--spacing-4);
     margin-top: var(--spacing-4);
+}
+
+.temperatures-placeholder {
+    opacity: 0.6;
 }
 
 .temp-item {
@@ -299,56 +363,75 @@
 }
 
 /* Responsive Design for Dashboard */
+
+/* Large tablets: 2 columns max */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .printer-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-5);
+    }
+}
+
+/* Tablets and mobile devices */
 @media (max-width: 768px) {
     .overview-cards {
         grid-template-columns: 1fr;
         gap: var(--spacing-4);
     }
-    
+
     .printer-grid {
         grid-template-columns: 1fr;
         gap: var(--spacing-4);
     }
-    
+
+    .printer-card {
+        max-width: 100%;
+    }
+
     .printer-header {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--spacing-3);
     }
-    
+
     .printer-actions {
         align-self: flex-end;
     }
-    
+
     .job-preview-info {
         grid-template-columns: 1fr;
         gap: var(--spacing-2);
         text-align: left;
     }
-    
+
     .temperatures {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
+/* Mobile optimization */
 @media (max-width: 480px) {
     .stat-number {
         font-size: 2rem;
     }
-    
+
+    .printer-grid {
+        gap: var(--spacing-3);
+    }
+
     .printer-body {
         padding: var(--spacing-4);
     }
-    
+
     .current-job {
         padding: var(--spacing-3);
     }
-    
+
     .temperatures {
         grid-template-columns: 1fr;
         gap: var(--spacing-2);
     }
-    
+
     .temp-item {
         display: flex;
         justify-content: space-between;

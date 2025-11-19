@@ -93,6 +93,14 @@ class TestNullJobIDFix:
             event_service = EventService()
             job_service = JobService(db, event_service)
 
+            # Create a test printer first (required by FOREIGN KEY constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address)
+                    VALUES ('test_printer', 'Test Printer', 'bambu_lab', '192.168.1.100')
+                """)
+                await conn.commit()
+
             # Create multiple jobs
             job_ids = []
             for i in range(3):
@@ -172,6 +180,14 @@ class TestNullJobIDFix:
         try:
             event_service = EventService()
             job_service = JobService(db, event_service)
+
+            # Create a test printer first (required by FOREIGN KEY constraint)
+            async with db.connection() as conn:
+                await conn.execute("""
+                    INSERT INTO printers (id, name, type, ip_address)
+                    VALUES ('test_printer', 'Test Printer', 'bambu_lab', '192.168.1.100')
+                """)
+                await conn.commit()
 
             # Create a valid job
             job_id = await job_service.create_job({

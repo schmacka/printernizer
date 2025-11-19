@@ -195,7 +195,7 @@ cd ..
 ./build-docker.sh
 ```
 
-**Root Cause**: The Dockerfile requires the repository root as the build context because it needs to access `src/`, `frontend/`, `database_schema.sql`, and `docker/entrypoint.sh`. Building from inside the `docker/` directory will fail.
+**Root Cause**: The Dockerfile requires the repository root as the build context because it needs to access `src/`, `frontend/`, `assets/database/schema.sql`, and `docker/entrypoint.sh`. Building from inside the `docker/` directory will fail.
 
 ### Container Won't Start
 

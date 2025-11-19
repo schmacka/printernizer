@@ -87,7 +87,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.6.0")
+APP_VERSION = get_version(fallback="2.7.0")
 
 
 # Prometheus metrics - initialized once
@@ -173,6 +173,12 @@ async def lifespan(app: FastAPI):
     event_service = EventService()
     job_service = JobService(database, event_service)
     printer_service = PrinterService(database, event_service, config_service)
+
+    # Initialize camera snapshot service
+    from src.services.camera_snapshot_service import CameraSnapshotService
+    camera_snapshot_service = CameraSnapshotService()
+    await camera_snapshot_service.start()
+
     timer.end("Core services initialization")
     logger.info("[OK] Core services initialized")
 
@@ -260,6 +266,7 @@ async def lifespan(app: FastAPI):
     app.state.library_service = library_service
     app.state.material_service = material_service
     app.state.timelapse_service = timelapse_service
+    app.state.camera_snapshot_service = camera_snapshot_service
 
     # Initialize and start background services in parallel
     timer.start("Background services startup (parallel)")
@@ -465,6 +472,16 @@ async def lifespan(app: FastAPI):
             shutdown_with_timeout(
                 app.state.timelapse_service.shutdown(),
                 "Timelapse service",
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
+            )
+        )
+
+    # Camera snapshot service
+    if hasattr(app.state, 'camera_snapshot_service') and app.state.camera_snapshot_service:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.camera_snapshot_service.shutdown(),
+                "Camera snapshot service",
                 timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )

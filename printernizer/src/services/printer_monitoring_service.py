@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import structlog
 
 from src.database.database import Database
+from src.database.repositories import PrinterRepository
 from src.services.event_service import EventService
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.printers import BasePrinter
@@ -63,6 +64,7 @@ class PrinterMonitoringService:
             config_service: Optional config service for reading settings
         """
         self.database = database
+        self.printer_repo = PrinterRepository(database._connection)
         self.event_service = event_service
         self.file_service = file_service
         self.connection_service = connection_service
@@ -86,7 +88,7 @@ class PrinterMonitoringService:
 
         logger.info("PrinterMonitoringService initialized")
 
-    def setup_status_callback(self, printer_instance: BasePrinter):
+    def setup_status_callback(self, printer_instance: BasePrinter) -> None:
         """
         Set up status callback for a printer instance.
 
@@ -107,7 +109,7 @@ class PrinterMonitoringService:
         logger.debug("Status callback setup for printer",
                     printer_id=getattr(printer_instance, 'printer_id', 'unknown'))
 
-    async def _handle_status_update(self, status: PrinterStatusUpdate):
+    async def _handle_status_update(self, status: PrinterStatusUpdate) -> None:
         """
         Handle status updates from printers.
 
@@ -155,7 +157,7 @@ class PrinterMonitoringService:
                 discovery_key = f"{status.printer_id}:{status.current_job}"
                 self._print_discoveries.pop(discovery_key, None)
 
-    async def _check_auto_download(self, status: PrinterStatusUpdate):
+    async def _check_auto_download(self, status: PrinterStatusUpdate) -> None:
         """
         Check if auto-download should be triggered for current job.
 
@@ -220,7 +222,7 @@ class PrinterMonitoringService:
         import os as _os
         return _os.path.splitext(lower)[1] in printable_exts
 
-    async def _attempt_download_current_job(self, printer_id: str, filename: str):
+    async def _attempt_download_current_job(self, printer_id: str, filename: str) -> None:
         """
         Attempt to download the currently printing file for thumbnail processing.
 
@@ -405,7 +407,7 @@ class PrinterMonitoringService:
                           filename=filename,
                           error=str(e))
 
-    async def _store_status_update(self, status: PrinterStatusUpdate):
+    async def _store_status_update(self, status: PrinterStatusUpdate) -> None:
         """
         Store status update in database for history.
 
@@ -423,7 +425,7 @@ class PrinterMonitoringService:
 
         # Update database with current status (could be expanded to track history)
         try:
-            await self.database.update_printer_status(
+            await self.printer_repo.update_status(
                 status.printer_id,
                 status.status.value.lower(),
                 status.timestamp
@@ -654,6 +656,10 @@ class PrinterMonitoringService:
             status: Current printer status
             is_startup: True if this is called during system startup/reconnection
         """
+        # Check if auto-creation is enabled
+        if not self.auto_create_jobs:
+            return
+
         # Only create for printing status with a known file
         if status.status != PrinterStatus.PRINTING or not status.current_job:
             return
@@ -697,7 +703,17 @@ class PrinterMonitoringService:
                 return
 
             # Check database (handles restarts, cache misses)
-            # Use print_start_time for lookup to find jobs across restarts
+            # First, check for any active/running job with same filename (prevents auto-creating when manual job exists)
+            existing_active = await self._find_active_job(printer_id, filename)
+            if existing_active:
+                logger.info("Active job already exists (manual or auto)",
+                           job_id=existing_active['id'],
+                           job_status=existing_active.get('status'),
+                           job_name=existing_active.get('job_name'))
+                self._auto_job_cache[printer_id].add(job_key)
+                return
+
+            # Then check for jobs with matching start_time to find jobs across restarts
             existing = await self._find_existing_job(printer_id, filename, deduplication_time)
             if existing:
                 logger.info("Job already exists in database",
@@ -710,6 +726,43 @@ class PrinterMonitoringService:
             # Create the job!
             await self._create_auto_job(status, discovery_time, is_startup)
             self._auto_job_cache[printer_id].add(job_key)
+
+    async def _find_active_job(self, printer_id: str, filename: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if there's an active/running job with the same filename.
+
+        This prevents auto-creating a job when a manual job already exists.
+
+        Args:
+            printer_id: Printer identifier
+            filename: Job filename
+
+        Returns:
+            Active job dict if found, None otherwise
+        """
+        # Clean filename for comparison
+        clean_filename = filename
+        if clean_filename.startswith('cache/'):
+            clean_filename = clean_filename[6:]
+
+        # Get recent jobs for this printer with 'running' or 'pending' status
+        for status in ['running', 'pending', 'paused']:
+            jobs = await self.database.list_jobs(
+                printer_id=printer_id,
+                status=status,
+                limit=50
+            )
+
+            for job in jobs:
+                job_filename = job.get('filename', '')
+                if job_filename.startswith('cache/'):
+                    job_filename = job_filename[6:]
+
+                # Match by filename
+                if job_filename == clean_filename:
+                    return job
+
+        return None
 
     def _make_job_key(self, printer_id: str, filename: str, reference_time: datetime) -> str:
         """
@@ -934,7 +987,7 @@ class PrinterMonitoringService:
 
         return clean
 
-    def set_file_service(self, file_service):
+    def set_file_service(self, file_service) -> None:
         """
         Set file service dependency.
 

@@ -26,7 +26,7 @@ class DownloadQueue {
      * Initialize the download queue
      */
     async init() {
-        console.log('📋 Initializing Download Queue');
+        Logger.debug('📋 Initializing Download Queue');
 
         // Start processing queue
         this.startProcessing();
@@ -55,14 +55,14 @@ class DownloadQueue {
 
         // Check if already in queue or processing
         if (this.isTaskInQueue(task.id) || this.processing.has(task.id)) {
-            console.warn(`Download task ${task.id} already exists`);
+            Logger.warn(`Download task ${task.id} already exists`);
             return false;
         }
 
         // Insert in priority order
         this.insertByPriority(task);
 
-        console.log(`📋 Added download task: ${task.id} (${task.type}, priority: ${task.priority})`);
+        Logger.debug(`📋 Added download task: ${task.id} (${task.type}, priority: ${task.priority})`);
 
         // Trigger immediate processing if not busy
         if (!this.isProcessing) {
@@ -117,7 +117,7 @@ class DownloadQueue {
         const task = this.queue.shift();
         this.processing.set(task.id, task);
 
-        console.log(`🔄 Processing download: ${task.id}`);
+        Logger.debug(`🔄 Processing download: ${task.id}`);
 
         try {
             task.status = 'processing';
@@ -137,7 +137,7 @@ class DownloadQueue {
             this.processing.delete(task.id);
             this.completed.set(task.id, task);
 
-            console.log(`✅ Download completed: ${task.id}`);
+            Logger.debug(`✅ Download completed: ${task.id}`);
 
             // Trigger thumbnail processing if file was downloaded
             if (result.success && result.fileId) {
@@ -145,7 +145,7 @@ class DownloadQueue {
             }
 
         } catch (error) {
-            console.error(`❌ Download failed: ${task.id}`, error);
+            Logger.error(`❌ Download failed: ${task.id}`, error);
 
             task.attempts += 1;
             task.lastError = error.message;
@@ -158,7 +158,7 @@ class DownloadQueue {
                 setTimeout(() => {
                     task.status = 'retrying';
                     this.insertByPriority(task);
-                    console.log(`🔄 Retrying download: ${task.id} (attempt ${task.attempts + 1})`);
+                    Logger.debug(`🔄 Retrying download: ${task.id} (attempt ${task.attempts + 1})`);
                 }, delay);
 
             } else {
@@ -169,7 +169,7 @@ class DownloadQueue {
                 this.processing.delete(task.id);
                 this.failed.set(task.id, task);
 
-                console.error(`💥 Download permanently failed: ${task.id}`);
+                Logger.error(`💥 Download permanently failed: ${task.id}`);
             }
         }
 
@@ -198,19 +198,19 @@ class DownloadQueue {
      */
     async downloadCurrentJob(task) {
         try {
-            console.log(`📥 Downloading current job from printer ${task.printerId}`);
+            Logger.debug(`📥 Downloading current job from printer ${task.printerId}`);
 
             const response = await api.downloadCurrentJobFile(task.printerId);
 
             // Log the full response for debugging
-            console.log('Download API response:', response);
+            Logger.debug('Download API response:', response);
 
             if (!response) {
                 throw new Error('No response from download API');
             }
 
             if (!response.status) {
-                console.error('Response missing status field:', response);
+                Logger.error('Response missing status field:', response);
                 throw new Error('Invalid response from download API: missing status field');
             }
 
@@ -267,12 +267,12 @@ class DownloadQueue {
 
                 default:
                     // Log the full response for debugging
-                    console.error('Unknown download response:', response);
+                    Logger.error('Unknown download response:', response);
                     throw new Error(`Unknown download status: ${response.status}. Message: ${response.message || 'No additional details'}`);
             }
 
         } catch (error) {
-            console.error('Download current job failed:', error);
+            Logger.error('Download current job failed:', error);
             throw error;
         }
     }
@@ -282,7 +282,7 @@ class DownloadQueue {
      */
     async downloadPrinterFile(task) {
         try {
-            console.log(`📥 Downloading file ${task.filename} from printer ${task.printerId}`);
+            Logger.debug(`📥 Downloading file ${task.filename} from printer ${task.printerId}`);
 
             const response = await api.downloadPrinterFile(task.printerId, task.filename);
 
@@ -296,7 +296,7 @@ class DownloadQueue {
             };
 
         } catch (error) {
-            console.error('Download printer file failed:', error);
+            Logger.error('Download printer file failed:', error);
             throw error;
         }
     }
@@ -399,7 +399,7 @@ class DownloadQueue {
             task.status = 'cancelled';
             this.processing.delete(taskId);
 
-            console.log(`❌ Cancelled download: ${taskId}`);
+            Logger.debug(`❌ Cancelled download: ${taskId}`);
             return true;
         }
 
@@ -410,7 +410,7 @@ class DownloadQueue {
      * Shutdown queue processing
      */
     async shutdown() {
-        console.log('🛑 Shutting down Download Queue');
+        Logger.debug('🛑 Shutting down Download Queue');
 
         if (this.processInterval) {
             clearInterval(this.processInterval);
@@ -424,7 +424,7 @@ class DownloadQueue {
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        console.log('📋 Download Queue shut down');
+        Logger.debug('📋 Download Queue shut down');
     }
 }
 

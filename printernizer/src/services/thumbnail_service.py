@@ -7,7 +7,7 @@ import asyncio
 import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from urllib.parse import urlparse
 
 import aiofiles
@@ -188,7 +188,7 @@ class ThumbnailService:
         semaphore = asyncio.Semaphore(max_concurrent)
         results = {}
 
-        async def download_single(item: Dict[str, str]):
+        async def download_single(item: Dict[str, str]) -> Tuple[str, Optional[str]]:
             async with semaphore:
                 url = item['url']
                 source_type = item.get('source_type', 'external')
@@ -316,7 +316,7 @@ class ThumbnailService:
 
         return removed_count
 
-    async def cleanup(self):
+    async def cleanup(self) -> None:
         """Clean up thumbnail service resources."""
         if self.session:
             await self.session.close()

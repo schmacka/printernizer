@@ -14,6 +14,7 @@ import structlog
 from fastapi import UploadFile
 
 from src.database.database import Database
+from src.database.repositories import FileRepository
 from src.services.event_service import EventService
 from src.models.file import File, FileStatus, FileSource
 from src.utils.config import get_settings
@@ -67,6 +68,7 @@ class FileUploadService:
             library_service: Optional library service for adding uploaded files
         """
         self.database = database
+        self.file_repo = FileRepository(database._connection)
         self.event_service = event_service
         self.thumbnail_service = thumbnail_service
         self.metadata_service = metadata_service
@@ -274,7 +276,7 @@ class FileUploadService:
         }
 
         # Insert into database using the create_file method
-        success = await self.database.create_file(file_data)
+        success = await self.file_repo.create(file_data)
 
         if not success:
             raise Exception("Failed to create file record in database")
@@ -288,7 +290,7 @@ class FileUploadService:
 
         return file_id
 
-    async def process_file_after_upload(self, file_id: str, file_path: str):
+    async def process_file_after_upload(self, file_id: str, file_path: str) -> None:
         """
         Trigger post-upload processing (thumbnails, metadata, library).
 

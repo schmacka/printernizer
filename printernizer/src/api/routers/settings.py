@@ -35,10 +35,18 @@ class ApplicationSettingsResponse(BaseModel):
     connection_timeout: int
     cors_origins: List[str]
 
+    # Job creation settings
+    job_creation_auto_create: bool
+
     # G-code optimization settings
     gcode_optimize_print_only: bool
     gcode_optimization_max_lines: int
     gcode_render_max_lines: int
+
+    # Upload settings
+    enable_upload: bool
+    max_upload_size_mb: int
+    allowed_upload_extensions: str
 
     # Library System settings
     library_enabled: bool
@@ -46,6 +54,19 @@ class ApplicationSettingsResponse(BaseModel):
     library_auto_organize: bool
     library_auto_extract_metadata: bool
     library_auto_deduplicate: bool
+    library_preserve_originals: bool
+    library_checksum_algorithm: str
+    library_processing_workers: int
+    library_search_enabled: bool
+    library_search_min_length: int
+
+    # Timelapse settings
+    timelapse_enabled: bool
+    timelapse_source_folder: str
+    timelapse_output_folder: str
+    timelapse_output_strategy: str
+    timelapse_auto_process_timeout: int
+    timelapse_cleanup_age_days: int
 
 
 class ApplicationSettingsUpdate(BaseModel):
@@ -57,10 +78,18 @@ class ApplicationSettingsUpdate(BaseModel):
     max_file_size: Optional[int] = None
     vat_rate: Optional[float] = None
 
+    # Job creation settings
+    job_creation_auto_create: Optional[bool] = None
+
     # G-code optimization settings
     gcode_optimize_print_only: Optional[bool] = None
     gcode_optimization_max_lines: Optional[int] = None
     gcode_render_max_lines: Optional[int] = None
+
+    # Upload settings
+    enable_upload: Optional[bool] = None
+    max_upload_size_mb: Optional[int] = None
+    allowed_upload_extensions: Optional[str] = None
 
     # Library System settings
     library_enabled: Optional[bool] = None
@@ -68,6 +97,19 @@ class ApplicationSettingsUpdate(BaseModel):
     library_auto_organize: Optional[bool] = None
     library_auto_extract_metadata: Optional[bool] = None
     library_auto_deduplicate: Optional[bool] = None
+    library_preserve_originals: Optional[bool] = None
+    library_checksum_algorithm: Optional[str] = None
+    library_processing_workers: Optional[int] = None
+    library_search_enabled: Optional[bool] = None
+    library_search_min_length: Optional[int] = None
+
+    # Timelapse settings
+    timelapse_enabled: Optional[bool] = None
+    timelapse_source_folder: Optional[str] = None
+    timelapse_output_folder: Optional[str] = None
+    timelapse_output_strategy: Optional[str] = None
+    timelapse_auto_process_timeout: Optional[int] = None
+    timelapse_cleanup_age_days: Optional[int] = None
 
 
 class PrinterConfigResponse(BaseModel):
@@ -281,3 +323,18 @@ async def reload_configuration(
         )
 
     return success_response({"message": "Configuration reloaded successfully"})
+
+
+@router.get("/ffmpeg-check")
+async def check_ffmpeg_installation():
+    """Check if ffmpeg is installed and available on the system."""
+    from src.utils.system_check import check_ffmpeg
+
+    result = check_ffmpeg()
+
+    return {
+        "installed": result['installed'],
+        "version": result['version'],
+        "error": result['error'],
+        "message": "ffmpeg is installed and available" if result['installed'] else "ffmpeg is not installed or not in PATH"
+    }

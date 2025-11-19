@@ -552,11 +552,11 @@ kubectl apply -f production.yml
 ## 📝 Support & Documentation
 
 ### Additional Documentation
-- **User Guide**: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) - Complete user documentation
+- **User Guide**: [`docs/user-guides/USER_GUIDE.md`](docs/user-guides/USER_GUIDE.md) - Complete user documentation
 - **API Documentation**: http://localhost:8000/docs (Swagger UI)
 - **Development Plan**: [`docs/development/development-plan.md`](docs/development/development-plan.md) - Complete project roadmap
-- **Preview Rendering**: [`docs/PREVIEW_RENDERING.md`](docs/PREVIEW_RENDERING.md) - 3D preview system documentation
-- **Server Improvements**: [`docs/SERVER_IMPROVEMENTS.md`](docs/SERVER_IMPROVEMENTS.md) - Optimization and monitoring
+- **Preview Rendering**: [`docs/features/PREVIEW_RENDERING.md`](docs/features/PREVIEW_RENDERING.md) - 3D preview system documentation
+- **Server Improvements**: [`docs/fixes/SERVER_IMPROVEMENTS.md`](docs/fixes/SERVER_IMPROVEMENTS.md) - Optimization and monitoring
 
 ### Getting Help
 1. Check the troubleshooting section above
@@ -652,7 +652,7 @@ mypy src/
 ### Performance & Troubleshooting
 
 - **Startup Performance** - If experiencing slow backend startup, see [Startup Performance Analysis](docs/development/STARTUP_PERFORMANCE_ANALYSIS.md) for optimization strategies
-- **Debug Procedures** - For system troubleshooting, see [Debug Procedures](docs/DEBUG_PROCEDURES.md)
+- **Debug Procedures** - For system troubleshooting, see [Debug Procedures](docs/development/DEBUG_PROCEDURES.md)
 
 ## 🚀 Deployment
 

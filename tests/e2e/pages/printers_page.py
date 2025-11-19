@@ -24,12 +24,18 @@ class PrintersPage:
         
     def navigate(self, base_url: str):
         """Navigate to printers page"""
-        self.page.goto(f"{base_url}/printers.html")
+        self.page.goto(f"{base_url}/#printers", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
+        # Wait for app initialization
+        self.page.wait_for_function("() => window.app && window.app.currentPage")
+        # Wait for the printers page section to be visible
+        self.page.wait_for_selector("#printers.page.active", state="visible", timeout=10000)
+        # Wait for add printer button to be visible
+        self.page.wait_for_selector("#addPrinterBtn", state="visible", timeout=5000)
         
     def open_add_printer_modal(self):
         """Open the add printer modal"""
-        self.page.click("button:has-text('Add Printer')")
+        self.page.click("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
         self.page.wait_for_selector(self.add_printer_modal_selector, state="visible")
         
     def fill_printer_form(self, name: str, ip: str, printer_type: str = "bambu"):

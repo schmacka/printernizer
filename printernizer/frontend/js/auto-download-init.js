@@ -20,11 +20,11 @@ class AutoDownloadSystemInitializer {
      */
     async initialize() {
         if (this.initialized) {
-            console.warn('Auto-Download System already initialized');
+            Logger.warn('Auto-Download System already initialized');
             return;
         }
 
-        console.log('🚀 Starting Auto-Download System initialization...');
+        Logger.debug('🚀 Starting Auto-Download System initialization...');
 
         try {
             // Step 1: Initialize core components
@@ -45,7 +45,7 @@ class AutoDownloadSystemInitializer {
             // Mark as initialized
             this.initialized = true;
 
-            console.log('✅ Auto-Download System initialization complete');
+            Logger.debug('✅ Auto-Download System initialization complete');
 
             // Show success notification only if backend is healthy
             setTimeout(() => {
@@ -66,7 +66,7 @@ class AutoDownloadSystemInitializer {
             }, 1500); // Slightly delayed to allow backend health check to complete
 
         } catch (error) {
-            console.error('❌ Failed to initialize Auto-Download System:', error);
+            Logger.error('❌ Failed to initialize Auto-Download System:', error);
             showToast('error', 'Initialization Failed', 'Auto-Download System could not be started', CONFIG.TOAST_DURATION, {
                 uniqueKey: CONFIG.NOTIFICATION_KEYS.AUTO_DOWNLOAD_ERROR,
                 deduplicateMode: 'update'
@@ -79,7 +79,7 @@ class AutoDownloadSystemInitializer {
      * Initialize core components
      */
     async initializeCoreComponents() {
-        console.log('📋 Initializing core components...');
+        Logger.debug('📋 Initializing core components...');
 
         // Initialize download queue
         this.components.downloadQueue = new DownloadQueue();
@@ -98,14 +98,14 @@ class AutoDownloadSystemInitializer {
         window.thumbnailQueue = this.components.thumbnailQueue;
         window.downloadLogger = this.components.logger;
 
-        console.log('✅ Core components initialized');
+        Logger.debug('✅ Core components initialized');
     }
 
     /**
      * Initialize the main auto-download manager
      */
     async initializeManager() {
-        console.log('🤖 Initializing Auto-Download Manager...');
+        Logger.debug('🤖 Initializing Auto-Download Manager...');
 
         this.autoDownloadManager = new AutoDownloadManager();
 
@@ -119,26 +119,26 @@ class AutoDownloadSystemInitializer {
         // Make globally available
         window.autoDownloadManager = this.autoDownloadManager;
 
-        console.log('✅ Auto-Download Manager initialized');
+        Logger.debug('✅ Auto-Download Manager initialized');
     }
 
     /**
      * Initialize UI components
      */
     async initializeUI() {
-        console.log('🖥️ Initializing UI components...');
+        Logger.debug('🖥️ Initializing UI components...');
 
         this.components.ui = window.autoDownloadUI;
         await this.components.ui.init(this.autoDownloadManager);
 
-        console.log('✅ UI components initialized');
+        Logger.debug('✅ UI components initialized');
     }
 
     /**
      * Setup WebSocket integration
      */
     setupWebSocketIntegration() {
-        console.log('🔌 Setting up WebSocket integration...');
+        Logger.debug('🔌 Setting up WebSocket integration...');
 
         // Enhance existing WebSocket handlers
         if (window.websocketManager) {
@@ -155,7 +155,7 @@ class AutoDownloadSystemInitializer {
             // Stop checking after 30 seconds
             setTimeout(() => {
                 clearInterval(checkWebSocket);
-                console.warn('WebSocket manager not found, auto-detection may be limited');
+                Logger.warn('WebSocket manager not found, auto-detection may be limited');
             }, 30000);
         }
     }
@@ -178,7 +178,7 @@ class AutoDownloadSystemInitializer {
                 this.handleWebSocketMessage(data);
             };
 
-            console.log('✅ WebSocket handlers enhanced for auto-detection');
+            Logger.debug('✅ WebSocket handlers enhanced for auto-detection');
         }
 
         // Also listen for custom events
@@ -214,7 +214,7 @@ class AutoDownloadSystemInitializer {
      * Update existing functionality to integrate with auto-download system
      */
     updateExistingFunctionality() {
-        console.log('🔧 Updating existing functionality...');
+        Logger.debug('🔧 Updating existing functionality...');
 
         // Enhance triggerCurrentJobDownload function
         this.enhanceTriggerCurrentJobDownload();
@@ -225,7 +225,7 @@ class AutoDownloadSystemInitializer {
         // Enhance thumbnail handling
         this.enhanceThumbnailHandling();
 
-        console.log('✅ Existing functionality updated');
+        Logger.debug('✅ Existing functionality updated');
     }
 
     /**
@@ -235,7 +235,7 @@ class AutoDownloadSystemInitializer {
         // Replace global function with queue-based version
         window.triggerCurrentJobDownload = async (printerId) => {
             if (!this.autoDownloadManager) {
-                console.error('Auto-Download Manager not available');
+                Logger.error('Auto-Download Manager not available');
                 showToast('error', 'System Error', 'Auto-Download System not available');
                 return;
             }
@@ -251,7 +251,7 @@ class AutoDownloadSystemInitializer {
                 await this.autoDownloadManager.triggerManualDownload(printerId, printerName);
 
             } catch (error) {
-                console.error('Failed to trigger manual download:', error);
+                Logger.error('Failed to trigger manual download:', error);
                 showToast('error', 'Download Failed', 'Could not start download');
             }
         };
@@ -367,7 +367,7 @@ class AutoDownloadSystemInitializer {
      * Graceful shutdown
      */
     async shutdown() {
-        console.log('🛑 Shutting down Auto-Download System...');
+        Logger.debug('🛑 Shutting down Auto-Download System...');
 
         if (this.autoDownloadManager) {
             await this.autoDownloadManager.shutdown();
@@ -378,7 +378,7 @@ class AutoDownloadSystemInitializer {
         }
 
         this.initialized = false;
-        console.log('✅ Auto-Download System shut down');
+        Logger.debug('✅ Auto-Download System shut down');
     }
 }
 
@@ -390,7 +390,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.autoDownloadSystemInitializer = new AutoDownloadSystemInitializer();
             await window.autoDownloadSystemInitializer.initialize();
         } catch (error) {
-            console.error('Failed to initialize Auto-Download System:', error);
+            Logger.error('Failed to initialize Auto-Download System:', error);
         }
     }, 2000); // 2 second delay
 });

@@ -576,6 +576,242 @@ document.addEventListener('keydown', (e) => {
 });
 
 /**
+ * Navigate to settings page and open specific tab with modal overlay option
+ * @param {string} settingsTab - Tab ID to open (e.g., 'timelapse', 'library')
+ * @param {string} sourcePage - Optional page name to show in breadcrumb
+ * @param {boolean} useModal - If true, show settings in modal overlay instead of navigating
+ */
+function openPageSettings(settingsTab, sourcePage = null, useModal = true) {
+    if (useModal) {
+        // Show settings in modal overlay
+        showSettingsModal(settingsTab, sourcePage);
+    } else {
+        // Navigate to settings page
+        if (sourcePage) {
+            // Store source page and current hash for breadcrumb
+            sessionStorage.setItem('settingsSourcePage', sourcePage);
+            sessionStorage.setItem('settingsSourceHash', window.location.hash);
+        }
+
+        window.location.hash = '#settings';
+
+        // Wait for settings page to load, then switch to specific tab and update breadcrumb
+        setTimeout(() => {
+            if (window.settingsManager && settingsManager.switchTab) {
+                settingsManager.switchTab(settingsTab);
+            }
+            updateSettingsBreadcrumb();
+        }, 150);
+    }
+}
+
+/**
+ * Show settings in a modal overlay
+ * @param {string} settingsTab - Tab ID to open
+ * @param {string} sourcePage - Source page name for context
+ */
+function showSettingsModal(settingsTab, sourcePage) {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) {
+        Logger.error('Settings modal not found');
+        return;
+    }
+
+    // Store current tab and source page
+    modal.dataset.currentTab = settingsTab;
+    modal.dataset.sourcePage = sourcePage || '';
+
+    // Update modal title with breadcrumb if source page provided
+    const modalTitle = modal.querySelector('.settings-modal-title');
+    if (modalTitle && sourcePage) {
+        modalTitle.innerHTML = `
+            <button class="breadcrumb-back" onclick="closeSettingsModal()">
+                ← Zurück zu ${escapeHtml(sourcePage)}
+            </button>
+            <span class="breadcrumb-separator">/</span>
+            <span>Einstellungen</span>
+        `;
+    }
+
+    // Load settings content into modal
+    loadSettingsIntoModal(settingsTab);
+
+    // Show modal
+    showModal('settingsModal');
+}
+
+/**
+ * Load settings tab content into modal
+ * @param {string} settingsTab - Tab ID to load
+ */
+function loadSettingsIntoModal(settingsTab) {
+    const modalBody = document.querySelector('#settingsModal .settings-modal-body');
+    if (!modalBody) return;
+
+    // Clone the settings tab content
+    const tabPane = document.getElementById(`${settingsTab}-tab`);
+    if (!tabPane) {
+        Logger.error(`Settings tab not found: ${settingsTab}`);
+        return;
+    }
+
+    // Clear and populate modal body
+    modalBody.innerHTML = '';
+    const clonedContent = tabPane.cloneNode(true);
+    clonedContent.id = `modal-${settingsTab}-tab`;
+    clonedContent.classList.add('active');
+    modalBody.appendChild(clonedContent);
+
+    // Update tab selector in modal
+    updateModalTabSelector(settingsTab);
+}
+
+/**
+ * Update the tab selector in modal header
+ * @param {string} activeTab - Currently active tab
+ */
+function updateModalTabSelector(activeTab) {
+    const tabSelector = document.querySelector('#settingsModal .modal-tab-selector');
+    if (!tabSelector) return;
+
+    const tabs = [
+        { id: 'general', icon: '⚙️', label: 'Allgemein' },
+        { id: 'jobs', icon: '🖨️', label: 'Aufträge & G-Code' },
+        { id: 'library', icon: '🗄️', label: 'Bibliothek' },
+        { id: 'files', icon: '📁', label: 'Uploads & Downloads' },
+        { id: 'timelapse', icon: '🎬', label: 'Timelapse' },
+        { id: 'watch', icon: '👁️', label: 'Überwachung' },
+        { id: 'system', icon: '💻', label: 'System' }
+    ];
+
+    const options = tabs.map(tab => {
+        const selected = tab.id === activeTab ? 'selected' : '';
+        return `<option value="${tab.id}" ${selected}>${tab.icon} ${tab.label}</option>`;
+    }).join('');
+
+    tabSelector.innerHTML = options;
+}
+
+/**
+ * Switch tab in settings modal
+ * @param {string} tabId - Tab to switch to
+ */
+function switchModalSettingsTab(tabId) {
+    const modal = document.getElementById('settingsModal');
+    if (!modal) return;
+
+    modal.dataset.currentTab = tabId;
+    loadSettingsIntoModal(tabId);
+}
+
+/**
+ * Close settings modal
+ */
+function closeSettingsModal() {
+    closeModal('settingsModal');
+}
+
+/**
+ * Navigate back from settings page to source page
+ */
+function navigateBackFromSettings() {
+    const sourcePage = sessionStorage.getItem('settingsSourcePage');
+    const sourceHash = sessionStorage.getItem('settingsSourceHash');
+
+    // Clear stored values
+    sessionStorage.removeItem('settingsSourcePage');
+    sessionStorage.removeItem('settingsSourceHash');
+
+    if (sourceHash) {
+        window.location.hash = sourceHash;
+    } else if (sourcePage) {
+        // Fallback to page name if hash not stored
+        window.location.hash = `#${sourcePage.toLowerCase()}`;
+    } else {
+        // Default to dashboard
+        window.location.hash = '#dashboard';
+    }
+
+    // Hide breadcrumb
+    const breadcrumb = document.getElementById('settingsBreadcrumb');
+    if (breadcrumb) {
+        breadcrumb.style.display = 'none';
+    }
+}
+
+/**
+ * Show breadcrumb in settings page if navigating from another page
+ * Should be called when settings page loads
+ */
+function updateSettingsBreadcrumb() {
+    const sourcePage = sessionStorage.getItem('settingsSourcePage');
+    const breadcrumb = document.getElementById('settingsBreadcrumb');
+
+    if (!breadcrumb) return;
+
+    if (sourcePage) {
+        const backButton = breadcrumb.querySelector('.breadcrumb-back');
+        if (backButton) {
+            backButton.innerHTML = `← Zurück zu ${escapeHtml(sourcePage)}`;
+        }
+        breadcrumb.style.display = 'block';
+    } else {
+        breadcrumb.style.display = 'none';
+    }
+}
+
+/**
+ * Save settings from modal
+ */
+async function saveModalSettings() {
+    const modal = document.getElementById('settingsModal');
+    const currentTab = modal?.dataset.currentTab;
+
+    if (!currentTab) {
+        showToast('error', 'Fehler', 'Keine Einstellungen zum Speichern gefunden');
+        return;
+    }
+
+    try {
+        // Get form data from modal
+        const modalBody = document.querySelector('#settingsModal .settings-modal-body');
+        const forms = modalBody.querySelectorAll('form');
+
+        const settingsData = {};
+        forms.forEach(form => {
+            const formData = new FormData(form);
+            for (const [key, value] of formData.entries()) {
+                settingsData[key] = value;
+            }
+        });
+
+        // Save settings via API
+        const response = await fetch(`${CONFIG.API_BASE_URL}/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settingsData)
+        });
+
+        if (response.ok) {
+            showToast('success', 'Gespeichert', 'Einstellungen wurden erfolgreich gespeichert');
+
+            // Reload settings in main page if needed
+            if (window.settingsManager) {
+                await settingsManager.loadSettings();
+            }
+
+            // Close modal after brief delay
+            setTimeout(() => closeSettingsModal(), 500);
+        } else {
+            throw new Error('Failed to save settings');
+        }
+    } catch (error) {
+        Logger.error('Error saving settings:', error);
+        showToast('error', 'Fehler', 'Einstellungen konnten nicht gespeichert werden');
+    }
+}
+
+/**
  * Debounce function for search inputs
  */
 function debounce(func, wait) {
@@ -650,9 +886,9 @@ function getStatusConfig(type, status) {
         'job': CONFIG.JOB_STATUS,
         'file': CONFIG.FILE_STATUS
     };
-    
+
     return configs[type]?.[status] || {
-        label: status,
+        label: escapeHtml(status),  // Escape unknown status values for safety
         icon: '❓',
         class: 'status-unknown'
     };
@@ -667,7 +903,14 @@ function createStatusBadge(type, status) {
 }
 
 /**
- * Escape HTML to prevent XSS
+ * Security Utilities for XSS Prevention
+ */
+
+/**
+ * Escape HTML to prevent XSS attacks
+ * Use this before inserting user-generated content into HTML
+ * @param {string} unsafe - Unsafe string that may contain HTML
+ * @returns {string} - HTML-escaped string
  */
 function escapeHtml(unsafe) {
     if (typeof unsafe !== 'string') return unsafe;
@@ -678,6 +921,119 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+/**
+ * Sanitize HTML attributes to prevent XSS in attributes
+ * Use this for href, src, and other attribute values
+ * @param {string} unsafe - Unsafe attribute value
+ * @returns {string} - Sanitized attribute value
+ */
+function sanitizeAttribute(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+
+    // Remove javascript:, data:, and vbscript: protocols
+    const dangerous = /^(javascript|data|vbscript):/i;
+    if (dangerous.test(unsafe.trim())) {
+        return '';
+    }
+
+    return escapeHtml(unsafe);
+}
+
+/**
+ * Sanitize URL to prevent XSS via URL schemes
+ * @param {string} url - URL to sanitize
+ * @returns {string} - Sanitized URL or empty string if dangerous
+ */
+function sanitizeUrl(url) {
+    if (typeof url !== 'string') return '';
+
+    const trimmed = url.trim().toLowerCase();
+
+    // Allow only safe protocols
+    const safeProtocols = /^(https?|ftp|mailto):/i;
+    const dangerous = /^(javascript|data|vbscript):/i;
+
+    if (dangerous.test(trimmed)) {
+        return '';
+    }
+
+    // If it has a protocol, it must be safe
+    if (trimmed.includes(':') && !safeProtocols.test(trimmed)) {
+        return '';
+    }
+
+    return url;
+}
+
+/**
+ * Create a safe DOM element with escaped content
+ * Preferred over innerHTML for dynamic content
+ * @param {string} tag - HTML tag name
+ * @param {object} attributes - Element attributes (will be sanitized)
+ * @param {string|Node|Array} content - Element content (strings will be escaped)
+ * @returns {HTMLElement} - Safe DOM element
+ */
+function createSafeElement(tag, attributes = {}, content = null) {
+    const element = document.createElement(tag);
+
+    // Set attributes safely
+    for (const [key, value] of Object.entries(attributes)) {
+        if (key === 'href' || key === 'src') {
+            const safeUrl = sanitizeUrl(value);
+            if (safeUrl) {
+                element.setAttribute(key, safeUrl);
+            }
+        } else if (key === 'class' || key === 'className') {
+            element.className = value;
+        } else if (key === 'style') {
+            if (typeof value === 'object') {
+                Object.assign(element.style, value);
+            } else {
+                element.setAttribute('style', value);
+            }
+        } else {
+            element.setAttribute(key, sanitizeAttribute(value));
+        }
+    }
+
+    // Set content safely
+    if (content !== null) {
+        if (Array.isArray(content)) {
+            content.forEach(item => {
+                if (typeof item === 'string') {
+                    element.appendChild(document.createTextNode(item));
+                } else if (item instanceof Node) {
+                    element.appendChild(item);
+                }
+            });
+        } else if (typeof content === 'string') {
+            element.textContent = content; // Automatically escaped
+        } else if (content instanceof Node) {
+            element.appendChild(content);
+        }
+    }
+
+    return element;
+}
+
+/**
+ * Safely set innerHTML with HTML escaping
+ * Use only when you need to insert already-escaped HTML
+ * @param {HTMLElement} element - Target element
+ * @param {string} html - HTML string (should be pre-escaped or trusted)
+ * @param {boolean} escape - Whether to escape the HTML (default: true)
+ */
+function safeSetInnerHTML(element, html, escape = true) {
+    if (!element) return;
+
+    if (escape) {
+        element.textContent = html; // textContent auto-escapes
+    } else {
+        // Only use this with trusted, pre-escaped content
+        element.innerHTML = html;
+    }
 }
 
 /**
@@ -795,34 +1151,34 @@ function initSystemTime() {
  * Fetch and display application version in footer
  */
 async function loadAppVersion() {
-    console.log('[Version] Loading app version...');
+    Logger.debug('[Version] Loading app version...');
 
     const versionElement = document.getElementById('appVersion');
     if (!versionElement) {
-        console.error('[Version] ERROR: appVersion element not found in DOM');
-        console.log('[Version] Available elements with "version":',
+        Logger.error('[Version] ERROR: appVersion element not found in DOM');
+        Logger.debug('[Version] Available elements with "version":',
             Array.from(document.querySelectorAll('[id*="version"]')).map(el => el.id));
         return;
     }
 
-    console.log('[Version] Found appVersion element:', versionElement);
+    Logger.debug('[Version] Found appVersion element:', versionElement);
 
     try {
-        console.log('[Version] Fetching health endpoint...');
+        Logger.debug('[Version] Fetching health endpoint...');
         const response = await fetch(`${CONFIG.API_BASE_URL}/health`, {
             cache: 'no-cache' // Force fresh data
         });
 
-        console.log('[Version] Response status:', response.status, response.statusText);
+        Logger.debug('[Version] Response status:', response.status, response.statusText);
 
         if (response.ok) {
             const data = await response.json();
-            console.log('[Version] Health data received:', data);
+            Logger.debug('[Version] Health data received:', data);
 
             const version = data.version || 'unknown';
-            console.log('[Version] Setting version to:', version);
+            Logger.debug('[Version] Setting version to:', version);
             versionElement.textContent = version;
-            console.log('[Version] Version element content now:', versionElement.textContent);
+            Logger.debug('[Version] Version element content now:', versionElement.textContent);
 
             // Store version globally
             window.printernizer = window.printernizer || {};
@@ -831,11 +1187,11 @@ async function loadAppVersion() {
             // Check for updates
             checkForUpdates(version);
         } else {
-            console.error('[Version] Health endpoint returned non-OK status:', response.status);
+            Logger.error('[Version] Health endpoint returned non-OK status:', response.status);
             versionElement.textContent = 'error';
         }
     } catch (error) {
-        console.error('[Version] Failed to load version:', error);
+        Logger.error('[Version] Failed to load version:', error);
         versionElement.textContent = 'error';
     }
 }
@@ -844,11 +1200,11 @@ async function loadAppVersion() {
  * Check for available updates from GitHub
  */
 async function checkForUpdates(currentVersion) {
-    console.log('[Update Check] Checking for updates...');
+    Logger.debug('[Update Check] Checking for updates...');
 
     const updateStatusElement = document.getElementById('updateStatus');
     if (!updateStatusElement) {
-        console.error('[Update Check] updateStatus element not found');
+        Logger.error('[Update Check] updateStatus element not found');
         return;
     }
 
@@ -859,18 +1215,20 @@ async function checkForUpdates(currentVersion) {
 
         if (response.ok) {
             const data = await response.json();
-            console.log('[Update Check] Update check data:', data);
+            Logger.debug('[Update Check] Update check data:', data);
 
             if (data.check_failed) {
-                console.warn('[Update Check] Update check failed:', data.error_message);
+                Logger.warn('[Update Check] Update check failed:', data.error_message);
                 // Don't show anything if check failed
                 updateStatusElement.textContent = '';
                 return;
             }
 
             if (data.update_available) {
-                console.log('[Update Check] Update available:', data.latest_version);
-                updateStatusElement.innerHTML = `<a href="${data.release_url || 'https://github.com/schmacka/printernizer/releases/latest'}" target="_blank" title="Update available: v${data.latest_version}">Update available</a>`;
+                Logger.debug('[Update Check] Update available:', data.latest_version);
+                const releaseUrl = sanitizeUrl(data.release_url || 'https://github.com/schmacka/printernizer/releases/latest');
+                const version = escapeHtml(data.latest_version);
+                updateStatusElement.innerHTML = `<a href="${releaseUrl}" target="_blank" title="Update available: v${version}">Update available</a>`;
                 updateStatusElement.className = 'update-status outdated';
 
                 // Show a notification
@@ -888,15 +1246,15 @@ async function checkForUpdates(currentVersion) {
                     }
                 );
             } else {
-                console.log('[Update Check] Version is current');
+                Logger.debug('[Update Check] Version is current');
                 updateStatusElement.textContent = 'Up to date';
                 updateStatusElement.className = 'update-status current';
             }
         } else {
-            console.error('[Update Check] Update check endpoint returned non-OK status:', response.status);
+            Logger.error('[Update Check] Update check endpoint returned non-OK status:', response.status);
         }
     } catch (error) {
-        console.error('[Update Check] Failed to check for updates:', error);
+        Logger.error('[Update Check] Failed to check for updates:', error);
         // Silently fail - don't show error to user for update check
     }
 }
@@ -929,43 +1287,77 @@ function showNotification(message, type = 'info') {
 // Make showNotification available globally
 window.showNotification = showNotification;
 
-// Initialize system time and version when DOM loads
+// Initialize system time, version info, and modal helpers when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
     initSystemTime();
     loadAppVersion();
+    initializeJobModalControls();
 });
 
 /**
  * Job Modal Functions
  */
-function showCreateJobModal() {
-    const modal = document.getElementById('jobModal');
-    if (modal) {
-        modal.classList.add('active');
-        
-        // Show/hide business fields based on checkbox
-        const businessCheckbox = document.getElementById('isBusiness');
-        const customerNameGroup = document.getElementById('customerNameGroup');
-        const costCalculationGroup = document.getElementById('costCalculationGroup');
-        const materialCostInput = document.getElementById('materialCost');
-        
-        if (businessCheckbox) {
-            // Handler for business checkbox
-            businessCheckbox.addEventListener('change', function() {
-                const isChecked = this.checked;
-                if (customerNameGroup) customerNameGroup.style.display = isChecked ? 'block' : 'none';
-                if (costCalculationGroup) costCalculationGroup.style.display = isChecked ? 'block' : 'none';
-                if (isChecked) {
-                    calculateVAT();
-                }
-            });
-        }
-        
-        // VAT calculation on cost input
-        if (materialCostInput) {
-            materialCostInput.addEventListener('input', calculateVAT);
-        }
+let jobModalControlsInitialized = false;
+
+function initializeJobModalControls() {
+    if (jobModalControlsInitialized) {
+        return;
     }
+
+    if (!document.getElementById('jobModal')) {
+        return;
+    }
+
+    const businessCheckbox = document.getElementById('isBusiness');
+    const materialCostInput = document.getElementById('materialCost');
+
+    if (businessCheckbox) {
+        businessCheckbox.addEventListener('change', syncBusinessJobFields);
+    }
+
+    if (materialCostInput) {
+        materialCostInput.addEventListener('input', calculateVAT);
+    }
+
+    jobModalControlsInitialized = true;
+    syncBusinessJobFields();
+}
+
+function syncBusinessJobFields() {
+    const businessCheckbox = document.getElementById('isBusiness');
+    const customerNameGroup = document.getElementById('customerNameGroup');
+    const costCalculationGroup = document.getElementById('costCalculationGroup');
+    const isChecked = Boolean(businessCheckbox?.checked);
+
+    if (customerNameGroup) {
+        customerNameGroup.style.display = isChecked ? 'block' : 'none';
+    }
+
+    if (costCalculationGroup) {
+        costCalculationGroup.style.display = isChecked ? 'block' : 'none';
+    }
+
+    if (isChecked) {
+        calculateVAT();
+    } else {
+        resetVatCalculationDisplay();
+    }
+}
+
+function resetVatCalculationDisplay() {
+    const netPriceElement = document.getElementById('netPrice');
+    const vatAmountElement = document.getElementById('vatAmount');
+    const grossTotalElement = document.getElementById('grossTotal');
+
+    if (netPriceElement) netPriceElement.textContent = '€0.00';
+    if (vatAmountElement) vatAmountElement.textContent = '€0.00';
+    if (grossTotalElement) grossTotalElement.textContent = '€0.00';
+}
+
+function showCreateJobModal() {
+    initializeJobModalControls();
+    syncBusinessJobFields();
+    showModal('jobModal');
 }
 
 /**
@@ -994,48 +1386,23 @@ function calculateVAT() {
 
 function closeJobModal() {
     const modal = document.getElementById('jobModal');
-    if (modal) {
-        modal.classList.remove('active');
-        // Reset form
-        const form = document.getElementById('createJobForm');
-        if (form) {
-            form.reset();
-        }
-        // Hide business fields
-        const customerNameGroup = document.getElementById('customerNameGroup');
-        if (customerNameGroup) {
-            customerNameGroup.style.display = 'none';
-        }
+    if (!modal) {
+        return;
     }
-}
 
-/**
- * Material Modal Functions (Legacy/Jobs)
- */
-function showAddMaterialModal() {
-    const modal = document.getElementById('addMaterialModal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
+    closeModal('jobModal');
 
-function closeMaterialModal() {
-    const modal = document.getElementById('addMaterialModal');
-    if (modal) {
-        modal.classList.remove('active');
-        // Reset form
-        const form = document.getElementById('addMaterialForm');
-        if (form) {
-            form.reset();
-        }
+    const form = document.getElementById('createJobForm');
+    if (form) {
+        form.reset();
     }
+
+    syncBusinessJobFields();
 }
 
 // Make modal functions available globally
 window.showCreateJobModal = showCreateJobModal;
 window.closeJobModal = closeJobModal;
-window.showAddMaterialModal = showAddMaterialModal;
-window.closeMaterialModal = closeMaterialModal;
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
@@ -1047,6 +1414,6 @@ if (typeof module !== 'undefined' && module.exports) {
         debounce, throttle, copyToClipboard, downloadFile,
         getStatusConfig, createStatusBadge, escapeHtml, truncateText, generateId,
         Storage, URLParams,
-        showCreateJobModal, closeJobModal, showAddMaterialModal, closeMaterialModal
+        showCreateJobModal, closeJobModal
     };
 }

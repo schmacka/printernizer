@@ -570,8 +570,12 @@ async def get_library_file_metadata(
         import json
         try:
             material_reqs['material_types'] = json.loads(file_record['material_types'])
-        except:
+        except json.JSONDecodeError:
+            # Single value, not JSON array
             material_reqs['material_types'] = [file_record['material_types']]
+        except (TypeError, AttributeError) as e:
+            logger.warning(f"Invalid material_types format: {e}")
+            material_reqs['material_types'] = []
     if file_record.get('multi_material'):
         material_reqs['multi_material'] = bool(file_record['multi_material'])
     if material_reqs:
@@ -607,8 +611,12 @@ async def get_library_file_metadata(
         import json
         try:
             compatibility['compatible_printers'] = json.loads(file_record['compatible_printers'])
-        except:
+        except json.JSONDecodeError:
+            # Single value, not JSON array
             compatibility['compatible_printers'] = [file_record['compatible_printers']]
+        except (TypeError, AttributeError) as e:
+            logger.warning(f"Invalid compatible_printers format: {e}")
+            compatibility['compatible_printers'] = []
     if file_record.get('slicer_name'):
         compatibility['slicer_name'] = file_record['slicer_name']
     if file_record.get('slicer_version'):

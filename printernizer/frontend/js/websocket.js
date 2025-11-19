@@ -88,7 +88,7 @@ class WebSocketClient {
      * Handle successful connection
      */
     handleConnection() {
-        console.log('WebSocket connected');
+        Logger.debug('WebSocket connected');
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.updateConnectionStatus('connected');
@@ -107,7 +107,7 @@ class WebSocketClient {
      * Handle disconnection
      */
     handleDisconnection(event) {
-        console.log('WebSocket disconnected:', event?.code, event?.reason);
+        Logger.debug('WebSocket disconnected:', event?.code, event?.reason);
         this.isConnected = false;
         this.updateConnectionStatus('disconnected');
         
@@ -140,7 +140,7 @@ class WebSocketClient {
     handleMessage(event) {
         try {
             const message = JSON.parse(event.data);
-            console.log('WebSocket message received:', message.type, message);
+            Logger.debug('WebSocket message received:', message.type, message);
             
             // Handle heartbeat pong
             if (message.type === 'pong') {
@@ -166,7 +166,7 @@ class WebSocketClient {
             30000 // Max 30 seconds
         );
         
-        console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+        Logger.debug(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
         
         setTimeout(() => {
             this.reconnectAttempts++;
@@ -192,7 +192,7 @@ class WebSocketClient {
                 
                 // Set timeout for pong response
                 this.heartbeatTimeout = setTimeout(() => {
-                    console.warn('Heartbeat timeout - connection may be lost');
+                    Logger.warn('Heartbeat timeout - connection may be lost');
                     this.socket?.close();
                 }, 5000);
             }
@@ -371,7 +371,7 @@ class PrinternizerWebSocketHandler {
      * Handle printer status updates
      */
     handlePrinterStatusUpdate(data) {
-        console.log('Printer status update:', data);
+        Logger.debug('Printer status update:', data);
         
         // Update printer cards on dashboard
         const printerCard = document.querySelector(`[data-printer-id="${data.printer_id}"]`);
@@ -394,7 +394,7 @@ class PrinternizerWebSocketHandler {
      * Handle job updates
      */
     handleJobUpdate(data) {
-        console.log('Job update:', data);
+        Logger.debug('Job update:', data);
         
         // Update job lists
         if (window.currentPage === 'jobs' || window.currentPage === 'dashboard') {
@@ -424,7 +424,7 @@ class PrinternizerWebSocketHandler {
      * Handle auto-created job notification
      */
     handleAutoJobCreated(data) {
-        console.log('Auto-created job:', data);
+        Logger.debug('Auto-created job:', data);
 
         // Extract job details
         const jobName = data.job_name || data.filename || 'Unbenannter Auftrag';
@@ -487,14 +487,14 @@ class PrinternizerWebSocketHandler {
             deduplicateMode: 'ignore'
         });
 
-        console.log('First auto-job tip shown');
+        Logger.debug('First auto-job tip shown');
     }
 
     /**
      * Handle file updates
      */
     handleFileUpdate(data) {
-        console.log('File update:', data);
+        Logger.debug('File update:', data);
         
         // Update file lists
         if (window.currentPage === 'files') {
@@ -518,7 +518,7 @@ class PrinternizerWebSocketHandler {
      * Handle system alerts
      */
     handleSystemAlert(data) {
-        console.log('System alert:', data);
+        Logger.debug('System alert:', data);
         
         const alertType = data.level || 'info';
         showToast(alertType, data.title || 'System-Benachrichtigung', data.message);
@@ -725,7 +725,7 @@ class PrinternizerWebSocketHandler {
 
             if (layerInfo && jobData.layer_current && jobData.layer_total) {
                 layerInfo.innerHTML = `
-                    <span>Schicht: ${jobData.layer_current}/${jobData.layer_total}</span>
+                    <span>Schicht: ${escapeHtml(String(jobData.layer_current))}/${escapeHtml(String(jobData.layer_total))}</span>
                     <span>Verbleibend: ${formatDuration(jobData.estimated_remaining || 0)}</span>
                 `;
             }

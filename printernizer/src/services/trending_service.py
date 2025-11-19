@@ -15,6 +15,7 @@ import aiohttp
 import structlog
 from bs4 import BeautifulSoup
 
+from src.config.constants import PollingIntervals
 from src.database.database import Database
 from src.services.event_service import EventService
 
@@ -52,7 +53,7 @@ class TrendingService:
             "cache_misses": 0
         }
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize trending service and create tables."""
         try:
             await self._create_tables()
@@ -62,7 +63,7 @@ class TrendingService:
             logger.error(f"Failed to initialize trending service: {e}")
             raise
 
-    async def _create_tables(self):
+    async def _create_tables(self) -> None:
         """Create trending-related database tables."""
         async with self.db.connection() as conn:
             await conn.execute('''
@@ -184,7 +185,7 @@ class TrendingService:
                 raise
         return self.session
 
-    async def _close_session(self):
+    async def _close_session(self) -> None:
         """Close and recreate HTTP session for error recovery."""
         if self.session and not self.session.closed:
             try:
@@ -194,7 +195,7 @@ class TrendingService:
                 logger.warning(f"Error closing HTTP session: {e}")
         self.session = None
 
-    async def _start_refresh_task(self):
+    async def _start_refresh_task(self) -> None:
         """Start background task for periodic refresh."""
         if self._refresh_task is None:
             self._refresh_task = asyncio.create_task(self._refresh_loop())
@@ -214,7 +215,7 @@ class TrendingService:
                 break
             except Exception as e:
                 logger.error(f"Error in refresh loop: {e}")
-                await asyncio.sleep(60)  # Wait a minute before retrying
+                await asyncio.sleep(PollingIntervals.TRENDING_SERVICE_RETRY)  # Wait a minute before retrying
 
     async def _needs_refresh(self) -> bool:
         """Check if trending cache needs refresh."""
@@ -428,7 +429,7 @@ class TrendingService:
                         text=text, error=str(e))
             return 0
 
-    async def save_trending_items(self, items: List[Dict[str, Any]], platform: str):
+    async def save_trending_items(self, items: List[Dict[str, Any]], platform: str) -> None:
         """Save trending items to cache."""
         expires_at = datetime.now() + timedelta(hours=6)
 

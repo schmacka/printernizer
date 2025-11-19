@@ -17,7 +17,7 @@ class JobManager {
      * Initialize jobs management page
      */
     init() {
-        console.log('Initializing jobs management');
+        Logger.debug('Initializing jobs management');
         
         // Load jobs
         this.loadJobs();
@@ -89,7 +89,7 @@ class JobManager {
                 this.loadJobs();
             }
         } catch (error) {
-            console.error('Failed to create job:', error);
+            Logger.error('Failed to create job:', error);
             showToast('error', 'Fehler', `Job konnte nicht erstellt werden: ${error.message}`);
         }
     }
@@ -129,7 +129,7 @@ class JobManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to populate form dropdowns:', error);
+            Logger.error('Failed to populate form dropdowns:', error);
         }
     }
 
@@ -150,7 +150,7 @@ class JobManager {
         try {
             const jobsTable = document.getElementById('jobsTableBody');
             if (!jobsTable) {
-                console.error('Jobs table body not found');
+                Logger.error('Jobs table body not found');
                 return;
             }
             
@@ -190,10 +190,10 @@ class JobManager {
             this.currentPage = page;
             
         } catch (error) {
-            console.error('Failed to load jobs:', error);
+            Logger.error('Failed to load jobs:', error);
             const jobsTable = document.getElementById('jobsTableBody');
             if (jobsTable && this.currentPage === 1) {
-                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>Fehler beim Laden: ${error.message}</p></td></tr>`;
+                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>Fehler beim Laden: ${escapeHtml(error.message)}</p></td></tr>`;
             }
         }
     }
@@ -253,10 +253,10 @@ class JobManager {
         const actionsCell = document.createElement('td');
         actionsCell.innerHTML = `
             <div class="action-buttons">
-                ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(' + job.id + ')">⏸️</button>' : ''}
-                ${job.status === 'paused' ? '<button class="btn-icon" title="Fortsetzen" onclick="jobManager.resumeJob(' + job.id + ')">▶️</button>' : ''}
-                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="Abbrechen" onclick="jobManager.cancelJob(' + job.id + ')">⏹️</button>' : ''}
-                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(' + job.id + ')">ℹ️</button>
+                ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(\'' + sanitizeAttribute(job.id) + '\')">⏸️</button>' : ''}
+                ${job.status === 'paused' ? '<button class="btn-icon" title="Fortsetzen" onclick="jobManager.resumeJob(\'' + sanitizeAttribute(job.id) + '\')">▶️</button>' : ''}
+                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="Abbrechen" onclick="jobManager.cancelJob(\'' + sanitizeAttribute(job.id) + '\')">⏹️</button>' : ''}
+                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(\'' + sanitizeAttribute(job.id) + '\')">ℹ️</button>
             </div>
         `;
         row.appendChild(actionsCell);
@@ -395,7 +395,7 @@ class JobManager {
                 });
             }
         } catch (error) {
-            console.error('Failed to load printer options:', error);
+            Logger.error('Failed to load printer options:', error);
         }
     }
 
@@ -504,7 +504,7 @@ class JobManager {
                 });
             }
         } catch (error) {
-            console.error('Failed to refresh jobs:', error);
+            Logger.error('Failed to refresh jobs:', error);
         }
     }
 
@@ -545,7 +545,7 @@ class JobManager {
             content.innerHTML = this.renderJobDetailsContent(job);
             
         } catch (error) {
-            console.error('Failed to load job details:', error);
+            Logger.error('Failed to load job details:', error);
             const content = document.getElementById('jobDetailsContent');
             if (content) {
                 content.innerHTML = this.renderJobDetailsError(error);
@@ -977,7 +977,7 @@ class JobManager {
             this.loadJobs(this.currentPage);
             
         } catch (error) {
-            console.error('Failed to cancel job:', error);
+            Logger.error('Failed to cancel job:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Abbrechen des Auftrags';
             showToast('error', 'Fehler', message);
         }
@@ -995,7 +995,7 @@ class JobManager {
             this.showEditJobModal(job);
 
         } catch (error) {
-            console.error('Failed to load job for editing:', error);
+            Logger.error('Failed to load job for editing:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Auftrag-Daten';
             showToast('error', 'Fehler', message);
         }
@@ -1094,7 +1094,7 @@ class JobManager {
             this.loadJobs(this.currentPage);
 
         } catch (error) {
-            console.error('Failed to update job:', error);
+            Logger.error('Failed to update job:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Aktualisieren des Auftrags';
             showToast('error', 'Fehler', message);
         }

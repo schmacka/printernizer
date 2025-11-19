@@ -39,6 +39,22 @@ async def test_services():
     database = Database(temp_db.name)
     await database.initialize()
 
+    # Create test printers (required for foreign key constraints)
+    await database.create_printer({
+        'id': 'bambu_001',
+        'name': 'Bambu Test Printer',
+        'type': 'bambu_lab',
+        'ip_address': '192.168.1.100',
+        'status': 'online'
+    })
+    await database.create_printer({
+        'id': 'prusa_001',
+        'name': 'Prusa Test Printer',
+        'type': 'prusa_core',
+        'ip_address': '192.168.1.101',
+        'status': 'online'
+    })
+
     event_service = EventService()
     job_service = JobService(database, event_service)
 
@@ -126,8 +142,8 @@ class TestPrintStartAutoCreation:
         job = jobs[0]
         assert job['start_time'] is not None
 
-        # Check metadata
-        customer_info = json.loads(job['customer_info'])
+        # Check metadata (customer_info is already deserialized by job_service)
+        customer_info = job['customer_info']
         assert customer_info['auto_created'] is True
         assert customer_info['printer_start_time'] is not None
 
@@ -181,8 +197,8 @@ class TestStartupDetection:
         assert len(jobs) == 1
         assert jobs[0]['filename'] == "ongoing_print.3mf"
 
-        # Check startup flag
-        customer_info = json.loads(jobs[0]['customer_info'])
+        # Check startup flag (customer_info is already deserialized by job_service)
+        customer_info = jobs[0]['customer_info']
         assert customer_info['auto_created'] is True
         assert customer_info['discovered_on_startup'] is True
 
@@ -195,29 +211,45 @@ class TestDeduplicationScenarios:
         """Printing same file twice should create two separate jobs."""
         monitoring = test_services['monitoring_service']
         job_service = test_services['job_service']
+        database = test_services['database']
 
-        # First print
+        # First print (with start_time for reliable deduplication)
+        first_start_time = datetime.now() - timedelta(hours=1)
         status1 = PrinterStatusUpdate(
             printer_id="bambu_001",
             status=PrinterStatus.PRINTING,
             current_job="repeated_model.3mf",
             progress=50,
+            print_start_time=first_start_time,  # Explicit start time
             timestamp=datetime.now()
         )
         await monitoring._auto_create_job_if_needed(status1)
 
-        # Simulate print completion
-        await asyncio.sleep(0.1)
-        monitoring._print_discoveries.clear()  # Clear discovery tracking
+        # Get the first job and mark it as completed
+        jobs_first = await job_service.list_jobs(printer_id="bambu_001")
+        assert len(jobs_first) == 1
+        first_job_id = jobs_first[0]['id']
 
-        # Second print (5 minutes later)
+        # Mark first job as completed (simulate print finishing)
+        await database.update_job(first_job_id, {
+            'status': 'completed',
+            'end_time': datetime.now().isoformat()
+        })
+
+        # Clear discovery tracking
         await asyncio.sleep(0.1)
+        monitoring._print_discoveries.clear()
+
+        # Second print (next day - different DATE for UNIQUE constraint)
+        # The UNIQUE index uses DATE(start_time), so we need a different day
+        second_start_time = datetime.now() + timedelta(days=1)
         status2 = PrinterStatusUpdate(
             printer_id="bambu_001",
             status=PrinterStatus.PRINTING,
             current_job="repeated_model.3mf",
             progress=10,
-            timestamp=datetime.now() + timedelta(minutes=5)
+            print_start_time=second_start_time,  # Different day
+            timestamp=datetime.now() + timedelta(days=1)
         )
         await monitoring._auto_create_job_if_needed(status2)
 

@@ -59,11 +59,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
             # Content Security Policy
+            # Allow images from local network (printer cameras)
+            # Using http://*:* to allow HTTP images from any host (primarily for printer cameras)
             csp = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
                 "style-src 'self' 'unsafe-inline'; "
-                "img-src 'self' data: blob:; "
+                "img-src 'self' data: blob: http://*:*; "
                 "connect-src 'self' ws: wss:; "
                 "font-src 'self'"
             )

@@ -77,7 +77,7 @@ class PrinterFormHandler {
             }, 500));
         });
 
-        console.log('Printer form initialized with validation');
+        Logger.debug('Printer form initialized with validation');
     }
 
     /**
@@ -109,7 +109,7 @@ class PrinterFormHandler {
             }, 500));
         });
 
-        console.log('Edit printer form initialized with validation');
+        Logger.debug('Edit printer form initialized with validation');
     }
 
     /**
@@ -387,7 +387,7 @@ class PrinterFormHandler {
             }
 
         } catch (error) {
-            console.error('Failed to add printer:', error);
+            Logger.error('Failed to add printer:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : error.message;
             showToast('error', 'Fehler beim Hinzufügen', message);
         } finally {
@@ -597,7 +597,7 @@ class PrinterFormHandler {
             }
 
         } catch (error) {
-            console.error('Failed to update printer:', error);
+            Logger.error('Failed to update printer:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : error.message;
             showToast('error', 'Fehler beim Aktualisieren', message);
         } finally {

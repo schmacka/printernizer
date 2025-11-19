@@ -57,7 +57,7 @@ class EnhancedFileMetadata {
             return this.metadata;
 
         } catch (error) {
-            console.error('Failed to load enhanced metadata:', error);
+            Logger.error('Failed to load enhanced metadata:', error);
             this.error = error.message;
             return null;
         } finally {

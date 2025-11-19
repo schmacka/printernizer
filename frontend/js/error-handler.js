@@ -84,13 +84,24 @@ class ErrorHandler {
 
         // Log to console for development
         if (this.isDevelopment()) {
-            console.group(`🚨 ${errorInfo.category.toUpperCase()} ERROR`);
-            console.error('Message:', errorInfo.message);
-            console.error('Context:', errorInfo.context);
-            if (errorInfo.stack) {
-                console.error('Stack:', errorInfo.stack);
+            if (typeof Logger !== 'undefined') {
+                Logger.group(`🚨 ${errorInfo.category.toUpperCase()} ERROR`);
+                Logger.error('Message:', errorInfo.message);
+                Logger.error('Context:', errorInfo.context);
+                if (errorInfo.stack) {
+                    Logger.error('Stack:', errorInfo.stack);
+                }
+                Logger.groupEnd();
+            } else {
+                // Fallback if Logger not available yet
+                console.group(`🚨 ${errorInfo.category.toUpperCase()} ERROR`);
+                console.error('Message:', errorInfo.message);
+                console.error('Context:', errorInfo.context);
+                if (errorInfo.stack) {
+                    console.error('Stack:', errorInfo.stack);
+                }
+                console.groupEnd();
             }
-            console.groupEnd();
         }
 
         // Show user notification for critical errors
@@ -231,7 +242,7 @@ class ErrorHandler {
             <div style="font-weight: bold; margin-bottom: 4px;">
                 ${this.getSeverityIcon(errorInfo.severity)} ${errorInfo.category.toUpperCase()} ERROR
             </div>
-            <div style="font-size: 14px;">${errorInfo.userMessage}</div>
+            <div style="font-size: 14px;">${escapeHtml(errorInfo.userMessage)}</div>
             <div style="position: absolute; top: 8px; right: 8px; cursor: pointer; font-size: 18px;" onclick="this.parentElement.remove()">×</div>
         `;
 
@@ -326,7 +337,11 @@ class ErrorHandler {
             
             // Don't create infinite loop by calling handleError here
             if (this.isDevelopment()) {
-                console.warn('Error reporting failed:', error);
+                if (typeof Logger !== 'undefined') {
+                    Logger.warn('Error reporting failed:', error);
+                } else {
+                    console.warn('Error reporting failed:', error);
+                }
             }
         }
     }

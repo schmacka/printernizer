@@ -3,10 +3,25 @@
  * Handles page routing, navigation, and application initialization
  */
 
+const AVAILABLE_PAGES = [
+    'dashboard',
+    'printers',
+    'jobs',
+    'timelapses',
+    'files',
+    'library',
+    'materials',
+    'ideas',
+    'settings',
+    'debug'
+];
+
 // Main application class
 class PrinternizerApp {
     constructor() {
-        this.currentPage = 'dashboard';
+        this.availablePages = AVAILABLE_PAGES;
+        this.entryPath = window.__ENTRY_PATH__ || window.location.pathname;
+        this.currentPage = this.resolveInitialPage();
         this.pageManagers = {
             dashboard: typeof dashboard !== 'undefined' ? dashboard : null,
             printers: typeof printerManager !== 'undefined' ? printerManager : null,
@@ -25,7 +40,7 @@ class PrinternizerApp {
      * Initialize the application
      */
     init() {
-        console.log('Initializing Printernizer application');
+        Logger.debug('Initializing Printernizer application');
 
         // Apply navigation preferences
         if (window.navigationPreferencesManager) {
@@ -35,8 +50,13 @@ class PrinternizerApp {
         // Setup navigation
         this.setupNavigation();
 
-        // Initialize current page
-        this.showPage(this.currentPage);
+        // Initialize global drag and drop
+        if (window.globalDragDropManager) {
+            window.globalDragDropManager.init();
+        }
+
+        // Initialize current page without creating duplicate history entries
+        this.showPage(this.currentPage, false);
 
         // Setup global error handling
         this.setupErrorHandling();
@@ -44,7 +64,7 @@ class PrinternizerApp {
         // Check initial connection
         this.checkSystemHealth();
 
-        console.log('Printernizer application initialized');
+        Logger.debug('Printernizer application initialized');
     }
 
     /**
@@ -92,25 +112,27 @@ class PrinternizerApp {
 
         // Handle back/forward browser navigation
         window.addEventListener('popstate', (e) => {
-            const page = e.state?.page || 'dashboard';
+            const page = this.isValidPage(e.state?.page) ? e.state.page : this.resolveInitialPage();
             this.showPage(page, false);
         });
 
-        // Set initial browser state
-        const currentHash = window.location.hash.slice(1) || 'dashboard';
-        if (['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(currentHash)) {
-            this.currentPage = currentHash;
-        }
+        // Handle hash changes (for direct navigation and E2E tests)
+        window.addEventListener('hashchange', () => {
+            const newHash = window.location.hash.slice(1);
+            if (this.isValidPage(newHash) && newHash !== this.currentPage) {
+                this.showPage(newHash, false);
+            }
+        });
 
-        history.replaceState({ page: this.currentPage }, '', `#${this.currentPage}`);
+        this.updateHistoryState(this.currentPage, 'replace');
     }
 
     /**
      * Show specific page
      */
     showPage(pageName, updateHistory = true) {
-        if (!['dashboard', 'printers', 'jobs', 'timelapses', 'files', 'library', 'materials', 'ideas', 'settings', 'debug'].includes(pageName)) {
-            console.error('Invalid page name:', pageName);
+        if (!this.isValidPage(pageName)) {
+            Logger.error('Invalid page name:', pageName);
             return;
         }
         
@@ -131,11 +153,17 @@ class PrinternizerApp {
         });
         
         // Show selected page
-        const pageElement = document.getElementById(pageName);
+        // Try page-prefixed ID first (for E2E test compatibility), then fall back to pageName
+        let pageElement = document.getElementById(`page-${pageName}`);
+        if (!pageElement) {
+            pageElement = document.getElementById(pageName);
+        }
         const navElement = document.querySelector(`[data-page="${pageName}"]`);
         
         if (pageElement) {
             pageElement.classList.add('active');
+        } else {
+            Logger.error(`Could not find page element for: ${pageName}`);
         }
         
         if (navElement) {
@@ -148,7 +176,7 @@ class PrinternizerApp {
         
         // Update browser history
         if (updateHistory) {
-            history.pushState({ page: pageName }, '', `#${pageName}`);
+            this.updateHistoryState(pageName, 'push');
         }
         
         // Initialize new page manager
@@ -159,7 +187,7 @@ class PrinternizerApp {
                 newManager.init();
             }, 50);
         } else if (!newManager) {
-            console.warn(`Page manager for '${pageName}' not found or not loaded yet`);
+            Logger.warn(`Page manager for '${pageName}' not found or not loaded yet`);
             // Try to get manager from global scope
             const globalManagerName = pageName === 'settings' ? 'settingsManager' : 
                                     pageName === 'debug' ? 'debugManager' : null;
@@ -173,7 +201,7 @@ class PrinternizerApp {
             }
         }
         
-        console.log(`Navigated to page: ${pageName}`);
+        Logger.debug(`Navigated to page: ${pageName}`);
     }
 
     /**
@@ -182,13 +210,13 @@ class PrinternizerApp {
     setupErrorHandling() {
         // Handle uncaught errors
         window.addEventListener('error', (e) => {
-            console.error('Global error:', e.error);
+            Logger.error('Global error:', e.error);
             showToast('error', 'Anwendungsfehler', 'Ein unerwarteter Fehler ist aufgetreten');
         });
         
         // Handle unhandled promise rejections
         window.addEventListener('unhandledrejection', (e) => {
-            console.error('Unhandled promise rejection:', e.reason);
+            Logger.error('Unhandled promise rejection:', e.reason);
             showToast('error', 'Anwendungsfehler', 'Ein unerwarteter Fehler ist aufgetreten');
         });
     }
@@ -199,10 +227,10 @@ class PrinternizerApp {
     async checkSystemHealth() {
         try {
             const health = await api.getHealth();
-            console.log('System health check:', health);
+            Logger.debug('System health check:', health);
 
             if (health.status === 'healthy') {
-                console.log('System is healthy');
+                Logger.debug('System is healthy');
                 // Store backend status globally for other components
                 window.printernizer = window.printernizer || {};
                 window.printernizer.backendHealthy = true;
@@ -215,7 +243,7 @@ class PrinternizerApp {
                 });
             }
         } catch (error) {
-            console.error('Health check failed:', error);
+            Logger.error('Health check failed:', error);
             window.printernizer = window.printernizer || {};
             window.printernizer.backendHealthy = false;
             showToast('error', 'Verbindungsfehler', 'Backend-Server ist nicht erreichbar', CONFIG.TOAST_DURATION, {
@@ -233,6 +261,61 @@ class PrinternizerApp {
             document.body.classList.add('app-loading');
         } else {
             document.body.classList.remove('app-loading');
+        }
+    }
+
+    isValidPage(pageName) {
+        return typeof pageName === 'string' && this.availablePages.includes(pageName);
+    }
+
+    resolveInitialPage() {
+        const coercedInitial = typeof window.__INITIAL_PAGE__ === 'string'
+            ? window.__INITIAL_PAGE__.trim()
+            : null;
+        if (this.isValidPage(coercedInitial)) {
+            return coercedInitial;
+        }
+
+        const hashPage = window.location.hash.slice(1);
+        if (this.isValidPage(hashPage)) {
+            return hashPage;
+        }
+
+        const pathPage = this.getPageFromPath(window.location.pathname);
+        if (this.isValidPage(pathPage)) {
+            return pathPage;
+        }
+
+        return 'dashboard';
+    }
+
+    getPageFromPath(pathname = '') {
+        if (!pathname) {
+            return null;
+        }
+        const segments = pathname.split('/').filter(Boolean);
+        if (!segments.length) {
+            return null;
+        }
+        const lastSegment = segments[segments.length - 1];
+        if (!lastSegment || lastSegment === 'index.html') {
+            return null;
+        }
+        const cleanSegment = lastSegment.endsWith('.html')
+            ? lastSegment.replace('.html', '')
+            : lastSegment;
+        return cleanSegment;
+    }
+
+    updateHistoryState(page, mode = 'push') {
+        const basePath = (this.entryPath || window.location.pathname || '/').split('#')[0] || '/';
+        const url = `${basePath}#${page}`;
+        const state = { page };
+
+        if (mode === 'replace') {
+            history.replaceState(state, '', url);
+        } else {
+            history.pushState(state, '', url);
         }
     }
 }
@@ -328,7 +411,7 @@ function setupKeyboardShortcuts() {
  * Application initialization
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing application...');
+    Logger.debug('DOM loaded, initializing application...');
 
     // Create global app instance
     window.app = new PrinternizerApp();
@@ -341,11 +424,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load version after app initialization (with delay to ensure DOM is ready)
     setTimeout(() => {
-        console.log('[Main] Loading app version after initialization');
+        Logger.debug('[Main] Loading app version after initialization');
         if (typeof loadAppVersion === 'function') {
             loadAppVersion();
         } else {
-            console.error('[Main] loadAppVersion function not found');
+            Logger.error('[Main] loadAppVersion function not found');
         }
     }, 500);
 
@@ -364,10 +447,10 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
         // Page became hidden - pause refresh intervals
-        console.log('Page hidden, pausing refresh intervals');
+        Logger.debug('Page hidden, pausing refresh intervals');
     } else {
         // Page became visible - resume refresh intervals
-        console.log('Page visible, resuming refresh intervals');
+        Logger.debug('Page visible, resuming refresh intervals');
         
         // Refresh current page if it's been a while
         const currentManager = app.pageManagers[app.currentPage];
@@ -472,7 +555,7 @@ function showFullThumbnail(fileId, filename) {
                 <button class="thumbnail-modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
             </div>
             <div class="thumbnail-modal-body">
-                <img src="${api.baseURL}/files/${fileId}/thumbnail"
+                <img src="${api.baseURL}/files/${sanitizeAttribute(fileId)}/thumbnail"
                      alt="Full size thumbnail"
                      class="full-thumbnail-image"
                      onerror="this.nextElementSibling.style.display='block'; this.style.display='none'">
@@ -503,8 +586,8 @@ function showFullThumbnail(fileId, filename) {
 }
 
 // Export for debugging purposes
-console.log('Printernizer application ready');
-console.log('Available global objects:', {
+Logger.debug('Printernizer application ready');
+Logger.debug('Available global objects:', {
     app: window.app,
     api: window.api || api,
     wsClient: window.wsClient || wsClient,

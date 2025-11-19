@@ -29,7 +29,7 @@ class LibraryManager {
      * Initialize library manager
      */
     async initialize() {
-        console.log('Initializing Library Manager');
+        Logger.debug('Initializing Library Manager');
         this.setupEventListeners();
         await this.loadStatistics();
         await this.loadFiles();
@@ -156,7 +156,7 @@ class LibraryManager {
             document.getElementById('statAnalyzed').textContent = stats.files_analyzed || 0;
 
         } catch (error) {
-            console.error('Failed to load statistics:', error);
+            Logger.error('Failed to load statistics:', error);
             this.showError('Fehler beim Laden der Statistiken');
         }
     }
@@ -193,7 +193,7 @@ class LibraryManager {
             this.renderPagination(data.pagination);
 
         } catch (error) {
-            console.error('Failed to load files:', error);
+            Logger.error('Failed to load files:', error);
             this.showError('Fehler beim Laden der Dateien');
         } finally {
             this.isLoading = false;
@@ -240,17 +240,17 @@ class LibraryManager {
         const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
         return `
-            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${file.checksum}">
+            <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${sanitizeAttribute(file.checksum)}">
                 <div class="file-card-thumbnail">
                     ${thumbnailUrl
-                        ? `<img src="${thumbnailUrl}" alt="${file.filename}" loading="lazy">`
+                        ? `<img src="${sanitizeUrl(thumbnailUrl)}" alt="${sanitizeAttribute(file.filename)}" loading="lazy">`
                         : `<div class="thumbnail-placeholder">${this.getFileTypeIcon(file.file_type)}</div>`
                     }
                     ${statusBadge}
                     ${duplicateBadge}
                 </div>
                 <div class="file-card-info">
-                    <div class="file-card-name" title="${file.filename}">${file.filename}</div>
+                    <div class="file-card-name" title="${sanitizeAttribute(file.filename)}">${escapeHtml(file.filename)}</div>
                     <div class="file-card-meta">
                         ${sourceIcon}
                         <span class="file-size">${this.formatFileSize(file.file_size)}</span>
@@ -294,7 +294,7 @@ class LibraryManager {
             // Parse JSON string
             return JSON.parse(sources);
         } catch (e) {
-            console.warn('Failed to parse sources:', e);
+            Logger.warn('Failed to parse sources:', e);
             return [];
         }
     }
@@ -485,7 +485,7 @@ class LibraryManager {
             this.setupFileDetailActions(fullFile);
 
         } catch (error) {
-            console.error('Failed to load file details:', error);
+            Logger.error('Failed to load file details:', error);
             content.innerHTML = '<div class="error">Fehler beim Laden der Details</div>';
         }
     }
@@ -734,7 +734,7 @@ class LibraryManager {
      */
     async reprocessFile(checksum) {
         try {
-            console.log('[reprocessFile] Starting re-analysis', checksum.substring(0, 16));
+            Logger.debug('[reprocessFile] Starting re-analysis', checksum.substring(0, 16));
 
             // Show loading state on button
             const btn = document.getElementById('reprocessFileBtn');
@@ -753,7 +753,7 @@ class LibraryManager {
             }
 
             const result = await response.json();
-            console.log('[reprocessFile] Reprocess triggered', result);
+            Logger.debug('[reprocessFile] Reprocess triggered', result);
 
             showToast('success', 'Analyse gestartet', 'Datei wird neu analysiert. Dies kann einige Sekunden dauern.');
 
@@ -761,7 +761,7 @@ class LibraryManager {
             await new Promise(resolve => setTimeout(resolve, 3000));
 
             // Reload file details to show updated metadata
-            console.log('[reprocessFile] Reloading file details');
+            Logger.debug('[reprocessFile] Reloading file details');
             await this.showFileDetail({ checksum });
 
             // Reset button state
@@ -773,7 +773,7 @@ class LibraryManager {
             showToast('success', 'Analyse abgeschlossen', 'Metadaten wurden aktualisiert');
 
         } catch (error) {
-            console.error('[reprocessFile] Failed to reprocess file:', error);
+            Logger.error('[reprocessFile] Failed to reprocess file:', error);
 
             // Reset button state
             const btn = document.getElementById('reprocessFileBtn');
@@ -791,7 +791,7 @@ class LibraryManager {
      */
     async bulkReanalyze() {
         try {
-            console.log('[bulkReanalyze] Starting bulk re-analysis');
+            Logger.debug('[bulkReanalyze] Starting bulk re-analysis');
 
             // Ask for confirmation
             const confirmed = confirm(
@@ -801,7 +801,7 @@ class LibraryManager {
             );
 
             if (!confirmed) {
-                console.log('[bulkReanalyze] User cancelled');
+                Logger.debug('[bulkReanalyze] User cancelled');
                 return;
             }
 
@@ -825,7 +825,7 @@ class LibraryManager {
             }
 
             const result = await response.json();
-            console.log('[bulkReanalyze] Result:', result);
+            Logger.debug('[bulkReanalyze] Result:', result);
 
             // Reset button
             if (btn) {
@@ -850,7 +850,7 @@ class LibraryManager {
             );
 
         } catch (error) {
-            console.error('[bulkReanalyze] Failed:', error);
+            Logger.error('[bulkReanalyze] Failed:', error);
 
             // Reset button
             const btn = document.getElementById('bulkReanalyzeBtn');
@@ -880,7 +880,7 @@ class LibraryManager {
             await this.loadStatistics();
 
         } catch (error) {
-            console.error('Failed to delete file:', error);
+            Logger.error('Failed to delete file:', error);
             this.showError('Fehler beim Löschen der Datei');
         }
     }
@@ -929,7 +929,7 @@ class LibraryManager {
      * Show error message
      */
     showError(message) {
-        console.error(message);
+        Logger.error(message);
         // Could integrate with notification system
         alert(message);
     }
@@ -938,7 +938,7 @@ class LibraryManager {
      * Show success message
      */
     showSuccess(message) {
-        console.log(message);
+        Logger.debug(message);
         // Could integrate with notification system
         alert(message);
     }
@@ -1030,7 +1030,7 @@ class LibraryManager {
     setupDragAndDrop() {
         const libraryGrid = document.getElementById('libraryFilesGrid');
         if (!libraryGrid) {
-            console.warn('Library grid not found, drag-and-drop disabled');
+            Logger.warn('Library grid not found, drag-and-drop disabled');
             return;
         }
 
@@ -1073,14 +1073,14 @@ class LibraryManager {
             }
         });
 
-        console.log('Drag-and-drop upload enabled for library grid');
+        Logger.debug('Drag-and-drop upload enabled for library grid');
     }
 
     /**
      * Handle dropped files
      */
     async handleFileDrop(files) {
-        console.log('Files dropped:', files.length);
+        Logger.debug('Files dropped:', files.length);
 
         // Validate files
         const validFiles = [];
@@ -1100,13 +1100,15 @@ class LibraryManager {
 
         // Show errors for invalid files
         if (invalidFiles.length > 0) {
-            const errorMsg = `Invalid file types:\n${invalidFiles.map(f => `- ${f.name} (${f.error})`).join('\n')}`;
+            const errorMsg = `Invalid file types:\n${invalidFiles.map(f => `- ${f.name}`).join('\n')}\n\nSupported: ${this.allowedExtensions.join(', ')}`;
             this.showToast(errorMsg, 'error');
         }
 
         // Upload valid files
         if (validFiles.length > 0) {
             await this.uploadFiles(validFiles);
+        } else if (invalidFiles.length === 0 && files.length === 0) {
+            this.showToast('No files selected', 'info');
         }
     }
 
@@ -1123,7 +1125,7 @@ class LibraryManager {
      * Upload files to the server
      */
     async uploadFiles(files) {
-        console.log('Uploading files:', files.length);
+        Logger.debug('Uploading files:', files.length);
 
         // Show upload overlay
         this.showUploadOverlay(files);
@@ -1150,7 +1152,7 @@ class LibraryManager {
             }
 
             const result = await response.json();
-            console.log('Upload result:', result);
+            Logger.debug('Upload result:', result);
 
             // Show success message
             if (result.success_count > 0) {
@@ -1172,7 +1174,7 @@ class LibraryManager {
             await this.loadStatistics();
 
         } catch (error) {
-            console.error('Upload error:', error);
+            Logger.error('Upload error:', error);
             this.showToast(`Upload failed: ${error.message}`, 'error');
         } finally {
             this.hideUploadOverlay();
@@ -1238,7 +1240,7 @@ class LibraryManager {
         }
 
         // Fallback to simple alert
-        console.log(`[${type.toUpperCase()}] ${message}`);
+        Logger.debug(`[${type.toUpperCase()}] ${message}`);
 
         // Create simple toast
         const toast = document.createElement('div');
@@ -1272,38 +1274,53 @@ const libraryManager = new LibraryManager();
 
 // Export init function for page manager
 libraryManager.init = function() {
-    console.log('Library page initialized');
+    Logger.debug('Library page initialized');
     this.initialize();
 };
 
 // Global function to trigger file upload picker
 // Explicitly attach to window object to ensure it's available globally
 window.triggerFileUpload = function() {
+    Logger.debug('triggerFileUpload called');
     const fileInput = document.getElementById('libraryFileInput');
     if (fileInput) {
-        fileInput.click();
+        Logger.debug('File input found, triggering click');
+        // iOS Safari requires the click to be triggered directly from user interaction
+        // Use try-catch to handle any security restrictions
+        try {
+            fileInput.click();
+        } catch (error) {
+            Logger.error('Error triggering file input click:', error);
+            alert('Unable to open file picker. Please try again.');
+        }
     } else {
-        console.error('File input not found');
+        Logger.error('File input not found');
+        alert('File input not found. Please refresh the page.');
     }
 };
 
 // Global function to handle manual file upload
 // Explicitly attach to window object to ensure it's available globally
 window.handleManualFileUpload = async function(event) {
+    Logger.debug('handleManualFileUpload called', event);
     const files = Array.from(event.target.files);
+    Logger.debug('Files selected:', files.length, files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+
     if (files.length > 0) {
-        console.log('Files selected for upload:', files.length);
+        Logger.debug('Processing', files.length, 'file(s) for upload');
         await libraryManager.handleFileDrop(files);
 
         // Reset the file input so the same files can be selected again if needed
         event.target.value = '';
+    } else {
+        Logger.warn('No files selected from file input');
     }
 };
 
 // Global function to refresh the library
 // Explicitly attach to window object to ensure it's available globally
 window.refreshLibrary = async function() {
-    console.log('Refreshing library...');
+    Logger.debug('Refreshing library...');
     await libraryManager.loadFiles();
 };
 
