@@ -402,7 +402,34 @@ class Database:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
+
+            # Usage Statistics - Privacy-first usage tracking
+            # Stores individual usage events locally for aggregation
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS usage_events (
+                    id TEXT PRIMARY KEY,
+                    event_type TEXT NOT NULL,
+                    timestamp DATETIME NOT NULL,
+                    metadata TEXT,
+                    submitted BOOLEAN DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Usage settings for opt-in status and installation tracking
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS usage_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Create indexes for usage statistics tables
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_events_type ON usage_events(event_type)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_events_timestamp ON usage_events(timestamp)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_events_submitted ON usage_events(submitted)")
+
             # Create indexes for performance
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_printer_id ON jobs(printer_id)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")

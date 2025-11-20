@@ -3931,3 +3931,99 @@ label .required {
     font-size: 0.8125rem;
 }
 
+
+/* Usage Statistics Components */
+.privacy-list {
+    list-style-position: inside;
+    padding-left: 0;
+    margin: 0;
+}
+
+.privacy-list li {
+    margin-bottom: 0.5rem;
+    padding-left: 0.5rem;
+}
+
+.privacy-list strong {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.stat-card {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.stats-section {
+    margin-top: 1.5rem;
+}
+
+.stats-section h4 {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.stats-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.stats-actions button {
+    flex: 0 1 auto;
+}
+
+.privacy-intro {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary);
+}
+
+.privacy-intro p {
+    margin: 0;
+    line-height: 1.6;
+}
+
+.privacy-info h4 {
+    color: var(--text-primary);
+}
+
+.privacy-info ul {
+    line-height: 1.8;
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .stat-card {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .privacy-intro {
+    background: var(--card-bg);
+    border-left-color: var(--primary);
+}
+
+[data-theme="dark"] .stat-label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .stat-value {
+    color: var(--text-primary);
+}

@@ -66,7 +66,8 @@ class FileService:
         file_watcher: Optional[FileWatcherService] = None,
         printer_service=None,
         config_service=None,
-        library_service=None
+        library_service=None,
+        usage_stats_service=None
     ):
         """
         Initialize file service and its specialized sub-services.
@@ -78,6 +79,7 @@ class FileService:
             printer_service: Optional printer service (can be set later)
             config_service: Optional config service (can be set later)
             library_service: Optional library service (can be set later)
+            usage_stats_service: Optional usage statistics service for telemetry
         """
         self.database = database
         self.event_service = event_service
@@ -85,6 +87,7 @@ class FileService:
         self.printer_service = printer_service
         self.config_service = config_service
         self.library_service = library_service
+        self.usage_stats_service = usage_stats_service
 
         # Initialize specialized services
         self.discovery = FileDiscoveryService(
@@ -98,7 +101,8 @@ class FileService:
             event_service=event_service,
             printer_service=printer_service,
             config_service=config_service,
-            library_service=library_service
+            library_service=library_service,
+            usage_stats_service=usage_stats_service
         )
 
         self.thumbnail = FileThumbnailService(
@@ -117,7 +121,8 @@ class FileService:
             event_service=event_service,
             thumbnail_service=self.thumbnail,
             metadata_service=self.metadata,
-            library_service=library_service
+            library_service=library_service,
+            usage_stats_service=usage_stats_service
         )
 
         # Settings access
