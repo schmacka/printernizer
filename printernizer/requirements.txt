@@ -15,7 +15,7 @@ aiosqlite==0.19.0
 
 # HTTP Client for Prusa API
 aiohttp>=3.10.0
-requests==2.31.0
+requests==2.32.4
 
 # MQTT Client for Bambu Lab Integration
 paho-mqtt>=2.0.0
