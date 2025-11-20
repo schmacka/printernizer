@@ -15,7 +15,7 @@ aiosqlite==0.19.0
 
 # HTTP Client for Prusa API
 aiohttp>=3.10.0
-requests==2.31.0
+requests==2.32.4
 
 # MQTT Client for Bambu Lab Integration
 paho-mqtt>=2.0.0
@@ -60,7 +60,7 @@ httpx==0.25.2
 pytest-mock==3.12.0
 
 # Production Server
-gunicorn==21.2.0
+gunicorn==22.0.0
 
 # File Processing and Validation
 # magic==0.4.27
@@ -73,7 +73,7 @@ matplotlib>=3.8.2
 scipy>=1.11.0
 
 # Security Headers and Middleware
-python-multipart==0.0.6
+python-multipart==0.0.18
 # cryptography>=42.0.0  # Temporarily disabled for Python 3.13 compatibility
 
 # URL Parsing and Web Content Extraction (for Ideas feature)

@@ -1,3 +1,14 @@
+## [2.7.3] - 2025-11-20
+
+- feat: Integrate usage statistics with core services
+- feat: Add frontend UI for usage statistics (Privacy & Settings)
+- feat: Add API endpoints and integrate usage statistics service
+- feat: Implement usage statistics service layer
+- feat: Implement Phase 1 usage statistics foundation (database, models, repository)
+- docs: Add comprehensive usage statistics planning documentation
+- docs: Complete rewrite of README.md
+- fix: Update screenshot paths in README.md
+
 ## [2.7.2] - 2025-11-19
 
 - fix: Add missing Dict and Any imports in files router
