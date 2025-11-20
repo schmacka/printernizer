@@ -51,7 +51,8 @@ class PrinterConnectionService:
         event_service: EventService,
         config_service: ConfigService,
         file_service=None,
-        monitoring_service=None
+        monitoring_service=None,
+        usage_stats_service=None
     ):
         """
         Initialize printer connection service.
@@ -62,6 +63,7 @@ class PrinterConnectionService:
             config_service: Config service for loading printer configurations
             file_service: Optional file service (injected to printer instances)
             monitoring_service: Optional monitoring service for auto-job creation on startup
+            usage_stats_service: Optional usage statistics service for telemetry
         """
         self.database = database
         self.printer_repo = PrinterRepository(database._connection)
@@ -69,6 +71,7 @@ class PrinterConnectionService:
         self.config_service = config_service
         self.file_service = file_service
         self.monitoring_service = monitoring_service
+        self.usage_stats_service = usage_stats_service
 
         # Printer instance management
         self.printer_instances: Dict[str, BasePrinter] = {}
@@ -238,6 +241,13 @@ class PrinterConnectionService:
                 })
 
                 logger.info("Printer connected successfully", printer_id=printer_id)
+
+                # Record usage statistics (privacy-safe: only printer type, no names or IDs)
+                if self.usage_stats_service:
+                    await self.usage_stats_service.record_event("printer_connected", {
+                        "printer_type": instance.printer_type.value if hasattr(instance, "printer_type") else "unknown"
+                    })
+
             return result
         except Exception as e:
             logger.error("Failed to connect printer",
@@ -278,6 +288,13 @@ class PrinterConnectionService:
             })
 
             logger.info("Printer disconnected successfully", printer_id=printer_id)
+
+            # Record usage statistics (privacy-safe: only printer type, no names or IDs)
+            if self.usage_stats_service:
+                await self.usage_stats_service.record_event("printer_disconnected", {
+                    "printer_type": instance.printer_type.value if hasattr(instance, "printer_type") else "unknown"
+                })
+
             return True
         except Exception as e:
             logger.error("Failed to disconnect printer",

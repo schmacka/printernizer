@@ -50,6 +50,7 @@ from src.api.routers.library import router as library_router
 from src.api.routers.materials import router as materials_router
 from src.api.routers.timelapses import router as timelapses_router
 from src.api.routers.search import router as search_router
+from src.api.routers.usage_statistics import router as usage_statistics_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -57,6 +58,7 @@ from src.services.printer_service import PrinterService
 from src.services.job_service import JobService
 from src.services.file_service import FileService
 from src.services.file_watcher_service import FileWatcherService
+from src.services.usage_statistics_service import UsageStatisticsService
 from src.services.migration_service import MigrationService
 from src.services.monitoring_service import monitoring_service
 from src.services.trending_service import TrendingService
@@ -171,8 +173,22 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
-    job_service = JobService(database, event_service)
-    printer_service = PrinterService(database, event_service, config_service)
+
+    # Initialize usage statistics service early (privacy-first telemetry)
+    # This needs to be available for other services like JobService
+    logger.info("Initializing usage statistics service...")
+    usage_statistics_service = UsageStatisticsService(database)
+    await usage_statistics_service.initialize()
+    # Record app start event
+    await usage_statistics_service.record_event("app_start", {
+        "app_version": APP_VERSION,
+        "python_version": platform.python_version(),
+        "platform": platform.system().lower()
+    })
+    logger.info("[OK] Usage statistics service initialized")
+
+    job_service = JobService(database, event_service, usage_statistics_service)
+    printer_service = PrinterService(database, event_service, config_service, usage_stats_service=usage_statistics_service)
 
     # Initialize camera snapshot service
     from src.services.camera_snapshot_service import CameraSnapshotService
@@ -234,7 +250,7 @@ async def lifespan(app: FastAPI):
     # Initialize file service (depends on file_watcher)
     timer.start("File service initialization")
     logger.info("Initializing file service...")
-    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
+    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service, usage_statistics_service)
     await file_service.initialize()  # Initialize event subscriptions
     timer.end("File service initialization")
     logger.info("[OK] File service initialized")
@@ -266,6 +282,7 @@ async def lifespan(app: FastAPI):
     app.state.library_service = library_service
     app.state.material_service = material_service
     app.state.timelapse_service = timelapse_service
+    app.state.usage_statistics_service = usage_statistics_service
     app.state.camera_snapshot_service = camera_snapshot_service
 
     # Initialize and start background services in parallel
@@ -598,6 +615,7 @@ def create_application() -> FastAPI:
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
+    app.include_router(usage_statistics_router, prefix="/api/v1/usage-stats", tags=["Usage Statistics"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     # Temporary debug endpoints (remove before production if not needed)
     app.include_router(debug_router, prefix="/api/v1/debug", tags=["Debug"])

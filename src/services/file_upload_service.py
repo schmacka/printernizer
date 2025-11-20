@@ -55,7 +55,8 @@ class FileUploadService:
         event_service: EventService,
         thumbnail_service=None,
         metadata_service=None,
-        library_service=None
+        library_service=None,
+        usage_stats_service=None
     ):
         """
         Initialize file upload service.
@@ -66,6 +67,7 @@ class FileUploadService:
             thumbnail_service: Optional thumbnail service for extracting thumbnails
             metadata_service: Optional metadata service for extracting metadata
             library_service: Optional library service for adding uploaded files
+            usage_stats_service: Optional usage statistics service for telemetry
         """
         self.database = database
         self.file_repo = FileRepository(database._connection)
@@ -73,6 +75,7 @@ class FileUploadService:
         self.thumbnail_service = thumbnail_service
         self.metadata_service = metadata_service
         self.library_service = library_service
+        self.usage_stats_service = usage_stats_service
         self.settings = get_settings()
 
     def validate_file(self, filename: str, file_size: int) -> Dict[str, Any]:
@@ -480,6 +483,13 @@ class FileUploadService:
                     file_id=file_id,
                     filename=filename
                 )
+
+                # Record usage statistics (privacy-safe: no filenames or personal data)
+                if self.usage_stats_service:
+                    await self.usage_stats_service.record_event("file_uploaded", {
+                        "file_size_mb": round(save_result["file_size"] / (1024 * 1024), 2),
+                        "is_business": is_business
+                    })
 
             except Exception as e:
                 logger.error(
