@@ -1,3 +1,13 @@
+## [2.7.2] - 2025-11-19
+
+- fix: Add missing Dict and Any imports in files router
+- fix: Prevent GitHub Actions sync workflow failure when no changes staged
+- docs: Complete development branch restoration with instructions
+- docs: Restore development branch - Add restoration log
+- Initial plan
+- fix: Skip flaky WebSocket reconnection test to unblock CI
+- docs: Archive technical debt documentation after 100% completion
+
 ## [2.7.1] - 2025-11-19
 
 - fix: Implement printer capabilities check in compatibility endpoint
