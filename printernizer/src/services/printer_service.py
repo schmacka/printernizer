@@ -59,7 +59,8 @@ class PrinterService:
         database: Database,
         event_service: EventService,
         config_service: ConfigService,
-        file_service=None
+        file_service=None,
+        usage_stats_service=None
     ):
         """
         Initialize printer service and its specialized sub-services.
@@ -69,11 +70,13 @@ class PrinterService:
             event_service: Event service for event-driven communication
             config_service: Config service for printer configurations
             file_service: Optional file service (can be set later)
+            usage_stats_service: Optional usage statistics service for telemetry
         """
         self.database = database
         self.event_service = event_service
         self.config_service = config_service
         self.file_service = file_service
+        self.usage_stats_service = usage_stats_service
 
         # Initialize specialized services
         # Create monitoring service first (no connection service yet to avoid circular ref)
@@ -90,7 +93,8 @@ class PrinterService:
             event_service=event_service,
             config_service=config_service,
             file_service=file_service,
-            monitoring_service=self.monitoring
+            monitoring_service=self.monitoring,
+            usage_stats_service=usage_stats_service
         )
 
         # Set connection service reference in monitoring service

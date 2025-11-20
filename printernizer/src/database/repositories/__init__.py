@@ -12,6 +12,7 @@ from .idea_repository import IdeaRepository
 from .library_repository import LibraryRepository
 from .snapshot_repository import SnapshotRepository
 from .trending_repository import TrendingRepository
+from .usage_statistics_repository import UsageStatisticsRepository
 
 __all__ = [
     'BaseRepository',
@@ -22,4 +23,5 @@ __all__ = [
     'LibraryRepository',
     'SnapshotRepository',
     'TrendingRepository',
+    'UsageStatisticsRepository',
 ]

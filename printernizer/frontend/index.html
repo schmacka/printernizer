@@ -1063,6 +1063,10 @@
                         <span class="tab-icon">💻</span>
                         <span class="tab-label">System</span>
                     </button>
+                    <button class="settings-tab" data-tab="privacy" onclick="settingsManager.switchTab('privacy')">
+                        <span class="tab-icon">🔒</span>
+                        <span class="tab-label">Datenschutz</span>
+                    </button>
                 </div>
 
                 <div class="settings-tab-content">
@@ -1591,6 +1595,107 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Privacy & Usage Statistics Tab -->
+                    <div class="tab-pane" id="privacy-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🔒 Datenschutz & Nutzungsstatistiken</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="privacy-intro">
+                                    <p>
+                                        Helfen Sie uns, Printernizer zu verbessern, indem Sie anonyme Nutzungsstatistiken teilen.
+                                        Ihre Privatsphäre hat höchste Priorität – alle Daten sind <strong>vollständig anonym</strong>
+                                        und enthalten keine persönlichen Informationen.
+                                    </p>
+                                </div>
+
+                                <div class="form-group" style="margin-top: 20px;">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="usageStatsOptIn" onchange="usageStatistics.toggleOptIn()">
+                                        <span class="checkbox-custom"></span>
+                                        Anonyme Nutzungsstatistiken teilen 📊
+                                    </label>
+                                    <small class="form-text text-muted">
+                                        Durch die Aktivierung helfen Sie uns, Fehler zu identifizieren und häufig genutzte Features zu priorisieren
+                                    </small>
+                                </div>
+
+                                <div id="usageStatsOptInMessage" class="alert" style="margin-top: 15px; display: none;">
+                                    <!-- Dynamic status messages -->
+                                </div>
+
+                                <div class="privacy-info" style="margin-top: 30px;">
+                                    <h4 style="font-size: 1.1rem; margin-bottom: 15px;">✅ Was wir sammeln:</h4>
+                                    <ul class="privacy-list">
+                                        <li>App-Version und Deployment-Modus (Docker, Home Assistant, etc.)</li>
+                                        <li>Anzahl und Typen der Drucker (z.B. "2x Bambu Lab, 1x Prusa")</li>
+                                        <li>Feature-Nutzung (welche Features aktiviert sind)</li>
+                                        <li>Anonyme Fehlertypen (ohne Details oder Pfade)</li>
+                                        <li>Aggregierte Nutzungszahlen (Jobs pro Woche, etc.)</li>
+                                    </ul>
+
+                                    <h4 style="font-size: 1.1rem; margin-top: 20px; margin-bottom: 15px;">❌ Was wir NICHT sammeln:</h4>
+                                    <ul class="privacy-list">
+                                        <li><strong>Keine</strong> persönlichen Informationen (Name, E-Mail, etc.)</li>
+                                        <li><strong>Keine</strong> Dateinamen oder Druckauftrag-Details</li>
+                                        <li><strong>Keine</strong> IP-Adressen oder Standortdaten</li>
+                                        <li><strong>Keine</strong> Drucker-Seriennummern oder Netzwerk-Informationen</li>
+                                        <li><strong>Keine</strong> Verhaltens-Tracking (Klicks, Seitenaufrufe, etc.)</li>
+                                    </ul>
+
+                                    <div class="alert alert-info" style="margin-top: 20px;">
+                                        <strong>🔒 Datenschutz-Garantie:</strong>
+                                        Alle Statistiken werden nur <strong>lokal gespeichert</strong>.
+                                        Nur wenn Sie aktiv zustimmen, werden aggregierte Daten wöchentlich übermittelt.
+                                        Sie können jederzeit alle lokalen Daten löschen.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Local Statistics Viewer -->
+                        <div class="card settings-section" id="usageStatsLocalCard">
+                            <div class="card-header">
+                                <h3>📊 Ihre lokalen Statistiken</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="usageStatistics.refreshLocalStats()">
+                                    <span class="btn-icon">🔄</span>
+                                    Aktualisieren
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div id="usageStatsLocalData">
+                                    <div class="loading-placeholder">
+                                        <div class="spinner"></div>
+                                        <p>Lade Statistiken...</p>
+                                    </div>
+                                </div>
+
+                                <div class="stats-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                                    <button class="btn btn-secondary" onclick="usageStatistics.exportData()">
+                                        <span class="btn-icon">📤</span>
+                                        Daten exportieren
+                                    </button>
+                                    <button class="btn btn-danger" onclick="usageStatistics.deleteAllData()">
+                                        <span class="btn-icon">🗑️</span>
+                                        Alle Daten löschen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Privacy Policy Link -->
+                        <div class="card settings-section">
+                            <div class="card-body">
+                                <p class="text-muted" style="margin: 0;">
+                                    Weitere Informationen finden Sie in unserer
+                                    <a href="https://github.com/schmacka/printernizer/blob/master/docs/development/usage-statistics-privacy.md"
+                                       target="_blank" rel="noopener">Datenschutzerklärung</a>.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -2462,6 +2567,7 @@
     <script src="js/files.js"></script>
     <script src="js/ideas.js"></script>
     <script src="js/settings.js?v=1.1"></script>
+    <script src="js/usage-statistics.js"></script>
     <script src="js/navigation-preferences-ui.js"></script>
     <script src="js/debug.js?v=1.1"></script>
 
