@@ -49,7 +49,8 @@ class FileDownloadService:
         event_service: EventService,
         printer_service=None,
         config_service=None,
-        library_service=None
+        library_service=None,
+        usage_stats_service=None
     ):
         """
         Initialize file download service.
@@ -60,6 +61,7 @@ class FileDownloadService:
             printer_service: Optional printer service for performing downloads
             config_service: Optional config service for download paths
             library_service: Optional library service for adding downloaded files
+            usage_stats_service: Optional usage statistics service for telemetry
         """
         self.database = database
         self.file_repo = FileRepository(database._connection)
@@ -67,6 +69,7 @@ class FileDownloadService:
         self.printer_service = printer_service
         self.config_service = config_service
         self.library_service = library_service
+        self.usage_stats_service = usage_stats_service
 
         # Download state tracking
         self.download_progress: Dict[str, int] = {}
@@ -275,6 +278,12 @@ class FileDownloadService:
                        printer_id=printer_id,
                        filename=filename,
                        size=file_size)
+
+            # Record usage statistics (privacy-safe: no filenames or personal data)
+            if self.usage_stats_service:
+                await self.usage_stats_service.record_event("file_downloaded", {
+                    "file_size_mb": round(file_size / (1024 * 1024), 2)
+                })
 
             return {
                 "status": "success",

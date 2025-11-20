@@ -17,13 +17,14 @@ logger = structlog.get_logger()
 
 class JobService:
     """Service for managing print jobs and monitoring."""
-    
-    def __init__(self, database: Database, event_service: EventService):
+
+    def __init__(self, database: Database, event_service: EventService, usage_stats_service=None):
         """Initialize job service."""
         # Use JobRepository for database operations
         self.job_repo = JobRepository(database._connection)
         self.database = database
         self.event_service = event_service
+        self.usage_stats_service = usage_stats_service
 
     def _deserialize_job_data(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -369,6 +370,13 @@ class JobService:
                     'timestamp': datetime.now().isoformat()
                 })
 
+                # Record usage statistics (privacy-safe: no job names, only printer type)
+                if self.usage_stats_service:
+                    await self.usage_stats_service.record_event('job_created', {
+                        'printer_type': db_job_data.get('printer_type', 'unknown'),
+                        'is_auto_created': is_auto_created
+                    })
+
                 return job_id
             else:
                 # Job creation failed - likely duplicate (UNIQUE constraint violation)
@@ -424,10 +432,10 @@ class JobService:
             
             # Update job in database
             success = await self.job_repo.update(str(job_id), updates)
-            
+
             if success:
                 logger.info("Job status updated", job_id=job_id, status=status)
-                
+
                 # Emit event for status change
                 await self.event_service.emit_event('job_status_changed', {
                     'job_id': str(job_id),
@@ -435,6 +443,15 @@ class JobService:
                     'data': data or {},
                     'timestamp': datetime.now().isoformat()
                 })
+
+                # Record usage statistics for completed/failed jobs
+                if self.usage_stats_service:
+                    if status == JobStatus.COMPLETED:
+                        await self.usage_stats_service.record_event('job_completed', {
+                            'duration_minutes': updates.get('actual_duration', 0) // 60 if updates.get('actual_duration') else None
+                        })
+                    elif status == JobStatus.FAILED:
+                        await self.usage_stats_service.record_event('job_failed', {})
             else:
                 logger.error("Failed to update job status in database", job_id=job_id, status=status)
                 

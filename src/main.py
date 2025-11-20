@@ -173,19 +173,9 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing core services...")
     config_service = ConfigService(database=database)
     event_service = EventService()
-    job_service = JobService(database, event_service)
-    printer_service = PrinterService(database, event_service, config_service)
 
-    # Initialize camera snapshot service
-    from src.services.camera_snapshot_service import CameraSnapshotService
-    camera_snapshot_service = CameraSnapshotService()
-    await camera_snapshot_service.start()
-
-    timer.end("Core services initialization")
-    logger.info("[OK] Core services initialized")
-
-    # Initialize usage statistics service (privacy-first telemetry)
-    timer.start("Usage statistics service initialization")
+    # Initialize usage statistics service early (privacy-first telemetry)
+    # This needs to be available for other services like JobService
     logger.info("Initializing usage statistics service...")
     usage_statistics_service = UsageStatisticsService(database)
     await usage_statistics_service.initialize()
@@ -195,8 +185,18 @@ async def lifespan(app: FastAPI):
         "python_version": platform.python_version(),
         "platform": platform.system().lower()
     })
-    timer.end("Usage statistics service initialization")
     logger.info("[OK] Usage statistics service initialized")
+
+    job_service = JobService(database, event_service, usage_statistics_service)
+    printer_service = PrinterService(database, event_service, config_service, usage_stats_service=usage_statistics_service)
+
+    # Initialize camera snapshot service
+    from src.services.camera_snapshot_service import CameraSnapshotService
+    camera_snapshot_service = CameraSnapshotService()
+    await camera_snapshot_service.start()
+
+    timer.end("Core services initialization")
+    logger.info("[OK] Core services initialized")
 
     # Initialize Library and Material services in parallel (independent)
     timer.start("Domain services initialization (parallel)")
@@ -250,7 +250,7 @@ async def lifespan(app: FastAPI):
     # Initialize file service (depends on file_watcher)
     timer.start("File service initialization")
     logger.info("Initializing file service...")
-    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service)
+    file_service = FileService(database, event_service, file_watcher_service, printer_service, config_service, library_service, usage_statistics_service)
     await file_service.initialize()  # Initialize event subscriptions
     timer.end("File service initialization")
     logger.info("[OK] File service initialized")
