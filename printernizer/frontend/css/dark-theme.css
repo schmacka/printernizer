@@ -606,6 +606,14 @@
     background: #2d2d2d;
 }
 
+[data-theme="dark"] .camera-placeholder {
+    background: #2d2d2d;
+}
+
+[data-theme="dark"] .camera-placeholder .placeholder-text {
+    color: #e0e0e0;
+}
+
 [data-theme="dark"] .camera-full-view {
     background: #0a0a0a;
 }
