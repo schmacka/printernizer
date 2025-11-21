@@ -47,11 +47,12 @@ async def get_camera_status(
     error_message = None
 
     if has_camera:
+        # Camera is available for snapshots even without live streaming
+        is_available = True
         try:
             stream_url = await printer_driver.get_camera_stream_url()
-            is_available = stream_url is not None
         except Exception as e:
-            is_available = False
+            # Stream URL not available, but snapshots still work
             error_message = str(e)
     else:
         is_available = False
@@ -84,7 +85,7 @@ async def get_camera_stream(
 
     stream_url = await printer_driver.get_camera_stream_url()
     if not stream_url:
-        raise ServiceUnavailableError("Camera stream not available")
+        raise ServiceUnavailableError("camera_stream", "Camera stream not available")
 
     # Return redirect to actual stream URL for now
     # In production, this might proxy the stream directly
@@ -109,9 +110,7 @@ async def take_snapshot(
     if not printer_driver:
         raise PrinterNotFoundError(printer_id_str)
 
-    # Get printer details for camera connection
-    printer_config = printer_driver._config  # Access printer configuration
-
+    # Check if printer supports camera (has required credentials)
     if not hasattr(printer_driver, 'access_code') or not hasattr(printer_driver, 'serial_number'):
         raise PrinternizerValidationError(
             field="camera",
@@ -129,10 +128,10 @@ async def take_snapshot(
         )
     except CameraConnectionError as e:
         logger.error("Camera connection failed", printer_id=printer_id_str, error=str(e))
-        raise ServiceUnavailableError(f"Camera connection failed: {e}")
+        raise ServiceUnavailableError("camera_snapshot", f"Camera connection failed: {e}")
     except ValueError as e:
         logger.error("No frame available", printer_id=printer_id_str, error=str(e))
-        raise ServiceUnavailableError("Failed to capture snapshot: No frame available")
+        raise ServiceUnavailableError("camera_snapshot", "Failed to capture snapshot: No frame available")
 
     # Generate filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -180,7 +179,7 @@ async def take_snapshot(
 
     if not snapshot_id:
         logger.error("Failed to create snapshot database record", printer_id=printer_id_str)
-        raise ServiceUnavailableError("Failed to save snapshot to database")
+        raise ServiceUnavailableError("snapshot_storage", "Failed to save snapshot to database")
 
     # Get full snapshot record with context
     snapshot_record = await snapshot_repository.get(snapshot_id)

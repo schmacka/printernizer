@@ -107,32 +107,45 @@ class CameraManager {
             `;
         }
 
+        // Show stream if available, otherwise show snapshot-only mode
+        const hasStream = cameraStatus.stream_url && cameraStatus.stream_url !== 'null';
+
         return `
             <div class="info-section camera-section">
                 <h4>📷 Kamera</h4>
                 <div class="camera-controls">
-                    <div class="camera-preview-container">
-                        <img id="camera-stream-${printer.id}" 
-                             class="camera-stream" 
-                             src="${cameraStatus.stream_url}" 
-                             alt="Live Stream" 
-                             onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error').style.display='block';"
-                             onload="this.style.display='block'; this.parentElement.querySelector('.stream-error').style.display='none';">
-                        <div class="stream-error" style="display: none;">
-                            <span class="text-muted">Stream nicht verfügbar</span>
+                    ${hasStream ? `
+                        <div class="camera-preview-container">
+                            <img id="camera-stream-${printer.id}"
+                                 class="camera-stream"
+                                 src="${cameraStatus.stream_url}"
+                                 alt="Live Stream"
+                                 onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error').style.display='block';"
+                                 onload="this.style.display='block'; this.parentElement.querySelector('.stream-error').style.display='none';">
+                            <div class="stream-error" style="display: none;">
+                                <span class="text-muted">Stream nicht verfügbar</span>
+                            </div>
                         </div>
-                    </div>
+                    ` : `
+                        <div class="camera-placeholder">
+                            <div class="placeholder-icon">📷</div>
+                            <div class="placeholder-text">Kamera bereit</div>
+                            <small class="text-muted">Live-Stream noch nicht verfügbar</small>
+                        </div>
+                    `}
                     <div class="camera-actions">
-                        <button class="btn btn-sm btn-primary" 
+                        <button class="btn btn-sm btn-primary"
                                 onclick="cameraManager.takeSnapshotFromCard('${printer.id}')"
                                 title="Snapshot aufnehmen">
                             📸 Snapshot
                         </button>
-                        <button class="btn btn-sm btn-secondary" 
-                                onclick="cameraManager.showCameraModal('${printer.id}')"
-                                title="Vollbild anzeigen">
-                            🔍 Vollbild
-                        </button>
+                        ${hasStream ? `
+                            <button class="btn btn-sm btn-secondary"
+                                    onclick="cameraManager.showCameraModal('${printer.id}')"
+                                    title="Vollbild anzeigen">
+                                🔍 Vollbild
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>

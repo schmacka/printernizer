@@ -349,6 +349,42 @@ class PrinternizerSettings(BaseSettings):
     )
 
     # =====================================================================
+    # USAGE STATISTICS - Privacy-first telemetry (opt-in only)
+    # =====================================================================
+
+    usage_stats_endpoint: str = Field(
+        default="https://stats.printernizer.com/submit",
+        env="USAGE_STATS_ENDPOINT",
+        description="Endpoint URL for submitting aggregated usage statistics."
+    )
+    usage_stats_api_key: str = Field(
+        default="printernizer-stats-api-key",
+        env="USAGE_STATS_API_KEY",
+        description="API key for authenticating with usage statistics aggregation service."
+    )
+    usage_stats_timeout: int = Field(
+        default=10,
+        env="USAGE_STATS_TIMEOUT",
+        description="HTTP request timeout in seconds for statistics submission. Must be between 5 and 60 seconds.",
+        ge=5,
+        le=60
+    )
+    usage_stats_retry_count: int = Field(
+        default=3,
+        env="USAGE_STATS_RETRY_COUNT",
+        description="Number of retry attempts for failed statistics submissions. Must be between 0 and 10.",
+        ge=0,
+        le=10
+    )
+    usage_stats_submission_interval_days: int = Field(
+        default=7,
+        env="USAGE_STATS_SUBMISSION_INTERVAL_DAYS",
+        description="Interval in days between automatic statistics submissions. Must be between 1 and 30 days.",
+        ge=1,
+        le=30
+    )
+
+    # =====================================================================
     # VALIDATORS - Comprehensive validation for all settings
     # =====================================================================
 

@@ -50,6 +50,7 @@ See Also:
 import uuid
 import json
 import platform
+import asyncio
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 import structlog
@@ -105,11 +106,11 @@ class UsageStatisticsService(BaseService):
         self.repository = repository or UsageStatisticsRepository(database._connection)
         self.settings = get_settings()
 
-        # Aggregation service endpoint (Phase 2)
-        self.aggregation_endpoint = "https://stats.printernizer.com/submit"
-
         # Track initialization timestamp for uptime calculation
         self._init_timestamp: Optional[datetime] = None
+
+        # PrinterService reference for fleet stats (injected after initialization)
+        self._printer_service = None
 
     async def initialize(self) -> None:
         """
@@ -121,6 +122,19 @@ class UsageStatisticsService(BaseService):
         self._init_timestamp = datetime.utcnow()
 
         logger.debug("Usage statistics service initialized")
+
+    def set_printer_service(self, printer_service) -> None:
+        """
+        Set PrinterService reference for accessing fleet statistics.
+
+        This is called after initialization to avoid circular dependencies,
+        as UsageStatisticsService is created before PrinterService.
+
+        Args:
+            printer_service: PrinterService instance for accessing printer data
+        """
+        self._printer_service = printer_service
+        logger.debug("PrinterService reference injected into UsageStatisticsService")
 
     async def is_opted_in(self) -> bool:
         """
@@ -410,24 +424,20 @@ class UsageStatisticsService(BaseService):
 
     async def submit_stats(self) -> bool:
         """
-        Submit aggregated statistics to remote endpoint.
+        Submit aggregated statistics to remote endpoint (Phase 2).
 
-        Only submits if user has opted in. Marks submitted events
-        to prevent duplicate submissions.
+        Includes retry logic with exponential backoff for handling network failures.
+        Only submits if user has opted in. Marks submitted events to prevent
+        duplicate submissions.
 
         Returns:
-            True if submission successful or not needed, False if failed
+            True if submission successful or not needed, False if all retries failed
 
         Example:
             ```python
             if await stats_service.is_opted_in():
                 success = await stats_service.submit_stats()
             ```
-
-        Phase Note:
-            This method is part of Phase 2. In Phase 1 (current), it will
-            log a message but not actually submit. The aggregation endpoint
-            will be implemented in Phase 2.
         """
         # Check opt-in status
         if not await self.is_opted_in():
@@ -441,36 +451,99 @@ class UsageStatisticsService(BaseService):
                 logger.warning("Failed to aggregate stats for submission")
                 return False
 
-            # TODO: Phase 2 - Submit to aggregation service
-            # For now, just log the payload size
+            # Prepare payload
             payload = stats.model_dump()
             payload_json = json.dumps(payload, default=str)
-            logger.info("Statistics ready for submission (Phase 2)",
+            logger.info("Submitting usage statistics",
+                       endpoint=self.settings.usage_stats_endpoint,
                        payload_size_bytes=len(payload_json),
                        job_count=stats.usage_stats.job_count)
 
-            # Phase 2 implementation:
-            # async with aiohttp.ClientSession() as session:
-            #     async with session.post(
-            #         self.aggregation_endpoint,
-            #         json=payload,
-            #         headers={"Content-Type": "application/json"},
-            #         timeout=aiohttp.ClientTimeout(total=10)
-            #     ) as response:
-            #         if response.status == 200:
-            #             # Mark events as submitted
-            #             await self.repository.mark_events_submitted(
-            #                 stats.period.start,
-            #                 stats.period.end
-            #             )
-            #             # Update last submission date
-            #             await self.repository.set_setting(
-            #                 "last_submission_date",
-            #                 datetime.utcnow().isoformat()
-            #             )
-            #             return True
+            # Submit with retry logic
+            max_retries = self.settings.usage_stats_retry_count
+            timeout_seconds = self.settings.usage_stats_timeout
 
-            return True
+            for attempt in range(max_retries + 1):
+                try:
+                    # Calculate exponential backoff (2^attempt seconds)
+                    if attempt > 0:
+                        backoff_seconds = 2 ** attempt
+                        logger.debug(f"Retry attempt {attempt}/{max_retries} after {backoff_seconds}s backoff")
+                        await asyncio.sleep(backoff_seconds)
+
+                    # Submit to aggregation service
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            self.settings.usage_stats_endpoint,
+                            json=payload,
+                            headers={
+                                "Content-Type": "application/json",
+                                "X-API-Key": self.settings.usage_stats_api_key
+                            },
+                            timeout=aiohttp.ClientTimeout(total=timeout_seconds)
+                        ) as response:
+                            response_text = await response.text()
+
+                            if response.status == 200:
+                                # Success! Mark events as submitted
+                                await self.repository.mark_events_submitted(
+                                    stats.period.start,
+                                    stats.period.end
+                                )
+                                # Update last submission date
+                                await self.repository.set_setting(
+                                    "last_submission_date",
+                                    datetime.utcnow().isoformat()
+                                )
+
+                                logger.info("Usage statistics submitted successfully",
+                                           submission_id=response_text,
+                                           attempt=attempt + 1)
+                                return True
+
+                            elif response.status == 401:
+                                # Authentication failed - don't retry
+                                logger.error("Statistics submission failed: Invalid API key",
+                                           status=response.status)
+                                return False
+
+                            elif response.status == 429:
+                                # Rate limited - exponential backoff and retry
+                                logger.warning("Statistics submission rate limited",
+                                             status=response.status,
+                                             attempt=attempt + 1)
+                                # Continue to retry with backoff
+
+                            else:
+                                # Other error - log and retry
+                                logger.warning("Statistics submission failed",
+                                             status=response.status,
+                                             response=response_text[:200],
+                                             attempt=attempt + 1)
+
+                except aiohttp.ClientError as e:
+                    # Network error - retry with backoff
+                    logger.warning("Statistics submission network error",
+                                 error=str(e),
+                                 attempt=attempt + 1)
+
+                except asyncio.TimeoutError:
+                    # Timeout - retry with backoff
+                    logger.warning("Statistics submission timeout",
+                                 timeout_seconds=timeout_seconds,
+                                 attempt=attempt + 1)
+
+                except Exception as e:
+                    # Unexpected error - log and retry
+                    logger.error("Statistics submission unexpected error",
+                               error=str(e),
+                               error_type=type(e).__name__,
+                               attempt=attempt + 1)
+
+            # All retries exhausted
+            logger.error("Statistics submission failed after all retries",
+                        max_retries=max_retries)
+            return False
 
         except Exception as e:
             # Never let statistics break the application
@@ -666,29 +739,59 @@ class UsageStatisticsService(BaseService):
         return timezone_mapping.get(self.settings.timezone, "XX")
 
     def _get_app_version(self) -> str:
-        """Get application version."""
-        # This would be imported from main.py APP_VERSION
-        # For now, return a placeholder
-        return "2.7.0"  # TODO: Import from main.py
+        """
+        Get application version.
+
+        Returns version from git tags via get_version() utility,
+        which provides runtime version detection for all deployment modes.
+        """
+        from src.utils.version import get_version
+        return get_version(fallback="2.7.0")
 
     async def _get_printer_fleet_stats(self) -> PrinterFleetStats:
         """
         Get anonymous printer fleet statistics.
 
+        Collects aggregated printer counts and types WITHOUT any PII:
+        - NO serial numbers
+        - NO IP addresses
+        - NO printer names
+        - ONLY counts and types (e.g., {"bambu_lab": 2, "prusa_core": 1})
+
         Returns:
-            PrinterFleetStats with counts and types (no serial numbers!)
+            PrinterFleetStats with counts and types (privacy-safe)
         """
         try:
-            # TODO: Get printer list from PrinterService
-            # For now, return empty fleet
+            # Check if PrinterService is available
+            if not self._printer_service:
+                logger.debug(
+                    "PrinterService not available for fleet stats, returning empty"
+                )
+                return PrinterFleetStats(
+                    printer_count=0,
+                    printer_types=[],
+                    printer_type_counts={}
+                )
+
+            # Get all printers from PrinterService
+            printers = await self._printer_service.list_printers()
+
+            # Count printers by type (privacy-safe aggregation)
+            type_counts = {}
+            for printer in printers:
+                # Extract printer type (e.g., "bambu_lab", "prusa_core")
+                printer_type = printer.type.value if hasattr(printer.type, 'value') else str(printer.type)
+                type_counts[printer_type] = type_counts.get(printer_type, 0) + 1
+
             return PrinterFleetStats(
-                printer_count=0,
-                printer_types=[],
-                printer_type_counts={}
+                printer_count=len(printers),
+                printer_types=list(type_counts.keys()),
+                printer_type_counts=type_counts
             )
 
         except Exception as e:
             logger.error("Failed to get printer fleet stats", error=str(e))
+            # Always return empty stats on error (never fail)
             return PrinterFleetStats(
                 printer_count=0,
                 printer_types=[],

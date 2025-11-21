@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  aggregation-service:
+    build: .
+    container_name: printernizer-aggregation
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./aggregation.db}
+      - API_KEY=${API_KEY:-change-me-in-production}
+      - RATE_LIMIT_PER_HOUR=${RATE_LIMIT_PER_HOUR:-10}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - HOST=0.0.0.0
+      - PORT=8080
+    volumes:
+      - ./data:/app/data  # For SQLite database persistence
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Optional: PostgreSQL database for production
+  postgres:
+    image: postgres:16-alpine
+    container_name: printernizer-stats-db
+    environment:
+      - POSTGRES_USER=printernizer
+      - POSTGRES_PASSWORD=change-me-in-production
+      - POSTGRES_DB=printernizer_stats
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U printernizer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
