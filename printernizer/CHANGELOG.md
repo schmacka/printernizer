@@ -1,3 +1,12 @@
+## [2.7.4] - 2025-11-21
+
+- fix: Camera snapshot functionality and UI improvements
+- feat: Complete Phase 2 of usage statistics (aggregation and submission)
+- chore(deps): Bump python-multipart from 0.0.6 to 0.0.18 in /printernizer
+- chore(deps-dev): Bump js-yaml from 3.14.1 to 3.14.2 in /tests/frontend
+- chore(deps): Bump python-multipart from 0.0.6 to 0.0.18
+- chore(deps): Bump gunicorn from 21.2.0 to 22.0.0 in /printernizer
+
 ## [2.7.3] - 2025-11-20
 
 - feat: Integrate usage statistics with core services
