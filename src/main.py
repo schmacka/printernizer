@@ -59,6 +59,7 @@ from src.services.job_service import JobService
 from src.services.file_service import FileService
 from src.services.file_watcher_service import FileWatcherService
 from src.services.usage_statistics_service import UsageStatisticsService
+from src.services.usage_statistics_scheduler import UsageStatisticsScheduler
 from src.services.migration_service import MigrationService
 from src.services.monitoring_service import monitoring_service
 from src.services.trending_service import TrendingService
@@ -190,6 +191,16 @@ async def lifespan(app: FastAPI):
     job_service = JobService(database, event_service, usage_statistics_service)
     printer_service = PrinterService(database, event_service, config_service, usage_stats_service=usage_statistics_service)
 
+    # Inject PrinterService into UsageStatisticsService for fleet stats
+    # (done after initialization to avoid circular dependencies)
+    usage_statistics_service.set_printer_service(printer_service)
+
+    # Initialize and start usage statistics scheduler (Phase 2)
+    logger.info("Starting usage statistics scheduler...")
+    usage_statistics_scheduler = UsageStatisticsScheduler(usage_statistics_service)
+    await usage_statistics_scheduler.start()
+    logger.info("[OK] Usage statistics scheduler started")
+
     # Initialize camera snapshot service
     from src.services.camera_snapshot_service import CameraSnapshotService
     camera_snapshot_service = CameraSnapshotService()
@@ -283,6 +294,7 @@ async def lifespan(app: FastAPI):
     app.state.material_service = material_service
     app.state.timelapse_service = timelapse_service
     app.state.usage_statistics_service = usage_statistics_service
+    app.state.usage_statistics_scheduler = usage_statistics_scheduler
     app.state.camera_snapshot_service = camera_snapshot_service
 
     # Initialize and start background services in parallel
@@ -477,8 +489,17 @@ async def lifespan(app: FastAPI):
         shutdown_tasks.append(
             shutdown_with_timeout(
                 app.state.url_parser_service.close(),
-
                 "URL parser service",
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
+            )
+        )
+
+    # Usage statistics scheduler
+    if hasattr(app.state, 'usage_statistics_scheduler') and app.state.usage_statistics_scheduler:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.usage_statistics_scheduler.stop(),
+                "Usage statistics scheduler",
                 timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
             )
         )

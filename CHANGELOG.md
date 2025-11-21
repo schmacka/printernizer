@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Usage Statistics Phase 2**: Completed aggregation and submission infrastructure
+  - **Aggregation Service**: Full FastAPI service for receiving usage statistics
+    - POST /submit endpoint with authentication and rate limiting
+    - PostgreSQL/SQLite database schema for storing aggregated stats
+    - GDPR-compliant data deletion endpoint
+    - Docker deployment support with docker-compose
+  - **Submission Enabled**: HTTP submission with retry logic
+    - Exponential backoff retry (up to 3 attempts configurable)
+    - Proper error handling for network failures, timeouts, rate limits
+    - API key authentication (X-API-Key header)
+    - Configurable endpoint, timeout, and retry count
+  - **Automatic Scheduler**: Background task for periodic submissions
+    - Checks every hour if submission is due
+    - Configurable submission interval (default: 7 days)
+    - Non-blocking background execution
+    - Respects opt-in status and last submission date
+  - **Integration Completed**: Service TODOs resolved
+    - `_get_app_version()` now uses `get_version()` from utils
+    - `_get_printer_fleet_stats()` integrated with PrinterService
+    - Proper printer service injection to avoid circular dependencies
+  - **Configuration**: Added usage statistics settings to config.py
+    - `usage_stats_endpoint`: Aggregation service URL
+    - `usage_stats_api_key`: API authentication key
+    - `usage_stats_timeout`: HTTP timeout (default: 10s)
+    - `usage_stats_retry_count`: Retry attempts (default: 3)
+    - `usage_stats_submission_interval_days`: Submission interval (default: 7)
+  - **Testing**: Comprehensive Phase 2 tests
+    - Scheduler tests: lifecycle, timing, error handling, manual trigger
+    - Submission tests: HTTP mocking, retry logic, authentication, event marking
+    - 50+ new tests for Phase 2 functionality
+  - **Privacy Maintained**: All Phase 1 privacy principles preserved
+    - Still opt-in only (disabled by default)
+    - No PII in printer fleet stats (only counts and types)
+    - Local-first storage (events stored locally even if submission fails)
+    - Full transparency (users can view/export/delete data)
+
 ## [2.7.0] - 2025-11-19
 
 ### 🎉 Major Milestone: Technical Debt Remediation Complete
