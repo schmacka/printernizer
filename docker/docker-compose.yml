@@ -81,7 +81,7 @@ services:
     # Network configuration
     # IMPORTANT: For printer discovery to work, you may need to use host networking mode
     # This allows the container to access multicast traffic (SSDP/mDNS)
-    # Uncomment the line below and comment out the 'networks' and 'ports' sections:
+    # Note: host networking doesn't work on Windows Docker Desktop
     # network_mode: host
     networks:
       - printernizer-network
