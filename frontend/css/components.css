@@ -1518,6 +1518,33 @@
     text-align: center;
 }
 
+.camera-placeholder {
+    padding: var(--spacing-4);
+    text-align: center;
+    background: var(--color-gray-50);
+    border-radius: var(--radius-md);
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+}
+
+.camera-placeholder .placeholder-icon {
+    font-size: 2.5rem;
+    opacity: 0.5;
+}
+
+.camera-placeholder .placeholder-text {
+    font-weight: 600;
+    color: var(--color-gray-700);
+}
+
+.camera-placeholder small {
+    font-size: 0.75rem;
+}
+
 .camera-actions {
     display: flex;
     gap: var(--spacing-2);
