@@ -547,9 +547,36 @@ ORDER BY type, name;
 -- End of Schema
 -- =====================================================
 
+-- =====================================================
+-- USAGE STATISTICS TABLES
+-- Privacy-first anonymous usage tracking (opt-in)
+-- =====================================================
+
+-- Usage events - individual trackable actions
+CREATE TABLE usage_events (
+    id TEXT PRIMARY KEY NOT NULL,                  -- Unique event identifier (UUID)
+    event_type TEXT NOT NULL,                      -- Type of event (app_start, job_completed, etc.)
+    timestamp DATETIME NOT NULL,                   -- When the event occurred (UTC)
+    metadata TEXT,                                 -- Event-specific data (JSON)
+    submitted BOOLEAN DEFAULT 0 NOT NULL,          -- Whether submitted to aggregation service
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Indexes for usage_events table
+CREATE INDEX idx_usage_events_type ON usage_events(event_type);
+CREATE INDEX idx_usage_events_timestamp ON usage_events(timestamp);
+CREATE INDEX idx_usage_events_submitted ON usage_events(submitted);
+
+-- Usage settings - configuration and metadata
+CREATE TABLE usage_settings (
+    key TEXT PRIMARY KEY NOT NULL,                 -- Setting key
+    value TEXT NOT NULL,                           -- Setting value
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 /*
 Database Schema Summary:
-- 8 main tables: printers, jobs, files, download_history, printer_status_log, system_events, configuration, watch_folders
+- 10 main tables: printers, jobs, files, download_history, printer_status_log, system_events, configuration, watch_folders, usage_events, usage_settings
 - 3 views for common queries: v_active_printers, v_recent_jobs, v_file_statistics
 - Comprehensive indexing for performance
 - Automatic triggers for timestamps and event logging
@@ -558,10 +585,11 @@ Database Schema Summary:
 - Computed columns for derived values
 - Initial configuration data for system setup
 - Persistent watch folder storage with validation and monitoring statistics
+- Anonymous usage statistics (opt-in, privacy-first)
 
 Total estimated storage:
 - Small deployment (2 printers, 100 jobs/month): ~10MB
-- Medium deployment (5 printers, 500 jobs/month): ~50MB  
+- Medium deployment (5 printers, 500 jobs/month): ~50MB
 - Large deployment (10 printers, 1000 jobs/month): ~100MB
 
 Schema designed for:
@@ -570,4 +598,5 @@ Schema designed for:
 - Performance at scale
 - Data integrity and consistency
 - German business requirements
+- Privacy-first telemetry
 */

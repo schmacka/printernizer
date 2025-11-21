@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Usage Statistics (Phase 1)**: Privacy-first anonymous telemetry system
+  - **Opt-in Only**: Statistics collection is disabled by default, users must explicitly opt in
+  - **Local Storage**: All data stored locally in SQLite (usage_events, usage_settings tables)
+  - **Privacy First**: No PII collected - no file names, IP addresses, serial numbers, or user data
+  - **Full Transparency**: Users can view, export, and delete all collected data at any time
+  - **Anonymous Installation ID**: Random UUID generated for tracking, not tied to hardware
+  - **Event Types**: Tracks app lifecycle, job completion, file downloads, printer connections, errors, feature usage
+  - **Local Statistics Viewer**: Frontend UI shows what data has been collected locally
+  - **Data Management**: API endpoints for opt-in/opt-out, export (JSON), and deletion
+  - **Comprehensive Tests**: 98 tests covering repository, service, API, and integration layers
+  - **Phase 2 Ready**: Infrastructure in place for future aggregation service submission
+  - **Files Added**:
+    - Models: `src/models/usage_statistics.py` - Pydantic models for events and aggregated stats
+    - Repository: `src/database/repositories/usage_statistics_repository.py` - Data access layer
+    - Service: `src/services/usage_statistics_service.py` - Business logic and privacy controls
+    - API: `src/api/routers/usage_statistics.py` - RESTful endpoints
+    - Frontend: `frontend/js/usage-statistics.js` - UI for viewing and managing statistics
+    - Tests: 3 comprehensive test files with 98 total tests
+  - **Database Schema**: Added usage_events and usage_settings tables to schema.sql
+
 ## [2.7.0] - 2025-11-19
 
 ### 🎉 Major Milestone: Technical Debt Remediation Complete
