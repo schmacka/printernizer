@@ -1081,18 +1081,9 @@ class BambuLabPrinter(BasePrinter):
         if not self.is_connected:
             raise PrinterConnectionError(self.printer_id, "Not connected")
 
-        # Try methods in order: PrinterFTPClient -> Direct FTP -> bambulabs_api -> MQTT
+        # Try methods in order: Direct FTP -> PrinterFTPClient -> bambulabs_api -> MQTT
+        # Direct FTP is prioritized as it has proper implicit TLS implementation
         last_error = None
-
-        # Try PrinterFTPClient first (known to work!)
-        if hasattr(self, 'bambu_ftp_client') and self.bambu_ftp_client:
-            try:
-                logger.info("Attempting file list via PrinterFTPClient", printer_id=self.printer_id)
-                return await self._list_files_printer_ftp_client()
-            except Exception as e:
-                logger.warning("PrinterFTPClient file listing failed, trying fallback methods",
-                             printer_id=self.printer_id, error=str(e))
-                last_error = e
 
         # Initialize FTP service on-demand if not already done
         if self.use_direct_ftp and not self.ftp_service:
@@ -1104,13 +1095,23 @@ class BambuLabPrinter(BasePrinter):
                 logger.warning("Failed to initialize FTP service on-demand",
                              printer_id=self.printer_id, error=str(e))
 
-        # Try direct FTP if available
+        # Try direct FTP FIRST (has proper implicit TLS fixes)
         if self.ftp_service:
             try:
                 logger.info("Attempting file list via direct FTP", printer_id=self.printer_id)
                 return await self._list_files_direct_ftp()
             except Exception as e:
                 logger.warning("Direct FTP file listing failed, trying fallback methods",
+                             printer_id=self.printer_id, error=str(e))
+                last_error = e
+
+        # Try PrinterFTPClient as fallback
+        if hasattr(self, 'bambu_ftp_client') and self.bambu_ftp_client:
+            try:
+                logger.info("Attempting file list via PrinterFTPClient", printer_id=self.printer_id)
+                return await self._list_files_printer_ftp_client()
+            except Exception as e:
+                logger.warning("PrinterFTPClient file listing failed, trying fallback methods",
                              printer_id=self.printer_id, error=str(e))
                 last_error = e
 
