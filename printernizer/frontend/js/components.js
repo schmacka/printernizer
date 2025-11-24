@@ -1660,14 +1660,14 @@ class DruckerDateienManager {
             if (this.printerId) {
                 // Load files for specific printer
                 const response = await api.getPrinterFiles(this.printerId);
-                files = response.files || [];
+                files = response.data?.files || [];
             } else {
                 // Load files from all printers
                 const printers = await api.getPrinters({ active: true });
                 for (const printer of printers.data || []) {
                     try {
                         const response = await api.getPrinterFiles(printer.id);
-                        const printerFiles = (response.files || []).map(file => ({
+                        const printerFiles = (response.data?.files || []).map(file => ({
                             ...file,
                             printer_id: printer.id,
                             printer_name: printer.name

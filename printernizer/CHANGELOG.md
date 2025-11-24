@@ -1,3 +1,9 @@
+## [2.7.8] - 2025-11-24
+
+- fix: Correct API response handling in Files page
+- fix: Prevent API calls with null/undefined endpoints
+- fix: Prioritize direct FTP over PrinterFTPClient for file listing
+
 ## [2.7.7] - 2025-11-24
 
 - fix: Prioritize direct FTP over PrinterFTPClient for file listing
