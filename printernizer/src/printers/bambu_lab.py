@@ -229,6 +229,21 @@ class BambuLabPrinter(BasePrinter):
             else:
                 self.bambu_ftp_client = None
 
+            # Initialize direct FTP service as fallback
+            if self.use_direct_ftp and not self.ftp_service:
+                try:
+                    from src.services.bambu_ftp_service import BambuFTPService
+                    self.ftp_service = BambuFTPService(
+                        ip_address=self.ip_address,
+                        access_code=self.access_code
+                    )
+                    logger.info("Initialized direct FTP service",
+                               printer_id=self.printer_id)
+                except Exception as e:
+                    logger.warning("Failed to initialize FTP service",
+                                 printer_id=self.printer_id, error=str(e))
+                    self.ftp_service = None
+
             self.is_connected = True
 
             total_duration = time.time() - start_time
@@ -1078,6 +1093,16 @@ class BambuLabPrinter(BasePrinter):
                 logger.warning("PrinterFTPClient file listing failed, trying fallback methods",
                              printer_id=self.printer_id, error=str(e))
                 last_error = e
+
+        # Initialize FTP service on-demand if not already done
+        if self.use_direct_ftp and not self.ftp_service:
+            try:
+                logger.info("Lazy-initializing FTP service for file listing",
+                           printer_id=self.printer_id)
+                self.ftp_service = BambuFTPService(self.ip_address, self.access_code)
+            except Exception as e:
+                logger.warning("Failed to initialize FTP service on-demand",
+                             printer_id=self.printer_id, error=str(e))
 
         # Try direct FTP if available
         if self.ftp_service:

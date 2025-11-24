@@ -1,3 +1,10 @@
+## [2.7.6] - 2025-11-24
+
+- fix: Complete implicit TLS implementation for Bambu Lab FTPS with proper socket attributes
+- fix: Implement proper implicit TLS for Bambu Lab FTPS (port 990)
+- feat: Enhance Bambu Lab file listing with multiple fallback methods
+- docs: Update docker-compose comment about host networking
+
 ## [2.7.5] - 2025-11-24
 
 - feat: Enhance Bambu Lab file listing with multiple fallback methods

@@ -123,7 +123,10 @@ class BambuFTPService:
 
     async def _connect_ftp(self) -> ftplib.FTP_TLS:
         """
-        Create and return a connected FTP_TLS instance.
+        Create and return a connected FTP_TLS instance using implicit TLS.
+
+        Bambu Lab printers use implicit TLS on port 990, where SSL/TLS is
+        established from the first byte of the connection, not via STARTTLS.
 
         Returns:
             Connected FTP_TLS instance
@@ -137,12 +140,30 @@ class BambuFTPService:
 
         # Run FTP operations in thread pool since ftplib is synchronous
         def _sync_connect():
-            ftp = ftplib.FTP_TLS(context=ssl_context, timeout=self.timeout)
-            ftp.set_pasv(True)  # Use passive mode
+            # For implicit TLS, we need to wrap the socket with SSL before FTP
+            raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            raw_socket.settimeout(self.timeout)
 
             try:
-                # Connect with implicit TLS
-                ftp.connect(self.ip_address, self.port)
+                # Connect raw socket first
+                raw_socket.connect((self.ip_address, self.port))
+
+                # Wrap with SSL (implicit TLS)
+                ssl_socket = ssl_context.wrap_socket(
+                    raw_socket,
+                    server_hostname=self.ip_address
+                )
+
+                # Create FTP_TLS instance and use the SSL socket
+                ftp = ftplib.FTP_TLS(context=ssl_context, timeout=self.timeout)
+                ftp.sock = ssl_socket  # Use our pre-wrapped SSL socket
+                ftp.file = ssl_socket.makefile('r', encoding='utf-8')
+                ftp.af = socket.AF_INET  # Set address family for passive mode
+                ftp.host = self.ip_address  # Set host for data connection SSL wrapping
+                ftp.set_pasv(True)  # Use passive mode
+
+                # Get welcome message
+                ftp.welcome = ftp.getresp()
 
                 # Authenticate
                 ftp.login(self.username, self.access_code)
@@ -153,13 +174,22 @@ class BambuFTPService:
                 return ftp
 
             except ftplib.error_perm as e:
-                ftp.close()
+                try:
+                    raw_socket.close()
+                except:
+                    pass
                 raise PermissionError(f"FTP authentication failed: {e}")
             except (socket.timeout, ConnectionRefusedError, ssl.SSLError) as e:
-                ftp.close()
+                try:
+                    raw_socket.close()
+                except:
+                    pass
                 raise ConnectionError(f"FTP connection failed: {e}")
             except Exception as e:
-                ftp.close()
+                try:
+                    raw_socket.close()
+                except:
+                    pass
                 raise ConnectionError(f"Unexpected FTP error: {e}")
 
         loop = asyncio.get_event_loop()
