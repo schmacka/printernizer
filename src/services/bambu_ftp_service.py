@@ -158,6 +158,8 @@ class BambuFTPService:
                 ftp = ftplib.FTP_TLS(context=ssl_context, timeout=self.timeout)
                 ftp.sock = ssl_socket  # Use our pre-wrapped SSL socket
                 ftp.file = ssl_socket.makefile('r', encoding='utf-8')
+                ftp.af = socket.AF_INET  # Set address family for passive mode
+                ftp.host = self.ip_address  # Set host for data connection SSL wrapping
                 ftp.set_pasv(True)  # Use passive mode
 
                 # Get welcome message
