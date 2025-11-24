@@ -1,3 +1,9 @@
+## [2.7.7] - 2025-11-24
+
+- fix: Prioritize direct FTP over PrinterFTPClient for file listing
+- fix: Complete implicit TLS implementation for Bambu Lab FTPS with proper socket attributes
+- fix: Implement proper implicit TLS for Bambu Lab FTPS (port 990)
+
 ## [2.7.6] - 2025-11-24
 
 - fix: Complete implicit TLS implementation for Bambu Lab FTPS with proper socket attributes
