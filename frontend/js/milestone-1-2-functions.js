@@ -244,15 +244,22 @@ async function downloadSelected() {
     const checkboxes = activeModal.querySelectorAll('.file-checkbox:checked');
     const selectedFileIds = Array.from(checkboxes).map(cb => cb.value);
 
+    console.log('Selected file IDs:', selectedFileIds);
+
     if (selectedFileIds.length === 0) {
         showToast('Keine Dateien ausgewählt', 'info');
         return;
     }
 
-    // Filter to only include selected files that are available for download
-    const selectedFiles = fileManager.files.filter(f =>
-        selectedFileIds.includes(f.id) && f.status === 'available'
-    );
+    // Filter to only include selected files that are available for download (not already downloaded)
+    const selectedFiles = fileManager.files.filter(f => {
+        const isSelected = selectedFileIds.includes(f.id);
+        const canDownload = f.status !== 'downloaded' && f.status !== 'downloading';
+        console.log(`File ${f.filename}: selected=${isSelected}, status=${f.status}, canDownload=${canDownload}`);
+        return isSelected && canDownload;
+    });
+
+    console.log('Files to download:', selectedFiles.length, selectedFiles.map(f => f.filename));
 
     if (selectedFiles.length === 0) {
         showToast('Keine der ausgewählten Dateien kann heruntergeladen werden', 'info');

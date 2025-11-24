@@ -1633,14 +1633,22 @@ class DruckerDateienManager {
         // File checkbox change handling using event delegation
         this.container.addEventListener('change', (e) => {
             if (e.target.classList.contains('file-checkbox')) {
+                console.log('Checkbox change detected:', e.target.value, 'checked:', e.target.checked);
                 this.updateSelectedCount();
                 this.updateBulkActions();
             }
         });
 
-        // Also listen for clicks on checkboxes (backup for change event)
+        // Also listen for clicks on checkboxes and labels (backup for change event)
         this.container.addEventListener('click', (e) => {
-            if (e.target.classList.contains('file-checkbox')) {
+            // Check if click is on checkbox, label, or custom checkbox span
+            const checkbox = e.target.classList.contains('file-checkbox') ? e.target :
+                           e.target.classList.contains('checkbox-custom') ? e.target.previousElementSibling :
+                           e.target.classList.contains('checkbox-label') ? e.target.querySelector('.file-checkbox') :
+                           null;
+            
+            if (checkbox) {
+                console.log('Checkbox click detected via delegation:', checkbox.value);
                 // Small delay to ensure checkbox state is updated
                 setTimeout(() => {
                     this.updateSelectedCount();
@@ -1798,13 +1806,19 @@ class DruckerDateienManager {
         const fileIcon = this.getFileIcon(file.filename);
         const downloadProgress = this.downloadProgress.get(file.id);
         const isDownloaded = file.status === 'downloaded';
+        const isAvailableForDownload = file.status === 'available' || !file.status;
+        
+        console.log('Rendering file:', file.filename, 'status:', file.status, 'isAvailableForDownload:', isAvailableForDownload);
 
         return `
             <div class="file-card ${file.status}" data-file-id="${file.id}">
                 <div class="file-header">
                     <div class="file-checkbox-container">
-                        <input type="checkbox" class="file-checkbox" value="${file.id}"
-                               ${file.status !== 'available' ? 'disabled' : ''}>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="file-checkbox" value="${file.id}"
+                                   ${!isAvailableForDownload ? 'disabled' : ''}>
+                            <span class="checkbox-custom"></span>
+                        </label>
                         ${isDownloaded ? '<span class="downloaded-indicator" title="Bereits heruntergeladen">✅</span>' : ''}
                     </div>
                     <div class="file-icon">${fileIcon}</div>
