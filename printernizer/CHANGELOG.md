@@ -1,3 +1,11 @@
+## [2.7.5] - 2025-11-24
+
+- feat: Enhance Bambu Lab file listing with multiple fallback methods
+- docs: Update docker-compose comment about host networking
+- fix: Camera snapshot functionality and UI improvements
+- feat: Complete Phase 2 of usage statistics (aggregation and submission)
+- chore(deps-dev): Bump js-yaml from 3.14.1 to 3.14.2 in /tests/frontend
+
 ## [2.7.4] - 2025-11-21
 
 - fix: Camera snapshot functionality and UI improvements
