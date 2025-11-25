@@ -1,3 +1,9 @@
+## [2.7.13] - 2025-11-25
+
+- Fix: Generate proper file IDs when backend returns undefined
+- Fix: BambuLab file download logic inconsistency and improve error handling
+- docs: Update README screenshots with Playwright automation
+
 ## [2.7.11] - 2025-11-25
 
 - Fix: BambuLab file download logic inconsistency and improve error handling
