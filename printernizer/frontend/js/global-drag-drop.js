@@ -53,6 +53,11 @@ class GlobalDragDropManager {
                 // Check if this is an internal drag (like navigation reordering)
                 if (this.isInternalDragEvent(e)) {
                     this.isInternalDrag = true;
+                    // CRITICAL: Must preventDefault on dragover for drops to work
+                    // Without this, the browser blocks the drop and drop event never fires
+                    if (eventName === 'dragover') {
+                        e.preventDefault();
+                    }
                     return; // Let internal drag events pass through
                 }
 

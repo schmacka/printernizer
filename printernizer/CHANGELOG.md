@@ -1,3 +1,8 @@
+## [2.7.10] - 2025-11-25
+
+- Fix: Enable navigation reordering via drag-and-drop
+- Fix: Drucker-Dateien checkbox visibility and file download selection - Added proper checkbox-label structure with checkbox-custom span for styled checkboxes - Fixed checkbox CSS positioning with proper z-index and dimensions - Enhanced click event delegation to handle clicks on label and custom checkbox span - Fixed file download filter to accept files with any status except 'downloaded' or 'downloading' instead of only 'available' - Added debug logging for checkbox interactions and file selection - Fixed checkbox container styling with proper flex layout - Added disabled state styling for checkboxes
+
 ## [2.7.9] - 2025-11-24
 
 - Fix: Drucker-Dateien checkbox visibility and file download selection - Added proper checkbox-label structure with checkbox-custom span for styled checkboxes - Fixed checkbox CSS positioning with proper z-index and dimensions - Enhanced click event delegation to handle clicks on label and custom checkbox span - Fixed file download filter to accept files with any status except 'downloaded' or 'downloading' instead of only 'available' - Added debug logging for checkbox interactions and file selection - Fixed checkbox container styling with proper flex layout - Added disabled state styling for checkboxes
