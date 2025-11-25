@@ -1,3 +1,10 @@
+## [2.7.11] - 2025-11-25
+
+- Fix: BambuLab file download logic inconsistency and improve error handling
+- docs: Update README screenshots with Playwright automation
+- docs: Add screenshots section to README
+- Fix: Update documentation navigation to use actual file paths
+
 ## [2.7.10] - 2025-11-25
 
 - Fix: Enable navigation reordering via drag-and-drop

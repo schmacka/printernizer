@@ -247,6 +247,15 @@ async function downloadSelected() {
     console.log('Selected file IDs:', selectedFileIds);
     console.log('Total files in fileManager:', fileManager.files.length);
     console.log('All file IDs:', fileManager.files.map(f => f.id));
+    console.log('=== DOWNLOAD DEBUG ===');
+    console.log('All files:', fileManager.files.map(f => ({
+        id: f.id,
+        filename: f.filename,
+        printer_id: f.printer_id,
+        status: f.status,
+        has_printer_id: !!f.printer_id
+    })));
+    console.log('Selected IDs:', selectedFileIds);
 
     if (selectedFileIds.length === 0) {
         showToast('Keine Dateien ausgewählt', 'info');
@@ -259,14 +268,29 @@ async function downloadSelected() {
         // Allow download unless explicitly downloaded or currently downloading
         // Accept null, undefined, 'available', or any other status
         const canDownload = f.status !== 'downloaded' && f.status !== 'downloading';
-        console.log(`File ${f.filename}: id='${f.id}', selected=${isSelected}, status='${f.status}', canDownload=${canDownload}`);
+        console.log(`Filter: "${f.filename}" | id:'${f.id}' selected:${isSelected} status:'${f.status}' canDownload:${canDownload} | printer_id:'${f.printer_id}'`);
         return isSelected && canDownload;
     });
 
     console.log('Files to download:', selectedFiles.length, selectedFiles.map(f => f.filename));
 
     if (selectedFiles.length === 0) {
-        showToast('Keine der ausgewählten Dateien kann heruntergeladen werden', 'info');
+        // Provide detailed reason
+        const allStatuses = fileManager.files
+            .filter(f => selectedFileIds.includes(f.id))
+            .map(f => f.status)
+            .filter((v, i, a) => a.indexOf(v) === i);  // unique
+
+        console.error('No files can be downloaded. Statuses:', allStatuses);
+
+        let message = 'Keine der ausgewählten Dateien kann heruntergeladen werden';
+        if (allStatuses.some(s => s === 'downloaded')) {
+            message += ' (bereits heruntergeladen)';
+        } else if (allStatuses.some(s => s === 'downloading')) {
+            message += ' (Download läuft bereits)';
+        }
+
+        showToast(message, 'warning');
         return;
     }
 
@@ -294,8 +318,16 @@ async function downloadSelected() {
             }
         } catch (error) {
             Logger.error(`Failed to download ${file.filename}:`, error);
+            console.error('DOWNLOAD ERROR DETAILS:', {
+                file_id: file.id,
+                filename: file.filename,
+                printer_id: file.printer_id,
+                error_message: error.message,
+                error_stack: error.stack,
+                error_object: error
+            });
             errorCount++;
-            errors.push(`${file.filename}: ${error.message}`);
+            errors.push(`${file.filename}: ${error.message || 'Unbekannter Fehler'}`);
         }
     }
 
