@@ -35,6 +35,40 @@ Printernizer is a **production-ready** 3D printer management system that transfo
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard Overview
+
+Real-time monitoring of your printer fleet with live status updates, temperature monitoring, and job tracking.
+
+![Dashboard](screenshots/01-dashboard.png)
+
+### File Management
+
+Unified file browser with smart filtering, status tracking, and one-click downloads from all your printers.
+
+![File Management](screenshots/02-file-management.png)
+
+### Jobs & Printer Management
+
+Comprehensive job history and detailed printer status cards with live monitoring.
+
+![Jobs & Printers](screenshots/03-jobs-printers.png)
+
+### Printer Status Cards
+
+Detailed printer information including temperatures, current job progress, and quick actions.
+
+![Printer Status Card](screenshots/04-printer-status-card.png)
+
+### Mobile Responsive Design
+
+Full functionality on mobile devices with optimized responsive layout.
+
+![Mobile View](screenshots/05-mobile-view.png)
+
+---
+
 ## ✨ Features
 
 ### 🖨️ Printer Support
