@@ -1668,20 +1668,37 @@ class DruckerDateienManager {
             if (this.printerId) {
                 // Load files for specific printer
                 const response = await api.getPrinterFiles(this.printerId);
-                files = response.data?.files || [];
+                files = (response.data?.files || []).map(file => {
+                    // Generate proper ID from printer and filename
+                    const fileId = file.id && file.id !== 'undefined' ? file.id : `${this.printerId}_${file.filename}`;
+                    const fileStatus = file.status && file.status !== 'undefined' ? file.status : 'available';
+
+                    return {
+                        ...file,
+                        id: fileId,
+                        printer_id: this.printerId,
+                        status: fileStatus
+                    };
+                });
             } else {
                 // Load files from all printers
                 const printers = await api.getPrinters({ active: true });
                 for (const printer of printers.data || []) {
                     try {
                         const response = await api.getPrinterFiles(printer.id);
-                        const printerFiles = (response.data?.files || []).map(file => ({
-                            ...file,
-                            printer_id: printer.id,
-                            printer_name: printer.name,
-                            status: file.status || 'available',  // Normalize null/undefined to 'available'
-                            id: file.id || `${printer.id}_${file.filename}`  // Ensure ID exists
-                        }));
+                        const printerFiles = (response.data?.files || []).map(file => {
+                            // Generate proper ID from printer and filename
+                            const fileId = file.id && file.id !== 'undefined' ? file.id : `${printer.id}_${file.filename}`;
+                            const fileStatus = file.status && file.status !== 'undefined' ? file.status : 'available';
+
+                            return {
+                                ...file,
+                                id: fileId,
+                                printer_id: printer.id,
+                                printer_name: printer.name,
+                                status: fileStatus
+                            };
+                        });
                         files = files.concat(printerFiles);
                     } catch (error) {
                         Logger.warn(`Failed to load files for printer ${printer.name}:`, error);
