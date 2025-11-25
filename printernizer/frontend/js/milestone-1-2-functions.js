@@ -245,6 +245,8 @@ async function downloadSelected() {
     const selectedFileIds = Array.from(checkboxes).map(cb => cb.value);
 
     console.log('Selected file IDs:', selectedFileIds);
+    console.log('Total files in fileManager:', fileManager.files.length);
+    console.log('All file IDs:', fileManager.files.map(f => f.id));
 
     if (selectedFileIds.length === 0) {
         showToast('Keine Dateien ausgewählt', 'info');
@@ -254,8 +256,10 @@ async function downloadSelected() {
     // Filter to only include selected files that are available for download (not already downloaded)
     const selectedFiles = fileManager.files.filter(f => {
         const isSelected = selectedFileIds.includes(f.id);
+        // Allow download unless explicitly downloaded or currently downloading
+        // Accept null, undefined, 'available', or any other status
         const canDownload = f.status !== 'downloaded' && f.status !== 'downloading';
-        console.log(`File ${f.filename}: selected=${isSelected}, status=${f.status}, canDownload=${canDownload}`);
+        console.log(`File ${f.filename}: id='${f.id}', selected=${isSelected}, status='${f.status}', canDownload=${canDownload}`);
         return isSelected && canDownload;
     });
 

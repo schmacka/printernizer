@@ -1678,7 +1678,9 @@ class DruckerDateienManager {
                         const printerFiles = (response.data?.files || []).map(file => ({
                             ...file,
                             printer_id: printer.id,
-                            printer_name: printer.name
+                            printer_name: printer.name,
+                            status: file.status || 'available',  // Normalize null/undefined to 'available'
+                            id: file.id || `${printer.id}_${file.filename}`  // Ensure ID exists
                         }));
                         files = files.concat(printerFiles);
                     } catch (error) {
@@ -1806,9 +1808,7 @@ class DruckerDateienManager {
         const fileIcon = this.getFileIcon(file.filename);
         const downloadProgress = this.downloadProgress.get(file.id);
         const isDownloaded = file.status === 'downloaded';
-        const isAvailableForDownload = file.status === 'available' || !file.status;
-        
-        console.log('Rendering file:', file.filename, 'status:', file.status, 'isAvailableForDownload:', isAvailableForDownload);
+        const isAvailableForDownload = file.status !== 'downloaded' && file.status !== 'downloading';
 
         return `
             <div class="file-card ${file.status}" data-file-id="${file.id}">
@@ -1962,7 +1962,23 @@ class DruckerDateienManager {
      */
     async downloadFile(fileId) {
         const file = this.files.find(f => f.id === fileId);
-        if (!file) return;
+
+        if (!file) {
+            console.error('File not found:', fileId, 'Available:', this.files.map(f => f.id));
+            throw new Error(`Datei mit ID ${fileId} nicht gefunden`);
+        }
+
+        if (!file.printer_id) {
+            console.error('Missing printer_id:', file);
+            throw new Error(`Datei "${file.filename}" hat keine Drucker-ID`);
+        }
+
+        if (!file.filename) {
+            console.error('Missing filename:', file);
+            throw new Error(`Datei hat keinen Dateinamen`);
+        }
+
+        console.log('Downloading:', { printer_id: file.printer_id, filename: file.filename });
 
         try {
             // Update file status to downloading

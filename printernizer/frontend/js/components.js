@@ -1808,7 +1808,7 @@ class DruckerDateienManager {
         const isDownloaded = file.status === 'downloaded';
         const isAvailableForDownload = file.status === 'available' || !file.status;
         
-        console.log('Rendering file:', file.filename, 'status:', file.status, 'isAvailableForDownload:', isAvailableForDownload);
+        console.log('Rendering file:', file.filename, 'id:', file.id, 'status:', file.status, 'isAvailableForDownload:', isAvailableForDownload);
 
         return `
             <div class="file-card ${file.status}" data-file-id="${file.id}">
