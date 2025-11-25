@@ -32,10 +32,13 @@ pytest --cov=src --cov-report=html tests/
 
 ## Available Documentation
 
-- **[Unit Testing](unit-testing.md)** - Writing and running unit tests
-- **[Integration Testing](integration-testing.md)** - API and service integration tests
-- **[E2E Testing](e2e-testing.md)** - End-to-end testing architecture
-- **[Coverage Reports](coverage.md)** - Understanding coverage metrics
+- **[Automated Job Creation Testing](automated-job-creation-testing.md)** - Testing automated job creation workflows
+- **[E2E Test Architecture](E2E_ARCHITECTURE.md)** - End-to-end testing architecture and structure
+- **[E2E Testing Quick Reference](E2E_TESTING_QUICKREF.md)** - Quick reference for E2E testing
+- **[E2E Test Analysis](E2E_TEST_ANALYSIS.md)** - Analysis of E2E test results
+- **[Coverage Report Guide](COVERAGE_REPORT_GUIDE.md)** - Generating and understanding coverage reports
+- **[Playwright Setup](PLAYWRIGHT_SETUP_COMPLETE.md)** - Playwright setup documentation
+- **[Testing Guide](TESTING_GUIDE.md)** - Comprehensive testing guide for auto-download system
 
 ## Test Structure
 
@@ -277,9 +280,9 @@ tests/fixtures/
 
 ## Additional Resources
 
-- [Unit Testing Guide](unit-testing.md)
-- [Integration Testing Guide](integration-testing.md)
-- [E2E Testing Architecture](e2e-testing.md)
+- [E2E Test Architecture](E2E_ARCHITECTURE.md)
+- [E2E Testing Quick Reference](E2E_TESTING_QUICKREF.md)
+- [Coverage Report Guide](COVERAGE_REPORT_GUIDE.md)
 - [pytest Documentation](https://docs.pytest.org/)
 
 ## Contributing Tests
@@ -291,4 +294,4 @@ When contributing:
 3. Follow existing test patterns
 4. Update test documentation
 
-See [Development Guide](../development/contributing.md) for more details.
+See the [CONTRIBUTING.md](https://github.com/schmacka/printernizer/blob/master/CONTRIBUTING.md) guide for more details.
