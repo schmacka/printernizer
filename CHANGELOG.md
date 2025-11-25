@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.12] - 2025-11-25
+
+### Fixed
+- **Critical**: BambuLab file download functionality completely broken
+  - Fixed file ID generation when backend returns undefined values
+  - All file IDs were the string "undefined" preventing selection and download
+  - Added proper ID generation from `printer_id_filename` format
+  - Fixed status normalization to 'available' when backend returns undefined
+  - Enhanced checkbox availability logic to match download filter logic
+  - Added comprehensive diagnostic logging for debugging
+  - Added validation for required fields (printer_id, filename) before download
+  - Improved user feedback with specific error reasons
+
 ### Added
 - **Usage Statistics Phase 2**: Completed aggregation and submission infrastructure
   - **Aggregation Service**: Full FastAPI service for receiving usage statistics
