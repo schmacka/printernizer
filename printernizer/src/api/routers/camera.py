@@ -50,10 +50,20 @@ async def get_camera_status(
         # Camera is available for snapshots even without live streaming
         is_available = True
         try:
-            stream_url = await printer_driver.get_camera_stream_url()
+            # Try to get live stream URL (will be None for Bambu Lab A1/P1)
+            live_stream_url = await printer_driver.get_camera_stream_url()
+
+            if live_stream_url:
+                # Live stream available (e.g., future X1 series with RTSP)
+                stream_url = live_stream_url
+            else:
+                # Fall back to preview endpoint for snapshot-based preview
+                stream_url = f"/api/v1/printers/{printer_id}/camera/preview"
         except Exception as e:
             # Stream URL not available, but snapshots still work
             error_message = str(e)
+            # Still provide preview endpoint
+            stream_url = f"/api/v1/printers/{printer_id}/camera/preview"
     else:
         is_available = False
 
@@ -92,6 +102,59 @@ async def get_camera_stream(
     return Response(
         status_code=302,
         headers={"Location": stream_url}
+    )
+
+
+@router.get("/{printer_id}/camera/preview")
+async def get_camera_preview(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service),
+    camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service)
+):
+    """
+    Get current camera preview as JPEG image.
+
+    Returns a fresh or cached snapshot without saving to disk or database.
+    Intended for periodic polling to create "live preview" effect.
+    Uses 5-second cache to reduce load on printer.
+    """
+    printer_id_str = str(printer_id)
+    printer_driver = await printer_service.get_printer_driver(printer_id_str)
+
+    if not printer_driver:
+        raise PrinterNotFoundError(printer_id_str)
+
+    # Check if printer supports camera (has required credentials)
+    if not hasattr(printer_driver, 'access_code') or not hasattr(printer_driver, 'serial_number'):
+        raise PrinternizerValidationError(
+            field="camera",
+            error="Printer does not support camera (missing access code or serial number)"
+        )
+
+    # Get snapshot using camera service (uses cache if fresh)
+    try:
+        image_data = await camera_service.get_snapshot(
+            printer_id=printer_id_str,
+            ip_address=printer_driver.ip_address,
+            access_code=printer_driver.access_code,
+            serial_number=printer_driver.serial_number,
+            force_refresh=False  # Use cached frame if available
+        )
+    except CameraConnectionError as e:
+        logger.error("Camera connection failed", printer_id=printer_id_str, error=str(e))
+        raise ServiceUnavailableError("camera_preview", f"Camera connection failed: {e}")
+    except ValueError as e:
+        logger.error("No frame available", printer_id=printer_id_str, error=str(e))
+        raise ServiceUnavailableError("camera_preview", "Failed to get preview: No frame available")
+
+    # Return raw JPEG with caching headers
+    return Response(
+        content=image_data,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "public, max-age=5",  # Match cache TTL
+            "Content-Disposition": "inline"
+        }
     )
 
 

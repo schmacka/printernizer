@@ -1,3 +1,9 @@
+## [2.7.16] - 2025-11-26
+
+- Fix: Camera preview display and Vollbild button for Bambu Lab printers
+- feat: Auto-connect printers after creation
+- Fix: Library integration bug - Printer object has no .get() method
+
 ## [2.7.15] - 2025-11-26
 
 - feat: Auto-connect printers after creation
