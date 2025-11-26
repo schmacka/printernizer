@@ -1,3 +1,8 @@
+## [2.7.15] - 2025-11-26
+
+- feat: Auto-connect printers after creation
+- Fix: Library integration bug - Printer object has no .get() method
+
 ## [2.7.14] - 2025-11-26
 
 - Fix: Library integration bug - Printer object has no .get() method
