@@ -346,7 +346,7 @@ async def create_printer(
     printer_data: PrinterCreateRequest,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
-    """Create a new printer configuration."""
+    """Create a new printer configuration and automatically connect to it."""
     try:
         printer = await printer_service.create_printer(
             name=printer_data.name,
@@ -356,6 +356,24 @@ async def create_printer(
             description=printer_data.description
         )
         logger.info("Created printer", printer_type=type(printer).__name__, printer_dict=printer.__dict__)
+
+        # Automatically connect to the newly created printer
+        try:
+            connect_success = await printer_service.connect_printer(printer.id)
+            if connect_success:
+                logger.info("Auto-connected to newly created printer", printer_id=printer.id, printer_name=printer.name)
+                # Start monitoring for the new printer
+                await printer_service.start_monitoring(printer.id)
+                logger.info("Started monitoring for newly created printer", printer_id=printer.id)
+            else:
+                logger.warning("Failed to auto-connect to newly created printer", printer_id=printer.id, printer_name=printer.name)
+        except Exception as e:
+            # Log the connection error but don't fail the creation
+            logger.warning("Failed to auto-connect to newly created printer",
+                         printer_id=printer.id,
+                         printer_name=printer.name,
+                         error=str(e))
+
         response = _printer_to_response(printer, printer_service)
         logger.info("Converted to response", response_dict=response.model_dump())
         return response

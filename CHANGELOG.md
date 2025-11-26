@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.13] - 2025-11-26
+
+### Fixed
+- **Auto-connect after adding printer**: Newly added printers now automatically connect without requiring app restart
+  - Printers immediately establish connection when added via API/UI
+  - Monitoring starts automatically for newly added printers
+  - Graceful error handling if printer is offline during creation
+
 ## [2.7.12] - 2025-11-25
 
 ### Fixed
