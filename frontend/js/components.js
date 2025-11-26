@@ -82,13 +82,13 @@ class PrinterCard {
      * Fetch camera status asynchronously
      */
     async fetchCameraStatus() {
-        if (!this.element) return;
-        
+        if (!this.printer || !this.printer.id) return;
+
         try {
-            const response = await fetch(`/api/v1/printers/${this.printer.id}/camera/status`);
-            if (response.ok) {
-                this.cameraStatus = await response.json();
-                // Update camera section in the DOM
+            // Delegate to CameraManager for consistency
+            if (window.cameraManager) {
+                await cameraManager.getCameraStatus(this.printer.id);
+                // Re-render camera section
                 const cameraSection = this.element.querySelector('.camera-section');
                 if (cameraSection) {
                     cameraSection.outerHTML = this.renderCameraSection();
@@ -100,68 +100,21 @@ class PrinterCard {
     }
 
     /**
-     * Render camera section
+     * Render camera section - delegated to CameraManager
      */
     renderCameraSection() {
-        // Show loading state if camera status not yet fetched
-        if (!this.cameraStatus) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-muted">Lade Kamerastatus...</span>
-                    </div>
-                </div>
-            `;
+        // Delegate to CameraManager for consistency
+        // CameraManager has proper null checks and preview support
+        if (window.cameraManager && this.printer) {
+            return cameraManager.renderCameraSection(this.printer);
         }
 
-        // No camera available
-        if (!this.cameraStatus.has_camera) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-muted">Keine Kamera verfügbar</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Camera not available/accessible
-        if (!this.cameraStatus.is_available) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-warning">Kamera nicht verfügbar</span>
-                        ${this.cameraStatus.error_message ? `<br><small class="text-muted">${escapeHtml(this.cameraStatus.error_message)}</small>` : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Camera available - show stream
+        // Fallback if CameraManager not loaded yet
         return `
             <div class="info-section camera-section">
                 <h4>📷 Kamera</h4>
-                <div class="camera-preview-container">
-                    <img id="camera-stream-${this.printer.id}" 
-                         class="camera-stream" 
-                         src="${this.cameraStatus.stream_url}" 
-                         alt="Live Stream" 
-                         style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-                         onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
-                    <div class="stream-error" style="display: none; padding: 8px; text-align: center;">
-                        <span class="text-muted">Stream nicht verfügbar</span>
-                    </div>
-                </div>
-                <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
-                    <button class="btn btn-sm btn-primary" 
-                            onclick="event.stopPropagation(); window.open('${this.cameraStatus.stream_url}', '_blank')"
-                            title="Vollbild anzeigen">
-                        🔍 Vollbild
-                    </button>
+                <div class="info-item">
+                    <span class="text-muted">Wird geladen...</span>
                 </div>
             </div>
         `;
