@@ -1,3 +1,8 @@
+## [2.7.14] - 2025-11-26
+
+- Fix: Library integration bug - Printer object has no .get() method
+- Fix: Generate proper file IDs when backend returns undefined
+
 ## [2.7.13] - 2025-11-25
 
 - Fix: Generate proper file IDs when backend returns undefined
