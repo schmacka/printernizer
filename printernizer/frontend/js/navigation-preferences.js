@@ -18,6 +18,14 @@ class NavigationPreferences {
                 required: true // Cannot be hidden
             },
             {
+                id: 'library',
+                icon: '🗄️',
+                label: 'Bibliothek',
+                description: 'Zentrale Bibliothek für alle 3D-Dateien mit Metadaten',
+                visible: true,
+                required: false
+            },
+            {
                 id: 'printers',
                 icon: '🖨️',
                 label: 'Drucker',
@@ -46,14 +54,6 @@ class NavigationPreferences {
                 icon: '📁',
                 label: 'Dateien',
                 description: 'Dateiverwaltung und Downloads von den Druckern',
-                visible: true,
-                required: false
-            },
-            {
-                id: 'library',
-                icon: '🗄️',
-                label: 'Bibliothek',
-                description: 'Zentrale Bibliothek für alle 3D-Dateien mit Metadaten',
                 visible: true,
                 required: false
             },
