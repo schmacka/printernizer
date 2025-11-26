@@ -95,7 +95,12 @@ class PrinterCard {
                 }
             }
         } catch (error) {
-            Logger.error('Failed to fetch camera status:', error);
+            // Safe error logging - check if Logger exists first
+            if (typeof Logger !== 'undefined') {
+                Logger.error('Failed to fetch camera status:', error);
+            } else {
+                console.error('Failed to fetch camera status:', error);
+            }
         }
     }
 

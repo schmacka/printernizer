@@ -1,3 +1,9 @@
+## [2.7.18] - 2025-11-26
+
+- fix: Camera preview display for Bambu Lab printers
+- feat: Move library to second position in navigation
+- Fix: Camera preview display and Vollbild button for Bambu Lab printers
+
 ## [2.7.17] - 2025-11-26
 
 - feat: Move library to second position in navigation
