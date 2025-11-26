@@ -404,10 +404,11 @@ class FileDownloadService:
         try:
             # Get printer info
             printer = await self.printer_service.get_printer(printer_id)
-            printer_name = printer.get('name', 'unknown') if printer else 'unknown'
+            printer_name = printer.name if printer else 'unknown'
 
-            # Extract manufacturer and model
-            printer_info = self._extract_printer_info(printer) if printer else {
+            # Extract manufacturer and model (convert Printer object to dict for extraction)
+            printer_dict = printer.dict() if printer else {}
+            printer_info = self._extract_printer_info(printer_dict) if printer else {
                 'manufacturer': 'unknown',
                 'printer_model': 'unknown'
             }
