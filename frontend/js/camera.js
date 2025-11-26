@@ -29,7 +29,13 @@ class CameraManager {
 
             return status;
         } catch (error) {
-            Logger.error(`Failed to get camera status for printer ${printerId}:`, error);
+            // Safe error logging - check if Logger exists first
+            const errorMsg = `Failed to get camera status for printer ${printerId}:`;
+            if (typeof Logger !== 'undefined') {
+                Logger.error(errorMsg, error);
+            } else {
+                console.error(errorMsg, error);
+            }
             this.cameraStatus.set(printerId, {
                 has_camera: false,
                 is_available: false,
@@ -70,7 +76,13 @@ class CameraManager {
             
             return snapshot;
         } catch (error) {
-            Logger.error(`Failed to take snapshot for printer ${printerId}:`, error);
+            // Safe error logging - check if Logger exists first
+            const errorMsg = `Failed to take snapshot for printer ${printerId}:`;
+            if (typeof Logger !== 'undefined') {
+                Logger.error(errorMsg, error);
+            } else {
+                console.error(errorMsg, error);
+            }
             showNotification(`Snapshot-Fehler: ${error.message}`, 'error');
             throw error;
         }
@@ -438,7 +450,12 @@ class CameraManager {
             
             document.body.appendChild(modal);
         } catch (error) {
-            Logger.error('Failed to load snapshot history:', error);
+            // Safe error logging - check if Logger exists first
+            if (typeof Logger !== 'undefined') {
+                Logger.error('Failed to load snapshot history:', error);
+            } else {
+                console.error('Failed to load snapshot history:', error);
+            }
             showNotification('Fehler beim Laden der Snapshot-Historie', 'error');
         }
     }
@@ -514,6 +531,9 @@ class CameraManager {
 
 // Global camera manager instance
 const cameraManager = new CameraManager();
+
+// Make cameraManager globally available (similar to Logger)
+window.cameraManager = cameraManager;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
