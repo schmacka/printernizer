@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2025-11-28
+
+### Changed
+- **API Documentation**: Enabled `/docs` (Swagger UI) and `/redoc` endpoints in all environments
+  - Previously only available in development mode
+  - Self-hosted applications benefit from always-available API documentation
+  - Updated Content Security Policy to allow external documentation resources (cdn.jsdelivr.net, fonts.googleapis.com, fonts.gstatic.com)
+  - Configured stable ReDoc JavaScript version (replaces unstable @next tag)
+
+### Fixed
+- **Security Headers**: Updated CSP to allow Swagger UI and ReDoc resources
+  - Added cdn.jsdelivr.net for documentation JavaScript/CSS
+  - Added fonts.googleapis.com and fonts.gstatic.com for ReDoc fonts
+  - Added fastapi.tiangolo.com for documentation favicons
+
 ## [2.7.14] - 2025-11-28
 
 ### Fixed

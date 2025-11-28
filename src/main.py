@@ -91,7 +91,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.7.14")
+APP_VERSION = get_version(fallback="2.8.0")
 
 
 # Prometheus metrics - initialized once
@@ -559,8 +559,9 @@ def create_application() -> FastAPI:
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
         version=APP_VERSION,
-        docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
-        redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js",  # Use stable version instead of @next
         lifespan=lifespan,
         redirect_slashes=False  # Disable automatic trailing slash redirects to fix API routing with StaticFiles
     )
