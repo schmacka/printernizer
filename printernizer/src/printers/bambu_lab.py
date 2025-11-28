@@ -7,6 +7,7 @@ import json
 import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+from io import BytesIO
 import structlog
 
 from src.config.constants import file_url
@@ -1765,17 +1766,64 @@ class BambuLabPrinter(BasePrinter):
         return None
 
     async def take_snapshot(self) -> Optional[bytes]:
-        """Take a camera snapshot from Bambu Lab printer.
+        """Take a camera snapshot from Bambu Lab printer using bambulabs-api library.
 
-        DEPRECATED: This method is deprecated.
-        Bambu Lab cameras use proprietary TCP/TLS protocol on port 6000, not HTTP.
-        Snapshot functionality is now handled by CameraSnapshotService with proper
-        binary protocol implementation, connection pooling, and frame caching.
+        Returns:
+            JPEG image data as bytes, or None if camera unavailable
 
-        Use the camera API endpoint: POST /api/v1/printers/{printer_id}/camera/snapshot
+        Raises:
+            Exception: If camera access fails
         """
-        logger.warning(
-            "BambuLabPrinter.take_snapshot is deprecated - use CameraSnapshotService via API",
-            printer_id=self.printer_id
-        )
-        return None
+        if not self.bambu_client:
+            logger.error(
+                "Cannot take snapshot - Bambu client not connected",
+                printer_id=self.printer_id
+            )
+            return None
+
+        try:
+            logger.debug("Requesting camera snapshot", printer_id=self.printer_id)
+
+            # Run blocking camera call in executor to maintain async compatibility
+            loop = asyncio.get_event_loop()
+            image = await loop.run_in_executor(
+                None,
+                self.bambu_client.get_camera_image
+            )
+
+            if not image:
+                logger.warning(
+                    "No camera image available from printer",
+                    printer_id=self.printer_id
+                )
+                return None
+
+            # Convert PIL Image to JPEG bytes
+            buffer = BytesIO()
+            image.save(buffer, format='JPEG', quality=85)
+            jpeg_bytes = buffer.getvalue()
+
+            logger.info(
+                "Camera snapshot captured successfully",
+                printer_id=self.printer_id,
+                size_bytes=len(jpeg_bytes)
+            )
+
+            return jpeg_bytes
+
+        except AttributeError as e:
+            logger.error(
+                "bambulabs-api camera method not available - may not support A1 series",
+                printer_id=self.printer_id,
+                error=str(e)
+            )
+            return None
+
+        except Exception as e:
+            logger.error(
+                "Camera snapshot failed",
+                printer_id=self.printer_id,
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            return None

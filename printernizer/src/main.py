@@ -91,7 +91,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.7.13")
+APP_VERSION = get_version(fallback="2.7.14")
 
 
 # Prometheus metrics - initialized once
@@ -204,7 +204,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize camera snapshot service
     from src.services.camera_snapshot_service import CameraSnapshotService
-    camera_snapshot_service = CameraSnapshotService()
+    camera_snapshot_service = CameraSnapshotService(printer_service)
     await camera_snapshot_service.start()
 
     timer.end("Core services initialization")
