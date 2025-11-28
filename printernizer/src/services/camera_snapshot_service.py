@@ -1,19 +1,16 @@
 """
 Camera Snapshot Service.
 
-Manages on-demand snapshot retrieval from Bambu Lab cameras with caching
-and connection pooling. Handles camera client lifecycle and provides
-cached frame access to reduce printer load.
+Manages on-demand snapshot retrieval from Bambu Lab cameras with frame caching.
+Delegates camera access to printer drivers via PrinterService.
 
 Features:
-- Connection pooling (one client per printer)
 - Frame caching with TTL (default 5 seconds)
-- Lazy client initialization
-- Idle connection cleanup
+- Automatic cache expiration cleanup
 - Graceful error handling
 
 Example:
-    service = CameraSnapshotService()
+    service = CameraSnapshotService(printer_service)
     await service.start()
 
     # Get snapshot (uses cache if fresh)
@@ -24,26 +21,19 @@ Example:
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, TYPE_CHECKING
 from dataclasses import dataclass
 
 import structlog
 
 from src.config.constants import PollingIntervals
-
-from src.services.bambu_camera_client import BambuLabCameraClient, CameraConnectionError
 from src.constants import CameraConstants
+
+if TYPE_CHECKING:
+    from src.services.printer_service import PrinterService
 
 
 logger = structlog.get_logger(__name__)
-
-
-@dataclass
-class CameraConnection:
-    """Represents a camera client connection with metadata."""
-    client: BambuLabCameraClient
-    last_accessed: datetime
-    connection_count: int = 0
 
 
 @dataclass
@@ -57,18 +47,20 @@ class CameraSnapshotService:
     """
     Service for managing camera snapshot requests with caching.
 
-    Maintains a pool of camera clients (one per printer) and caches
-    frames to reduce load on printers. Automatically cleans up idle
-    connections.
+    Caches frames to reduce load on printers. Camera access is delegated
+    to printer drivers via PrinterService.
 
     Thread-safe for concurrent access.
     """
 
-    def __init__(self):
-        """Initialize snapshot service."""
-        self._camera_clients: Dict[str, CameraConnection] = {}
+    def __init__(self, printer_service: 'PrinterService'):
+        """Initialize snapshot service.
+
+        Args:
+            printer_service: PrinterService instance for accessing printer drivers
+        """
+        self.printer_service = printer_service
         self._frame_cache: Dict[str, CachedFrame] = {}
-        self._connection_locks: Dict[str, asyncio.Lock] = {}
         self._cleanup_task: Optional[asyncio.Task] = None
         self._running: bool = False
 
@@ -85,7 +77,7 @@ class CameraSnapshotService:
         self._logger.info("Camera snapshot service started")
 
     async def shutdown(self) -> None:
-        """Shutdown service and cleanup all connections."""
+        """Shutdown service and cleanup resources."""
         self._logger.info("Shutting down camera snapshot service")
         self._running = False
 
@@ -97,19 +89,7 @@ class CameraSnapshotService:
             except asyncio.CancelledError:
                 pass
 
-        # Disconnect all camera clients
-        for printer_id, connection in list(self._camera_clients.items()):
-            try:
-                await connection.client.disconnect()
-                self._logger.debug("Disconnected camera client", printer_id=printer_id)
-            except Exception as e:
-                self._logger.warning(
-                    "Error disconnecting camera",
-                    printer_id=printer_id,
-                    error=str(e)
-                )
-
-        self._camera_clients.clear()
+        # Clear cache
         self._frame_cache.clear()
         self._logger.info("Camera snapshot service shutdown complete")
 
@@ -126,17 +106,16 @@ class CameraSnapshotService:
 
         Args:
             printer_id: Unique printer identifier
-            ip_address: Printer IP address
-            access_code: 8-digit LAN access code
-            serial_number: Printer serial number
+            ip_address: Printer IP address (kept for interface compatibility)
+            access_code: 8-digit LAN access code (kept for interface compatibility)
+            serial_number: Printer serial number (kept for interface compatibility)
             force_refresh: Skip cache and fetch fresh frame
 
         Returns:
             JPEG image data
 
         Raises:
-            CameraConnectionError: If camera connection fails
-            ValueError: If no frame available
+            ValueError: If no frame available or printer not found
         """
         self._logger.debug(
             "Snapshot requested",
@@ -155,21 +134,19 @@ class CameraSnapshotService:
                 )
                 return cached.data
 
-        # Get or create camera client
-        client = await self._get_or_create_client(
-            printer_id=printer_id,
-            ip_address=ip_address,
-            access_code=access_code,
-            serial_number=serial_number
-        )
+        # Get printer driver via PrinterService
+        try:
+            printer_driver = await self.printer_service.get_printer_driver(printer_id)
+        except Exception as e:
+            self._logger.error(
+                "Failed to get printer driver",
+                printer_id=printer_id,
+                error=str(e)
+            )
+            raise ValueError(f"Printer not found: {printer_id}") from e
 
-        # Get latest frame
-        frame = await client.get_latest_frame()
-        if not frame:
-            # Wait for camera to start streaming (needs ~3 seconds after connection)
-            self._logger.debug("No frame cached, waiting for first frame", printer_id=printer_id)
-            await asyncio.sleep(3.0)
-            frame = await client.get_latest_frame()
+        # Get snapshot from printer driver
+        frame = await printer_driver.take_snapshot()
 
         if not frame:
             raise ValueError("No frame available from camera")
@@ -187,85 +164,6 @@ class CameraSnapshotService:
         )
 
         return frame
-
-    async def _get_or_create_client(
-        self,
-        printer_id: str,
-        ip_address: str,
-        access_code: str,
-        serial_number: str
-    ) -> BambuLabCameraClient:
-        """
-        Get existing camera client or create new one.
-
-        Thread-safe with per-printer locking.
-        """
-        # Get or create lock for this printer
-        if printer_id not in self._connection_locks:
-            self._connection_locks[printer_id] = asyncio.Lock()
-
-        async with self._connection_locks[printer_id]:
-            # Check if client exists and is connected
-            if printer_id in self._camera_clients:
-                connection = self._camera_clients[printer_id]
-                connection.last_accessed = datetime.now()
-                connection.connection_count += 1
-
-                # Verify connection is still alive
-                if connection.client.is_connected:
-                    self._logger.debug(
-                        "Reusing existing camera client",
-                        printer_id=printer_id,
-                        connections=connection.connection_count
-                    )
-                    return connection.client
-                else:
-                    # Connection died, clean up
-                    self._logger.warning(
-                        "Existing camera connection is dead, reconnecting",
-                        printer_id=printer_id
-                    )
-                    try:
-                        await connection.client.disconnect()
-                    except (ConnectionError, TimeoutError, OSError) as e:
-                        self._logger.debug("Failed to disconnect dead camera connection (expected)", printer_id=printer_id, error=str(e))
-                    except Exception as e:
-                        self._logger.warning("Unexpected error disconnecting camera", printer_id=printer_id, error=str(e))
-                    del self._camera_clients[printer_id]
-
-            # Create new camera client
-            self._logger.info(
-                "Creating new camera client",
-                printer_id=printer_id,
-                ip=ip_address
-            )
-
-            client = BambuLabCameraClient(
-                ip_address=ip_address,
-                access_code=access_code,
-                serial_number=serial_number,
-                printer_id=printer_id
-            )
-
-            # Connect to camera
-            try:
-                await client.connect()
-            except Exception as e:
-                self._logger.error(
-                    "Failed to connect to camera",
-                    printer_id=printer_id,
-                    error=str(e)
-                )
-                raise
-
-            # Store connection
-            self._camera_clients[printer_id] = CameraConnection(
-                client=client,
-                last_accessed=datetime.now(),
-                connection_count=1
-            )
-
-            return client
 
     def _get_cached_frame(self, printer_id: str) -> Optional[CachedFrame]:
         """
@@ -309,46 +207,26 @@ class CameraSnapshotService:
         self._logger.debug("Cleanup loop stopped")
 
     async def _cleanup_idle_connections(self):
-        """Close connections that have been idle too long."""
+        """Clean up expired cache entries."""
         now = datetime.now()
-        idle_threshold = timedelta(seconds=CameraConstants.CAMERA_IDLE_TIMEOUT_SECONDS)
+        cache_ttl = timedelta(seconds=CameraConstants.FRAME_CACHE_TTL_SECONDS)
 
         to_remove = []
-        for printer_id, connection in self._camera_clients.items():
-            idle_time = now - connection.last_accessed
+        for printer_id, cached_frame in self._frame_cache.items():
+            age = now - cached_frame.captured_at
 
-            if idle_time > idle_threshold:
+            if age > cache_ttl:
                 to_remove.append(printer_id)
 
-        # Disconnect and remove idle connections
+        # Remove expired cache entries
         for printer_id in to_remove:
-            connection = self._camera_clients[printer_id]
-            self._logger.info(
-                "Closing idle camera connection",
-                printer_id=printer_id,
-                idle_seconds=int((now - connection.last_accessed).total_seconds())
-            )
-
-            try:
-                await connection.client.disconnect()
-            except Exception as e:
-                self._logger.warning(
-                    "Error disconnecting idle camera",
-                    printer_id=printer_id,
-                    error=str(e)
-                )
-
-            del self._camera_clients[printer_id]
-
-            # Also clean up cache
-            if printer_id in self._frame_cache:
-                del self._frame_cache[printer_id]
+            del self._frame_cache[printer_id]
 
         if to_remove:
-            self._logger.info(
-                "Cleaned up idle connections",
+            self._logger.debug(
+                "Cleaned up expired cache entries",
                 count=len(to_remove),
-                remaining=len(self._camera_clients)
+                remaining=len(self._frame_cache)
             )
 
     def get_stats(self) -> Dict[str, any]:
@@ -359,16 +237,15 @@ class CameraSnapshotService:
             Dictionary with service stats
         """
         return {
-            "active_connections": len(self._camera_clients),
             "cached_frames": len(self._frame_cache),
             "running": self._running,
-            "connections": {
+            "cache_entries": {
                 printer_id: {
-                    "connected": conn.client.is_connected,
-                    "last_accessed": conn.last_accessed.isoformat(),
-                    "connection_count": conn.connection_count
+                    "captured_at": frame.captured_at.isoformat(),
+                    "age_seconds": (datetime.now() - frame.captured_at).total_seconds(),
+                    "size_bytes": len(frame.data)
                 }
-                for printer_id, conn in self._camera_clients.items()
+                for printer_id, frame in self._frame_cache.items()
             }
         }
 
@@ -376,6 +253,5 @@ class CameraSnapshotService:
         """String representation."""
         return (
             f"CameraSnapshotService(running={self._running}, "
-            f"active_connections={len(self._camera_clients)}, "
             f"cached_frames={len(self._frame_cache)})"
         )

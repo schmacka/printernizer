@@ -1,0 +1,1 @@
+{"status":"error","message":"camera_preview is unavailable: Camera connection failed: Connection timeout after 10s","error_code":"SERVICE_UNAVAILABLE","details":{"service":"camera_preview","reason":"Camera connection failed: Connection timeout after 10s"},"timestamp":"2025-11-26T14:43:02.336452"}

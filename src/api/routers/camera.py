@@ -15,7 +15,6 @@ import aiofiles.os
 from src.models.snapshot import Snapshot, SnapshotCreate, SnapshotResponse, CameraStatus, CameraTrigger
 from src.services.printer_service import PrinterService
 from src.services.camera_snapshot_service import CameraSnapshotService
-from src.services.bambu_camera_client import CameraConnectionError
 from src.database.database import Database
 from src.database.repositories import SnapshotRepository
 from src.utils.dependencies import get_printer_service, get_camera_snapshot_service, get_database, get_snapshot_repository
@@ -140,9 +139,6 @@ async def get_camera_preview(
             serial_number=printer_driver.serial_number,
             force_refresh=False  # Use cached frame if available
         )
-    except CameraConnectionError as e:
-        logger.error("Camera connection failed", printer_id=printer_id_str, error=str(e))
-        raise ServiceUnavailableError("camera_preview", f"Camera connection failed: {e}")
     except ValueError as e:
         logger.error("No frame available", printer_id=printer_id_str, error=str(e))
         raise ServiceUnavailableError("camera_preview", "Failed to get preview: No frame available")
@@ -189,9 +185,6 @@ async def take_snapshot(
             serial_number=printer_driver.serial_number,
             force_refresh=snapshot_data.capture_trigger == CameraTrigger.MANUAL
         )
-    except CameraConnectionError as e:
-        logger.error("Camera connection failed", printer_id=printer_id_str, error=str(e))
-        raise ServiceUnavailableError("camera_snapshot", f"Camera connection failed: {e}")
     except ValueError as e:
         logger.error("No frame available", printer_id=printer_id_str, error=str(e))
         raise ServiceUnavailableError("camera_snapshot", "Failed to capture snapshot: No frame available")

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.14] - 2025-11-28
+
+### Fixed
+- **Camera Preview**: Bambu Lab A1 camera preview now displays correctly on dashboard tiles
+  - Replaced custom TCP/TLS camera client with bambulabs-api library integration
+  - CameraSnapshotService now uses printer drivers directly via PrinterService
+  - Removed 493 lines of complex binary protocol code
+  - Simplified architecture: camera access delegated to printer drivers
+  - Frame caching (5-second TTL) preserved for performance
+  - Removed outdated integration tests for old camera client implementation
+
+### Changed
+- **Code Cleanup**: Significant codebase simplification (-2,927 lines)
+  - Deleted `src/services/bambu_camera_client.py` (493 lines)
+  - Deleted outdated test files: `test_camera_direct.py`, `test_camera_preview.py`, `test_camera_simple.py`
+  - Deleted `tests/integration/test_camera_snapshot.py` (793 lines)
+  - Removed CameraConnectionError exception handlers (no longer raised)
+  - Camera functionality now maintained by bambulabs-api library
+
 ## [2.7.13] - 2025-11-26
 
 ### Fixed
