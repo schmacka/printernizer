@@ -654,6 +654,24 @@ class PrusaPrinter(BasePrinter):
                            printer_id=self.printer_id, filename=filename)
                 return False
 
+            # IMPORTANT: PrusaLink Binary Download Endpoint
+            # ==============================================
+            # The PrusaLink API provides file metadata via refs.download field,
+            # but this path alone is NOT sufficient for authentication.
+            #
+            # CORRECT ENDPOINT: /api/v1/files/{storage}/{path}
+            #   - Requires X-Api-Key header (already set in self.session)
+            #   - Returns binary content (application/octet-stream)
+            #   - Supports: usb, local, sdcard storage types
+            #
+            # INCORRECT: Using refs.download directly (e.g., /usb/FILE)
+            #   - Returns 401 Unauthorized (no auth context)
+            #   - May return JSON metadata instead of binary
+            #
+            # Example: refs.download="/usb/FILENAME.BGC"
+            #   Parse to: storage="usb", path="FILENAME.BGC"
+            #   Full URL: http://{ip}/api/v1/files/usb/FILENAME.BGC
+
             # Get the download reference from the file info
             download_ref = file_info.get('refs', {}).get('download')
             if not download_ref:
@@ -661,25 +679,36 @@ class PrusaPrinter(BasePrinter):
                            printer_id=self.printer_id, filename=filename)
                 return False
 
-            logger.info(f"Raw file_info for debugging: {file_info}",
+            logger.debug(f"Raw file_info for debugging: {file_info}",
                         printer_id=self.printer_id)
-            logger.info(f"Download reference: '{download_ref}'",
+            logger.debug(f"Download reference: '{download_ref}'",
                         printer_id=self.printer_id)
 
-            # Construct the full download URL
-            # PrusaLink returns direct storage paths (e.g., "usb/FILE" or "/usb/FILE")
-            # These are HTTP file paths, NOT API endpoints
-            # The /api/v1/files/ endpoint returns JSON metadata, not the binary file
-            base_host = f"http://{self.ip_address}"
+            # Parse storage type and path from download_ref
+            # Expected formats: "/usb/FILE", "usb/FILE", "/local/path/FILE"
+            download_ref_clean = download_ref.lstrip('/')  # Remove leading slash
+            path_parts = download_ref_clean.split('/', 1)  # Split on first / only
 
-            # Ensure path starts with /
-            if not download_ref.startswith('/'):
-                download_ref = f"/{download_ref}"
+            if len(path_parts) != 2:
+                logger.error("Invalid download reference format",
+                           printer_id=self.printer_id,
+                           filename=filename,
+                           download_ref=download_ref,
+                           expected_format="storage/path")
+                return False
 
-            # Use direct path - NOT the API endpoint
-            download_url = f"{base_host}{download_ref}"
-            logger.info(f"Download URL: {download_ref} -> {download_url}",
-                       printer_id=self.printer_id)
+            storage_type = path_parts[0]  # e.g., "usb", "local", "sdcard"
+            file_path = path_parts[1]      # e.g., "FILENAME.BGC" or "subdir/file.gcode"
+
+            # Construct the correct PrusaLink API endpoint for binary download
+            download_url = f"http://{self.ip_address}/api/v1/files/{storage_type}/{file_path}"
+
+            logger.info("Constructed binary download URL",
+                       printer_id=self.printer_id,
+                       filename=filename,
+                       storage=storage_type,
+                       path=file_path,
+                       download_url=download_url)
 
             logger.info("Downloading file using API reference",
                        printer_id=self.printer_id,
@@ -708,6 +737,8 @@ class PrusaPrinter(BasePrinter):
                                                printer_id=self.printer_id,
                                                filename=filename,
                                                download_url=download_url,
+                                               storage=storage_type,
+                                               path=file_path,
                                                content_preview=json_preview)
                                     return False
                                 except Exception:
@@ -724,11 +755,31 @@ class PrusaPrinter(BasePrinter):
                                printer_id=self.printer_id, filename=filename,
                                local_path=local_path, size_bytes=file_size)
                     return True
+                elif response.status == 404:
+                    logger.error("File not found on printer",
+                                 printer_id=self.printer_id,
+                                 filename=filename,
+                                 storage=storage_type,
+                                 path=file_path,
+                                 download_url=download_url,
+                                 status=response.status)
+                    return False
+                elif response.status == 401 or response.status == 403:
+                    logger.error("Authentication/authorization failed for file download",
+                                 printer_id=self.printer_id,
+                                 filename=filename,
+                                 download_url=download_url,
+                                 status=response.status,
+                                 reason=response.reason,
+                                 hint="Check API key permissions in PrusaLink settings")
+                    return False
                 else:
                     logger.error("Download failed with HTTP status",
                                printer_id=self.printer_id,
                                filename=filename,
                                download_url=download_url,
+                               storage=storage_type,
+                               path=file_path,
                                status=response.status,
                                reason=response.reason)
                     return False

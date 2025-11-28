@@ -1,3 +1,8 @@
+## [2.8.2] - 2025-11-28
+
+- fix: Correct Prusa file download endpoint to return binary content
+- fix: Camera preview for Bambu Lab A1 using bambulabs-api library
+
 ## [2.8.1] - 2025-11-28
 
 - fix: Camera preview for Bambu Lab A1 using bambulabs-api library
