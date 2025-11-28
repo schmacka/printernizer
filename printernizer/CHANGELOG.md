@@ -1,3 +1,8 @@
+## [2.8.1] - 2025-11-28
+
+- fix: Camera preview for Bambu Lab A1 using bambulabs-api library
+- fix: Camera preview display for Bambu Lab printers
+
 ## [2.7.19] - 2025-11-28
 
 - fix: Camera preview for Bambu Lab A1 using bambulabs-api library

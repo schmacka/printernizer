@@ -61,13 +61,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             # Content Security Policy
             # Allow images from local network (printer cameras)
             # Using http://*:* to allow HTTP images from any host (primarily for printer cameras)
+            # Allow cdn.jsdelivr.net for Swagger UI/ReDoc documentation
+            # Allow fonts.googleapis.com and fonts.gstatic.com for ReDoc fonts
+            # Allow fastapi.tiangolo.com for documentation favicons
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' 'unsafe-inline'; "
-                "img-src 'self' data: blob: http://*:*; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
+                "img-src 'self' data: blob: http://*:* https://cdn.jsdelivr.net https://fastapi.tiangolo.com; "
                 "connect-src 'self' ws: wss:; "
-                "font-src 'self'"
+                "font-src 'self' https://fonts.gstatic.com"
             )
             response.headers["Content-Security-Policy"] = csp
 
