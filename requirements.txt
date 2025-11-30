@@ -65,7 +65,7 @@ pytest-timeout>=2.1.0  # Test timeouts
 interrogate>=1.5.0  # Docstring coverage checking
 
 # Production Server
-gunicorn==21.2.0
+gunicorn==22.0.0
 
 # File Processing and Validation
 # magic==0.4.27
