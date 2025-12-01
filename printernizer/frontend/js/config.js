@@ -38,6 +38,9 @@ const getApiBaseUrl = () => {
             basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
         }
 
+        // Collapse any double slashes that might occur from HA Ingress
+        basePath = basePath.replace(/\/+/g, '/');
+
         // Ensure trailing slash
         if (!basePath.endsWith('/')) {
             basePath += '/';
@@ -83,6 +86,9 @@ const getBasePath = () => {
     if (basePath.includes('.')) {
         basePath = basePath.substring(0, basePath.lastIndexOf('/') + 1);
     }
+
+    // Collapse any double slashes that might occur from HA Ingress
+    basePath = basePath.replace(/\/+/g, '/');
 
     // Remove trailing slash
     basePath = basePath.replace(/\/+$/, '');

@@ -587,6 +587,47 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
     
+    # Path normalization middleware for Home Assistant Ingress
+    # HA Ingress sometimes creates double slashes in paths which cause 404 errors
+    if os.getenv("HA_INGRESS") == "true":
+        import re
+        logger = structlog.get_logger()
+        
+        @app.middleware("http")
+        async def normalize_path_middleware(request: Request, call_next):
+            """Normalize paths by collapsing double slashes (common HA Ingress issue)."""
+            original_path = request.scope.get("path", "")
+            
+            # Log all incoming requests for debugging HA Ingress issues
+            logger.info(
+                "HA Ingress request received",
+                path=original_path,
+                method=request.method,
+                url=str(request.url)
+            )
+            
+            # Collapse multiple consecutive slashes into single slash
+            # But preserve the leading slash
+            if "//" in original_path:
+                normalized_path = re.sub(r'/+', '/', original_path)
+                # Ensure leading slash is preserved
+                if not normalized_path.startswith('/'):
+                    normalized_path = '/' + normalized_path
+                    
+                logger.info(
+                    "Normalized request path (double slash detected)",
+                    original=original_path,
+                    normalized=normalized_path
+                )
+                # Update both path and raw_path in the scope
+                request.scope["path"] = normalized_path
+                # raw_path is bytes, encode the normalized path
+                request.scope["raw_path"] = normalized_path.encode("utf-8")
+            
+            return await call_next(request)
+        
+        logger.info("Path normalization middleware enabled for HA Ingress")
+    
     # Home Assistant Ingress security middleware (only active when HA_INGRESS=true)
     if os.getenv("HA_INGRESS") == "true":
         logger = structlog.get_logger()
@@ -657,10 +698,11 @@ def create_application() -> FastAPI:
 
         # Handle Home Assistant Ingress double-slash issue
         # HA Ingress sometimes forwards requests as // instead of /
+        # REDIRECT to single slash to fix relative path resolution in browser
         @app.get("//")
-        async def read_index_double_slash():
-            from fastapi.responses import FileResponse
-            return FileResponse(str(frontend_path / "index.html"))
+        async def redirect_double_slash():
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/", status_code=301)
 
         @app.get("/debug")
         async def read_debug():
