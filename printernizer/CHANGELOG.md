@@ -1,3 +1,9 @@
+## [2.8.3] - 2025-12-01
+
+- fix(ingress): Fix HA Ingress double-slash path issues causing 404 errors
+- feat: Add comprehensive test suite for aggregation service
+- fix: Correct Prusa file download endpoint to return binary content
+
 ## [2.8.2] - 2025-11-28
 
 - fix: Correct Prusa file download endpoint to return binary content
