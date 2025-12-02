@@ -251,7 +251,11 @@ class LibraryRepository(BaseRepository):
             Library file dictionary with all fields, or None if not found
         """
         try:
-            return await self._fetch_one("SELECT * FROM library_files WHERE id = ?", (file_id,))
+            file_data = await self._fetch_one("SELECT * FROM library_files WHERE id = ?", (file_id,))
+            # CRITICAL FIX: Remove leading dot from file_type for frontend compatibility
+            if file_data and file_data.get('file_type') and file_data['file_type'].startswith('.'):
+                file_data['file_type'] = file_data['file_type'].lstrip('.')
+            return file_data
         except Exception as e:
             logger.error("Failed to get library file", file_id=file_id, error=str(e), exc_info=True)
             return None
@@ -269,7 +273,11 @@ class LibraryRepository(BaseRepository):
             - Useful for duplicate detection and file matching
         """
         try:
-            return await self._fetch_one("SELECT * FROM library_files WHERE checksum = ?", (checksum,))
+            file_data = await self._fetch_one("SELECT * FROM library_files WHERE checksum = ?", (checksum,))
+            # CRITICAL FIX: Remove leading dot from file_type for frontend compatibility
+            if file_data and file_data.get('file_type') and file_data['file_type'].startswith('.'):
+                file_data['file_type'] = file_data['file_type'].lstrip('.')
+            return file_data
         except Exception as e:
             logger.error("Failed to get library file by checksum", checksum=checksum,
                         error=str(e), exc_info=True)
@@ -472,6 +480,11 @@ class LibraryRepository(BaseRepository):
             params.extend([limit, offset])
 
             rows = await self._fetch_all(query, tuple(params))
+
+            # CRITICAL FIX: Remove leading dot from file_type for frontend compatibility
+            for row in rows:
+                if row.get('file_type') and row['file_type'].startswith('.'):
+                    row['file_type'] = row['file_type'].lstrip('.')
 
             pagination = {
                 'page': page,

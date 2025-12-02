@@ -138,9 +138,34 @@ async def list_files(
 
     logger.info("Got files from service", total=total_items, page_count=len(paginated_files))
 
+    # VERIFICATION: Check for missing file_type and add fallback
+    import os
+    missing_file_type = [f for f in paginated_files if not f.get('file_type')]
+    if missing_file_type:
+        logger.warning("Files missing file_type field",
+                      count=len(missing_file_type),
+                      file_ids=[f.get('id') for f in missing_file_type[:5]])
+
+    # Ensure all files have file_type before serialization (final safety net)
+    for file_data in paginated_files:
+        if not file_data.get('file_type') and file_data.get('filename'):
+            _, ext = os.path.splitext(file_data['filename'])
+            file_data['file_type'] = ext.lstrip('.').lower() if ext else None
+            logger.debug("Added missing file_type",
+                        file_id=file_data.get('id'),
+                        file_type=file_data['file_type'])
+
     file_list = [FileResponse.model_validate(file) for file in paginated_files]
 
     logger.info("Validated files", count=len(file_list))
+
+    # Log sample for verification (only in debug mode)
+    if file_list:
+        sample = file_list[0]
+        logger.debug("Sample file response",
+                    file_id=sample.id,
+                    file_type=sample.file_type,
+                    filename=sample.filename)
 
     return {
         "files": file_list,

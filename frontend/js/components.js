@@ -887,21 +887,8 @@ class FileListItem {
             </div>
         `;
 
-        // Add click handler for enhanced thumbnails
-        if (this.file.has_thumbnail && this.file.id) {
-            const thumbnail = this.element.querySelector('.file-thumbnail.enhanced');
-            if (thumbnail) {
-                thumbnail.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.showFullThumbnail(this.file.id, this.file.filename);
-                });
-
-                // Add hover animation support for STL/3MF files
-                if (thumbnail.classList.contains('supports-animation')) {
-                    this.setupAnimatedThumbnail(thumbnail);
-                }
-            }
-        }
+        // Attach thumbnail event listeners using extracted method
+        this._attachThumbnailListeners();
 
         return this.element;
     }
@@ -914,6 +901,15 @@ class FileListItem {
             // Check if file supports animated preview (STL or 3MF)
             const supportsAnimation = this.file.file_type &&
                 ['stl', '3mf'].includes(this.file.file_type.toLowerCase());
+
+            // DEBUG: Log animation support detection
+            Logger.debug('Rendering thumbnail', {
+                fileId: this.file.id,
+                filename: this.file.filename,
+                fileType: this.file.file_type,
+                supportsAnimation: supportsAnimation,
+                hasThumbnail: this.file.has_thumbnail
+            });
 
             return `
                 <div class="file-thumbnail enhanced ${supportsAnimation ? 'supports-animation' : ''}"
@@ -974,6 +970,28 @@ class FileListItem {
     }
 
     /**
+     * Attach thumbnail event listeners
+     * Called after render() and update() to ensure listeners persist
+     */
+    _attachThumbnailListeners() {
+        if (this.file.has_thumbnail && this.file.id) {
+            const thumbnail = this.element.querySelector('.file-thumbnail.enhanced');
+            if (thumbnail) {
+                // Click handler for full thumbnail
+                thumbnail.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showFullThumbnail(this.file.id, this.file.filename);
+                });
+
+                // Hover animation support for STL/3MF files
+                if (thumbnail.classList.contains('supports-animation')) {
+                    this.setupAnimatedThumbnail(thumbnail);
+                }
+            }
+        }
+    }
+
+    /**
      * Setup animated thumbnail on hover for 3D files
      */
     setupAnimatedThumbnail(thumbnailElement) {
@@ -981,7 +999,22 @@ class FileListItem {
         const staticUrl = thumbnailElement.dataset.staticUrl;
         const animatedUrl = thumbnailElement.dataset.animatedUrl;
 
-        if (!img || !animatedUrl) return;
+        // DEBUG: Log setup attempt
+        Logger.debug('Setting up animated thumbnail', {
+            hasImg: !!img,
+            hasStaticUrl: !!staticUrl,
+            hasAnimatedUrl: !!animatedUrl,
+            staticUrl: staticUrl,
+            animatedUrl: animatedUrl
+        });
+
+        if (!img || !animatedUrl) {
+            Logger.warn('Animated thumbnail setup failed - missing requirements', {
+                hasImg: !!img,
+                hasAnimatedUrl: !!animatedUrl
+            });
+            return;
+        }
 
         let isAnimatedLoaded = false;
         let isHovering = false;
@@ -989,25 +1022,39 @@ class FileListItem {
 
         // Preload the animated GIF on first hover
         const preloadAnimatedGif = () => {
-            if (isAnimatedLoaded) return;
+            if (isAnimatedLoaded) {
+                Logger.debug('Animated GIF already loaded');
+                return;
+            }
 
+            Logger.debug('Preloading animated GIF', { url: animatedUrl });
             const preloadImg = new Image();
+
             preloadImg.onload = () => {
                 isAnimatedLoaded = true;
+                Logger.info('Animated GIF loaded successfully', { url: animatedUrl });
+
                 // If still hovering, swap immediately
                 if (isHovering && img.src !== animatedUrl) {
+                    Logger.debug('Swapping to animated image');
                     img.src = animatedUrl;
                 }
             };
-            preloadImg.onerror = () => {
-                Logger.warn('Failed to load animated preview:', animatedUrl);
+
+            preloadImg.onerror = (error) => {
+                Logger.error('Failed to load animated preview', {
+                    url: animatedUrl,
+                    error: error
+                });
             };
+
             preloadImg.src = animatedUrl;
         };
 
         // Mouse enter: load and show animated GIF
         thumbnailElement.addEventListener('mouseenter', () => {
             isHovering = true;
+            Logger.debug('Mouse entered thumbnail - preparing animation');
 
             // Start loading after a short delay to avoid loading on quick passes
             loadTimeout = setTimeout(() => {
@@ -1025,6 +1072,7 @@ class FileListItem {
         // Mouse leave: restore static image
         thumbnailElement.addEventListener('mouseleave', () => {
             isHovering = false;
+            Logger.debug('Mouse left thumbnail - restoring static');
 
             // Cancel loading if not started yet
             if (loadTimeout) {
@@ -1034,9 +1082,12 @@ class FileListItem {
 
             // Restore static image
             if (img.src !== staticUrl) {
+                Logger.debug('Restoring static image');
                 img.src = staticUrl;
             }
         });
+
+        Logger.info('Animated thumbnail setup complete');
     }
 
     /**
@@ -1208,6 +1259,12 @@ class FileListItem {
         if (oldElement && oldElement.parentNode) {
             oldElement.parentNode.replaceChild(this.element, oldElement);
         }
+
+        // CRITICAL FIX: Re-attach listeners after DOM replacement
+        // render() already calls _attachThumbnailListeners(), but we call it again
+        // to ensure listeners are properly attached after replaceChild
+        this._attachThumbnailListeners();
+
         return this.element;
     }
 
