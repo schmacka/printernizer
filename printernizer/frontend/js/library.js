@@ -228,6 +228,9 @@ class LibraryManager {
                 if (file) this.showFileDetail(file);
             });
         });
+
+        // Setup animated thumbnails for STL/3MF files
+        this.setupAnimatedThumbnails();
     }
 
     /**
@@ -239,11 +242,22 @@ class LibraryManager {
         const duplicateBadge = this.getDuplicateBadge(file);
         const thumbnailUrl = file.has_thumbnail ? `${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail` : null;
 
+        // Check if file supports animated preview (STL or 3MF) and has a thumbnail
+        const supportsAnimation = file.has_thumbnail && file.file_type && ['stl', '3mf'].includes(file.file_type.toLowerCase());
+
+        Logger.debug('Creating file card', {
+            filename: file.filename,
+            fileType: file.file_type,
+            supportsAnimation: supportsAnimation,
+            hasThumbnail: file.has_thumbnail
+        });
+
         return `
             <div class="library-file-card ${file.is_duplicate ? 'is-duplicate' : ''}" data-checksum="${sanitizeAttribute(file.checksum)}">
-                <div class="file-card-thumbnail">
+                <div class="file-card-thumbnail ${supportsAnimation ? 'supports-animation' : ''}"
+                     ${supportsAnimation ? `data-static-url="${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail" data-animated-url="${CONFIG.API_BASE_URL}/library/files/${file.checksum}/thumbnail/animated"` : ''}>
                     ${thumbnailUrl
-                        ? `<img src="${sanitizeUrl(thumbnailUrl)}" alt="${sanitizeAttribute(file.filename)}" loading="lazy">`
+                        ? `<img src="${sanitizeUrl(thumbnailUrl)}" alt="${sanitizeAttribute(file.filename)}" loading="lazy" class="thumbnail-image">`
                         : `<div class="thumbnail-placeholder">${this.getFileTypeIcon(file.file_type)}</div>`
                     }
                     ${statusBadge}
@@ -281,6 +295,108 @@ class LibraryManager {
         if (metadata.length === 0) return '';
 
         return `<div class="file-card-metadata">${metadata.join(' · ')}</div>`;
+    }
+
+    /**
+     * Setup animated thumbnails for all STL/3MF files
+     */
+    setupAnimatedThumbnails() {
+        const animatedThumbnails = document.querySelectorAll('.file-card-thumbnail.supports-animation');
+        Logger.info(`Setting up ${animatedThumbnails.length} animated thumbnails`);
+
+        animatedThumbnails.forEach(thumbnail => {
+            this.setupAnimatedThumbnail(thumbnail);
+        });
+    }
+
+    /**
+     * Setup animated thumbnail on hover for a single thumbnail
+     */
+    setupAnimatedThumbnail(thumbnailElement) {
+        const img = thumbnailElement.querySelector('.thumbnail-image');
+        const staticUrl = thumbnailElement.dataset.staticUrl;
+        const animatedUrl = thumbnailElement.dataset.animatedUrl;
+
+        Logger.debug('Setting up animated thumbnail', {
+            hasImg: !!img,
+            hasStaticUrl: !!staticUrl,
+            hasAnimatedUrl: !!animatedUrl,
+            staticUrl: staticUrl,
+            animatedUrl: animatedUrl
+        });
+
+        if (!img || !animatedUrl) {
+            Logger.warn('Animated thumbnail setup failed - missing requirements', {
+                hasImg: !!img,
+                hasAnimatedUrl: !!animatedUrl
+            });
+            return;
+        }
+
+        let isAnimatedLoaded = false;
+        let isHovering = false;
+        let loadTimeout = null;
+
+        const preloadAnimatedGif = () => {
+            if (isAnimatedLoaded) {
+                Logger.debug('Animated GIF already loaded');
+                return;
+            }
+
+            Logger.debug('Preloading animated GIF', { url: animatedUrl });
+            const preloadImg = new Image();
+
+            preloadImg.onload = () => {
+                isAnimatedLoaded = true;
+                Logger.info('Animated GIF loaded successfully', { url: animatedUrl });
+
+                if (isHovering && img.src !== animatedUrl) {
+                    Logger.debug('Swapping to animated image');
+                    img.src = animatedUrl;
+                }
+            };
+
+            preloadImg.onerror = (error) => {
+                Logger.error('Failed to load animated preview', {
+                    url: animatedUrl,
+                    error: error
+                });
+            };
+
+            preloadImg.src = animatedUrl;
+        };
+
+        thumbnailElement.addEventListener('mouseenter', () => {
+            isHovering = true;
+            Logger.debug('Mouse entered thumbnail - preparing animation');
+
+            loadTimeout = setTimeout(() => {
+                if (isHovering) {
+                    preloadAnimatedGif();
+
+                    if (isAnimatedLoaded && img.src !== animatedUrl) {
+                        img.src = animatedUrl;
+                    }
+                }
+            }, 200);
+        });
+
+        thumbnailElement.addEventListener('mouseleave', () => {
+            isHovering = false;
+            Logger.debug('Mouse left thumbnail - restoring static');
+
+            if (loadTimeout) {
+                clearTimeout(loadTimeout);
+                loadTimeout = null;
+            }
+
+            if (img.src !== staticUrl) {
+                Logger.debug('Restoring static image');
+                img.src = staticUrl;
+            }
+        });
+
+        Logger.info('Animated thumbnail setup complete');
     }
 
     /**

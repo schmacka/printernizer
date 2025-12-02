@@ -1,3 +1,9 @@
+## [2.8.4] - 2025-12-02
+
+- feat: Implement animated thumbnail hover feature for 3D model files
+- fix(ingress): Fix HA Ingress double-slash path issues causing 404 errors
+- feat: Add comprehensive test suite for aggregation service
+
 ## [2.8.3] - 2025-12-01
 
 - fix(ingress): Fix HA Ingress double-slash path issues causing 404 errors
