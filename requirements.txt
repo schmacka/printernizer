@@ -15,7 +15,7 @@ aiosqlite==0.19.0
 
 # HTTP Client for Prusa API
 aiohttp>=3.10.0
-requests==2.31.0
+requests==2.32.4
 Brotli>=1.1.0  # Brotli compression support for aiohttp
 
 # MQTT Client for Bambu Lab Integration
@@ -25,7 +25,7 @@ bambulabs-api>=1.0.0  # Primary library for Bambu Lab file operations
 # Network Discovery
 zeroconf>=0.132.0  # mDNS/Bonjour discovery for Prusa printers
 ssdpy>=0.4.1  # SSDP protocol for Bambu Lab printer discovery
-netifaces-plus>=0.12.0  # Network interface enumeration (Windows-compatible fork of netifaces)
+netifaces>=0.11.0  # Network interface enumeration
 
 # File Download and Management
 aiofiles==23.2.1
@@ -55,7 +55,7 @@ psutil==5.9.6
 
 # Development Dependencies (for testing)
 pytest==7.4.3
-pytest-asyncio>=0.21.1  # Aligned with requirements-test.txt
+pytest-asyncio==0.21.1
 httpx==0.25.2
 pytest-mock==3.12.0
 pytest-cov>=4.1.0  # Coverage reporting
@@ -65,7 +65,7 @@ pytest-timeout>=2.1.0  # Test timeouts
 interrogate>=1.5.0  # Docstring coverage checking
 
 # Production Server
-gunicorn==21.2.0
+gunicorn==22.0.0
 
 # File Processing and Validation
 # magic==0.4.27
