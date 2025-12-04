@@ -1,198 +1,303 @@
-# Printernizer Documentation
+# Printernizer Documentation Archive
 
-This directory contains all project documentation organized by category.
+This directory contains **archived documentation** from completed initiatives, historical decisions, and reference materials that are no longer actively maintained but retain historical value.
 
-## 📚 Documentation Structure
+> ⚠️ **Note**: For current, active documentation, see the `/docs/` directory in the project root.
 
-### 🏗️ Architecture
-**Location:** [`architecture/`](architecture/)
-
-System design, APIs, data models, and technical architecture documents.
-
-- [API Specification](architecture/api_specification.md) - REST API endpoints and contracts
-- [Data Models](architecture/data_models.md) - Database schema and data structures
-- [Algorithms](architecture/ALGORITHMS.md) - Core algorithms and logic
-- [Event Contracts](architecture/EVENT_CONTRACTS.md) - Event system contracts
-- [Event Flows](architecture/EVENT_FLOWS.md) - Event flow diagrams and sequences
-- [Service Architecture](architecture/service_architecture.md) - Service layer design
-
-### 👥 User Guides
-**Location:** [`user-guides/`](user-guides/)
-
-End-user documentation and configuration guides.
-
-- [User Guide](user-guides/USER_GUIDE.md) - Complete user manual
-- [Settings Reference](user-guides/SETTINGS_REFERENCE.md) - Configuration options
-- [API Automated Job Creation](user-guides/api-automated-job-creation.md) - API job automation guide
-- [Auto Job Creation Guide](user-guides/user-guide-auto-job-creation.md) - Automated job creation setup
-
-### 💻 Development
-**Location:** [`development/`](development/)
-
-Developer guides, patterns, and development workflows.
-
-- [Integration Patterns](development/integration_patterns.md) - Integration patterns and examples
-- [File Operations Guide](development/FILE_OPERATIONS_GUIDE.md) - File handling best practices
-- [Debug Procedures](development/DEBUG_PROCEDURES.md) - Debugging tips and procedures
-- [Development Plan](development/development-plan.md) - Project development roadmap
-- [Current State](development/CURRENT_STATE.md) - Current implementation status
-- [Base Service Pattern](development/BASE_SERVICE_PATTERN.md) - Service layer patterns
-- [Startup Performance](development/STARTUP_PERFORMANCE_ANALYSIS.md) - Performance analysis
-- [Todos](development/todos.md) - Development todos and tasks
-- [Root Todos](development/root-todos.md) - Project-level todos
-
-### 🧪 Testing
-**Location:** [`testing/`](testing/)
-
-Testing documentation, guides, and test infrastructure.
-
-- [Testing Guide](testing/TESTING_GUIDE.md) - Complete testing guide
-- [E2E Architecture](testing/E2E_ARCHITECTURE.md) - End-to-end test architecture
-- [E2E Testing Quick Reference](testing/E2E_TESTING_QUICKREF.md) - Quick E2E testing guide
-- [Coverage Report Guide](testing/COVERAGE_REPORT_GUIDE.md) - Code coverage analysis
-- [Automated Job Creation Testing](testing/automated-job-creation-testing.md) - Job automation tests
-- [Playwright Setup](testing/PLAYWRIGHT_SETUP_COMPLETE.md) - Playwright configuration
-- [E2E Test Analysis](testing/E2E_TEST_ANALYSIS.md) - E2E test analysis
-- [E2E Test Failures Analysis](testing/E2E_TEST_FAILURES_ANALYSIS.md) - Failure analysis
-
-### 🚀 Deployment
-**Location:** [`deployment/`](deployment/)
-
-Deployment guides for various platforms.
-
-- [Production Deployment](deployment/PRODUCTION_DEPLOYMENT.md) - Production deployment guide
-- [GitHub Releases Setup](deployment/GITHUB_RELEASES_SETUP.md) - Release automation setup
-
-### ✨ Features
-**Location:** [`features/`](features/)
-
-Feature documentation and implementation details.
-
-- [Auto Download System](features/AUTO_DOWNLOAD_SYSTEM.md) - Automatic file download system
-- [Preview Rendering](features/PREVIEW_RENDERING.md) - 3D preview rendering
-- [Thumbnails](features/THUMBNAILS.md) - Thumbnail generation
-- [Bambu Thumbnails](features/bambu-thumbnails.md) - Bambu Lab thumbnail support
-- [G-code Optimization](features/GCODE_OPTIMIZATION.md) - G-code optimization features
-- [Printer Feature Comparison](features/PRINTER_FEATURE_COMPARISON.md) - Printer capabilities
-- [Trending Models Workflow](features/trending-models-workflow.md) - Trending models feature
-- [Enhanced 3D Model Metadata](features/ENHANCED_3D_MODEL_METADATA_TECHNICAL.md) - Metadata system
-- [Frontend Auto Reload](features/FRONTEND_AUTO_RELOAD.md) - Hot reload feature
-
-### 🔧 Fixes
-**Location:** [`fixes/`](fixes/)
-
-Bug fix documentation and analysis.
-
-- [Printer Autodiscovery Fix](fixes/PRINTER_AUTODISCOVERY_FIX.md) - Printer discovery fixes
-- [Prusa Download Bug](fixes/PRUSA_DOWNLOAD_BUG.md) - Prusa file download fixes
-- [Server Improvements](fixes/SERVER_IMPROVEMENTS.md) - Server optimization fixes
-- [Bambu Lab File Access Analysis](fixes/BAMBU_LAB_FILE_ACCESS_ANALYSIS.md) - File access fixes
-
-### 📊 Reports
-**Location:** [`reports/`](reports/)
-
-Analysis reports, audits, and test coverage reports.
-
-**Test Reports:**
-- [Test Coverage Analysis](reports/TEST_COVERAGE_ANALYSIS.md)
-- [Test Status Summary](reports/TEST_STATUS_SUMMARY.md)
-- [Test Coverage Implementation](reports/TEST_COVERAGE_IMPLEMENTATION_SUMMARY.md)
-- [CI/CD Test Comparison](reports/CI_CD_TEST_COMPARISON.md)
-- [CI/CD Test Coverage](reports/CI_CD_TEST_COVERAGE.md)
-- [API Tests Summary](reports/API_TESTS_SUMMARY.md)
-- [Integration Tests Summary](reports/INTEGRATION_TESTS_SUMMARY.md)
-- [Test Fix Plan](reports/TEST_FIX_PLAN.md)
-- [Test Fix Progress](reports/TEST_FIX_PROGRESS.md)
-- [Test Infrastructure Setup](reports/TEST_INFRASTRUCTURE_SETUP.md)
-- [Test Organization Analysis](reports/TEST_ORGANIZATION_ANALYSIS.md)
-
-**Code Analysis:**
-- [Circular Dependency Audit](reports/CIRCULAR_DEPENDENCY_AUDIT.md)
-- [Error Handling Audit](reports/ERROR_HANDLING_AUDIT.md)
-- [Exception Handling Audit](reports/EXCEPTION_HANDLING_AUDIT.md)
-- [Complex Logic Inventory](reports/COMPLEX_LOGIC_INVENTORY.md)
-
-**Refactoring Reports:**
-- [FileService Refactoring](reports/FILESERVICE_REFACTORING_SUMMARY.md)
-- [PrinterService Refactoring](reports/PRINTERSERVICE_REFACTORING_SUMMARY.md)
-- [Database Schema Validation](reports/DATABASE_SCHEMA_VALIDATION_REPORT.md)
-- [Frontend Buttons API Mapping](reports/FRONTEND_BUTTONS_API_MAPPING.md)
-
-**Enhancement Reports:**
-- [CI/CD Test Enhancement Summary](reports/CICD_TEST_ENHANCEMENT_SUMMARY.md)
-- [CI/CD Test Fix Plan](reports/CI_CD_TEST_FIX_PLAN.md)
-- [Branch Protection](reports/BRANCH_PROTECTION.md)
-- [Phase 2 Remaining Work](reports/PHASE2_REMAINING_WORK_PROMPT.md)
-
-**Test Fix Sessions:**
-- [Test Fix Session 1](reports/TEST_FIX_SESSION1_SUMMARY.md)
-- [Test Fix Session 2](reports/TEST_FIX_SESSION2_SUMMARY.md)
-- [Test Fix Session 3](reports/TEST_FIX_SESSION3_SUMMARY.md)
-- [Test Fix Session 4](reports/TEST_FIX_SESSION4_SUMMARY.md)
-
-### 📅 Plans
-**Location:** [`plans/`](plans/)
-
-Future feature plans and design documents.
-
-- [Timelapse Management Design](plans/2025-01-07-timelapse-management-design.md)
-- [Material Management Design](plans/2025-11-03-material-management-design.md)
-- [Cross-Site Search Design](plans/2025-11-06-cross-site-search-design.md)
-- [Material Integration Phase B](plans/material-integration-phase-b.md)
-- [Material NFC Phase C](plans/material-nfc-phase-c.md)
-
-### 🗄️ Archive
-**Location:** [`archive/`](archive/)
-
-Historical documentation and deprecated content.
-
-- [Project Structure](archive/PROJECT_STRUCTURE.md)
-- [Technical Debt Assessment](archive/TECHNICAL_DEBT_ASSESSMENT.md)
-- [Phase 2 Completion](archive/PHASE2_COMPLETION_SUMMARY.md)
-- [Phase 3 Prompt](archive/PHASE3_PROMPT.md)
-- [Frontend Implementation Plan](archive/FRONTEND_IMPLEMENTATION_PLAN.md)
-- See [archive/README.md](archive/README.md) for complete list
-
-### 🖼️ Images & Screenshots
-**Location:** [`images/`](images/), [`screenshots/`](screenshots/)
-
-Documentation images and UI screenshots.
+**Last Updated**: 2025-12-04
+**Files**: ~128 markdown files (reduced from 145)
+**Size**: ~3.5MB (reduced from 9.1MB)
 
 ---
 
-## 🔍 Quick Navigation
+## 📂 Directory Structure
 
-**New to the project?**
-1. Start with [README.md](../README.md) in project root
-2. Read [User Guide](user-guides/USER_GUIDE.md)
-3. Review [Architecture Overview](architecture/api_specification.md)
+### `/architecture/` - Architectural Documentation
+Historical architectural decisions, data models, algorithms, and event flows.
+- `data_models.md` - Database schema and model documentation
+- `ALGORITHMS.md` - Core algorithms and their implementations
+- `EVENT_FLOWS.md` - System event flow diagrams
+- **Status**: ⚠️ May be outdated - check `/docs/` for current architecture
 
-**Setting up development?**
-1. Check [Development Plan](development/development-plan.md)
-2. Review [Testing Guide](testing/TESTING_GUIDE.md)
-3. Read [Integration Patterns](development/integration_patterns.md)
+### `/plans/` - Feature Design Documents
+Detailed design documents for major features implemented in the system.
+- Material management design (2025-11-03)
+- Timelapse management design (2025-01-07)
+- Cross-site search design (2025-11-06)
+- **Status**: 📚 Historical record of feature planning and design decisions
 
-**Contributing?**
-1. See [CONTRIBUTING.md](../CONTRIBUTING.md)
-2. Review [Testing Guide](testing/TESTING_GUIDE.md)
-3. Check [Current State](development/CURRENT_STATE.md)
+### `/reports/` - Analysis and Assessment Reports
+Technical reports, audits, and analyses performed during development.
+- Test coverage analyses
+- Database schema validation
+- Error handling audits
+- Frontend-API mapping
+- **Status**: 📸 Point-in-time snapshots, useful for understanding historical context
 
-**Deploying?**
-1. Read [Production Deployment](deployment/PRODUCTION_DEPLOYMENT.md)
-2. Check [GitHub Releases Setup](deployment/GITHUB_RELEASES_SETUP.md)
-3. Review [Settings Reference](user-guides/SETTINGS_REFERENCE.md)
+### `/testing/` - Testing Documentation
+Documentation related to testing strategies, coverage, and E2E testing.
+- E2E testing architecture
+- Playwright setup guides
+- Testing strategies
+- **Status**: ⚠️ May reference outdated approaches - check current test documentation
+
+### `/development/` - Development Guides
+Integration patterns, development workflows, and technical guides.
+- Integration patterns
+- File operations guide
+- Debug procedures
+- **Status**: ⚠️ Verify current relevance before using
+
+### `/features/` - Feature Documentation
+Detailed documentation for specific implemented features.
+- Enhanced 3D model metadata
+- Auto-download system
+- Preview rendering
+- **Status**: 📚 Historical feature documentation - check current docs for updates
+
+### `/design/` - Design Documents
+Design specifications and planning documents.
+- Automated job creation design
+- Feature design docs
+- **Status**: 📚 Historical design records
+
+### `/fixes/` - Bug Fix Documentation
+Documentation of significant bug fixes and their solutions.
+- Bambu Lab file access issues
+- Prusa download bugs
+- Printer autodiscovery fixes
+- **Status**: 🔍 Reference for troubleshooting similar issues
+
+### `/deployment/` - Deployment Documentation
+Historical deployment guides and configurations.
+- **Status**: ⚠️ Likely outdated - see main deployment docs
+
+### `/user-guides/` - User Documentation Archive
+Archived user guides that have been superseded.
+- **Status**: ⚠️ Outdated - see main README.md for current user guides
+
+### `/future-features/` - Future Feature Ideas
+Aspirational features and proof-of-concept documentation.
+- Monitoring with Grafana
+- Backup strategies
+- Scaling considerations
+- **Status**: 💡 Ideas for future development (not implemented)
+
+### `/archive/` - Deep Archive
+Completed initiatives, old analyses, and superseded documentation.
+- **Subfolders**:
+  - `development/` - Development summaries, milestones, fixes
+  - `features/` - Completed feature documentation
+- **Status**: 🗄️ Least frequently accessed, deepest archive level
 
 ---
 
-## 📝 Documentation Standards
+## 🚫 What's NOT Here (Use These Instead)
 
-- Use clear, descriptive titles
-- Include table of contents for long documents
-- Add code examples where applicable
-- Keep documentation up-to-date with code changes
-- Link to related documents
-- Use relative links for internal references
+The following documentation is **actively maintained** in other locations:
+
+| Type | Location | Purpose |
+|------|----------|---------|
+| **Active Documentation** | `/docs/` | Current technical docs |
+| **User Guide** | `README.md` | Current user documentation |
+| **Development Guide** | `CONTRIBUTING.md` | Development workflow |
+| **Claude Code Guide** | `CLAUDE.md` | AI assistant guidance |
+| **Release Notes** | `CHANGELOG.md` | Version history |
+| **Deployment Docs** | `scripts/*/README.md` | Current deployment guides |
+| **API Docs** | Generated from code | Current API specs |
 
 ---
 
-**Last Updated:** 2025-11-15
+## 🧹 Cleanup History
+
+### 2025-12-04 - Major Archive Cleanup
+Removed obsolete files as part of [Repository Cleanup Plan](../REPO_CLEANUP_PLAN.md):
+
+**Removed:**
+- ✅ 3 large JSON files (4.7MB) - Raw analysis data
+- ✅ 3 large markdown analysis files (690KB) - One-time code analyses
+- ✅ 4 obsolete planning documents (98KB) - Superseded plans
+- ✅ 7 dated technical debt snapshots (163KB) - Completed initiative
+
+**Result:**
+- Files: 145 → 128 (17 files removed)
+- Size: 9.1MB → 3.5MB (5.5MB removed, 60% reduction)
+- ~206,000 lines of obsolete documentation removed
+
+**What Was Removed:**
+1. `function_analysis_raw.json` (3.7MB) - One-time function inventory
+2. `duplicate_analysis_raw.json` (796KB) - Duplicate detection analysis
+3. `usage_analysis_raw.json` (148KB) - Usage analysis data
+4. `01_function_inventory.md` (160KB) - Detailed function listing
+5. `02_dependency_analysis.md` (489KB) - Dependency analysis
+6. `04_duplicate_detection.md` (41KB) - Duplicate code analysis
+7. `PHASE3_PROMPT.md` (43KB) - Obsolete planning prompt
+8. `CODEBASE_CLEANUP_ANALYSIS.md` (20KB) - Superseded by current cleanup plan
+9. `TECHNICAL_DEBT_ASSESSMENT.md` (22KB) - Outdated assessment
+10. `TECHNICAL_DEBT_QUICK_REFERENCE.md` (16KB) - Outdated reference
+11. `technical-debt-2025-11-19/` (7 files, 163KB) - Completed initiative snapshot
+
+**Rationale:**
+- These were one-time analyses whose findings were incorporated into the codebase
+- Raw data files provided no historical value
+- Point-in-time snapshots from completed initiatives
+- All significant findings live in current code and documentation
+
+---
+
+## 📚 How to Use This Archive
+
+### ✅ Good Use Cases
+
+1. **Understanding Historical Context**
+   - Why was a feature designed a certain way?
+   - What problems led to specific architectural decisions?
+   - How has the project evolved over time?
+
+2. **Troubleshooting Similar Issues**
+   - Review fix documentation for similar bugs
+   - Learn from past problem-solving approaches
+   - Understand resolution strategies
+
+3. **Learning and Onboarding**
+   - Study past testing strategies
+   - Review architectural evolution
+   - Understand feature development process
+
+### ❌ What NOT to Do
+
+1. **Don't Treat as Current Documentation**
+   - Always check `/docs/` first for current info
+   - Archived docs may be outdated or superseded
+   - Verify against current codebase before using
+
+2. **Don't Use for Implementation Guidance**
+   - Code may have evolved since documentation was written
+   - Patterns may have been refactored or replaced
+   - Always refer to current codebase
+
+3. **Don't Reference in Active Development**
+   - Use current documentation for development
+   - Archive is for historical reference only
+
+---
+
+## 🔍 Finding Information
+
+### Step 1: Check Active Documentation First
+1. `README.md` - User-facing documentation
+2. `/docs/` - Current technical documentation
+3. `CONTRIBUTING.md` - Development workflow
+4. `CLAUDE.md` - Claude Code guidance
+
+### Step 2: If You Need Historical Context
+Then check archive for:
+- Original design decisions
+- Feature evolution
+- Historical approaches to problems
+- Completed initiative summaries
+
+### Step 3: Verify Against Current State
+- Check if documented approach is still used
+- Verify code hasn't changed significantly
+- Look for updates in current docs
+
+---
+
+## 🗂️ What Should Be Archived
+
+### ✅ Should Archive
+- Completed initiative summaries
+- Historical design decisions
+- Deprecated feature documentation
+- Outdated but historically valuable guides
+- Analysis reports that informed decisions
+- Bug fix documentation (for reference)
+
+### ❌ Should NOT Archive
+- Current development documentation
+- Active API specifications
+- Living design documents
+- Frequently updated guides
+- Raw data files with no context
+- Temporary analysis documents
+- Duplicate information available in git history
+
+---
+
+## 🧹 Maintenance Guidelines
+
+### Annual Review (Recommended)
+- Remove documents over 2 years old with no historical value
+- Consolidate similar documents
+- Update this README
+- Compress or delete very large files
+- Move truly obsolete docs to git history
+
+### Before Adding to Archive
+1. ✅ Is this document superseded by current docs?
+2. ✅ Does it provide historical value?
+3. ✅ Is the information unique (not just in git history)?
+4. ✅ Is it reasonably sized (<100KB)?
+
+### Deletion Criteria
+Consider deleting when:
+- Document is over 2 years old AND has no historical value
+- Content is fully duplicated in git history
+- Information is incorrect or was reversed
+- No one has referenced it in 6+ months
+- Raw data files without accompanying analysis
+
+---
+
+## 📊 Archive Statistics
+
+- **Total Files**: ~128 markdown files
+- **Total Size**: ~3.5MB
+- **Largest Categories**:
+  - Reports: ~30 files
+  - Testing: ~9 files
+  - Architecture: ~6 files
+- **Oldest Documents**: 2025-01-07 (Timelapse design)
+- **Newest Documents**: 2025-11-15 (Various reports)
+
+---
+
+## 📝 Git History Note
+
+Remember that ALL deleted files remain in git history:
+- Use `git log --all --full-history -- <path>` to find deleted files
+- Deleted docs can always be recovered if needed
+- No information is permanently lost
+
+To recover a deleted file:
+```bash
+# Find the commit where file was deleted
+git log --all --full-history -- docs-archive/path/to/file.md
+
+# Restore from the commit before deletion
+git checkout <commit-hash>~1 -- docs-archive/path/to/file.md
+```
+
+---
+
+## 🔗 Related Documentation
+
+- [Repository Cleanup Plan](../REPO_CLEANUP_PLAN.md) - Full cleanup initiative
+- [Contributing Guide](../CONTRIBUTING.md) - Development workflow
+- [Active Documentation](../docs/) - Current technical docs
+- [User Guide](../README.md) - Current user documentation
+
+---
+
+**Status Legend**:
+- 📚 Historical reference - safe to read, may be outdated
+- ⚠️ Verify before use - may be outdated or superseded
+- 🔍 Useful reference - good for troubleshooting
+- 💡 Future ideas - not implemented
+- 🗄️ Deep archive - rarely accessed
+- 📸 Point-in-time - historical snapshot
+
+---
+
+*This archive is maintained as part of the Printernizer project's documentation strategy. For questions about archived content, check git blame or commit history for context.*

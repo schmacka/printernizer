@@ -142,6 +142,7 @@ backend_pid.txt
 # Camera test files with credentials
 test_camera_connection*.py
 test_snapshot.jpg
+test_*.jpg
 
 # Temporary test scripts in scripts/ folder
 scripts/test_*.py

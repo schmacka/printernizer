@@ -12,7 +12,7 @@ import asyncio
 import structlog
 
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
-from src.utils.exceptions import PrinterConnectionError
+from src.utils.errors import PrinterConnectionError
 from src.constants import MonitoringConstants
 
 logger = structlog.get_logger()

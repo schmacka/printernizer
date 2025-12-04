@@ -11,7 +11,7 @@ import structlog
 
 from src.services.event_service import EventService
 from src.printers import BasePrinter
-from src.utils.exceptions import PrinterConnectionError, NotFoundError
+from src.utils.errors import PrinterConnectionError, NotFoundError
 
 logger = structlog.get_logger()
 

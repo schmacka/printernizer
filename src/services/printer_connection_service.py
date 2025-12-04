@@ -17,7 +17,7 @@ from src.database.repositories import PrinterRepository
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
 from src.printers import BambuLabPrinter, PrusaPrinter, BasePrinter
-from src.utils.exceptions import PrinterConnectionError, NotFoundError
+from src.utils.errors import PrinterConnectionError, NotFoundError
 
 logger = structlog.get_logger()
 

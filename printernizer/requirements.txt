@@ -2,9 +2,9 @@
 # Requirements for Milestone 1.2: Printer API Integration
 
 # Core Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-pydantic>=2.9.0
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic>=2.10.0
 pydantic-settings>=2.6.0
 
 # WebSocket Support for Real-time Updates
@@ -14,8 +14,9 @@ websockets==12.0
 aiosqlite==0.19.0
 
 # HTTP Client for Prusa API
-aiohttp>=3.10.0
-requests==2.32.4
+aiohttp>=3.11.0
+requests==2.32.5
+Brotli>=1.1.0  # Brotli compression support for aiohttp
 
 # MQTT Client for Bambu Lab Integration
 paho-mqtt>=2.0.0
@@ -38,7 +39,6 @@ prometheus-client==0.19.0
 
 # Configuration Management
 python-dotenv==1.0.0
-pathlib2==2.3.7
 
 # Date and Time Handling
 python-dateutil==2.8.2
@@ -46,9 +46,8 @@ python-dateutil==2.8.2
 # German Business Support
 pytz==2023.3
 
-# Connection Pooling and Retry Logic
+# Retry Logic
 retry==0.9.2
-connection-pool==0.0.3
 
 # Performance Monitoring
 psutil==5.9.6
@@ -60,7 +59,7 @@ httpx==0.25.2
 pytest-mock==3.12.0
 
 # Production Server
-gunicorn==22.0.0
+gunicorn==23.0.0
 
 # File Processing and Validation
 # magic==0.4.27
@@ -71,6 +70,7 @@ trimesh>=4.0.5
 numpy-stl>=3.0.1
 matplotlib>=3.8.2
 scipy>=1.11.0
+networkx>=3.0  # Required by trimesh for 3MF mesh processing
 
 # Security Headers and Middleware
 python-multipart==0.0.18
@@ -80,4 +80,4 @@ python-multipart==0.0.18
 beautifulsoup4==4.12.2
 
 # Image Processing for Thumbnails (Ideas feature)
-Pillow>=10.0.0
+Pillow>=10.4.0

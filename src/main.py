@@ -68,7 +68,7 @@ from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.services.timelapse_service import TimelapseService
 from src.utils.logging_config import setup_logging
-from src.utils.exceptions import PrinternizerException
+from src.utils.errors import PrinternizerException
 from src.utils.errors import (
     PrinternizerError,
     printernizer_exception_handler as new_printernizer_exception_handler,
