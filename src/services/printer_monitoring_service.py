@@ -17,7 +17,7 @@ from src.database.repositories import PrinterRepository
 from src.services.event_service import EventService
 from src.models.printer import PrinterStatus, PrinterStatusUpdate
 from src.printers import BasePrinter
-from src.utils.exceptions import NotFoundError
+from src.utils.errors import NotFoundError
 
 logger = structlog.get_logger()
 

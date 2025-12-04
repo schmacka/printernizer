@@ -641,6 +641,106 @@ class NotFoundError(PrinternizerError):
         )
 
 
+class DatabaseError(PrinternizerError):
+    """Database operation failed."""
+
+    def __init__(self, operation: str, reason: str, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize DatabaseError.
+
+        Args:
+            operation: Database operation that failed
+            reason: Failure reason
+            details: Additional context
+        """
+        error_details = {"operation": operation, "reason": reason}
+        if details:
+            error_details.update(details)
+
+        super().__init__(
+            message=f"Database {operation} failed: {reason}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=error_details
+        )
+
+
+class FileOperationError(PrinternizerError):
+    """File system operation failed."""
+
+    def __init__(self, operation: str, filename: str, reason: str, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize FileOperationError.
+
+        Args:
+            operation: File operation that failed (read, write, delete, etc.)
+            filename: Name or path of the file
+            reason: Failure reason
+            details: Additional context
+        """
+        error_details = {
+            "operation": operation,
+            "filename": filename,
+            "reason": reason
+        }
+        if details:
+            error_details.update(details)
+
+        super().__init__(
+            message=f"File {operation} failed for '{filename}': {reason}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            details=error_details
+        )
+
+
+class AuthenticationError(PrinternizerError):
+    """Authentication failed."""
+
+    def __init__(self, reason: str = "Authentication failed", details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize AuthenticationError.
+
+        Args:
+            reason: Authentication failure reason
+            details: Additional context
+        """
+        super().__init__(
+            message=reason,
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            details=details or {}
+        )
+
+
+class AuthorizationError(PrinternizerError):
+    """Authorization failed (insufficient permissions)."""
+
+    def __init__(self, resource: str, action: str, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize AuthorizationError.
+
+        Args:
+            resource: Resource user tried to access
+            action: Action user tried to perform
+            details: Additional context
+        """
+        error_details = {"resource": resource, "action": action}
+        if details:
+            error_details.update(details)
+
+        super().__init__(
+            message=f"Insufficient permissions to {action} {resource}",
+            status_code=status.HTTP_403_FORBIDDEN,
+            details=error_details
+        )
+
+
+# =============================================================================
+# Backward Compatibility Aliases
+# =============================================================================
+
+# Alias for code using the old base class name
+PrinternizerException = PrinternizerError
+
+
 # =============================================================================
 # Response Helper Functions
 # =============================================================================

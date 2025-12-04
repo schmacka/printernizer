@@ -10,7 +10,8 @@ from pathlib import Path
 import json
 
 from src.config.constants import PollingIntervals
-from src.utils.error_handling import error_handler, ErrorSeverity
+# NOTE: error_handler functionality temporarily disabled during error handling consolidation
+# from src.utils.error_handling import error_handler, ErrorSeverity
 from src.utils.config import get_settings
 
 logger = structlog.get_logger()
@@ -81,9 +82,12 @@ class MonitoringService:
     
     async def _check_error_rates(self):
         """Check error rates and trigger alerts if necessary."""
+        # NOTE: Error rate monitoring temporarily disabled during error handling consolidation
+        return
+
         try:
             # Get error statistics for the last hour
-            stats = error_handler.get_error_statistics(hours=1)
+            # stats = error_handler.get_error_statistics(hours=1)
             thresholds = self.monitoring_config["error_threshold"]
             
             # Check critical errors
@@ -319,7 +323,8 @@ class MonitoringService:
         """Get current monitoring status."""
         try:
             # Get recent error statistics
-            error_stats = error_handler.get_error_statistics(hours=24)
+            # NOTE: Error stats temporarily disabled during error handling consolidation
+            error_stats = {}
             
             # Get recent alerts
             alert_file = Path("data/logs/alerts.jsonl")
