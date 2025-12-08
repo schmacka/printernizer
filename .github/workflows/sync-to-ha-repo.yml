@@ -18,7 +18,6 @@ on:
       - 'src/**'
       - 'frontend/**'
       - 'migrations/**'
-      - 'database_schema.sql'
       - 'requirements.txt'
       - 'CHANGELOG.md'
       - '.github/workflows/sync-to-ha-repo.yml'
@@ -76,13 +75,12 @@ jobs:
 
           # Remove old synced content (but keep HA-specific files)
           rm -rf ha-repo/src ha-repo/frontend ha-repo/migrations
-          rm -f ha-repo/database_schema.sql ha-repo/requirements.txt
+          rm -f ha-repo/requirements.txt
 
           # Copy fresh content from main repo
           cp -r src/ ha-repo/src/
           cp -r frontend/ ha-repo/frontend/
           cp -r migrations/ ha-repo/migrations/
-          cp database_schema.sql ha-repo/
           cp requirements.txt ha-repo/
           cp CHANGELOG.md ha-repo/
 
@@ -200,7 +198,6 @@ jobs:
           echo "- ✅ src/ (complete directory)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ frontend/ (complete directory)" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ migrations/ (complete directory)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ database_schema.sql" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ requirements.txt" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
