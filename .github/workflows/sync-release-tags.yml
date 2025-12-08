@@ -1,0 +1,101 @@
+name: Sync Release Tags to HA Repository
+
+# This workflow automatically creates matching release tags in the printernizer-ha
+# repository when a release tag is created in the main printernizer repository.
+#
+# This ensures version-specific HA add-on releases match the main application releases.
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v2.8.4, v2.9.0)
+
+jobs:
+  sync-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"  # Remove 'v' prefix
+
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Processing tag: $TAG_NAME (version: $VERSION)"
+
+      - name: Checkout printernizer-ha repository
+        uses: actions/checkout@v4
+        with:
+          repository: schmacka/printernizer-ha
+          token: ${{ secrets.HA_REPO_TOKEN }}
+          ref: master  # Always tag from master branch
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Tag ${{ steps.version.outputs.tag }} already exists in printernizer-ha"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✅ Tag ${{ steps.version.outputs.tag }} does not exist, will create"
+          fi
+
+      - name: Create and push tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          TAG_NAME="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Create annotated tag
+          git tag -a "$TAG_NAME" -m "Release $TAG_NAME
+
+Synchronized from printernizer repository
+Main repo tag: $TAG_NAME
+Source commit: ${{ github.sha }}
+
+This is an automated release tag created by GitHub Actions.
+See CHANGELOG.md for release notes.
+
+🤖 Automated tag creation"
+
+          # Push tag to HA repo
+          git push origin "$TAG_NAME"
+
+          echo "✅ Tag $TAG_NAME created and pushed to printernizer-ha"
+
+      - name: Create summary
+        run: |
+          if [ "${{ steps.check_tag.outputs.exists }}" == "false" ]; then
+            echo "## ✅ Release Tag Synchronized" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Tag**: \`${{ steps.version.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Target Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
+            echo "**Source Commit**: \`${GITHUB_SHA:0:7}\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The release tag has been successfully created in the printernizer-ha repository." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Verify HA add-on builds correctly from tag" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Test installation from tagged version" >> $GITHUB_STEP_SUMMARY
+            echo "- [ ] Update Home Assistant add-on store (if applicable)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ℹ️ Tag Already Exists" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Tag**: \`${{ steps.version.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "**Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The tag already exists in the printernizer-ha repository. No action taken." >> $GITHUB_STEP_SUMMARY
+          fi
