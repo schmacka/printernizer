@@ -167,17 +167,15 @@ jobs:
           SHORT_SHA="${GITHUB_SHA:0:7}"
 
           # Create commit message
-          git commit -m "$(cat <<EOF
-chore: Auto-sync from printernizer@${SHORT_SHA} (${BRANCH_INFO})
+          COMMIT_MSG="chore: Auto-sync from printernizer@${SHORT_SHA} (${BRANCH_INFO})
 
-Synced version: ${VERSION}
-Source commit: ${GITHUB_SHA}
-Source branch: ${{ github.ref_name }}
-Triggered by: ${{ github.actor }}
+          Synced version: ${VERSION}
+          Source commit: ${GITHUB_SHA}
+          Source branch: ${{ github.ref_name }}
+          Triggered by: ${{ github.actor }}
 
-🤖 Automated sync via GitHub Actions
-EOF
-)"
+          Automated sync via GitHub Actions"
+          git commit -m "$COMMIT_MSG"
 
           # Push to HA repo
           git push origin ${{ github.ref_name }}
