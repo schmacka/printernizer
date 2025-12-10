@@ -73,27 +73,28 @@ jobs:
         run: |
           TAG_NAME="${{ steps.version.outputs.tag }}"
           VERSION="${{ steps.version.outputs.version }}"
+          SOURCE_COMMIT="${{ github.sha }}"
 
-          # Create annotated tag with multi-line message
-          cat > /tmp/tag_message.txt << 'EOF'
+          # Create multi-line tag message
+          cat > /tmp/tag_msg.txt <<'TAGMSG'
           Release $TAG_NAME
-
+          
           Synchronized from printernizer repository
           Main repo tag: $TAG_NAME
-          Source commit: ${{ github.sha }}
-
+          Source commit: $SOURCE_COMMIT
+          
           This is an automated release tag created by GitHub Actions.
           See CHANGELOG.md for release notes.
-
+          
           🤖 Automated tag creation
-          EOF
+          TAGMSG
           
-          # Replace variables in message
-          sed -i "s/\$TAG_NAME/$TAG_NAME/g" /tmp/tag_message.txt
-          sed -i "s/\${{ github.sha }}/${{ github.sha }}/g" /tmp/tag_message.txt
-          
-          # Create the tag
-          git tag -a "$TAG_NAME" -F /tmp/tag_message.txt
+          # Substitute variables in the message
+          sed -i "s/\$TAG_NAME/$TAG_NAME/g" /tmp/tag_msg.txt
+          sed -i "s/\$SOURCE_COMMIT/$SOURCE_COMMIT/g" /tmp/tag_msg.txt
+
+          # Create annotated tag
+          git tag -a "$TAG_NAME" -F /tmp/tag_msg.txt
 
           # Push tag to HA repo
           git push origin "$TAG_NAME"
