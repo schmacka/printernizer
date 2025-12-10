@@ -73,16 +73,19 @@ jobs:
         run: |
           echo "Syncing files from printernizer to printernizer-ha..."
 
-          # Remove old synced content (but keep HA-specific files)
-          rm -rf ha-repo/src ha-repo/frontend ha-repo/migrations
-          rm -f ha-repo/requirements.txt
+          # Ensure add-on subdirectory exists
+          mkdir -p ha-repo/printernizer
 
-          # Copy fresh content from main repo
-          cp -r src/ ha-repo/src/
-          cp -r frontend/ ha-repo/frontend/
-          cp -r migrations/ ha-repo/migrations/
-          cp requirements.txt ha-repo/
-          cp CHANGELOG.md ha-repo/
+          # Remove old synced content (but keep HA-specific files)
+          rm -rf ha-repo/printernizer/src ha-repo/printernizer/frontend ha-repo/printernizer/migrations
+          rm -f ha-repo/printernizer/requirements.txt
+
+          # Copy fresh content from main repo to add-on subdirectory
+          cp -r src/ ha-repo/printernizer/src/
+          cp -r frontend/ ha-repo/printernizer/frontend/
+          cp -r migrations/ ha-repo/printernizer/migrations/
+          cp requirements.txt ha-repo/printernizer/
+          cp CHANGELOG.md ha-repo/printernizer/
 
           echo "✅ Files synchronized successfully"
 
@@ -105,8 +108,8 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
-          # Update version in config.yaml
-          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/config.yaml
+          # Update version in config.yaml (in add-on subdirectory)
+          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/printernizer/config.yaml
 
           echo "✅ Updated config.yaml version to: $VERSION"
 
@@ -116,8 +119,8 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DEV_VERSION="${VERSION}-dev"
 
-          # Update version in config.yaml with -dev suffix
-          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/config.yaml
+          # Update version in config.yaml with -dev suffix (in add-on subdirectory)
+          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/printernizer/config.yaml
 
           echo "✅ Updated config.yaml version to: $DEV_VERSION"
 
