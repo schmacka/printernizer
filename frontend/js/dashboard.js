@@ -801,7 +801,6 @@ class Dashboard {
         if (index < 0 || index >= this.carouselFiles.length) return;
         this.currentCarouselIndex = index;
         this.updateCarouselDisplay();
-        
         // Reset auto-rotation timer
         this.startCarouselRotation();
     }
@@ -817,8 +816,11 @@ class Dashboard {
         const slideWidth = 100; // percentage
         track.style.transform = `translateX(-${this.currentCarouselIndex * slideWidth}%)`;
 
-        // Update indicators
-        const indicators = document.querySelectorAll('.carousel-indicator');
+        // Update indicators - scope to the carousel container
+        const carouselContainer = track.closest('.printed-files-carousel');
+        if (!carouselContainer) return;
+        
+        const indicators = carouselContainer.querySelectorAll('.carousel-indicator');
         indicators.forEach((indicator, index) => {
             if (index === this.currentCarouselIndex) {
                 indicator.classList.add('active');
