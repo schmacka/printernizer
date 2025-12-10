@@ -214,11 +214,14 @@ git clone https://github.com/schmacka/printernizer.git
 cd printernizer
 
 # Create virtual environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Configure for local development (required - see note below)
+cp src/.env.development src/.env
 
 # Run the application
 ./run.sh  # On Windows: run.bat
@@ -227,6 +230,12 @@ pip install -r requirements.txt
 # Web Interface: http://localhost:8000
 # API Docs: http://localhost:8000/docs
 ```
+
+> **Note:** The `.env` file is required for local development. The default configuration uses Docker/Home Assistant paths (`/data/printernizer/`) which won't work on a standard Linux system. The `src/.env.development` template provides working local paths.
+
+**Troubleshooting:**
+- If you get "permission denied" on `run.sh`, run: `chmod +x run.sh`
+- If you get "python: command not found", ensure your virtual environment is activated
 
 For detailed installation instructions, see the [**Installation Guide**](https://schmacka.github.io/printernizer/getting-started/installation/).
 

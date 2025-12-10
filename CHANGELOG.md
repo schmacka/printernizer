@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.8] - 2025-12-10
+
+### Fixed
+- **Installation Instructions**: Fixed Python standalone installation (Option 4) in README
+  - Changed `python` to `python3` for Linux compatibility
+  - Added required `.env` configuration step for local development
+  - Created `src/.env.development` template with working local paths
+  - Added troubleshooting tips for common issues (chmod, venv activation)
+  - Updated `.env.example` header to clarify it's for Docker/HA deployments
+
 ## [2.8.7] - 2025-12-10
 
 ### Changed
