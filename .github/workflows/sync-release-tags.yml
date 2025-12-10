@@ -17,7 +17,21 @@ jobs:
       contents: read
 
     steps:
+      - name: Validate trigger is a tag push
+        id: validate
+        run: |
+          if [[ ! "$GITHUB_REF" =~ ^refs/tags/ ]]; then
+            echo "⚠️ This workflow should only run on tag pushes (refs/tags/*)"
+            echo "Current ref: $GITHUB_REF"
+            echo "Skipping workflow execution."
+            echo "is_tag=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "✅ Valid tag push detected: $GITHUB_REF"
+          echo "is_tag=true" >> $GITHUB_OUTPUT
+
       - name: Extract version from tag
+        if: steps.validate.outputs.is_tag == 'true'
         id: version
         run: |
           TAG_NAME="${GITHUB_REF#refs/tags/}"
@@ -28,6 +42,7 @@ jobs:
           echo "📦 Processing tag: $TAG_NAME (version: $VERSION)"
 
       - name: Checkout printernizer-ha repository
+        if: steps.validate.outputs.is_tag == 'true'
         uses: actions/checkout@v4
         with:
           repository: schmacka/printernizer-ha
@@ -36,11 +51,13 @@ jobs:
           fetch-depth: 0
 
       - name: Configure Git
+        if: steps.validate.outputs.is_tag == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Check if tag already exists
+        if: steps.validate.outputs.is_tag == 'true'
         id: check_tag
         run: |
           if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
@@ -52,22 +69,31 @@ jobs:
           fi
 
       - name: Create and push tag
-        if: steps.check_tag.outputs.exists == 'false'
+        if: steps.validate.outputs.is_tag == 'true' && steps.check_tag.outputs.exists == 'false'
         run: |
           TAG_NAME="${{ steps.version.outputs.tag }}"
           VERSION="${{ steps.version.outputs.version }}"
 
-          # Create annotated tag
-          git tag -a "$TAG_NAME" -m "Release $TAG_NAME
+          # Create annotated tag with multi-line message
+          cat > /tmp/tag_message.txt << 'EOF'
+          Release $TAG_NAME
 
-Synchronized from printernizer repository
-Main repo tag: $TAG_NAME
-Source commit: ${{ github.sha }}
+          Synchronized from printernizer repository
+          Main repo tag: $TAG_NAME
+          Source commit: ${{ github.sha }}
 
-This is an automated release tag created by GitHub Actions.
-See CHANGELOG.md for release notes.
+          This is an automated release tag created by GitHub Actions.
+          See CHANGELOG.md for release notes.
 
-🤖 Automated tag creation"
+          🤖 Automated tag creation
+          EOF
+          
+          # Replace variables in message
+          sed -i "s/\$TAG_NAME/$TAG_NAME/g" /tmp/tag_message.txt
+          sed -i "s/\${{ github.sha }}/${{ github.sha }}/g" /tmp/tag_message.txt
+          
+          # Create the tag
+          git tag -a "$TAG_NAME" -F /tmp/tag_message.txt
 
           # Push tag to HA repo
           git push origin "$TAG_NAME"
@@ -75,6 +101,7 @@ See CHANGELOG.md for release notes.
           echo "✅ Tag $TAG_NAME created and pushed to printernizer-ha"
 
       - name: Create summary
+        if: steps.validate.outputs.is_tag == 'true'
         run: |
           if [ "${{ steps.check_tag.outputs.exists }}" == "false" ]; then
             echo "## ✅ Release Tag Synchronized" >> $GITHUB_STEP_SUMMARY
