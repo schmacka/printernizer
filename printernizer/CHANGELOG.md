@@ -1,3 +1,13 @@
+## [2.8.8] - 2025-12-10
+
+- Fix sync-release-tags workflow to succeed on non-tag pushes
+- Initial plan
+- Address code review feedback on sync-release-tags workflow
+- Fix sync-release-tags workflow to skip non-tag pushes
+- Initial plan
+- Fix Docker multi-platform build QEMU emulation issues
+- Initial plan
+
 ## [2.8.6] - 2025-12-10
 
 - fix: Update sync workflow for new HA add-on subdirectory structure
