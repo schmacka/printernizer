@@ -1,3 +1,9 @@
+## [2.8.6] - 2025-12-10
+
+- fix: Update sync workflow for new HA add-on subdirectory structure
+- fix: Remove non-existent database_schema.sql from HA sync workflow
+- fix: Fix YAML syntax error in heredoc for HA sync workflow
+
 ## [2.8.4] - 2025-12-02
 
 - feat: Implement animated thumbnail hover feature for 3D model files
