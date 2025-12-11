@@ -1,3 +1,9 @@
+## [2.8.15] - 2025-12-11
+
+- Improve library file type handling and preview generation
+- Bump version to 2.9.0
+- Fix animated preview generation by setting matplotlib to Agg backend
+
 ## [2.8.14] - 2025-12-11
 
 - Bump version to 2.9.0

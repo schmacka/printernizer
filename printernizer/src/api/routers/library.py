@@ -688,10 +688,11 @@ async def get_library_file_animated_thumbnail(
     file_path = library_service.library_path / library_path
 
     # Only support animated previews for STL and 3MF files
-    # File types in database include the dot prefix (e.g., '.stl', '.3mf')
-    if file_type.lower() not in ['.stl', '.3mf']:
+    # File types in database may or may not have leading dot
+    file_type_normalized = file_type.lower().lstrip('.')
+    if file_type_normalized not in ['stl', '3mf']:
         raise FileProcessingError(
-            filename=checksum[:16],
+            file_id=checksum[:16],
             operation="generate_animated_thumbnail",
             reason=f"Animated thumbnails not supported for {file_type} files"
         )
@@ -709,7 +710,7 @@ async def get_library_file_animated_thumbnail(
 
         if not gif_bytes:
             raise FileProcessingError(
-                filename=checksum[:16],
+                file_id=checksum[:16],
                 operation="generate_animated_thumbnail",
                 reason="Failed to generate animated preview"
             )

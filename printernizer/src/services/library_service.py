@@ -905,7 +905,7 @@ class LibraryService:
             # Extract metadata using appropriate parser for file type
             metadata_fields = {}
 
-            if file_type in ['.3mf', '.gcode', '.bgcode', '.stl']:
+            if file_type in ['3mf', 'gcode', 'bgcode', 'stl']:
                 try:
                     # Parse file for metadata and thumbnails
                     parse_result = await self.bambu_parser.parse_file(str(library_path))
@@ -921,13 +921,30 @@ class LibraryService:
                                    checksum=checksum[:16],
                                    fields_extracted=len(metadata_fields),
                                    has_thumbnail=metadata_fields.get('has_thumbnail', 0) == 1)
+
+                        # Generate animated preview in background for 3D files with embedded thumbnails
+                        if file_type in ['3mf'] and metadata_fields.get('has_thumbnail', 0) == 1:
+                            try:
+                                asyncio.create_task(
+                                    self.preview_service.get_or_generate_animated_preview(
+                                        str(library_path),
+                                        file_type,
+                                        size=(200, 200)
+                                    )
+                                )
+                                logger.debug("Started animated preview generation for 3MF in background",
+                                           checksum=checksum[:16])
+                            except Exception as e:
+                                logger.warning("Failed to start animated preview generation for 3MF",
+                                             checksum=checksum[:16],
+                                             error=str(e))
                     else:
                         logger.warning("File parser extraction failed",
                                      checksum=checksum[:16],
                                      error=parse_result.get('error'))
 
                     # For STL files, also extract geometric metadata using STL analyzer
-                    if file_type == '.stl':
+                    if file_type == 'stl':
                         try:
                             stl_result = await self.stl_analyzer.analyze_file(library_path)
 
@@ -977,6 +994,23 @@ class LibraryService:
                                 logger.info("Preview thumbnail generated successfully",
                                           checksum=checksum[:16],
                                           size_bytes=len(thumbnail_bytes))
+
+                                # Also generate animated preview in the background for 3D files
+                                if file_type_clean.lower() in ['stl', '3mf']:
+                                    try:
+                                        asyncio.create_task(
+                                            self.preview_service.get_or_generate_animated_preview(
+                                                str(library_path),
+                                                file_type_clean,
+                                                size=(200, 200)
+                                            )
+                                        )
+                                        logger.debug("Started animated preview generation in background",
+                                                   checksum=checksum[:16])
+                                    except Exception as e:
+                                        logger.warning("Failed to start animated preview generation",
+                                                     checksum=checksum[:16],
+                                                     error=str(e))
                             else:
                                 logger.warning("Preview thumbnail generation returned no data",
                                              checksum=checksum[:16])

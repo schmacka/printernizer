@@ -358,7 +358,10 @@ class Database:
             """)
 
             # Library statistics view - auto-calculated from library_files
-            # Drop old table if it exists (from previous versions)
+            # Drop old table/view if it exists (from previous versions)
+            # First try to drop as VIEW (in case it was created as VIEW)
+            await cursor.execute("DROP VIEW IF EXISTS library_stats")
+            # Then try to drop as TABLE (in case it was created as TABLE in old versions)
             await cursor.execute("DROP TABLE IF EXISTS library_stats")
             
             # Create as VIEW for auto-updating statistics
