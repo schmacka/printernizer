@@ -50,11 +50,10 @@ Feature branch → development (PR) → Docker test → master (PR) → Tag for 
 
 ### ⚠️ Code Synchronization - READ THIS FIRST
 
-**NEVER EDIT FILES IN `/printernizer/src/` OR `/printernizer/frontend/` DIRECTLY**
+**Home Assistant Add-on**: Maintained in separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository
 
-- **Single Source of Truth**: `/src/` and `/frontend/`
-- **Auto-synced copy**: `/printernizer/src/` and `/printernizer/frontend/`
-- Pre-commit hook automatically syncs changes
+- **Single Source of Truth**: `/src/` and `/frontend/` in this repository
+- **Automatic Sync**: GitHub Actions workflow syncs to printernizer-ha on push
 - See [Development Workflow](.claude/skills/printernizer-development-workflow.md) for details
 
 ### Version Management
@@ -248,4 +247,4 @@ This application has `redirect_slashes=False` configured in FastAPI to prevent c
 
 ---
 
-**Remember**: Always edit in `/src/` and `/frontend/`, never in `/printernizer/src/` or `/printernizer/frontend/`!
+**Remember**: Always edit in `/src/` and `/frontend/` in this repository. The Home Assistant add-on is automatically synced to the [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository!

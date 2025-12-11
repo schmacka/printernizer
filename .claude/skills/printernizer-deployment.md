@@ -115,12 +115,9 @@ else:
 - **`master`** - Used for production (HA add-on, Raspberry Pi, production Docker)
 
 **Automated Sync to Home Assistant Add-on**:
-- `/printernizer/src/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
-- `/printernizer/frontend/` - Auto-synced copy (DO NOT EDIT DIRECTLY)
-- Synchronization happens automatically via:
-  1. **Git pre-commit hook** - Auto-syncs when you commit changes
-  2. **GitHub Actions CI/CD** - Validates sync on push to `master` or `development`
-  3. **Manual script** - Run sync script when needed
+- Home Assistant add-on maintained in separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository
+- Synchronization happens automatically via GitHub Actions workflow `sync-to-ha-repo.yml`
+- Push to `master` or `development` branch triggers automatic sync
 - **Version bumping**: Only happens on `master` branch (not `development`)
 
 **Deployment-specific Files**:
