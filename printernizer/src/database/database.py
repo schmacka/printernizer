@@ -357,24 +357,25 @@ class Database:
                 )
             """)
 
-            # Library statistics table
+            # Library statistics view - auto-calculated from library_files
+            # Drop old table if it exists (from previous versions)
+            await cursor.execute("DROP TABLE IF EXISTS library_stats")
+            
+            # Create as VIEW for auto-updating statistics
             await cursor.execute("""
-                CREATE TABLE IF NOT EXISTS library_stats (
-                    id INTEGER PRIMARY KEY CHECK (id = 1), -- Singleton table
-                    total_files INTEGER DEFAULT 0,
-                    total_size INTEGER DEFAULT 0,
-                    unique_files INTEGER DEFAULT 0,
-                    duplicate_files INTEGER DEFAULT 0,
-                    files_with_thumbnails INTEGER DEFAULT 0,
-                    files_analyzed INTEGER DEFAULT 0,
-                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            # Insert default stats record
-            await cursor.execute("""
-                INSERT OR IGNORE INTO library_stats (id, total_files, total_size, unique_files, duplicate_files)
-                VALUES (1, 0, 0, 0, 0)
+                CREATE VIEW IF NOT EXISTS library_stats AS
+                SELECT
+                    COUNT(*) as total_files,
+                    COALESCE(SUM(file_size), 0) as total_size,
+                    COUNT(CASE WHEN has_thumbnail = 1 THEN 1 END) as files_with_thumbnails,
+                    COUNT(CASE WHEN last_analyzed IS NOT NULL THEN 1 END) as files_analyzed,
+                    COUNT(CASE WHEN status = 'available' THEN 1 END) as available_files,
+                    COUNT(CASE WHEN status = 'processing' THEN 1 END) as processing_files,
+                    COUNT(CASE WHEN status = 'error' THEN 1 END) as error_files,
+                    COUNT(DISTINCT file_type) as unique_file_types,
+                    COALESCE(AVG(file_size), 0) as avg_file_size,
+                    COALESCE(SUM(CASE WHEN material_cost IS NOT NULL THEN material_cost ELSE 0 END), 0) as total_material_cost
+                FROM library_files
             """)
 
             # Create indexes for library tables

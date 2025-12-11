@@ -1,3 +1,15 @@
+## [2.8.11] - 2025-12-11
+
+- Bump version to 2.8.9 for bugfix release
+- Fix library_stats to be created as VIEW instead of TABLE
+- Initial plan
+- Fix migrations to handle existing library_stats TABLE from database.py
+- Restore library system migrations (007, 008, 009)
+- Initial plan
+- Fix code review feedback: scope selectors and fix CSS media query
+- Implement rotating carousel preview for recent printed files with 8 images
+- Initial plan
+
 ## [2.8.10] - 2025-12-11
 
 - Fix code review feedback: scope selectors and fix CSS media query
