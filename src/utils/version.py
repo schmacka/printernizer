@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 
-def get_version(fallback: str = "2.9.0") -> str:
+def get_version(fallback: str = "2.9.1") -> str:
     """
     Get application version from git tags.
 
@@ -46,7 +46,7 @@ def get_version(fallback: str = "2.9.0") -> str:
     return fallback
 
 
-def get_short_version(fallback: str = "2.9.0") -> str:
+def get_short_version(fallback: str = "2.9.1") -> str:
     """
     Get short version (major.minor.patch only).
 
