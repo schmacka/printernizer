@@ -48,12 +48,13 @@ Release automation, version management, and deployment tools.
 - **create-release.sh** - Create GitHub release from tag
 - **create-missing-releases.sh** - Backfill missing releases
 - **cleanup-ha-changelog.sh** - Clean Home Assistant changelog
-- **sync-ha-addon.sh/.bat** - Sync to Home Assistant add-on repo
 - **pi-deployment/** - Raspberry Pi deployment scripts
   - **pi-setup.sh** - Automated Pi setup script
   - **deploy-to-pi.ps1** - Deploy to Raspberry Pi
   - **monitor-pi.ps1** - Monitor Pi deployment
   - **rollback-pi.ps1** - Rollback Pi deployment
+
+**Note:** HA add-on sync is now automated via GitHub Actions workflow `sync-to-ha-repo.yml` to the separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository.
 
 **Usage:**
 ```bash

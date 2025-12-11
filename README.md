@@ -246,7 +246,7 @@ For detailed installation instructions, see the [**Installation Guide**](https:/
 | Method | Best For | Setup Time | Documentation |
 |--------|----------|------------|---------------|
 | **Docker Standalone** | Production servers, NAS | 5 minutes | [Guide](docker/README.md) |
-| **Home Assistant** | 24/7 operation, HA users | 10 minutes | [Guide](printernizer/README.md) |
+| **Home Assistant** | 24/7 operation, HA users | 10 minutes | [printernizer-ha repo](https://github.com/schmacka/printernizer-ha) |
 | **Raspberry Pi** | Dedicated device | 10 minutes | [Script](scripts/pi-deployment/) |
 | **Python Standalone** | Development, testing | 5 minutes | [Quick Start](#option-4-python-standalone-development) |
 
@@ -432,12 +432,11 @@ printernizer/
 ├── tests/                 # Test suites (562+ tests)
 ├── docs/                  # Documentation (MkDocs)
 ├── docker/                # Docker configurations
-├── printernizer/          # Home Assistant add-on (auto-synced)
 ├── scripts/               # Utility scripts
 └── migrations/            # Database migrations
 ```
 
-⚠️ **Important**: Edit code in `/src/` and `/frontend/` only. The `/printernizer/` directory is auto-synced for Home Assistant deployment.
+**Home Assistant Add-on**: Maintained separately at [printernizer-ha](https://github.com/schmacka/printernizer-ha). Code is automatically synced via GitHub Actions.
 
 ### Contributing
 

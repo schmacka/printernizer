@@ -181,9 +181,8 @@ docs/BUSINESS_*.md
 .dockerignore
 docker-compose.override.yml
 
-# Allow Dockerfiles in docker/ and printernizer/ (HA add-on) directories
+# Allow Dockerfiles in docker/ directory
 !docker/Dockerfile
-!printernizer/Dockerfile
 !docker/docker-compose.yml
 
 # Monitoring
