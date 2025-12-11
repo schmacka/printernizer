@@ -22,6 +22,9 @@ logger = structlog.get_logger(__name__)
 try:
     import trimesh
     import numpy as np
+    # Set matplotlib to non-GUI backend before importing pyplot
+    import matplotlib
+    matplotlib.use('Agg')
     from matplotlib import pyplot as plt
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from mpl_toolkits.mplot3d import Axes3D
