@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.9] - 2025-12-11
+
+### Fixed
+- **Database Migrations**: Fixed library_stats to be created as VIEW instead of TABLE
+  - Deactivated migrations 007, 008, and 009 (library system setup)
+  - Updated database.py to create library_stats as auto-calculating VIEW
+  - Library statistics now auto-update from library_files table
+  - Ensures base database schema contains all necessary structures without migrations
+
 ## [2.8.8] - 2025-12-10
 
 ### Fixed
