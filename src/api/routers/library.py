@@ -688,6 +688,7 @@ async def get_library_file_animated_thumbnail(
     file_path = library_service.library_path / library_path
 
     # Only support animated previews for STL and 3MF files
+    # File types in database include the dot prefix (e.g., '.stl', '.3mf')
     if file_type.lower() not in ['.stl', '.3mf']:
         raise FileProcessingError(
             filename=checksum[:16],

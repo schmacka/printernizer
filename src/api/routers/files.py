@@ -368,7 +368,8 @@ async def get_file_animated_thumbnail(
         raise PrinternizerFileNotFoundError(file_id, details={"reason": "no_file_path"})
 
     # Only support animated previews for STL and 3MF files
-    if file_type.lower() not in ['stl', '3mf']:
+    # File types in database include the dot prefix (e.g., '.stl', '.3mf')
+    if file_type.lower() not in ['.stl', '.3mf']:
         raise FileProcessingError(
             filename=file_id,
             operation="generate_animated_thumbnail",
@@ -377,9 +378,12 @@ async def get_file_animated_thumbnail(
 
     try:
         # Get or generate animated preview using file service's thumbnail service
+        # Remove leading dot from file_type for preview service
+        file_type_clean = file_type.lstrip('.')
+        
         gif_bytes = await file_service.thumbnail.preview_render_service.get_or_generate_animated_preview(
             file_path,
-            file_type,
+            file_type_clean,
             size=(200, 200)
         )
 
