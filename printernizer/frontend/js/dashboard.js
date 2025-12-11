@@ -9,6 +9,9 @@ class Dashboard {
         this.printers = new Map();
         this.statisticsCache = null;
         this.lastRefresh = null;
+        this.carouselInterval = null;
+        this.currentCarouselIndex = 0;
+        this.carouselFiles = [];
     }
 
     /**
@@ -34,6 +37,10 @@ class Dashboard {
         if (this.refreshInterval) {
             clearInterval(this.refreshInterval);
             this.refreshInterval = null;
+        }
+        if (this.carouselInterval) {
+            clearInterval(this.carouselInterval);
+            this.carouselInterval = null;
         }
     }
 
@@ -590,27 +597,68 @@ class Dashboard {
             // Show loading state
             setLoadingState(printedFilesContainer, true);
 
-            // Load recent files from API - focus on files with thumbnails from completed jobs
+            // Load recent files from API - changed to 8 for carousel
             const response = await api.getFiles({
                 status: 'downloaded',
                 has_thumbnail: true,
-                limit: 10,
+                limit: 8,
                 order_by: 'downloaded_at',
                 order_dir: 'desc'
             });
 
             if (response.files && response.files.length > 0) {
-                // Create file preview grid
-                printedFilesContainer.innerHTML = '';
-                const grid = document.createElement('div');
-                grid.className = 'printed-files-grid';
+                // Store files for carousel
+                this.carouselFiles = response.files;
+                this.currentCarouselIndex = 0;
 
-                response.files.forEach(file => {
+                // Create carousel container
+                printedFilesContainer.innerHTML = '';
+                const carouselContainer = document.createElement('div');
+                carouselContainer.className = 'printed-files-carousel';
+                carouselContainer.innerHTML = `
+                    <button class="carousel-nav carousel-prev" aria-label="Previous">
+                        <span>‹</span>
+                    </button>
+                    <div class="carousel-track-container">
+                        <div class="carousel-track" id="printedFilesCarouselTrack"></div>
+                    </div>
+                    <button class="carousel-nav carousel-next" aria-label="Next">
+                        <span>›</span>
+                    </button>
+                    <div class="carousel-indicators" id="carouselIndicators"></div>
+                `;
+
+                printedFilesContainer.appendChild(carouselContainer);
+
+                // Populate carousel track
+                const carouselTrack = document.getElementById('printedFilesCarouselTrack');
+                this.carouselFiles.forEach(file => {
                     const filePreview = this.createPrintedFilePreviewCard(file);
-                    grid.appendChild(filePreview);
+                    carouselTrack.appendChild(filePreview);
                 });
 
-                printedFilesContainer.appendChild(grid);
+                // Create indicators
+                const indicators = document.getElementById('carouselIndicators');
+                this.carouselFiles.forEach((_, index) => {
+                    const indicator = document.createElement('button');
+                    indicator.className = `carousel-indicator ${index === 0 ? 'active' : ''}`;
+                    indicator.setAttribute('data-index', index);
+                    indicator.setAttribute('aria-label', `Go to slide ${index + 1}`);
+                    indicator.addEventListener('click', () => this.goToSlide(index));
+                    indicators.appendChild(indicator);
+                });
+
+                // Add navigation event listeners
+                const prevBtn = printedFilesContainer.querySelector('.carousel-prev');
+                const nextBtn = printedFilesContainer.querySelector('.carousel-next');
+                prevBtn.addEventListener('click', () => this.previousSlide());
+                nextBtn.addEventListener('click', () => this.nextSlide());
+
+                // Start auto-rotation
+                this.startCarouselRotation();
+
+                // Update carousel display
+                this.updateCarouselDisplay();
             } else {
                 // Show empty state
                 printedFilesContainer.innerHTML = this.renderEmptyPrintedFilesState();
@@ -701,6 +749,85 @@ class Dashboard {
         // For now, redirect to files page - later we can implement a modal
         showPage('files');
         // Could add file highlight or auto-filter here
+    }
+
+    /**
+     * Start carousel auto-rotation
+     */
+    startCarouselRotation() {
+        // Clear any existing interval
+        if (this.carouselInterval) {
+            clearInterval(this.carouselInterval);
+        }
+
+        // Auto-rotate every 5 seconds
+        this.carouselInterval = setInterval(() => {
+            this.nextSlide();
+        }, 5000);
+    }
+
+    /**
+     * Stop carousel auto-rotation
+     */
+    stopCarouselRotation() {
+        if (this.carouselInterval) {
+            clearInterval(this.carouselInterval);
+            this.carouselInterval = null;
+        }
+    }
+
+    /**
+     * Go to next slide
+     */
+    nextSlide() {
+        if (this.carouselFiles.length === 0) return;
+        this.currentCarouselIndex = (this.currentCarouselIndex + 1) % this.carouselFiles.length;
+        this.updateCarouselDisplay();
+    }
+
+    /**
+     * Go to previous slide
+     */
+    previousSlide() {
+        if (this.carouselFiles.length === 0) return;
+        this.currentCarouselIndex = (this.currentCarouselIndex - 1 + this.carouselFiles.length) % this.carouselFiles.length;
+        this.updateCarouselDisplay();
+    }
+
+    /**
+     * Go to specific slide
+     */
+    goToSlide(index) {
+        if (index < 0 || index >= this.carouselFiles.length) return;
+        this.currentCarouselIndex = index;
+        this.updateCarouselDisplay();
+        // Reset auto-rotation timer
+        this.startCarouselRotation();
+    }
+
+    /**
+     * Update carousel display to show current slide
+     */
+    updateCarouselDisplay() {
+        const track = document.getElementById('printedFilesCarouselTrack');
+        if (!track) return;
+
+        // Move track to show current slide
+        const slideWidth = 100; // percentage
+        track.style.transform = `translateX(-${this.currentCarouselIndex * slideWidth}%)`;
+
+        // Update indicators - scope to the carousel container
+        const carouselContainer = track.closest('.printed-files-carousel');
+        if (!carouselContainer) return;
+        
+        const indicators = carouselContainer.querySelectorAll('.carousel-indicator');
+        indicators.forEach((indicator, index) => {
+            if (index === this.currentCarouselIndex) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        });
     }
 
     /**

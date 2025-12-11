@@ -1,3 +1,10 @@
+## [2.8.10] - 2025-12-11
+
+- Fix code review feedback: scope selectors and fix CSS media query
+- Implement rotating carousel preview for recent printed files with 8 images
+- Initial plan
+- fix: Fix Python standalone installation instructions
+
 ## [2.8.9] - 2025-12-10
 
 - fix: Fix Python standalone installation instructions

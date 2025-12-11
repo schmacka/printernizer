@@ -601,6 +601,97 @@
     font-weight: 500;
 }
 
+/* Carousel Styles */
+.printed-files-carousel {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.carousel-track-container {
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.carousel-track .printed-file-preview-card {
+    min-width: 100%;
+    flex-shrink: 0;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--gray-300);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+    font-size: 24px;
+    color: var(--gray-700);
+    box-shadow: var(--shadow-md);
+}
+
+.carousel-nav:hover {
+    background: var(--white);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+.carousel-prev {
+    left: -20px;
+}
+
+.carousel-next {
+    right: -20px;
+}
+
+.carousel-indicators {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-4);
+}
+
+.carousel-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--gray-300);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.carousel-indicator:hover {
+    background: var(--gray-400);
+    transform: scale(1.2);
+}
+
+.carousel-indicator.active {
+    background: var(--primary-color);
+    width: 30px;
+    border-radius: 5px;
+}
+
 /* Responsive Design for New Components */
 @media (max-width: 768px) {
     .job-preview-card {
@@ -634,6 +725,21 @@
     .printed-file-info {
         padding: var(--spacing-3);
     }
+
+    /* Carousel responsive styles */
+    .carousel-nav {
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+    }
+
+    .carousel-prev {
+        left: 5px;
+    }
+
+    .carousel-next {
+        right: 5px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -645,6 +751,26 @@
     .printed-files-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: var(--spacing-2);
+    }
+
+    /* Carousel mobile styles */
+    .carousel-nav {
+        width: 28px;
+        height: 28px;
+        font-size: 18px;
+    }
+
+    .carousel-indicators {
+        margin-top: var(--spacing-3);
+    }
+
+    .carousel-indicator {
+        width: 8px;
+        height: 8px;
+    }
+
+    .carousel-indicator.active {
+        width: 24px;
     }
 
     .printed-file-thumbnail {
