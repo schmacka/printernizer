@@ -1,3 +1,12 @@
+## [2.8.14] - 2025-12-11
+
+- Bump version to 2.9.0
+- Fix animated preview generation by setting matplotlib to Agg backend
+- Fix file type validation consistency - both endpoints now handle dotted extensions
+- Fix animated thumbnail endpoints in both library and files routers
+- Fix library preview rendering - correct service dependencies and imports
+- Initial plan
+
 ## [2.8.13] - 2025-12-11
 
 - Fix animated preview generation by setting matplotlib to Agg backend
