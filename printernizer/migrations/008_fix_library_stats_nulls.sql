@@ -2,8 +2,11 @@
 -- Fix library_stats view to return 0 instead of NULL for empty library
 -- Version: v1.2.1
 
--- Drop old view
+-- Drop old view if it exists (created by migration 007 or database.py)
 DROP VIEW IF EXISTS library_stats;
+
+-- Drop old table if it exists (created by database.py)
+DROP TABLE IF EXISTS library_stats;
 
 -- Recreate view with COALESCE for NULL handling
 CREATE VIEW library_stats AS

@@ -160,6 +160,10 @@ CREATE INDEX IF NOT EXISTS idx_collection_members_collection ON collection_membe
 CREATE INDEX IF NOT EXISTS idx_collection_members_file ON collection_members(file_checksum);
 
 -- View for quick library statistics
+-- Drop old TABLE if it exists (from database.py _create_tables)
+DROP TABLE IF EXISTS library_stats;
+
+-- Create as VIEW for auto-updating statistics
 CREATE VIEW IF NOT EXISTS library_stats AS
 SELECT
     COUNT(*) as total_files,
