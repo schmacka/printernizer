@@ -16,8 +16,6 @@ from src.utils.errors import (
     ValidationError as PrinternizerValidationError,
     success_response
 )
-from src.services.file_thumbnail_service import FileThumbnailService
-from src.utils.dependencies import get_thumbnail_service
 
 logger = structlog.get_logger()
 
@@ -651,8 +649,7 @@ async def get_library_file_metadata(
 @router.get("/files/{checksum}/thumbnail/animated")
 async def get_library_file_animated_thumbnail(
     checksum: str = PathParam(..., description="File checksum (SHA-256)"),
-    library_service = Depends(get_library_service),
-    thumbnail_service: FileThumbnailService = Depends(get_thumbnail_service)
+    library_service = Depends(get_library_service)
 ):
     """
     Get animated GIF thumbnail for a library file (multi-angle preview).
@@ -681,14 +678,18 @@ async def get_library_file_animated_thumbnail(
         raise LibraryItemNotFoundError(checksum)
 
     # Get file path and type
-    file_path = file_record.get('file_path')
+    library_path = file_record.get('library_path')
     file_type = file_record.get('file_type', '')
 
-    if not file_path:
+    if not library_path:
         raise LibraryItemNotFoundError(checksum, details={"reason": "no_file_path"})
 
+    # Construct full file path
+    file_path = library_service.library_path / library_path
+
     # Only support animated previews for STL and 3MF files
-    if file_type.lower() not in ['stl', '3mf']:
+    # File types in database include the dot prefix (e.g., '.stl', '.3mf')
+    if file_type.lower() not in ['.stl', '.3mf']:
         raise FileProcessingError(
             filename=checksum[:16],
             operation="generate_animated_thumbnail",
@@ -696,10 +697,13 @@ async def get_library_file_animated_thumbnail(
         )
 
     try:
-        # Get or generate animated preview
-        gif_bytes = await thumbnail_service.preview_render_service.get_or_generate_animated_preview(
-            file_path,
-            file_type,
+        # Get or generate animated preview using library service's preview service
+        # Remove leading dot from file_type for preview service
+        file_type_clean = file_type.lstrip('.')
+        
+        gif_bytes = await library_service.preview_service.get_or_generate_animated_preview(
+            str(file_path),
+            file_type_clean,
             size=(200, 200)
         )
 
