@@ -12,10 +12,9 @@ import base64
 from src.models.file import File, FileStatus, FileSource, WatchFolderSettings, WatchFolderStatus, WatchFolderItem
 from src.services.file_service import FileService
 from src.services.config_service import ConfigService
-from src.services.file_thumbnail_service import FileThumbnailService
 from src.services.printer_service import PrinterService
 from src.models.printer import PrinterType
-from src.utils.dependencies import get_file_service, get_config_service, get_thumbnail_service, get_printer_service
+from src.utils.dependencies import get_file_service, get_config_service, get_printer_service
 from src.utils.errors import (
     FileNotFoundError as PrinternizerFileNotFoundError,
     FileDownloadError,
@@ -354,8 +353,7 @@ async def get_file_thumbnail(
 @router.get("/{file_id}/thumbnail/animated")
 async def get_file_animated_thumbnail(
     file_id: str,
-    file_service: FileService = Depends(get_file_service),
-    thumbnail_service: FileThumbnailService = Depends(get_thumbnail_service)
+    file_service: FileService = Depends(get_file_service)
 ):
     """Get animated GIF thumbnail for a file (multi-angle preview)."""
     file_data = await file_service.get_file_by_id(file_id)
@@ -378,8 +376,8 @@ async def get_file_animated_thumbnail(
         )
 
     try:
-        # Get or generate animated preview
-        gif_bytes = await thumbnail_service.preview_render_service.get_or_generate_animated_preview(
+        # Get or generate animated preview using file service's thumbnail service
+        gif_bytes = await file_service.thumbnail.preview_render_service.get_or_generate_animated_preview(
             file_path,
             file_type,
             size=(200, 200)
