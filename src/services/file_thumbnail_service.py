@@ -7,6 +7,7 @@ and storing them in the database.
 
 Part of FileService refactoring - Phase 2 technical debt reduction.
 """
+import asyncio
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from datetime import datetime
