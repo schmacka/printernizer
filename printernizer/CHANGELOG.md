@@ -1,3 +1,14 @@
+## [2.8.13] - 2025-12-11
+
+- Fix animated preview generation by setting matplotlib to Agg backend
+- Bump version to 2.8.9 for bugfix release
+- Fix library_stats to be created as VIEW instead of TABLE
+- Initial plan
+- Fix file type validation consistency - both endpoints now handle dotted extensions
+- Fix animated thumbnail endpoints in both library and files routers
+- Fix library preview rendering - correct service dependencies and imports
+- Initial plan
+
 ## [2.8.12] - 2025-12-11
 
 - Bump version to 2.8.9 for bugfix release
