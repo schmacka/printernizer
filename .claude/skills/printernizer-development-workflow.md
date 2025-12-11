@@ -51,34 +51,31 @@ Feature branch → development (PR + review) → Docker testing → master (PR +
 
 **Single Source of Truth**: Edit code ONLY in `/src/` and `/frontend/` directories.
 
-### Automated Sync Process
+### Automated Sync to printernizer-ha Repository
 
-1. **During Development**:
-   - Edit files in `/src/` or `/frontend/` 
-   - NEVER touch `/printernizer/src/` or `/printernizer/frontend/`
-   - Pre-commit hook auto-syncs on commit
-   - Synced files automatically staged and included in commit
+**Home Assistant Add-on**: Code is automatically synced to the separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository.
 
-2. **Manual Sync** (if needed):
-   ```bash
-   # Linux/Mac
-   ./scripts/sync-ha-addon.sh
+1. **On Push to master/development**:
+   - Edit files in `/src/` or `/frontend/`
+   - Push to `master` or `development` branch
+   - GitHub Actions workflow `sync-to-ha-repo.yml` automatically syncs to printernizer-ha repository
+   - Version is automatically extracted from `src/main.py` and updated in printernizer-ha
 
-   # Windows
-   scripts\sync-ha-addon.bat
-   ```
+2. **Manual Trigger** (if needed):
+   - Visit: https://github.com/schmacka/printernizer/actions/workflows/sync-to-ha-repo.yml
+   - Click "Run workflow" button
+   - Select branch (master or development)
 
-3. **CI/CD Validation**:
-   - GitHub Actions runs sync on push to `master` or `development`
-   - Auto-bumps HA add-on version **only on `master`**
-   - Commits and pushes changes if needed
+3. **Verification**:
+   - Check workflow runs: https://github.com/schmacka/printernizer/actions/workflows/sync-to-ha-repo.yml
+   - Verify printernizer-ha repository: https://github.com/schmacka/printernizer-ha
 
 ### Why This Architecture
 
-- Home Assistant build system requires files in `printernizer/` directory
+- Home Assistant add-on is maintained in separate printernizer-ha repository
 - Single source prevents code divergence and version drift
-- Triple safety net (hook + CI + manual) ensures consistency
-- Developers work in one place, automation handles the rest
+- Automated sync ensures consistency
+- Developers work in one place, automation handles distribution
 
 ## Version Management
 

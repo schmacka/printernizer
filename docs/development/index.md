@@ -66,11 +66,9 @@ See [Development Workflow](workflow.md) for complete details.
 
 ## Code Synchronization
 
-**⚠️ CRITICAL:** Never edit files in `/printernizer/src/` or `/printernizer/frontend/` directly!
+**Single Source of Truth:** Edit code only in `/src/` and `/frontend/` directories.
 
-- **Single Source of Truth:** `/src/` and `/frontend/`
-- **Auto-synced copy:** `/printernizer/src/` and `/printernizer/frontend/`
-- Pre-commit hook automatically syncs changes
+**Home Assistant Add-on**: Maintained in separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository. Code automatically syncs via GitHub Actions when you push to `master` or `development` branch.
 
 See [Code Sync](code-sync.md) for details.
 

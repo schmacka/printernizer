@@ -42,10 +42,10 @@ Your tasks:
   - Business rules (German compliance):
     - is_business flag on jobs, VAT and cost tracking
     - Data retention (7 years), TZ Europe/Berlin, currency EUR
-  - Home Assistant add-on sync:
-    - Never edit /printernizer/src/ or /printernizer/frontend/ directly
-    - Only modify /src/ and /frontend/
-    - Pre-commit will sync; ensure changes reflect correctly
+  - Home Assistant add-on:
+    - Maintained in separate printernizer-ha repository
+    - Code automatically synced via GitHub Actions
+    - Only modify /src/ and /frontend/ in this repository
 
 3) Keep CI intact unless it’s at fault
 - Only modify .github/workflows/ci-cd.yml if it’s genuinely incorrect (e.g., wrong Python versions, missing services, or misconfigured test command). If you must change it, explain why and keep the minimal fix.
@@ -73,5 +73,4 @@ Acceptance Criteria:
 - All previously failing tests related to missing implementation now pass in CI.
 - No modifications to test assertions/intent (beyond necessary fixtures or wiring).
 - Adherence to Printernizer architecture, patterns, and conventions listed above.
-- No edits under /printernizer/* except via the auto-sync process from /src and /frontend.
 - No trailing slash route definitions in FastAPI routers.
