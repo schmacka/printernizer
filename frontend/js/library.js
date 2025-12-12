@@ -222,7 +222,13 @@ class LibraryManager {
 
         // Add click handlers
         grid.querySelectorAll('.library-file-card').forEach(card => {
-            card.addEventListener('click', () => {
+            card.addEventListener('click', (e) => {
+                // Don't open modal if clicking thumbnail on touch device
+                if (e.target.closest('.file-card-thumbnail') && 'ontouchstart' in window) {
+                    Logger.debug('Touch device - ignoring thumbnail click to allow animation toggle');
+                    return;
+                }
+
                 const checksum = card.dataset.checksum;
                 const file = files.find(f => f.checksum === checksum);
                 if (file) this.showFileDetail(file);
@@ -335,6 +341,7 @@ class LibraryManager {
 
         let isAnimatedLoaded = false;
         let isHovering = false;
+        let isAnimating = false; // Track animation state for touch devices
         let loadTimeout = null;
 
         const preloadAnimatedGif = () => {
@@ -350,7 +357,7 @@ class LibraryManager {
                 isAnimatedLoaded = true;
                 Logger.info('Animated GIF loaded successfully', { url: animatedUrl });
 
-                if (isHovering && img.src !== animatedUrl) {
+                if ((isHovering || isAnimating) && img.src !== animatedUrl) {
                     Logger.debug('Swapping to animated image');
                     img.src = animatedUrl;
                 }
@@ -361,11 +368,15 @@ class LibraryManager {
                     url: animatedUrl,
                     error: error
                 });
+                // Clean up state on error
+                isAnimating = false;
+                thumbnailElement.classList.remove('animating');
             };
 
             preloadImg.src = animatedUrl;
         };
 
+        // MOUSE EVENTS (Desktop)
         thumbnailElement.addEventListener('mouseenter', () => {
             isHovering = true;
             Logger.debug('Mouse entered thumbnail - preparing animation');
@@ -390,11 +401,37 @@ class LibraryManager {
                 loadTimeout = null;
             }
 
-            if (img.src !== staticUrl) {
+            if (img.src !== staticUrl && !isAnimating) {
                 Logger.debug('Restoring static image');
                 img.src = staticUrl;
             }
         });
+
+        // TOUCH EVENTS (Mobile)
+        thumbnailElement.addEventListener('touchstart', (e) => {
+            // Prevent this from triggering mouseenter and card click
+            e.stopPropagation();
+
+            // Toggle animation state
+            isAnimating = !isAnimating;
+            Logger.debug('Touch toggle animation', { isAnimating: isAnimating });
+
+            if (isAnimating) {
+                // Show animation
+                preloadAnimatedGif();
+                if (isAnimatedLoaded && img.src !== animatedUrl) {
+                    img.src = animatedUrl;
+                }
+                // Add visual indicator
+                thumbnailElement.classList.add('animating');
+            } else {
+                // Return to static
+                if (img.src !== staticUrl) {
+                    img.src = staticUrl;
+                }
+                thumbnailElement.classList.remove('animating');
+            }
+        }, { passive: true });
 
         Logger.info('Animated thumbnail setup complete');
     }
