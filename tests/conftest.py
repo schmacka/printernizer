@@ -755,6 +755,7 @@ def test_app():
     mock_file_service.get_watch_status = AsyncMock(return_value={})
     mock_file_service.download_file = AsyncMock(return_value=None)
     mock_file_service.delete_file = AsyncMock(return_value=True)
+    mock_file_service.get_files_with_count = AsyncMock(return_value=([], 0))
 
     mock_trending_service = MagicMock()
     mock_session = MagicMock()
