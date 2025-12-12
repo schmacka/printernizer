@@ -58,12 +58,13 @@ Feature branch → development (PR) → Docker test → master (PR) → Tag for 
 
 ### Version Management
 
-**Version Files** (keep synchronized):
-- `src/main.py` - `APP_VERSION = get_version(fallback="X.Y.Z")` (line 90)
-- `printernizer/config.yaml` - `version: "X.Y.Z"` (line 2)
-- `CHANGELOG.md` - Version history with release notes
+**Version is extracted from git tags** via `get_version()` utility.
 
-**CRITICAL**: Always keep these three files synchronized!
+**Files to update when releasing:**
+- `src/main.py` - Update fallback version in `get_version(fallback="X.Y.Z")` (line ~94)
+- `CHANGELOG.md` - Add version section with release notes
+
+**Note**: The HA add-on version (`printernizer-ha/config.yaml`) is updated automatically by GitHub Actions.
 
 See [Development Workflow](.claude/skills/printernizer-development-workflow.md) for versioning standards.
 
@@ -72,7 +73,7 @@ See [Development Workflow](.claude/skills/printernizer-development-workflow.md) 
 **When ready to release a new version:**
 
 1. **Update CHANGELOG.md** - Add version section with release notes
-2. **Update version files** - Sync `src/main.py` and `printernizer/config.yaml`
+2. **Update fallback version** - Update `src/main.py` fallback version
 3. **Commit**: `git commit -m "chore: Bump version to X.Y.Z"`
 4. **Tag**: `git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"`
 5. **Push**: `git push origin master && git push --tags`

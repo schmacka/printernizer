@@ -159,9 +159,10 @@ Document in [`docs/`](docs/):
 - [`docs/PRODUCTION_DEPLOYMENT.md`](docs/PRODUCTION_DEPLOYMENT.md)
 
 ### Home Assistant Specific
-- [`printernizer/README.md`](printernizer/README.md) - Add-on store description
-- [`printernizer/DOCS.md`](printernizer/DOCS.md) - Detailed add-on documentation
-- [`printernizer/CHANGELOG.md`](printernizer/CHANGELOG.md) - Add-on version history
+**Note**: HA add-on docs are in [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository:
+- `README.md` - Add-on store description
+- `DOCS.md` - Detailed add-on documentation
+- `CHANGELOG.md` - Add-on version history
 
 ## Documentation Checklist
 

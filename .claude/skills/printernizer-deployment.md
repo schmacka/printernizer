@@ -64,20 +64,21 @@ Printernizer supports **four independent deployment methods**. Each uses the sam
 
 ### 4. Home Assistant Add-on
 
-- **Location**: `printernizer/` directory (Add-on name)
+- **Location**: Separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository
 - **Use Case**: Home Assistant users, 24/7 integration
 - **Setup**: Install via HA Add-on Store (repository.json)
 - **Configuration**: HA UI (`options.json`)
 - **Data Storage**: `/data/printernizer/` (HA persistent storage)
-- **Files**:
-  - `printernizer/Dockerfile` - Alpine-based with `ARG BUILD_FROM`
-  - `printernizer/config.yaml` - Add-on metadata and schema
-  - `printernizer/build.yaml` - Multi-architecture builds
-  - `printernizer/run.sh` - HA-specific startup with bashio
-  - `printernizer/README.md` - Add-on store description
-  - `printernizer/DOCS.md` - Detailed user documentation
-  - `printernizer/CHANGELOG.md` - Add-on version history
-- **Repository**: `repository.json` in root for HA Add-on Store discovery
+- **Separate Repository**: HA add-on maintained in [printernizer-ha](https://github.com/schmacka/printernizer-ha)
+- **Automatic Sync**: GitHub Actions syncs `src/`, `frontend/`, `migrations/` on push
+- **Files** (in printernizer-ha repo):
+  - `Dockerfile` - Alpine-based with `ARG BUILD_FROM`
+  - `config.yaml` - Add-on metadata and schema
+  - `build.yaml` - Multi-architecture builds
+  - `run.sh` - HA-specific startup with bashio
+  - `README.md` - Add-on store description
+  - `DOCS.md` - Detailed user documentation
+  - `CHANGELOG.md` - Add-on version history
 
 ## Deployment Mode Detection
 

@@ -147,11 +147,10 @@ git push origin v1.5.3
 - [ ] Container starts and runs
 - [ ] Logs show no errors
 
-**Home Assistant Add-on**:
-- [ ] Code synced to printernizer/
-- [ ] config.yaml version bumped
-- [ ] CHANGELOG.md updated
-- [ ] Pushed to GitHub
+**Home Assistant Add-on** (auto-synced to [printernizer-ha](https://github.com/schmacka/printernizer-ha)):
+- [ ] Code pushed to master/development branch
+- [ ] GitHub Actions sync workflow completed
+- [ ] Version tag created (for releases)
 - [ ] Add-on updates in HA
 - [ ] Configuration validates
 - [ ] Add-on starts successfully

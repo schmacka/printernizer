@@ -79,10 +79,13 @@ Feature branch → development (PR + review) → Docker testing → master (PR +
 
 ## Version Management
 
-**Version Files** (keep synchronized):
-- `src/api/routers/health.py` - API version
-- `printernizer/config.yaml` - Home Assistant add-on version
-- `printernizer/CHANGELOG.md` - Version history
+**Version is extracted from git tags** via `get_version()` utility in `src/utils/version.py`.
+
+**Files to update when releasing:**
+- `src/main.py` - Update fallback version in `get_version(fallback="X.Y.Z")`
+- `CHANGELOG.md` - Add version section with release notes
+
+**Note**: The HA add-on files (in [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository) are updated automatically by GitHub Actions.
 
 **Versioning Standard**: Semantic Versioning (MAJOR.MINOR.PATCH)
 - MAJOR: Breaking changes
@@ -90,8 +93,8 @@ Feature branch → development (PR + review) → Docker testing → master (PR +
 - PATCH: Bug fixes
 
 **Version Update Checklist**:
-1. Update version in health.py
-2. Update version in config.yaml
+1. Update CHANGELOG.md with release notes
+2. Update fallback version in src/main.py
 3. Add entry to CHANGELOG.md
 4. Commit with message: "chore: bump version to X.Y.Z"
 
