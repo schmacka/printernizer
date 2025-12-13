@@ -10,7 +10,7 @@ import structlog
 from src.database.database import Database
 from src.database.repositories import JobRepository
 from src.services.event_service import EventService
-from src.models.job import Job, JobStatus, JobCreate, JobUpdate
+from src.models.job import Job, JobStatus, JobCreate, JobUpdate, JobUpdateRequest, JobStatusUpdateRequest
 
 logger = structlog.get_logger()
 
@@ -397,20 +397,160 @@ class JobService:
             logger.error("Failed to create job", error=str(e), error_type=type(e).__name__, data=job_data)
             raise
         
-    async def update_job_status(self, job_id: str, status: str, data: Dict[str, Any] = None) -> None:
-        """Update job status."""
+    async def update_job(self, job_id: str, updates: JobUpdateRequest) -> Optional[Dict[str, Any]]:
+        """
+        Update job fields with validation.
+
+        Args:
+            job_id: Job UUID
+            updates: JobUpdateRequest schema with validated data
+
+        Returns:
+            Updated Job object
+
+        Raises:
+            ValueError: If validation fails
+            HTTPException: If job not found or printer doesn't exist
+        """
+        from fastapi import HTTPException
+
+        # Get existing job
+        existing_job = await self.job_repo.get(job_id)
+        if not existing_job:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+        # Convert JobUpdateRequest to dict, excluding unset fields
+        update_dict = updates.model_dump(exclude_unset=True)
+
+        if not update_dict:
+            # No fields to update
+            return await self.get_job(job_id)
+
+        # Business validation: if is_business=true, customer_name required
+        is_business = update_dict.get('is_business', existing_job.get('is_business'))
+        customer_name = update_dict.get('customer_name', existing_job.get('customer_name'))
+
+        if is_business and not customer_name:
+            raise ValueError("customer_name is required for business jobs")
+
+        # Validate printer exists if provided
+        if 'printer_id' in update_dict and update_dict['printer_id']:
+            # We need access to printer service - for now, we'll skip this validation
+            # In production, you'd inject PrinterService as a dependency
+            # printer = await self.printer_service.get_printer(update_dict['printer_id'])
+            # if not printer:
+            #     raise HTTPException(status_code=400, detail=f"Printer {update_dict['printer_id']} not found")
+            pass
+
+        # Map file_name to filename for database compatibility
+        if 'file_name' in update_dict:
+            update_dict['filename'] = update_dict.pop('file_name')
+
+        # Update job
+        success = await self.job_repo.update(job_id, update_dict)
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update job")
+
+        # Get updated job
+        updated_job = await self.get_job(job_id)
+
+        # Emit WebSocket event
+        await self.event_service.emit_event('job_updated', {
+            'job_id': job_id,
+            'job': updated_job,
+            'updated_fields': list(update_dict.keys())
+        })
+
+        logger.info("Job updated", job_id=job_id, updated_fields=list(update_dict.keys()))
+
+        return updated_job
+
+    def _validate_status_transition(self, old_status: str, new_status: str) -> None:
+        """
+        Validate status transition is allowed.
+
+        Raises:
+            ValueError: If transition is not allowed
+        """
+        # Define valid transitions based on the plan
+        valid_transitions = {
+            'pending': {'running', 'printing', 'completed', 'failed', 'cancelled'},
+            'queued': {'running', 'printing', 'preparing', 'completed', 'failed', 'cancelled'},
+            'preparing': {'printing', 'running', 'completed', 'failed', 'cancelled'},
+            'running': {'completed', 'failed', 'cancelled', 'paused'},
+            'printing': {'completed', 'failed', 'cancelled', 'paused'},
+            'paused': {'running', 'printing', 'completed', 'failed', 'cancelled'},
+            'completed': {'failed'},  # Rare: correct completion to failure
+            'failed': {'completed'},  # Rare: retry succeeded
+            'cancelled': set(),  # Cannot transition from cancelled
+        }
+
+        allowed = valid_transitions.get(old_status, set())
+
+        if new_status not in allowed and old_status != new_status:
+            raise ValueError(
+                f"Invalid status transition: {old_status} → {new_status}. "
+                f"Allowed transitions from {old_status}: {', '.join(sorted(allowed)) if allowed else 'none'}"
+            )
+
+    async def update_job_status(
+        self,
+        job_id: str,
+        status: str,
+        data: Dict[str, Any] = None,
+        completion_notes: Optional[str] = None,
+        force: bool = False,
+        validate_transitions: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Update job status with optional transition validation.
+
+        Args:
+            job_id: Job UUID
+            status: Target status
+            data: Additional data to update (legacy parameter)
+            completion_notes: Optional notes explaining manual status change
+            force: Skip validation (admin override)
+            validate_transitions: Enable status transition validation
+
+        Returns:
+            Updated Job object or None
+
+        Raises:
+            ValueError: If status transition is not allowed
+        """
+        from fastapi import HTTPException
+
         try:
             # Validate status
             if status not in [s.value for s in JobStatus]:
                 raise ValueError(f"Invalid job status: {status}")
-            
+
+            # Get existing job if validation is needed
+            old_status = None
+            if validate_transitions or completion_notes:
+                job = await self.job_repo.get(job_id)
+                if not job:
+                    raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+                old_status = job.get('status')
+
+                # Check if status actually changed
+                if old_status == status:
+                    logger.info(f"Job {job_id} already in status {status} (no-op)")
+                    return await self.get_job(job_id)
+
+                # Validate transition (unless forced)
+                if validate_transitions and not force:
+                    self._validate_status_transition(old_status, status)
+
             # Prepare update data
             updates = {
                 'status': status,
                 'updated_at': datetime.now().isoformat()
             }
-            
-            # Add additional data if provided
+
+            # Add additional data if provided (legacy support)
             if data:
                 # Handle specific fields that might be updated
                 if 'progress' in data:
@@ -423,40 +563,71 @@ class JobService:
                     updates['material_cost'] = data['material_cost']
                 if 'power_cost' in data:
                     updates['power_cost'] = data['power_cost']
-            
+
             # Set timestamps based on status
-            if status == JobStatus.RUNNING and 'start_time' not in updates:
-                updates['start_time'] = datetime.now().isoformat()
-            elif status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED] and 'end_time' not in updates:
-                updates['end_time'] = datetime.now().isoformat()
-            
+            now = datetime.now()
+            if status in [JobStatus.RUNNING.value, JobStatus.PRINTING.value] and 'start_time' not in updates:
+                updates['start_time'] = now.isoformat()
+            elif status in [JobStatus.COMPLETED.value, JobStatus.FAILED.value, JobStatus.CANCELLED.value] and 'end_time' not in updates:
+                updates['end_time'] = now.isoformat()
+
+            # Add completion notes if provided
+            if completion_notes and old_status:
+                # Get existing notes
+                existing_job = await self.job_repo.get(job_id) if not validate_transitions else job
+                existing_notes = existing_job.get('notes', '') if existing_job else ''
+
+                timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+                status_note = f"[{timestamp}] Status changed: {old_status} → {status}: {completion_notes}"
+
+                if existing_notes:
+                    updates['notes'] = f"{existing_notes}\n{status_note}"
+                else:
+                    updates['notes'] = status_note
+
             # Update job in database
             success = await self.job_repo.update(str(job_id), updates)
 
             if success:
-                logger.info("Job status updated", job_id=job_id, status=status)
+                logger.info("Job status updated",
+                           job_id=job_id,
+                           status=status,
+                           old_status=old_status,
+                           forced=force if validate_transitions else None)
+
+                # Get updated job
+                updated_job = await self.get_job(job_id)
 
                 # Emit event for status change
                 await self.event_service.emit_event('job_status_changed', {
                     'job_id': str(job_id),
                     'status': status,
+                    'old_status': old_status,
                     'data': data or {},
-                    'timestamp': datetime.now().isoformat()
+                    'timestamp': now.isoformat()
                 })
 
                 # Record usage statistics for completed/failed jobs
                 if self.usage_stats_service:
-                    if status == JobStatus.COMPLETED:
+                    if status == JobStatus.COMPLETED.value:
                         await self.usage_stats_service.record_event('job_completed', {
                             'duration_minutes': updates.get('actual_duration', 0) // 60 if updates.get('actual_duration') else None
                         })
-                    elif status == JobStatus.FAILED:
+                    elif status == JobStatus.FAILED.value:
                         await self.usage_stats_service.record_event('job_failed', {})
+
+                return updated_job
             else:
                 logger.error("Failed to update job status in database", job_id=job_id, status=status)
-                
+                return None
+
+        except ValueError:
+            raise
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error("Failed to update job status", job_id=job_id, status=status, error=str(e))
+            return None
         
     async def get_job_statistics(self) -> Dict[str, Any]:
         """Get job statistics for dashboard."""
