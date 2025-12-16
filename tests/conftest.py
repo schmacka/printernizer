@@ -771,6 +771,17 @@ def test_app():
     mock_job_service.update_job = AsyncMock(return_value={'status': 'success', 'data': {}})
     mock_job_service.delete_job = AsyncMock(return_value={'status': 'success'})
 
+    # Create mock material service with async methods
+    mock_material_service = MagicMock()
+    mock_material_service.get_consumption_history = AsyncMock(return_value=([], 0))
+    mock_material_service.get_all_materials = AsyncMock(return_value=[])
+    mock_material_service.get_material = AsyncMock(return_value=None)
+    mock_material_service.get_statistics = AsyncMock(return_value=None)
+    mock_material_service.create_material = AsyncMock(return_value=None)
+    mock_material_service.update_material = AsyncMock(return_value=None)
+    mock_material_service.delete_material = AsyncMock(return_value=True)
+    mock_material_service.record_consumption = AsyncMock(return_value=None)
+
     # Initialize minimal app state for tests
     app.state.database = mock_db
     app.state.config_service = mock_config
@@ -779,5 +790,6 @@ def test_app():
     app.state.trending_service = mock_trending_service
     app.state.event_service = mock_event_service
     app.state.job_service = mock_job_service
+    app.state.material_service = mock_material_service
 
     return app

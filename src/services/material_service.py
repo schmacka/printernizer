@@ -399,6 +399,92 @@ class MaterialService:
             consumption_rate=consumption_rate
         )
 
+    async def get_consumption_history(
+        self,
+        material_id: Optional[str] = None,
+        job_id: Optional[str] = None,
+        printer_id: Optional[str] = None,
+        days: int = 30,
+        limit: int = 50,
+        page: int = 1
+    ) -> tuple[list[Dict[str, Any]], int]:
+        """Get consumption history with filters and pagination.
+
+        Args:
+            material_id: Filter by material ID
+            job_id: Filter by job ID
+            printer_id: Filter by printer ID
+            days: Number of days to look back (1-365)
+            limit: Results per page
+            page: Page number (1-indexed)
+
+        Returns:
+            Tuple of (list of consumption records, total count)
+        """
+        since = datetime.now() - timedelta(days=days)
+        offset = (page - 1) * limit
+
+        # Build WHERE clause dynamically
+        conditions = ["mc.timestamp >= ?"]
+        params: list[Any] = [since.isoformat()]
+
+        if material_id:
+            conditions.append("mc.material_id = ?")
+            params.append(material_id)
+        if job_id:
+            conditions.append("mc.job_id = ?")
+            params.append(job_id)
+        if printer_id:
+            conditions.append("mc.printer_id = ?")
+            params.append(printer_id)
+
+        where_clause = " AND ".join(conditions)
+
+        async with self.db.connection() as conn:
+            # Get total count
+            count_query = f"""
+                SELECT COUNT(*) as total
+                FROM material_consumption mc
+                WHERE {where_clause}
+            """
+            cursor = await conn.execute(count_query, params)
+            count_row = await cursor.fetchone()
+            total_count = count_row['total'] if count_row else 0
+
+            # Get paginated results with material details
+            data_query = f"""
+                SELECT
+                    mc.id, mc.job_id, mc.material_id, mc.weight_used, mc.cost,
+                    mc.timestamp, mc.printer_id, mc.file_name, mc.print_time_hours,
+                    m.material_type, m.brand, m.color
+                FROM material_consumption mc
+                JOIN materials m ON mc.material_id = m.id
+                WHERE {where_clause}
+                ORDER BY mc.timestamp DESC
+                LIMIT ? OFFSET ?
+            """
+            cursor = await conn.execute(data_query, params + [limit, offset])
+            rows = await cursor.fetchall()
+
+        items = []
+        for row in rows:
+            items.append({
+                'id': row['id'],
+                'job_id': row['job_id'],
+                'material_id': row['material_id'],
+                'material_type': row['material_type'],
+                'brand': row['brand'],
+                'color': row['color'],
+                'weight_used': row['weight_used'],
+                'cost': Decimal(str(row['cost'])),
+                'timestamp': datetime.fromisoformat(row['timestamp']),
+                'printer_id': row['printer_id'],
+                'file_name': row['file_name'],
+                'print_time_hours': row['print_time_hours']
+            })
+
+        return items, total_count
+
     async def _calculate_consumption_period(self, days: int) -> float:
         """Calculate total consumption in kg for a period."""
         since = datetime.now() - timedelta(days=days)
