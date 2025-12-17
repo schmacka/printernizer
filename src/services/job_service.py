@@ -569,19 +569,24 @@ class JobService:
             
             # Reuse existing job if already fetched, otherwise get it
             if (validate_transitions or completion_notes):
-                existing_job = job  # Reuse already-fetched job
+                existing_job = job  # Reuse already-fetched job (guaranteed to exist due to line 534-535 check)
             else:
                 existing_job = await self.job_repo.get(job_id)
+                if not existing_job:
+                    # Job doesn't exist, but we're not validating so this shouldn't happen in normal flow
+                    # Log warning and proceed without setting start_time (will be set on insert if new job)
+                    logger.warning(f"Job {job_id} not found when setting timestamps", job_id=job_id)
+                    existing_job = {}  # Empty dict to avoid AttributeError
             
             # Set start_time for running/printing status if not already set
             if status in [JobStatus.RUNNING.value, JobStatus.PRINTING.value]:
-                if not existing_job.get('start_time'):
+                if existing_job and not existing_job.get('start_time'):
                     updates['start_time'] = now.isoformat()
             
             # For completion statuses, ensure start_time is set and set end_time
             elif status in [JobStatus.COMPLETED.value, JobStatus.FAILED.value, JobStatus.CANCELLED.value]:
                 # Ensure start_time is set (if going directly from pending to completed/failed)
-                if not existing_job.get('start_time'):
+                if existing_job and not existing_job.get('start_time'):
                     updates['start_time'] = now.isoformat()
                 # Set end_time
                 updates['end_time'] = now.isoformat()
