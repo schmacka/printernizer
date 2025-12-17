@@ -21,13 +21,31 @@ Example:
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 
 import structlog
 
 from src.config.constants import PollingIntervals
 from src.constants import CameraConstants
+
+
+def detect_image_format(data: bytes) -> str:
+    """Detect image format from magic bytes.
+    
+    Args:
+        data: Image data bytes
+        
+    Returns:
+        MIME type string (image/jpeg, image/png, or image/jpeg as fallback)
+    """
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        return 'image/png'
+    elif data[:2] == b'\xff\xd8':
+        return 'image/jpeg'
+    else:
+        # Default to JPEG for unknown formats
+        return 'image/jpeg'
 
 if TYPE_CHECKING:
     from src.services.printer_service import PrinterService
@@ -93,6 +111,80 @@ class CameraSnapshotService:
         self._frame_cache.clear()
         self._logger.info("Camera snapshot service shutdown complete")
 
+    async def get_snapshot_by_id(
+        self,
+        printer_id: str,
+        force_refresh: bool = False
+    ) -> Tuple[bytes, str]:
+        """
+        Get camera snapshot for a printer by ID only.
+
+        This is a simplified interface that works with any printer type
+        (Bambu Lab, Prusa, etc.) by delegating to the printer driver.
+
+        Args:
+            printer_id: Unique printer identifier
+            force_refresh: Skip cache and fetch fresh frame
+
+        Returns:
+            Tuple of (image data bytes, MIME type string)
+
+        Raises:
+            ValueError: If no frame available or printer not found
+        """
+        self._logger.debug(
+            "Snapshot requested (by ID)",
+            printer_id=printer_id,
+            force_refresh=force_refresh
+        )
+
+        # Check cache first (unless force refresh)
+        if not force_refresh:
+            cached = self._get_cached_frame(printer_id)
+            if cached:
+                self._logger.debug(
+                    "Serving cached snapshot",
+                    printer_id=printer_id,
+                    age_seconds=(datetime.now() - cached.captured_at).total_seconds()
+                )
+                content_type = detect_image_format(cached.data)
+                return cached.data, content_type
+
+        # Get printer driver via PrinterService
+        try:
+            printer_driver = await self.printer_service.get_printer_driver(printer_id)
+        except Exception as e:
+            self._logger.error(
+                "Failed to get printer driver",
+                printer_id=printer_id,
+                error=str(e)
+            )
+            raise ValueError(f"Printer not found: {printer_id}") from e
+
+        # Get snapshot from printer driver
+        frame = await printer_driver.take_snapshot()
+
+        if not frame:
+            raise ValueError("No frame available from camera")
+
+        # Update cache
+        self._frame_cache[printer_id] = CachedFrame(
+            data=frame,
+            captured_at=datetime.now()
+        )
+
+        # Detect content type
+        content_type = detect_image_format(frame)
+
+        self._logger.info(
+            "Snapshot captured",
+            printer_id=printer_id,
+            size=len(frame),
+            content_type=content_type
+        )
+
+        return frame, content_type
+
     async def get_snapshot(
         self,
         printer_id: str,
@@ -102,7 +194,7 @@ class CameraSnapshotService:
         force_refresh: bool = False
     ) -> bytes:
         """
-        Get camera snapshot for a printer.
+        Get camera snapshot for a printer (legacy interface for Bambu Lab).
 
         Args:
             printer_id: Unique printer identifier
@@ -112,7 +204,7 @@ class CameraSnapshotService:
             force_refresh: Skip cache and fetch fresh frame
 
         Returns:
-            JPEG image data
+            Image data bytes (JPEG or PNG)
 
         Raises:
             ValueError: If no frame available or printer not found

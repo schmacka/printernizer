@@ -7,15 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed
-- **Home Assistant Add-on Local Sync**: Completed migration to separate printernizer-ha repository
-  - Removed `/printernizer/` folder (6.3MB of duplicated code)
-  - Removed `.github/workflows/sync-ha-addon.yml` workflow
-  - Removed `scripts/deployment/sync-ha-addon.sh` and `.bat` scripts
-  - Removed `.git-hooks/pre-commit` auto-sync hook
-  - HA add-on now maintained at [printernizer-ha](https://github.com/schmacka/printernizer-ha)
-  - Automatic sync via `.github/workflows/sync-to-ha-repo.yml` workflow
-  - Updated all documentation to reflect new architecture
+## [2.10.0] - 2025-12-17
+
+### Added
+- **Prusa Webcam Support**: Enable camera preview for Prusa printers via PrusaLink Camera API
+  - Auto-detect connected webcams using `/api/v1/cameras` endpoint
+  - Capture snapshots from `/api/v1/cameras/snap` endpoint (PNG format)
+  - Dashboard now shows camera preview for Prusa printers with configured webcams
+  - Supports both Bambu Lab (JPEG) and Prusa (PNG) image formats
+
+### Changed
+- **Camera Service**: Refactored to support multiple printer types
+  - Added `get_snapshot_by_id()` method for universal printer support
+  - Added `detect_image_format()` helper for PNG/JPEG detection
+  - Camera API endpoints now work with any printer that implements `has_camera()`
+
+## [2.9.5] - 2025-12-17
+
+### Added
+- Materials API endpoint with full CRUD operations
+- PRUSA_WEBCAM_SUPPORT design document
+- Setup wizard design document
 
 ## [2.8.9] - 2025-12-11
 

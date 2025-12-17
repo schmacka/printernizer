@@ -4,7 +4,7 @@
 
 Enable webcam preview for Prusa printers on the dashboard by implementing the PrusaLink Camera API endpoints that already exist but aren't currently being used.
 
-**Status**: Planned
+**Status**: Completed (v2.10.0)
 **Priority**: Enhancement
 **Effort**: Low (single file change)
 

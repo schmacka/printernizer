@@ -111,11 +111,13 @@ async def get_camera_preview(
     camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service)
 ):
     """
-    Get current camera preview as JPEG image.
+    Get current camera preview as image (JPEG or PNG).
 
     Returns a fresh or cached snapshot without saving to disk or database.
     Intended for periodic polling to create "live preview" effect.
     Uses 5-second cache to reduce load on printer.
+    
+    Supports both Bambu Lab (JPEG) and Prusa (PNG) printers.
     """
     printer_id_str = str(printer_id)
     printer_driver = await printer_service.get_printer_driver(printer_id_str)
@@ -123,30 +125,27 @@ async def get_camera_preview(
     if not printer_driver:
         raise PrinterNotFoundError(printer_id_str)
 
-    # Check if printer supports camera (has required credentials)
-    if not hasattr(printer_driver, 'access_code') or not hasattr(printer_driver, 'serial_number'):
+    # Check if printer supports camera using the driver's has_camera() method
+    if not await printer_driver.has_camera():
         raise PrinternizerValidationError(
             field="camera",
-            error="Printer does not support camera (missing access code or serial number)"
+            error="Printer does not have camera support"
         )
 
     # Get snapshot using camera service (uses cache if fresh)
     try:
-        image_data = await camera_service.get_snapshot(
+        image_data, content_type = await camera_service.get_snapshot_by_id(
             printer_id=printer_id_str,
-            ip_address=printer_driver.ip_address,
-            access_code=printer_driver.access_code,
-            serial_number=printer_driver.serial_number,
             force_refresh=False  # Use cached frame if available
         )
     except ValueError as e:
         logger.error("No frame available", printer_id=printer_id_str, error=str(e))
         raise ServiceUnavailableError("camera_preview", "Failed to get preview: No frame available")
 
-    # Return raw JPEG with caching headers
+    # Return image with appropriate content type and caching headers
     return Response(
         content=image_data,
-        media_type="image/jpeg",
+        media_type=content_type,
         headers={
             "Cache-Control": "public, max-age=5",  # Match cache TTL
             "Content-Disposition": "inline"
@@ -162,36 +161,39 @@ async def take_snapshot(
     camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service),
     snapshot_repository: SnapshotRepository = Depends(get_snapshot_repository)
 ):
-    """Take a camera snapshot and save it."""
+    """Take a camera snapshot and save it.
+    
+    Supports both Bambu Lab (JPEG) and Prusa (PNG) printers.
+    """
     printer_id_str = str(printer_id)
     printer_driver = await printer_service.get_printer_driver(printer_id_str)
 
     if not printer_driver:
         raise PrinterNotFoundError(printer_id_str)
 
-    # Check if printer supports camera (has required credentials)
-    if not hasattr(printer_driver, 'access_code') or not hasattr(printer_driver, 'serial_number'):
+    # Check if printer supports camera using the driver's has_camera() method
+    if not await printer_driver.has_camera():
         raise PrinternizerValidationError(
             field="camera",
-            error="Printer does not support camera (missing access code or serial number)"
+            error="Printer does not have camera support"
         )
 
     # Take snapshot using camera service
     try:
-        image_data = await camera_service.get_snapshot(
+        image_data, content_type = await camera_service.get_snapshot_by_id(
             printer_id=printer_id_str,
-            ip_address=printer_driver.ip_address,
-            access_code=printer_driver.access_code,
-            serial_number=printer_driver.serial_number,
             force_refresh=snapshot_data.capture_trigger == CameraTrigger.MANUAL
         )
     except ValueError as e:
         logger.error("No frame available", printer_id=printer_id_str, error=str(e))
         raise ServiceUnavailableError("camera_snapshot", "Failed to capture snapshot: No frame available")
 
+    # Determine file extension based on content type
+    file_ext = 'png' if content_type == 'image/png' else 'jpg'
+    
     # Generate filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"snapshot_{printer_id_str}_{timestamp}.jpg"
+    filename = f"snapshot_{printer_id_str}_{timestamp}.{file_ext}"
 
     # Ensure snapshots directory exists
     from pathlib import Path
@@ -221,7 +223,7 @@ async def take_snapshot(
         'job_id': snapshot_data.job_id,
         'filename': filename,
         'file_size': len(image_data),
-        'content_type': 'image/jpeg',
+        'content_type': content_type,
         'storage_path': storage_path,
         'captured_at': datetime.now().isoformat(),
         'capture_trigger': snapshot_data.capture_trigger.value,

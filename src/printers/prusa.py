@@ -1022,20 +1022,96 @@ class PrusaPrinter(BasePrinter):
                         printer_id=self.printer_id, error=str(e), exc_info=True)
             return False
 
+    async def _get_cameras(self) -> List[dict]:
+        """Get list of available cameras from PrusaLink API.
+        
+        Returns:
+            List of camera configuration dictionaries from PrusaLink.
+        """
+        if not self.session:
+            return []
+        try:
+            async with self.session.get(f"{self.base_url}/v1/cameras") as response:
+                if response.status == 200:
+                    cameras = await response.json()
+                    logger.debug("PrusaLink cameras found",
+                               printer_id=self.printer_id, count=len(cameras))
+                    return cameras
+                elif response.status == 404:
+                    # Camera API not available on this firmware version
+                    logger.debug("Camera API not available",
+                               printer_id=self.printer_id)
+                    return []
+        except asyncio.TimeoutError:
+            logger.debug("Timeout getting cameras", printer_id=self.printer_id)
+        except Exception as e:
+            logger.debug("Failed to get cameras",
+                        printer_id=self.printer_id, error=str(e))
+        return []
+
     async def has_camera(self) -> bool:
-        """Check if Prusa printer has camera support."""
-        # Prusa Core One typically doesn't have integrated camera support
-        # This could be extended in the future if camera support is added
-        return False
+        """Check if Prusa printer has camera support via PrusaLink API.
+        
+        Returns:
+            True if at least one camera is configured on the printer.
+        """
+        try:
+            cameras = await self._get_cameras()
+            has_cam = len(cameras) > 0
+            logger.debug("Prusa camera check",
+                        printer_id=self.printer_id, has_camera=has_cam)
+            return has_cam
+        except Exception as e:
+            logger.debug("Camera check failed",
+                        printer_id=self.printer_id, error=str(e))
+            return False
 
     async def get_camera_stream_url(self) -> Optional[str]:
-        """Get camera stream URL for Prusa printer."""
-        # Prusa Core One doesn't have integrated camera support
-        logger.debug("Camera not supported on Prusa printer", printer_id=self.printer_id)
+        """Get camera stream URL for Prusa printer.
+        
+        PrusaLink doesn't support true streaming, so we return the preview
+        endpoint which uses polling-based snapshot display.
+        
+        Returns:
+            Preview endpoint URL if camera is available, None otherwise.
+        """
+        if await self.has_camera():
+            # Return the preview endpoint URL (snapshot-based, not true streaming)
+            return f"/api/v1/printers/{self.printer_id}/camera/preview"
         return None
 
     async def take_snapshot(self) -> Optional[bytes]:
-        """Take a camera snapshot from Prusa printer."""
-        # Prusa Core One doesn't have integrated camera support
-        logger.debug("Camera not supported on Prusa printer", printer_id=self.printer_id)
+        """Take a camera snapshot from Prusa printer via PrusaLink API.
+        
+        PrusaLink returns PNG images from the /v1/cameras/snap endpoint.
+        
+        Returns:
+            PNG image data as bytes, or None if capture failed.
+        """
+        if not self.session:
+            return None
+        try:
+            async with self.session.get(f"{self.base_url}/v1/cameras/snap") as response:
+                if response.status == 200:
+                    # PrusaLink returns PNG images
+                    png_data = await response.read()
+                    logger.debug("Prusa snapshot captured",
+                               printer_id=self.printer_id, size=len(png_data))
+                    return png_data
+                elif response.status == 204:
+                    logger.debug("No camera image available",
+                               printer_id=self.printer_id)
+                elif response.status == 404:
+                    logger.debug("No camera configured",
+                               printer_id=self.printer_id)
+                else:
+                    logger.warning("Unexpected response from camera snap",
+                                 printer_id=self.printer_id,
+                                 status=response.status)
+        except asyncio.TimeoutError:
+            logger.warning("Timeout capturing Prusa snapshot",
+                         printer_id=self.printer_id)
+        except Exception as e:
+            logger.error("Failed to capture Prusa snapshot",
+                        printer_id=self.printer_id, error=str(e))
         return None
