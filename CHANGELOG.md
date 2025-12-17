@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.0] - 2025-12-17
+
+### Added
+- **Setup Wizard**: First-run setup wizard for new installations
+  - 5-step guided configuration: Welcome, Printer Setup, Paths, Features, Summary
+  - Automatic printer discovery with network scanning
+  - Connection testing before adding printers
+  - Path configuration for downloads and library folders
+  - Optional features toggle (Timelapse, Watch Folders, MQTT)
+  - Re-run wizard from Settings > System
+  - German language throughout
+  - Dark mode support
+
+### Changed
+- **Printer API**: Added `/api/v1/printers/test-connection` endpoint for testing printer connections without creating configuration
+- **Settings**: Added Setup Wizard section in System settings tab
+
 ## [2.10.0] - 2025-12-17
 
 ### Added
