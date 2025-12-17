@@ -567,8 +567,11 @@ class JobService:
             # Set timestamps based on status
             now = datetime.now()
             
-            # Get existing job to check if start_time is already set
-            existing_job = await self.job_repo.get(job_id) if not (validate_transitions or completion_notes) else job
+            # Reuse existing job if already fetched, otherwise get it
+            if not (validate_transitions or completion_notes):
+                existing_job = await self.job_repo.get(job_id)
+            else:
+                existing_job = job  # Reuse already-fetched job
             
             # Set start_time for running/printing status if not already set
             if status in [JobStatus.RUNNING.value, JobStatus.PRINTING.value]:
@@ -585,8 +588,7 @@ class JobService:
 
             # Add completion notes if provided
             if completion_notes and old_status:
-                # Get existing notes
-                existing_job = await self.job_repo.get(job_id) if not validate_transitions else job
+                # Reuse already-fetched job
                 existing_notes = existing_job.get('notes', '') if existing_job else ''
 
                 timestamp = now.strftime("%Y-%m-%d %H:%M:%S")

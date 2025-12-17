@@ -508,7 +508,9 @@ class TestJobAPI:
         updated_job['end_time'] = datetime.now()
         updated_job['updated_at'] = datetime.now()
         # Verify notes would be appended (mocked service would do this)
-        updated_job['notes'] = 'Initial notes\n[2025-12-17 10:00:00] Status changed: running → completed: Job completed successfully'
+        # Use a flexible format that doesn't rely on exact timestamps
+        timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updated_job['notes'] = f'Initial notes\n[{timestamp_str}] Status changed: running → completed: Job completed successfully'
         test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
         
         response = client.put(
