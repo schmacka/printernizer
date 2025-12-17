@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/materials.css">
     <link rel="stylesheet" href="css/timelapses.css">
     <link rel="stylesheet" href="css/search.css">
+    <link rel="stylesheet" href="css/setup-wizard.css">
     <link rel="stylesheet" href="css/dark-theme.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <!-- Logger must be loaded before theme-switcher -->
@@ -1554,6 +1555,21 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
+                                <h3>🧙 Setup-Assistent</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted" style="margin-bottom: 15px;">
+                                    Führe den Setup-Assistenten erneut aus, um deine Grundeinstellungen anzupassen.
+                                </p>
+                                <button id="rerunSetupWizard" class="btn btn-secondary">
+                                    <span class="btn-icon">🔄</span>
+                                    Setup-Assistent erneut starten
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card settings-section">
+                            <div class="card-header">
                                 <h3>🧭 Navigationsleiste</h3>
                             </div>
                             <div class="card-body">
@@ -2584,6 +2600,7 @@
     <script src="js/materials.js"></script>
     <script src="js/search.js"></script>
     <script src="js/global-drag-drop.js"></script>
+    <script src="js/setup-wizard.js"></script>
 
     <script src="js/main.js?v=1.5"></script>
 
@@ -2660,6 +2677,319 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- Setup Wizard Overlay -->
+    <div id="setupWizardOverlay" class="setup-wizard-overlay">
+        <div class="setup-wizard-container">
+            <!-- Wizard Header -->
+            <div class="setup-wizard-header">
+                <div class="setup-wizard-brand">
+                    <img src="assets/logo.png" alt="Printernizer">
+                    <span class="setup-wizard-brand-text">Setup Wizard</span>
+                </div>
+                <span id="wizardStepIndicator" class="setup-wizard-step-indicator">Schritt 1 von 5</span>
+            </div>
+
+            <!-- Progress Dots -->
+            <div class="setup-wizard-progress">
+                <div class="progress-dot active" data-step="1"></div>
+                <div class="progress-dot" data-step="2"></div>
+                <div class="progress-dot" data-step="3"></div>
+                <div class="progress-dot" data-step="4"></div>
+                <div class="progress-dot" data-step="5"></div>
+            </div>
+
+            <!-- Wizard Card -->
+            <div class="setup-wizard-card">
+                <div class="setup-wizard-content">
+                    <!-- Step 1: Welcome -->
+                    <div id="wizardStep1" class="wizard-step active">
+                        <div class="welcome-icon">👋</div>
+                        <h2 class="wizard-step-title">Willkommen bei Printernizer!</h2>
+                        <p class="wizard-step-subtitle">
+                            Der Setup-Assistent hilft dir, dein 3D-Drucker-Management in wenigen Schritten einzurichten.
+                        </p>
+                        
+                        <div class="welcome-features">
+                            <h4>Was wir konfigurieren werden:</h4>
+                            <ul>
+                                <li>Deinen ersten 3D-Drucker verbinden</li>
+                                <li>Speicherpfade für Downloads und Bibliothek festlegen</li>
+                                <li>Optionale Features wie Zeitraffer aktivieren</li>
+                            </ul>
+                        </div>
+                        
+                        <p style="text-align: center; color: var(--gray-500); font-size: 0.9rem;">
+                            Du kannst jeden Schritt überspringen und später manuell konfigurieren.
+                        </p>
+                    </div>
+
+                    <!-- Step 2: Add Printer -->
+                    <div id="wizardStep2" class="wizard-step">
+                        <h2 class="wizard-step-title">Drucker hinzufügen</h2>
+                        <p class="wizard-step-subtitle">
+                            Wähle deinen Druckertyp und gib die Verbindungsdaten ein.
+                        </p>
+
+                        <!-- Printer Type Selection -->
+                        <div class="printer-type-selection">
+                            <div class="printer-type-card" data-type="bambu_lab">
+                                <div class="printer-icon">🖨️</div>
+                                <div class="printer-type-name">Bambu Lab</div>
+                                <div class="printer-type-desc">A1, A1 mini, X1, P1</div>
+                            </div>
+                            <div class="printer-type-card" data-type="prusa">
+                                <div class="printer-icon">🦎</div>
+                                <div class="printer-type-name">Prusa</div>
+                                <div class="printer-type-desc">Core One</div>
+                            </div>
+                        </div>
+
+                        <!-- Network Discovery -->
+                        <div class="discovery-section">
+                            <div class="discovery-header">
+                                <h4>Automatische Erkennung</h4>
+                                <button type="button" id="wizardDiscoverBtn" class="btn btn-secondary btn-sm">
+                                    🔍 Netzwerk durchsuchen
+                                </button>
+                            </div>
+                            <div id="wizardDiscoveredList" class="discovered-printers-list">
+                                <p style="text-align:center;color:var(--gray-500);padding:0.5rem;">
+                                    Klicke auf "Netzwerk durchsuchen" um Drucker zu finden.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Printer Form -->
+                        <div id="wizardPrinterForm" style="display: none;">
+                            <div class="wizard-form-group">
+                                <label for="wizardPrinterName">Drucker Name *</label>
+                                <input type="text" id="wizardPrinterName" class="form-control" 
+                                       placeholder="z.B. Mein Bambu A1">
+                                <span class="form-hint">Ein freundlicher Name für deinen Drucker</span>
+                            </div>
+
+                            <div class="wizard-form-group">
+                                <label for="wizardPrinterIp">IP-Adresse *</label>
+                                <input type="text" id="wizardPrinterIp" class="form-control" 
+                                       placeholder="z.B. 192.168.1.100">
+                            </div>
+
+                            <!-- Bambu Lab specific fields -->
+                            <div id="wizardBambuFields" style="display: none;">
+                                <div class="wizard-form-group">
+                                    <label for="wizardBambuAccessCode">Zugangscode *</label>
+                                    <input type="text" id="wizardBambuAccessCode" class="form-control" 
+                                           placeholder="8-stelliger Code" maxlength="8">
+                                    <span class="form-hint">Findest du in den Drucker-Einstellungen unter WLAN</span>
+                                </div>
+                                <div class="wizard-form-group">
+                                    <label for="wizardBambuSerial">Seriennummer</label>
+                                    <input type="text" id="wizardBambuSerial" class="form-control" 
+                                           placeholder="Optional">
+                                    <span class="form-hint">Optional, wird für einige Features benötigt</span>
+                                </div>
+                            </div>
+
+                            <!-- Prusa specific fields -->
+                            <div id="wizardPrusaFields" style="display: none;">
+                                <div class="wizard-form-group">
+                                    <label for="wizardPrusaApiKey">API-Key *</label>
+                                    <input type="text" id="wizardPrusaApiKey" class="form-control" 
+                                           placeholder="API-Key aus Drucker-Einstellungen">
+                                    <span class="form-hint">Findest du in den Drucker-Einstellungen</span>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 1rem;">
+                                <button type="button" id="wizardTestConnection" class="btn btn-secondary">
+                                    🔌 Verbindung testen
+                                </button>
+                            </div>
+                            <div id="wizardConnectionResult" class="connection-test-result" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Configure Paths -->
+                    <div id="wizardStep3" class="wizard-step">
+                        <h2 class="wizard-step-title">Speicherpfade</h2>
+                        <p class="wizard-step-subtitle">
+                            Lege fest, wo deine Dateien gespeichert werden sollen.
+                            <span id="wizardEnvInfo" style="font-size: 0.85em; color: var(--gray-500);"></span>
+                        </p>
+
+                        <div class="path-config-group">
+                            <h4>📥 Downloads-Ordner</h4>
+                            <p class="path-description">Hier werden heruntergeladene G-Code Dateien gespeichert.</p>
+                            <div class="wizard-form-group">
+                                <input type="text" id="wizardDownloadsPath" class="form-control" 
+                                       placeholder="Pfad eingeben...">
+                                <div id="wizardDownloadsValidation" class="path-validation"></div>
+                            </div>
+                        </div>
+
+                        <div class="path-config-group">
+                            <h4>📚 Bibliothek-Ordner</h4>
+                            <p class="path-description">Zentrale Ablage für deine 3D-Modelle mit automatischer Organisation.</p>
+                            <div class="wizard-form-group">
+                                <input type="text" id="wizardLibraryPath" class="form-control" 
+                                       placeholder="Pfad eingeben...">
+                                <div id="wizardLibraryValidation" class="path-validation"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Optional Features -->
+                    <div id="wizardStep4" class="wizard-step">
+                        <h2 class="wizard-step-title">Optionale Features</h2>
+                        <p class="wizard-step-subtitle">
+                            Aktiviere zusätzliche Funktionen nach Bedarf.
+                        </p>
+
+                        <div class="feature-toggle-list">
+                            <!-- Timelapse Feature -->
+                            <div class="feature-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="wizardTimelapseToggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div class="feature-toggle-content">
+                                    <div class="feature-toggle-header">
+                                        <span class="feature-toggle-title">🎬 Zeitraffer</span>
+                                    </div>
+                                    <p class="feature-toggle-desc">
+                                        Automatisch Zeitraffer-Videos aus Druckfotos erstellen.
+                                    </p>
+                                    <div id="wizardTimelapseConfig" class="feature-toggle-config" style="display: none;">
+                                        <div class="wizard-form-group">
+                                            <label for="wizardTimelapseSource">Quell-Ordner</label>
+                                            <input type="text" id="wizardTimelapseSource" class="form-control" 
+                                                   placeholder="Ordner mit Druckfotos">
+                                        </div>
+                                        <div class="wizard-form-group">
+                                            <label for="wizardTimelapseOutput">Ausgabe-Ordner</label>
+                                            <input type="text" id="wizardTimelapseOutput" class="form-control" 
+                                                   placeholder="Ordner für fertige Videos">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Watch Folders Feature -->
+                            <div class="feature-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="wizardWatchFoldersToggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div class="feature-toggle-content">
+                                    <div class="feature-toggle-header">
+                                        <span class="feature-toggle-title">👁️ Watch-Ordner</span>
+                                    </div>
+                                    <p class="feature-toggle-desc">
+                                        Überwache Ordner und importiere neue Dateien automatisch.
+                                    </p>
+                                    <div id="wizardWatchFoldersConfig" class="feature-toggle-config" style="display: none;">
+                                        <div class="wizard-form-group">
+                                            <label for="wizardWatchFolderPath">Erster Watch-Ordner</label>
+                                            <input type="text" id="wizardWatchFolderPath" class="form-control" 
+                                                   placeholder="Ordner zum Überwachen">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MQTT Feature -->
+                            <div class="feature-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="wizardMqttToggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <div class="feature-toggle-content">
+                                    <div class="feature-toggle-header">
+                                        <span class="feature-toggle-title">📡 MQTT Integration</span>
+                                    </div>
+                                    <p class="feature-toggle-desc">
+                                        Verbinde mit Home Assistant über MQTT für Automatisierung.
+                                    </p>
+                                    <div id="wizardMqttConfig" class="feature-toggle-config" style="display: none;">
+                                        <div class="wizard-form-group">
+                                            <label for="wizardMqttHost">MQTT Host *</label>
+                                            <input type="text" id="wizardMqttHost" class="form-control" 
+                                                   placeholder="z.B. homeassistant.local">
+                                        </div>
+                                        <div class="wizard-form-group">
+                                            <label for="wizardMqttPort">MQTT Port</label>
+                                            <input type="number" id="wizardMqttPort" class="form-control" 
+                                                   value="1883" min="1" max="65535">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: Summary -->
+                    <div id="wizardStep5" class="wizard-step">
+                        <h2 class="wizard-step-title">Zusammenfassung</h2>
+                        <p class="wizard-step-subtitle">
+                            Überprüfe deine Konfiguration bevor du die Einrichtung abschließt.
+                        </p>
+
+                        <div class="summary-section">
+                            <h4>🖨️ Drucker</h4>
+                            <div id="wizardSummaryPrinter">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <h4>📂 Pfade</h4>
+                            <div id="wizardSummaryPaths">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+
+                        <div class="summary-section">
+                            <h4>⚡ Features</h4>
+                            <div id="wizardSummaryFeatures">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Wizard Footer/Navigation -->
+                <div class="setup-wizard-footer">
+                    <div class="wizard-nav-left">
+                        <button type="button" id="wizardBtnBack" class="wizard-btn wizard-btn-secondary" style="display: none;">
+                            <span>←</span> <span>Zurück</span>
+                        </button>
+                    </div>
+                    <div class="wizard-nav-right">
+                        <button type="button" id="wizardBtnSkipAll" class="wizard-btn wizard-btn-skip" style="display: none;">
+                            Assistent überspringen
+                        </button>
+                        <button type="button" id="wizardBtnSkip" class="wizard-btn wizard-btn-skip" style="display: none;">
+                            Schritt überspringen
+                        </button>
+                        <button type="button" id="wizardBtnNext" class="wizard-btn wizard-btn-primary">
+                            <span>Einrichtung starten</span> <span>→</span>
+                        </button>
+                        <button type="button" id="wizardBtnFinish" class="wizard-btn wizard-btn-primary" style="display: none;">
+                            ✓ Einrichtung abschließen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Incomplete Banner -->
+    <div id="setupIncompleteBanner" class="setup-incomplete-banner">
+        <span>Setup nicht abgeschlossen</span>
+        <button class="resume-btn">Setup fortsetzen</button>
+        <button class="dismiss-btn">Später</button>
     </div>
 
     <!-- Footer -->

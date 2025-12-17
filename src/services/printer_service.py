@@ -336,6 +336,98 @@ class PrinterService:
         """Disconnect from a specific printer. Delegates to PrinterConnectionService."""
         return await self.connection.disconnect_printer(printer_id)
 
+    async def test_connection(
+        self,
+        printer_type: str,
+        connection_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Test printer connection without creating a persistent configuration.
+
+        This is useful for validating connection parameters in setup wizards
+        before actually creating a printer.
+
+        Args:
+            printer_type: Type of printer ('bambu_lab' or 'prusa_core')
+            connection_config: Connection configuration dict containing
+                - For Bambu Lab: ip_address, access_code, serial_number (optional)
+                - For Prusa: ip_address, api_key
+
+        Returns:
+            Dict with 'success' bool, 'message' string, and optional 'details'
+        """
+        from src.printers.bambu_lab import BambuLabPrinter
+        from src.printers.prusa import PrusaPrinter
+
+        temp_printer = None
+        try:
+            # Normalize printer type
+            ptype = printer_type.value if hasattr(printer_type, 'value') else str(printer_type)
+            ptype = ptype.lower()
+
+            # Create temporary printer instance
+            if ptype == "bambu_lab":
+                temp_printer = BambuLabPrinter(
+                    printer_id="test_connection_temp",
+                    name="Test Connection",
+                    ip_address=connection_config.get("ip_address"),
+                    access_code=connection_config.get("access_code"),
+                    serial_number=connection_config.get("serial_number"),
+                    file_service=None
+                )
+            elif ptype in ("prusa_core", "prusa"):
+                temp_printer = PrusaPrinter(
+                    printer_id="test_connection_temp",
+                    name="Test Connection",
+                    ip_address=connection_config.get("ip_address"),
+                    api_key=connection_config.get("api_key"),
+                    file_service=None
+                )
+            else:
+                return {
+                    "success": False,
+                    "message": f"Unknown printer type: {printer_type}"
+                }
+
+            # Test connection
+            success = await temp_printer.connect()
+
+            if success:
+                # Get some basic info if available
+                details = {}
+                if hasattr(temp_printer, 'get_status'):
+                    try:
+                        status = await temp_printer.get_status()
+                        if status:
+                            details["printer_model"] = status.get("model", "Unknown")
+                    except Exception:
+                        pass
+
+                return {
+                    "success": True,
+                    "message": "Connection successful",
+                    "details": details
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Connection failed - could not establish connection"
+                }
+
+        except Exception as e:
+            logger.error("Test connection error", error=str(e), printer_type=printer_type)
+            return {
+                "success": False,
+                "message": f"Connection error: {str(e)}"
+            }
+        finally:
+            # Clean up temporary connection
+            if temp_printer:
+                try:
+                    await temp_printer.disconnect()
+                except Exception:
+                    pass
+
     async def health_check(self) -> Dict[str, Any]:
         """Check health of all printer connections. Delegates to PrinterConnectionService."""
         health = await self.connection.health_check()

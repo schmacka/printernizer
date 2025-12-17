@@ -64,7 +64,27 @@ class PrinternizerApp {
         // Check initial connection
         this.checkSystemHealth();
 
+        // Check if setup wizard should be shown
+        this.checkSetupWizard();
+
         Logger.debug('Printernizer application initialized');
+    }
+
+    /**
+     * Check if setup wizard should be shown
+     */
+    async checkSetupWizard() {
+        try {
+            if (window.setupWizard) {
+                const shown = await window.setupWizard.checkAndShow();
+                if (shown) {
+                    Logger.info('Setup wizard displayed');
+                }
+            }
+        } catch (error) {
+            Logger.error('Failed to check setup wizard status:', error);
+            // Don't block app initialization on wizard check failure
+        }
     }
 
     /**

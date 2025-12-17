@@ -65,6 +65,12 @@ class PrinterUpdateRequest(BaseModel):
     is_enabled: Optional[bool] = None
 
 
+class PrinterTestConnectionRequest(BaseModel):
+    """Request model for testing printer connection without creating."""
+    printer_type: PrinterType
+    connection_config: dict
+
+
 class PaginationResponse(BaseModel):
     """Pagination information."""
     page: int
@@ -339,6 +345,34 @@ async def clear_startup_discovered_printers():
             "status": "error",
             "message": "Failed to clear discovered printers"
         }
+
+
+@router.post("/test-connection")
+async def test_printer_connection(
+    test_request: PrinterTestConnectionRequest,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Test printer connection without creating the printer.
+
+    This endpoint allows testing connection parameters before actually
+    creating a printer configuration. Useful for setup wizards.
+    """
+    try:
+        result = await printer_service.test_connection(
+            test_request.printer_type,
+            test_request.connection_config
+        )
+        return success_response({
+            "success": result.get("success", False),
+            "message": result.get("message", "Connection test completed"),
+            "details": result.get("details", {})
+        })
+    except Exception as e:
+        logger.error("Connection test failed", error=str(e))
+        return success_response({
+            "success": False,
+            "message": str(e)
+        })
 
 
 @router.post("", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)

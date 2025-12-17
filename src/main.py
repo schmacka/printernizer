@@ -52,6 +52,7 @@ from src.api.routers.materials import router as materials_router
 from src.api.routers.timelapses import router as timelapses_router
 from src.api.routers.search import router as search_router
 from src.api.routers.usage_statistics import router as usage_statistics_router
+from src.api.routers.setup import router as setup_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -678,6 +679,7 @@ def create_application() -> FastAPI:
     app.include_router(search_router, prefix="/api/v1/search", tags=["Search"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
+    app.include_router(setup_router, prefix="/api/v1/setup", tags=["Setup"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(usage_statistics_router, prefix="/api/v1/usage-stats", tags=["Usage Statistics"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
