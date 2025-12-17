@@ -765,10 +765,13 @@ def test_app():
     # Create mock job service with async methods
     mock_job_service = MagicMock()
     mock_job_service.list_jobs = AsyncMock(return_value=[])  # Returns empty list of jobs
+    mock_job_service.list_jobs_with_count = AsyncMock(return_value=([], 0))  # Returns (jobs, total_count)
     mock_job_service.get_jobs = AsyncMock(return_value={'status': 'success', 'data': [], 'total_count': 0})
+    mock_job_service.get_job = AsyncMock(return_value=None)  # Get job by ID
     mock_job_service.get_job_by_id = AsyncMock(return_value={'status': 'success', 'data': None})
     mock_job_service.create_job = AsyncMock(return_value={'status': 'success', 'data': {}})
     mock_job_service.update_job = AsyncMock(return_value={'status': 'success', 'data': {}})
+    mock_job_service.update_job_status = AsyncMock(return_value={'status': 'success', 'data': {}})
     mock_job_service.delete_job = AsyncMock(return_value={'status': 'success'})
 
     # Create mock material service with async methods

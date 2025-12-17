@@ -566,9 +566,21 @@ class JobService:
 
             # Set timestamps based on status
             now = datetime.now()
-            if status in [JobStatus.RUNNING.value, JobStatus.PRINTING.value] and 'start_time' not in updates:
-                updates['start_time'] = now.isoformat()
-            elif status in [JobStatus.COMPLETED.value, JobStatus.FAILED.value, JobStatus.CANCELLED.value] and 'end_time' not in updates:
+            
+            # Get existing job to check if start_time is already set
+            existing_job = await self.job_repo.get(job_id) if not (validate_transitions or completion_notes) else job
+            
+            # Set start_time for running/printing status if not already set
+            if status in [JobStatus.RUNNING.value, JobStatus.PRINTING.value]:
+                if not existing_job.get('start_time'):
+                    updates['start_time'] = now.isoformat()
+            
+            # For completion statuses, ensure start_time is set and set end_time
+            elif status in [JobStatus.COMPLETED.value, JobStatus.FAILED.value, JobStatus.CANCELLED.value]:
+                # Ensure start_time is set (if going directly from pending to completed/failed)
+                if not existing_job.get('start_time'):
+                    updates['start_time'] = now.isoformat()
+                # Set end_time
                 updates['end_time'] = now.isoformat()
 
             # Add completion notes if provided
