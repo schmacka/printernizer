@@ -568,10 +568,10 @@ class JobService:
             now = datetime.now()
             
             # Reuse existing job if already fetched, otherwise get it
-            if not (validate_transitions or completion_notes):
-                existing_job = await self.job_repo.get(job_id)
-            else:
+            if (validate_transitions or completion_notes):
                 existing_job = job  # Reuse already-fetched job
+            else:
+                existing_job = await self.job_repo.get(job_id)
             
             # Set start_time for running/printing status if not already set
             if status in [JobStatus.RUNNING.value, JobStatus.PRINTING.value]:
