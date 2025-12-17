@@ -480,6 +480,154 @@ class TestJobAPI:
         # Should fail validation at Pydantic level (422)
         assert response.status_code == 422
     
+    def test_update_status_with_completion_notes(self, client, test_app):
+        """Test that completion notes are properly handled"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        test_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'running',
+            'start_time': datetime.now(),
+            'end_time': None,
+            'notes': 'Initial notes',
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        # Configure mocks
+        test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
+        
+        updated_job = test_job.copy()
+        updated_job['status'] = 'completed'
+        updated_job['end_time'] = datetime.now()
+        updated_job['updated_at'] = datetime.now()
+        # Verify notes would be appended (mocked service would do this)
+        updated_job['notes'] = 'Initial notes\n[2025-12-17 10:00:00] Status changed: running → completed: Job completed successfully'
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={
+                'status': 'completed',
+                'completion_notes': 'Job completed successfully'
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'completed'
+        # Verify the service was called with the completion notes
+        test_app.state.job_service.update_job_status.assert_called_once()
+        call_args = test_app.state.job_service.update_job_status.call_args
+        assert call_args.kwargs['completion_notes'] == 'Job completed successfully'
+    
+    def test_update_status_with_force_flag(self, client, test_app):
+        """Test that force flag allows invalid transitions"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        completed_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'completed',
+            'start_time': datetime.now(),
+            'end_time': datetime.now(),
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        # Configure mocks
+        test_app.state.job_service.get_job = AsyncMock(return_value=completed_job.copy())
+        
+        # With force flag, the service should allow the transition
+        updated_job = completed_job.copy()
+        updated_job['status'] = 'running'
+        updated_job['updated_at'] = datetime.now()
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={
+                'status': 'running',
+                'force': True
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'running'
+        # Verify force flag was passed to service
+        test_app.state.job_service.update_job_status.assert_called_once()
+        call_args = test_app.state.job_service.update_job_status.call_args
+        assert call_args.kwargs['force'] is True
+    
+    def test_update_status_all_valid_transitions(self, client, test_app):
+        """Test all valid status transitions work correctly"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        
+        # Test valid transitions
+        valid_transitions = [
+            ('pending', 'running'),
+            ('pending', 'completed'),
+            ('pending', 'failed'),
+            ('running', 'completed'),
+            ('running', 'failed'),
+            ('running', 'paused'),
+            ('paused', 'running'),
+            ('completed', 'failed'),
+            ('failed', 'completed'),
+        ]
+        
+        for from_status, to_status in valid_transitions:
+            test_job = {
+                'id': job_id,
+                'printer_id': 'bambu_a1_001',
+                'printer_type': 'bambu_lab',
+                'job_name': 'test_cube.3mf',
+                'status': from_status,
+                'start_time': datetime.now() if from_status != 'pending' else None,
+                'end_time': datetime.now() if from_status in ['completed', 'failed'] else None,
+                'created_at': datetime.now(),
+                'updated_at': datetime.now()
+            }
+            
+            test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
+            
+            updated_job = test_job.copy()
+            updated_job['status'] = to_status
+            updated_job['updated_at'] = datetime.now()
+            if to_status in ['running', 'printing']:
+                updated_job['start_time'] = datetime.now()
+            if to_status in ['completed', 'failed']:
+                updated_job['start_time'] = updated_job.get('start_time') or datetime.now()
+                updated_job['end_time'] = datetime.now()
+            
+            test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+            
+            response = client.put(
+                f"/api/v1/jobs/{job_id}/status",
+                json={'status': to_status}
+            )
+            
+            assert response.status_code == 200, f"Failed transition {from_status} → {to_status}"
+            data = response.json()
+            assert data['status'] == to_status
+            assert data['previous_status'] == from_status
+    
     def test_delete_job(self, client, test_app):
         """Test DELETE /api/v1/jobs/{id}"""
         from unittest.mock import AsyncMock
