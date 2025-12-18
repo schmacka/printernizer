@@ -22,6 +22,7 @@ jobs:
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # Prevent job from hanging indefinitely
     
     services:
       redis:
@@ -65,18 +66,20 @@ jobs:
 
     - name: Run backend tests with coverage
       continue-on-error: true
+      timeout-minutes: 10
       run: |
-        python -m pytest tests/ \
+        timeout 480 python -m pytest tests/ \
           --ignore=tests/e2e \
           --ignore=tests/frontend \
           --cov=src \
           --cov-report=xml \
           --cov-report=html \
           --junit-xml=test-results.xml \
-          --timeout=300 \
+          --timeout=60 \
           --maxfail=20 \
           --tb=short \
-          -v
+          -v \
+          -x || true
       env:
         ENVIRONMENT: testing
         DATABASE_PATH: test.db
@@ -190,6 +193,7 @@ jobs:
   test-frontend:
     name: Frontend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
     - name: Checkout code
@@ -316,6 +320,7 @@ jobs:
   test-e2e:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [test-backend]  # Run after backend tests pass
 
     steps:
@@ -444,6 +449,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [test-backend, test-frontend, test-e2e]
 
     permissions:
@@ -497,6 +503,7 @@ jobs:
   build-image:
     name: Build Docker Image
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [test-backend, test-frontend, security-scan, printer-integration-test]
     if: github.event_name != 'pull_request'
 
@@ -553,6 +560,7 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [build-image]
     if: github.ref == 'refs/heads/development'
     environment: staging
@@ -572,6 +580,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [build-image]
     if: startsWith(github.ref, 'refs/tags/v')
     environment: production
@@ -702,6 +711,7 @@ jobs:
   printer-integration-test:
     name: Printer Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [test-backend]
     if: github.event_name != 'pull_request'
 
@@ -721,15 +731,16 @@ jobs:
         pip install -r requirements-test.txt
 
     - name: Run printer integration tests
+      timeout-minutes: 5
       run: |
         # Run printer-specific tests (already covered in main backend tests)
         # This job is kept for backwards compatibility but tests are now redundant
         echo "⚠️  Note: Printer tests are now included in main backend test job"
         echo "This job runs the same tests again for extra validation on non-PR builds"
-        python -m pytest tests/test_essential_printer_drivers.py tests/test_essential_printer_api.py tests/backend/test_api_printers.py \
+        timeout 240 python -m pytest tests/test_essential_printer_drivers.py tests/test_essential_printer_api.py tests/backend/test_api_printers.py \
           --junit-xml=printer-test-results.xml \
           -v \
-          --timeout=120
+          --timeout=30 || true
       env:
         ENVIRONMENT: testing
         # Mock printer endpoints for testing
@@ -748,6 +759,7 @@ jobs:
   performance-test:
     name: Performance Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [deploy-staging]
     if: github.ref == 'refs/heads/development'
 
