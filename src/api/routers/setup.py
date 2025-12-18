@@ -93,10 +93,23 @@ async def complete_setup(
 ):
     """
     Mark the setup wizard as completed.
-    
+
     This prevents the wizard from showing automatically on subsequent visits.
     """
     try:
+        # Ensure settings table exists (handles fresh install or missing migrations)
+        await database._connection.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY NOT NULL,
+                value TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'general',
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+        """)
+        await database._connection.commit()
+
         async with database._connection.execute(
             """
             INSERT INTO settings (key, value, category, description)
@@ -125,10 +138,23 @@ async def reset_setup(
 ):
     """
     Reset the setup wizard so it can be run again.
-    
+
     This sets setup_wizard_completed to false.
     """
     try:
+        # Ensure settings table exists (handles fresh install or missing migrations)
+        await database._connection.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY NOT NULL,
+                value TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'general',
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+        """)
+        await database._connection.commit()
+
         async with database._connection.execute(
             """
             INSERT INTO settings (key, value, category, description)
