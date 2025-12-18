@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.6] - 2025-12-18
+
+### Fixed
+- **Setup Wizard**: Re-add missing table creation in status endpoint
+  - Ensures settings table exists before querying wizard completion status
+
 ## [2.11.5] - 2025-12-18
 
 ### Fixed

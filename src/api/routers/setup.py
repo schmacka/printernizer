@@ -47,13 +47,26 @@ async def get_setup_status(
     - setup_wizard_completed flag is false
     """
     try:
+        # Ensure settings table exists (handles fresh install or missing migrations)
+        await database._connection.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY NOT NULL,
+                value TEXT NOT NULL,
+                category TEXT NOT NULL DEFAULT 'general',
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+            )
+        """)
+        await database._connection.commit()
+
         # Check if wizard has been completed
         async with database._connection.execute(
             "SELECT value FROM settings WHERE key = 'setup_wizard_completed'"
         ) as cursor:
             row = await cursor.fetchone()
             setup_completed = row is not None and row[0].lower() == 'true'
-        
+
         # Check if any printers are configured
         printers = await printer_service.get_all_printers()
         has_printers = len(printers) > 0
