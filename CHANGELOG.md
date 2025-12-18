@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.11.2] - 2025-12-18
+## [2.11.3] - 2025-12-18
 
 ### Fixed
-- **Setup Wizard**: Fix "no such table: settings" error when skipping or completing wizard
-  - Setup endpoints now ensure settings table exists before inserting
-  - Handles fresh installs and databases missing migrations
+- **Setup Wizard**: Fix wizard reappearing on every page refresh
+  - Status endpoint now also ensures settings table exists before querying
+  - Prevents exception fallback from always showing wizard
 
 ## [2.11.0] - 2025-12-17
 
