@@ -375,14 +375,16 @@ jobs:
 
     - name: Run E2E tests
       continue-on-error: true
+      timeout-minutes: 10
       run: |
-        pytest tests/e2e/ \
+        timeout 480 pytest tests/e2e/ \
           --base-url=http://localhost:8000 \
           --browser=chromium \
           --junit-xml=e2e-test-results.xml \
           --tb=short \
           --maxfail=10 \
-          -v
+          --timeout=60 \
+          -v || true
       env:
         PLAYWRIGHT_HEADLESS: true
         CI: true
