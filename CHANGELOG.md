@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.5] - 2025-12-18
+
+### Fixed
+- **Job Creation**: Fix empty printer and file dropdowns in job creation form
+  - Dropdowns now correctly access nested arrays from API responses
+
 ## [2.11.4] - 2025-12-18
 
 ### Fixed

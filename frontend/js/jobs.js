@@ -104,8 +104,8 @@ class JobManager {
             if (fileSelect) {
                 const files = await api.getFiles();
                 fileSelect.innerHTML = '<option value="">Datei auswählen...</option>';
-                if (files && files.length > 0) {
-                    files.forEach(file => {
+                if (files && files.files && files.files.length > 0) {
+                    files.files.forEach(file => {
                         const option = document.createElement('option');
                         option.value = file.id;
                         option.textContent = file.filename || file.name;
@@ -119,8 +119,8 @@ class JobManager {
             if (printerSelect) {
                 const printers = await api.getPrinters();
                 printerSelect.innerHTML = '<option value="">Drucker auswählen...</option>';
-                if (printers && printers.length > 0) {
-                    printers.forEach(printer => {
+                if (printers && printers.printers && printers.printers.length > 0) {
+                    printers.printers.forEach(printer => {
                         const option = document.createElement('option');
                         option.value = printer.id;
                         option.textContent = printer.name;
