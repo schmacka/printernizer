@@ -302,122 +302,333 @@ class TestJobAPI:
 
         assert response.status_code == 404
     
-    @pytest.mark.skip(reason="PUT /api/v1/jobs/{id}/status endpoint not implemented")
-    def test_put_job_status_update(self, client, populated_database):
+    def test_update_job_status_endpoint(self, client, test_app):
         """Test PUT /api/v1/jobs/{id}/status - Update job status"""
-        job_id = 1
-        status_data = {
-            'status': 'paused',
-            'progress': 47.5,
-            'layer_current': 156,
-            'notes': 'Paused for material change'
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        # Create test job
+        job_id = str(uuid.uuid4())
+        test_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'pending',
+            'start_time': None,
+            'end_time': None,
+            'is_business': False,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
         }
         
-        with patch('src.database.database.Database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.put(
-                "/jobs/{job_id}/status",
-                json=status_data
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['job']['status'] == 'paused'
-            assert data['job']['progress'] == 47.5
-            assert data['job']['layer_current'] == 156
-            assert data['job']['notes'] == 'Paused for material change'
+        # Configure mock to return job
+        test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
+        
+        # Configure mock to update status
+        updated_job = test_job.copy()
+        updated_job['status'] = 'running'
+        updated_job['start_time'] = datetime.now()
+        updated_job['updated_at'] = datetime.now()
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        # Test status update
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={'status': 'running'}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['id'] == job_id
+        assert data['status'] == 'running'
+        assert data['previous_status'] == 'pending'
+        assert data['started_at'] is not None
     
-    @pytest.mark.skip(reason="PUT /api/v1/jobs/{id}/status endpoint not implemented")
-    def test_put_job_completion_with_quality_assessment(self, client, populated_database):
-        """Test PUT /api/v1/jobs/{id}/status - Mark job as completed with quality assessment"""
-        job_id = 1
-        completion_data = {
-            'status': 'completed',
-            'progress': 100.0,
-            'end_time': datetime.now().isoformat(),
-            'quality_rating': 5,
-            'first_layer_adhesion': 'excellent',
-            'surface_finish': 'excellent',
-            'dimensional_accuracy': 0.1,
-            'actual_material_usage': 24.8,
-            'notes': 'Perfect print quality achieved'
+    def test_update_status_pending_to_completed(self, client, test_app):
+        """Test PUT /api/v1/jobs/{id}/status - Mark job as completed directly from pending"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        test_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'pending',
+            'start_time': None,
+            'end_time': None,
+            'is_business': True,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
         }
         
-        with patch('src.database.database.Database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.put(
-                "/jobs/{job_id}/status",
-                json=completion_data
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['job']['status'] == 'completed'
-            assert data['job']['quality_rating'] == 5
-            assert data['job']['first_layer_adhesion'] == 'excellent'
-            assert data['job']['actual_material_usage'] == 24.8
-            
-            # Verify cost recalculation with actual material usage
-            expected_actual_cost = completion_data['actual_material_usage'] * 0.05  # From fixtures
-            assert abs(data['job']['material_cost'] - expected_actual_cost) < 0.01
+        # Configure mocks
+        test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
+        
+        # Updated job should have both start_time and end_time set
+        updated_job = test_job.copy()
+        updated_job['status'] = 'completed'
+        updated_job['start_time'] = datetime.now()
+        updated_job['end_time'] = datetime.now()
+        updated_job['updated_at'] = datetime.now()
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={
+                'status': 'completed',
+                'completion_notes': 'Manually marked as complete'
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'completed'
+        assert data['previous_status'] == 'pending'
+        assert data['started_at'] is not None
+        assert data['completed_at'] is not None
     
-    @pytest.mark.skip(reason="PUT /api/v1/jobs/{id}/status endpoint not implemented")
-    def test_put_job_failure_handling(self, client, populated_database):
+    def test_update_status_to_failed(self, client, test_app):
         """Test PUT /api/v1/jobs/{id}/status - Handle job failure"""
-        job_id = 1
-        failure_data = {
-            'status': 'failed',
-            'failure_reason': 'First layer adhesion failure',
-            'end_time': datetime.now().isoformat(),
-            'progress': 15.5,
-            'layer_current': 51,
-            'quality_rating': 1,
-            'first_layer_adhesion': 'poor'
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        test_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'running',
+            'start_time': datetime.now(),
+            'end_time': None,
+            'is_business': False,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
         }
         
-        with patch('src.database.database.Database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.put(
-                "/jobs/{job_id}/status",
-                json=failure_data
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['job']['status'] == 'failed'
-            assert data['job']['failure_reason'] == 'First layer adhesion failure'
-            assert data['job']['quality_rating'] == 1
-    
-    @pytest.mark.skip(reason="PUT /api/v1/jobs/{id}/status endpoint not implemented")
-    def test_put_job_status_invalid_transitions(self, client):
-        """Test PUT /api/v1/jobs/{id}/status with invalid status transitions"""
-        job_id = 2  # Completed job from fixtures
+        # Configure mocks
+        test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
         
-        test_cases = [
-            # Cannot restart completed job
-            ({'status': 'printing'}, 'Cannot change status from completed to printing'),
-            
-            # Invalid status values
-            ({'status': 'invalid_status'}, 'Invalid job status'),
-            
-            # Cannot set negative progress
-            ({'progress': -5.0}, 'Progress must be between 0 and 100'),
-            
-            # Cannot set progress over 100
-            ({'progress': 105.0}, 'Progress must be between 0 and 100'),
+        updated_job = test_job.copy()
+        updated_job['status'] = 'failed'
+        updated_job['end_time'] = datetime.now()
+        updated_job['updated_at'] = datetime.now()
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={
+                'status': 'failed',
+                'completion_notes': 'First layer adhesion failure'
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'failed'
+        assert data['previous_status'] == 'running'
+        assert data['completed_at'] is not None
+    
+    def test_update_status_invalid_transitions(self, client, test_app):
+        """Test PUT /api/v1/jobs/{id}/status with invalid status transitions"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        
+        # Test case 1: Cannot restart completed job (completed → running)
+        completed_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'completed',
+            'start_time': datetime.now(),
+            'end_time': datetime.now(),
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        test_app.state.job_service.get_job = AsyncMock(return_value=completed_job.copy())
+        test_app.state.job_service.update_job_status = AsyncMock(
+            side_effect=ValueError("Invalid status transition: completed → running. Allowed transitions from completed: failed")
+        )
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={'status': 'running'}
+        )
+        
+        assert response.status_code == 400
+        assert 'Invalid status transition' in response.json()['message']
+        
+        # Test case 2: Invalid status value
+        test_app.state.job_service.get_job = AsyncMock(return_value=completed_job.copy())
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={'status': 'invalid_status'}
+        )
+        
+        # Should fail validation at Pydantic level (422)
+        assert response.status_code == 422
+    
+    def test_update_status_with_completion_notes(self, client, test_app):
+        """Test that completion notes are properly handled"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        test_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'running',
+            'start_time': datetime.now(),
+            'end_time': None,
+            'notes': 'Initial notes',
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        # Configure mocks
+        test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
+        
+        updated_job = test_job.copy()
+        updated_job['status'] = 'completed'
+        updated_job['end_time'] = datetime.now()
+        updated_job['updated_at'] = datetime.now()
+        # Verify notes would be appended (mocked service would do this)
+        # Use a flexible format that doesn't rely on exact timestamps
+        timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        updated_job['notes'] = f'Initial notes\n[{timestamp_str}] Status changed: running → completed: Job completed successfully'
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={
+                'status': 'completed',
+                'completion_notes': 'Job completed successfully'
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'completed'
+        # Verify the service was called with the completion notes
+        test_app.state.job_service.update_job_status.assert_called_once()
+        call_args = test_app.state.job_service.update_job_status.call_args
+        assert call_args.kwargs['completion_notes'] == 'Job completed successfully'
+    
+    def test_update_status_with_force_flag(self, client, test_app):
+        """Test that force flag allows invalid transitions"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        completed_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'completed',
+            'start_time': datetime.now(),
+            'end_time': datetime.now(),
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        # Configure mocks
+        test_app.state.job_service.get_job = AsyncMock(return_value=completed_job.copy())
+        
+        # With force flag, the service should allow the transition
+        updated_job = completed_job.copy()
+        updated_job['status'] = 'running'
+        updated_job['updated_at'] = datetime.now()
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+        
+        response = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={
+                'status': 'running',
+                'force': True
+            }
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'running'
+        # Verify force flag was passed to service
+        test_app.state.job_service.update_job_status.assert_called_once()
+        call_args = test_app.state.job_service.update_job_status.call_args
+        assert call_args.kwargs['force'] is True
+    
+    def test_update_status_all_valid_transitions(self, client, test_app):
+        """Test all valid status transitions work correctly"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
+        
+        job_id = str(uuid.uuid4())
+        
+        # Test valid transitions
+        valid_transitions = [
+            ('pending', 'running'),
+            ('pending', 'completed'),
+            ('pending', 'failed'),
+            ('running', 'completed'),
+            ('running', 'failed'),
+            ('running', 'paused'),
+            ('paused', 'running'),
+            ('completed', 'failed'),
+            ('failed', 'completed'),
         ]
         
-        for status_data, expected_error in test_cases:
+        for from_status, to_status in valid_transitions:
+            test_job = {
+                'id': job_id,
+                'printer_id': 'bambu_a1_001',
+                'printer_type': 'bambu_lab',
+                'job_name': 'test_cube.3mf',
+                'status': from_status,
+                'start_time': datetime.now() if from_status != 'pending' else None,
+                'end_time': datetime.now() if from_status in ['completed', 'failed'] else None,
+                'created_at': datetime.now(),
+                'updated_at': datetime.now()
+            }
+            
+            test_app.state.job_service.get_job = AsyncMock(return_value=test_job.copy())
+            
+            updated_job = test_job.copy()
+            updated_job['status'] = to_status
+            updated_job['updated_at'] = datetime.now()
+            if to_status in ['running', 'printing']:
+                updated_job['start_time'] = datetime.now()
+            if to_status in ['completed', 'failed']:
+                updated_job['start_time'] = updated_job.get('start_time') or datetime.now()
+                updated_job['end_time'] = datetime.now()
+            
+            test_app.state.job_service.update_job_status = AsyncMock(return_value=updated_job)
+            
             response = client.put(
-                "/jobs/{job_id}/status",
-                json=status_data
+                f"/api/v1/jobs/{job_id}/status",
+                json={'status': to_status}
             )
             
-            assert response.status_code == 400
-            assert expected_error in response.json()['error']['message']
+            assert response.status_code == 200, f"Failed transition {from_status} → {to_status}"
+            data = response.json()
+            assert data['status'] == to_status
+            assert data['previous_status'] == from_status
     
     def test_delete_job(self, client, test_app):
         """Test DELETE /api/v1/jobs/{id}"""
@@ -618,40 +829,6 @@ class TestJobAPIPerformance:
             assert response.status_code == 200
             assert request_time < 1.0  # Each filtered query should be fast
     
-    @pytest.mark.skip(reason="PUT /api/v1/jobs/{id}/status endpoint not implemented")
-    def test_concurrent_job_updates(self, client, populated_database):
-        """Test concurrent job status updates"""
-        
-        results = []
-        
-        def update_job_status(job_id, status):
-            try:
-                response = client.put(
-                    "/jobs/{job_id}/status",
-                    json={'status': status, 'progress': 50.0}
-                )
-                results.append(response.status_code)
-            except Exception as e:
-                results.append(500)  # Error case
-        
-        # Create multiple threads updating different jobs
-        threads = []
-        for i in range(5):
-            thread = threading.Thread(target=update_job_status, args=(1, 'printing'))
-            threads.append(thread)
-        
-        # Start all threads
-        for thread in threads:
-            thread.start()
-        
-        # Wait for completion
-        for thread in threads:
-            thread.join()
-        
-        # At least some requests should succeed (depends on implementation)
-        success_count = len([r for r in results if r == 200])
-        assert success_count >= 1  # At least one should succeed
-
 
 class TestJobAPIErrorHandling:
     """Test error handling and edge cases for job API"""
@@ -684,30 +861,48 @@ class TestJobAPIErrorHandling:
         assert response.status_code == 404
         assert 'Printer not found' in response.json()['error']['message']
     
-    @pytest.mark.skip(reason="PUT /api/v1/jobs/{id}/status endpoint not implemented")
-    def test_job_update_race_condition_handling(self, client, populated_database):
-        """Test handling of race conditions in job updates"""
-        job_id = 1
+    def test_job_status_update_idempotency(self, client, test_app):
+        """Test handling of idempotent status updates (same status twice)"""
+        from unittest.mock import AsyncMock
+        import uuid
+        from datetime import datetime
         
-        # Simulate concurrent updates by patching the database update
-        with patch('src.database.database.Database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            # First update
-            response1 = client.put(
-                f"/api/v1/jobs/{job_id}/status",
-                json={'status': 'paused', 'progress': 30.0}
-            )
-            
-            # Second update (simulating race condition)
-            response2 = client.put(
-                f"/api/v1/jobs/{job_id}/status",
-                json={'status': 'printing', 'progress': 35.0}
-            )
-            
-            # Both updates should be handled gracefully
-            assert response1.status_code in [200, 409]  # OK or Conflict
-            assert response2.status_code in [200, 409]  # OK or Conflict
+        job_id = str(uuid.uuid4())
+        running_job = {
+            'id': job_id,
+            'printer_id': 'bambu_a1_001',
+            'printer_type': 'bambu_lab',
+            'job_name': 'test_cube.3mf',
+            'status': 'running',
+            'start_time': datetime.now(),
+            'end_time': None,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+        
+        # Configure mocks - return same job (idempotent)
+        test_app.state.job_service.get_job = AsyncMock(return_value=running_job.copy())
+        test_app.state.job_service.update_job_status = AsyncMock(return_value=running_job.copy())
+        
+        # First update to running (should be idempotent since already running)
+        response1 = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={'status': 'running'}
+        )
+        
+        # Second update to running (should also succeed)
+        response2 = client.put(
+            f"/api/v1/jobs/{job_id}/status",
+            json={'status': 'running'}
+        )
+        
+        # Both updates should succeed
+        assert response1.status_code == 200
+        assert response2.status_code == 200
+        
+        # Both should have the same status
+        assert response1.json()['status'] == 'running'
+        assert response2.json()['status'] == 'running'
     
     @pytest.mark.skip(reason="Job deletion safety checks need implementation")
     def test_job_deletion_safety_checks(self, client, populated_database):
