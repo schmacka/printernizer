@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.11.3] - 2025-12-18
+## [2.11.4] - 2025-12-18
 
 ### Fixed
-- **Setup Wizard**: Fix wizard reappearing on every page refresh
-  - Status endpoint now also ensures settings table exists before querying
-  - Prevents exception fallback from always showing wizard
+- **Setup Wizard**: Fix wizard reappearing after completion
+  - Wizard now only shows if not completed (removed "no printers" trigger)
+  - Once skipped or completed, wizard stays dismissed
 
 ## [2.11.0] - 2025-12-17
 
