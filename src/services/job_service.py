@@ -230,17 +230,29 @@ class JobService:
             return None
         
     async def delete_job(self, job_id) -> bool:
-        """Delete a job record."""
+        """Delete a job record.
+
+        Raises:
+            ValueError: If attempting to delete an active job (running, pending, or paused)
+        """
         try:
             # Check if job exists first
             existing_job = await self.job_repo.get(str(job_id))
             if not existing_job:
                 logger.warning("Job not found for deletion", job_id=job_id)
                 return False
-            
+
+            # Check if job is in active state
+            active_statuses = [JobStatus.RUNNING.value, JobStatus.PENDING.value, JobStatus.PAUSED.value]
+            current_status = existing_job.get('status')
+            if current_status in active_statuses:
+                error_msg = f"Cannot delete active job (status: {current_status})"
+                logger.warning("Attempted to delete active job", job_id=job_id, status=current_status)
+                raise ValueError(error_msg)
+
             # Delete the job record from database
             success = await self.job_repo.delete(str(job_id))
-            
+
             if success:
                 logger.info("Job deleted successfully", job_id=job_id)
                 # Emit event for job deletion
@@ -248,9 +260,12 @@ class JobService:
                     'job_id': str(job_id),
                     'timestamp': datetime.now().isoformat()
                 })
-            
+
             return success
-            
+
+        except ValueError:
+            # Re-raise ValueError for active job deletion
+            raise
         except Exception as e:
             logger.error("Failed to delete job", job_id=job_id, error=str(e))
             return False

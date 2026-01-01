@@ -65,7 +65,8 @@ class TestJobAPI:
                 'updated_at': datetime.now(timezone.utc)
             }
         ]
-        test_app.state.job_service.list_jobs = AsyncMock(return_value=sample_jobs)
+        # Mock list_jobs_with_count (not list_jobs - that's what the endpoint actually calls)
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(return_value=(sample_jobs, len(sample_jobs)))
 
         response = client.get("/api/v1/jobs")
 
@@ -104,7 +105,8 @@ class TestJobAPI:
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }
-        test_app.state.job_service.list_jobs = AsyncMock(return_value=[printing_job])
+        # Mock list_jobs_with_count (endpoint calls this, not list_jobs)
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(return_value=([printing_job], 1))
 
         response = client.get("/api/v1/jobs?status=printing")
 
@@ -127,7 +129,8 @@ class TestJobAPI:
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }
-        test_app.state.job_service.list_jobs = AsyncMock(return_value=[job])
+        # Mock list_jobs_with_count
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(return_value=([job], 1))
 
         response = client.get("/api/v1/jobs?printer_id=bambu_a1_001")
 
@@ -151,7 +154,8 @@ class TestJobAPI:
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }
-        test_app.state.job_service.list_jobs = AsyncMock(return_value=[business_job])
+        # Mock list_jobs_with_count
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(return_value=([business_job], 1))
 
         response = client.get("/api/v1/jobs?is_business=true")
 
@@ -204,7 +208,8 @@ class TestJobAPI:
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }
-        test_app.state.job_service.list_jobs = AsyncMock(return_value=[job])
+        # Mock list_jobs_with_count for pagination
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(return_value=([job], 1))
 
         response = client.get("/api/v1/jobs?page=1&limit=1")
 
@@ -644,7 +649,6 @@ class TestJobAPI:
 
         assert response.status_code == 204
 
-    @pytest.mark.skip(reason="Error handling for active job deletion not fully implemented in router")
     def test_delete_active_job_forbidden(self, client, test_app):
         """Test DELETE /api/v1/jobs/{id} - Cannot delete active job"""
         from unittest.mock import AsyncMock
@@ -904,14 +908,23 @@ class TestJobAPIErrorHandling:
         assert response1.json()['status'] == 'running'
         assert response2.json()['status'] == 'running'
     
-    @pytest.mark.skip(reason="Job deletion safety checks need implementation")
-    def test_job_deletion_safety_checks(self, client, populated_database):
+    def test_job_deletion_safety_checks(self, client, test_app):
         """Test safety checks when deleting jobs"""
-        # Try to delete job that doesn't exist
-        response = client.delete("/api/v1/jobs/99999")
+        from unittest.mock import AsyncMock
+        import uuid
+
+        # Try to delete job that doesn't exist (use valid UUID format)
+        nonexistent_job_id = str(uuid.uuid4())
+        test_app.state.job_service.delete_job = AsyncMock(return_value=False)
+
+        response = client.delete(f"/api/v1/jobs/{nonexistent_job_id}")
         assert response.status_code == 404
         
         # Try to delete active job (should be prevented)
-        active_job_id = 1  # Printing job from fixtures
+        active_job_id = str(uuid.uuid4())
+        test_app.state.job_service.delete_job = AsyncMock(
+            side_effect=ValueError("Cannot delete active job (status: running)")
+        )
+
         response = client.delete(f"/api/v1/jobs/{active_job_id}")
         assert response.status_code == 409

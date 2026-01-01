@@ -354,6 +354,13 @@ async def delete_job(
     job_service: JobService = Depends(get_job_service)
 ):
     """Delete a job record."""
-    success = await job_service.delete_job(job_id)
-    if not success:
-        raise JobNotFoundError(str(job_id))
+    try:
+        success = await job_service.delete_job(job_id)
+        if not success:
+            raise JobNotFoundError(str(job_id))
+    except ValueError as e:
+        # Handle active job deletion attempt
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
