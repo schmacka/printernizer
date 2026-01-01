@@ -71,13 +71,9 @@ async def get_setup_status(
         printers = await printer_service.get_all_printers()
         has_printers = len(printers) > 0
         
-        # Determine if wizard should show (only if not completed)
-        if not setup_completed:
-            should_show = True
-            reason = "Setup wizard has not been completed"
-        else:
-            should_show = False
-            reason = "Setup already completed"
+        # Wizard is disabled - never show it
+        should_show = False
+        reason = "Setup wizard is disabled"
         
         return SetupStatusResponse(
             should_show_wizard=should_show,
@@ -87,12 +83,12 @@ async def get_setup_status(
         )
     except Exception as e:
         logger.error("Failed to get setup status", error=str(e))
-        # Default to showing wizard on error (fresh install scenario)
+        # Wizard is disabled - never show it even on error
         return SetupStatusResponse(
-            should_show_wizard=True,
+            should_show_wizard=False,
             setup_completed=False,
             has_printers=False,
-            reason="Unable to determine status, assuming fresh install"
+            reason="Setup wizard is disabled"
         )
 
 
