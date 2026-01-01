@@ -32,50 +32,64 @@ This document tracks remaining TODOs, incomplete features, test gaps, and roadma
 
 ---
 
-### 2. Job Status Update Endpoint (CRITICAL)
+### 2. Job Status Update Tests (CRITICAL)
 
-**Status**: ❌ Not Implemented
-**Impact**: HIGH - Manual job status changes not supported
+**Status**: ⚠️ Endpoint EXISTS, Tests SKIPPED
+**Impact**: HIGH - Test coverage gap for critical functionality
 
-**Problem**:
-- Dedicated status update endpoint missing
-- Multiple skipped tests indicate planned but unimplemented feature
-- Users cannot manually mark jobs as completed, failed, etc.
+**Current State**:
+- ✅ Endpoint `PUT /api/v1/jobs/{id}/status` EXISTS and works (verified in test code)
+- ❌ 6 tests skipped due to missing validation/safety features
+- ⚠️ Edge cases and safety checks need implementation
 
 **Location**:
 - Tests: `tests/backend/test_api_jobs.py`
-  - Lines: 305, 331, 366, 394, 621, 687 (6 skipped tests)
-- Expected Endpoint: `PUT /api/v1/jobs/{id}/status`
+  - Line 647: Active job deletion protection
+  - Line 771: Test fixture database mocking
+  - Line 809: Test fixture database mocking
+  - Line 836: Service layer mock interception
+  - Line 848: Endpoint validation logic
+  - Line 907: Job deletion safety checks
 
-**Requirements**:
-- Implement `PUT /api/v1/jobs/{id}/status` endpoint
-- Support status transitions: pending → running → completed/failed
-- Add validation for valid status transitions
-- Prevent invalid state changes (e.g., can't mark running job as pending)
-- Update timestamps appropriately
-- Enable all skipped tests
+**Requirements to Enable Tests**:
+1. Implement active job deletion protection (prevent deleting running jobs)
+2. Fix test fixture database mocking
+3. Add status transition validation with force flag
+4. Implement job deletion safety checks
+5. Enable and verify all 6 tests pass
 
-**Estimated Effort**: 3-4 hours
+**Estimated Effort**: 5-6 hours
+
+**Reference**: See `docs/plans/IMPLEMENTATION_PLAN_2026-01-01.md` for detailed steps
 
 ---
 
-### 3. Material Consumption History
+### ✅ 3. Material Consumption History (COMPLETED)
 
-**Status**: ❌ Returns 501 "Not Yet Implemented"
-**Impact**: MEDIUM - Analytics feature incomplete
+**Status**: ✅ **FULLY IMPLEMENTED** (verified 2026-01-01)
+**Impact**: Feature is working correctly
 
-**Location**:
-- Backend: `src/api/routers/materials.py:318`
-- Endpoint: `GET /api/v1/materials/consumption/history`
+**Implementation**:
+- ✅ Backend endpoint: `GET /api/v1/materials/consumption/history` (src/api/routers/materials.py:310-338)
+- ✅ Service layer: `MaterialService.get_consumption_history()` (src/services/material_service.py:402-486)
+- ✅ Complete test suite: 11 test cases in `tests/backend/test_api_materials.py`
 
-**Requirements**:
-- Query consumption table with time-based filters
-- Support date range filtering
-- Aggregate consumption by material, printer, or time period
-- Return formatted data for charting/visualization
-- Add tests for various query scenarios
+**Features**:
+- Time-based filtering (days parameter: 1-365)
+- Material ID filtering
+- Job ID filtering
+- Printer ID filtering
+- Pagination (limit: 1-1000, page number)
+- Response includes: items, total_count, page, limit, total_pages
+- Joins with materials table for type/brand/color details
 
-**Estimated Effort**: 3-4 hours
+**Verification**:
+- All filters tested and working
+- Pagination logic verified
+- Parameter validation in place
+- Comprehensive test coverage
+
+**Reference**: Verified during Sprint 1A implementation
 
 ---
 
@@ -379,29 +393,31 @@ These are documented roadmap items, not immediate tasks:
 
 ### Active Technical Debt
 
-- **High Priority**: 2 items (status endpoint tests, consumption history)
+- **High Priority**: 1 item (Job status update tests - 6 skipped tests)
 - **Medium Priority**: 12 items (Untested critical services)
 - **Low Priority**: 5 items (Polish and enhancements)
 - **Cleanup**: 2 items (Deprecated code)
-- **Completed**: 1 item (Job Update API) ✅
+- **Completed**: 2 items (Job Update API ✅, Material Consumption History ✅)
 
 ### Total Estimated Effort
 
-- **Critical Fixes**: 5-7 hours (reduced from 10-14h)
+- **Critical Fixes**: 5-6 hours (Job status tests only)
 - **Test Coverage**: 20-30 hours
 - **Feature Completion**: 20-30 hours
 - **Polish & Cleanup**: 10-15 hours
 
-**Total**: ~55-82 hours of development work (reduced from 60-90h)
+**Total**: ~55-81 hours of development work (down from original 60-90h)
+
+**Progress**: 2 critical items completed (Job Update API, Material Consumption History)
 
 ---
 
 ## 🎯 Recommended Priorities
 
-### Sprint 1: Critical Functionality (1-2 days) - REDUCED SCOPE
-1. ~~Job Update API implementation~~ ✅ **ALREADY COMPLETE**
-2. Job Status Update endpoint tests (enable 6 skipped tests)
-3. Material Consumption History endpoint
+### Sprint 1: Critical Functionality (1-2 days) - FURTHER REDUCED
+1. ~~Job Update API implementation~~ ✅ **COMPLETE**
+2. ~~Material Consumption History endpoint~~ ✅ **COMPLETE** (verified 2026-01-01)
+3. Job Status Update tests (enable 6 skipped tests) - IN PROGRESS
 
 ### Sprint 2: Critical Test Coverage (3-4 days)
 1. ✅ event_service tests
