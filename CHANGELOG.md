@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.8] - 2026-01-01
+
+### Fixed
+- **Prusa Printer Progress Display**: Fix progress percentage not showing for Prusa printers
+  - Updated to use PrusaLink v1 API endpoint (`/api/v1/job`) which returns progress as direct number (0-100)
+  - Added fallback to OctoPrint-compatible endpoint (`/api/job`) for backward compatibility
+  - Enhanced logging to debug progress extraction issues
+  - Handles both PrusaLink v1 format (direct number) and OctoPrint format (nested completion field)
+
+### Improved
+- **Mobile Layout**: Enhanced printer card display on mobile devices
+  - Job names now wrap to 2 lines instead of truncating
+  - Progress bar is taller and more visible (10-12px on mobile vs 8px on desktop)
+  - Larger, bolder progress percentage text for better readability
+  - Optimized temperature display spacing on small screens
+  - Reduced padding on very small screens (< 480px) for better space utilization
+  - Responsive breakpoints at 768px (tablets) and 480px (phones)
+
 ## [2.11.7] - 2026-01-01
 
 ### Added
