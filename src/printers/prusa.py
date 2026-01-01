@@ -168,11 +168,26 @@ class PrusaPrinter(BasePrinter):
                 status_data = await response.json()
                 
             # Get job information
+            # Try PrusaLink v1 endpoint first, fall back to OctoPrint-compatible endpoint
             job_data = {}
             try:
-                async with self.session.get(f"{self.base_url}/job") as job_response:
+                # Try PrusaLink native v1 endpoint first (returns progress as 0-100 number)
+                async with self.session.get(f"{self.base_url}/v1/job") as job_response:
                     if job_response.status == 200:
                         job_data = await job_response.json()
+                        logger.debug("Retrieved job data from PrusaLink v1 endpoint",
+                                   printer_id=self.printer_id,
+                                   has_progress='progress' in job_data if job_data else False)
+                    elif job_response.status == 404:
+                        # v1 endpoint not available, try OctoPrint-compatible endpoint
+                        logger.debug("PrusaLink v1 endpoint not available, trying OctoPrint-compatible endpoint",
+                                   printer_id=self.printer_id)
+                        async with self.session.get(f"{self.base_url}/job") as octo_response:
+                            if octo_response.status == 200:
+                                job_data = await octo_response.json()
+                                logger.debug("Retrieved job data from OctoPrint-compatible endpoint",
+                                           printer_id=self.printer_id,
+                                           has_progress='progress' in job_data if job_data else False)
             except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
                 logger.warning("Failed to connect to Prusa for job data",
                               printer_id=self.printer_id, error=str(e))
@@ -214,28 +229,41 @@ class PrusaPrinter(BasePrinter):
                         file_info = job_info.get('file', {})
                         current_job = file_info.get('display_name', file_info.get('name', ''))
 
-                # Extract progress - PrusaLink returns progress as dict with completion field
-                # OctoPrint may return it as direct number or nested
-                # Handle both dict and direct number formats
+                # Extract progress
+                # PrusaLink v1 API: progress is a direct number (0-100)
+                # OctoPrint API: progress is a dict with 'completion' field (0.0-1.0)
                 progress_value = job_data.get('progress')
                 if progress_value is not None:
                     if isinstance(progress_value, dict):
-                        # Dict format: extract completion field
+                        # OctoPrint format: extract completion field from nested dict
                         completion = progress_value.get('completion')
                         if completion is not None:
-                            # completion is usually 0.0-1.0, convert to percentage
+                            # completion is 0.0-1.0, convert to percentage
                             progress = int(completion * 100) if completion <= 1.0 else int(completion)
-                            logger.debug("Prusa print progress detected (dict)",
+                            logger.info("Prusa print progress extracted from OctoPrint format",
                                        printer_id=self.printer_id,
                                        progress=progress,
                                        raw_completion=completion)
+                        else:
+                            logger.warning("Progress dict present but no completion field",
+                                         printer_id=self.printer_id,
+                                         progress_dict=progress_value)
                     elif isinstance(progress_value, (int, float)):
-                        # Direct number: already a percentage
+                        # PrusaLink v1 format: direct number (0-100)
                         progress = int(progress_value)
-                        logger.debug("Prusa print progress detected (direct)",
+                        logger.info("Prusa print progress extracted from PrusaLink v1 format",
                                        printer_id=self.printer_id,
                                        progress=progress,
                                        raw_progress=progress_value)
+                    else:
+                        logger.warning("Unexpected progress value type",
+                                     printer_id=self.printer_id,
+                                     progress_type=type(progress_value).__name__,
+                                     progress_value=progress_value)
+                else:
+                    logger.debug("No progress data in job response",
+                               printer_id=self.printer_id,
+                               job_data_keys=list(job_data.keys()) if job_data else [])
 
                 # Extract time information
                 # PrusaLink uses: time_remaining (seconds), time_printing (seconds)
@@ -368,13 +396,20 @@ class PrusaPrinter(BasePrinter):
         """Get current job information from Prusa."""
         if not self.is_connected or not self.session:
             return None
-            
+
         try:
-            async with self.session.get(f"{self.base_url}/job") as response:
-                if response.status != 200:
+            # Try PrusaLink v1 endpoint first
+            async with self.session.get(f"{self.base_url}/v1/job") as response:
+                if response.status == 404:
+                    # Try OctoPrint-compatible endpoint
+                    async with self.session.get(f"{self.base_url}/job") as octo_response:
+                        if octo_response.status != 200:
+                            return None
+                        job_data = await octo_response.json()
+                elif response.status != 200:
                     return None
-                    
-                job_data = await response.json()
+                else:
+                    job_data = await response.json()
                 
             # PrusaLink API returns job data directly, not nested in 'job'
             # Try PrusaLink structure first
@@ -390,18 +425,19 @@ class PrusaPrinter(BasePrinter):
             if not job_name:
                 return None  # No active job
 
-            # Extract progress - Handle both dict and direct number formats
+            # Extract progress
+            # PrusaLink v1: progress is direct number (0-100)
+            # OctoPrint: progress is dict with 'completion' field (0.0-1.0)
             progress = 0
             progress_value = job_data.get('progress')
             if progress_value is not None:
                 if isinstance(progress_value, dict):
-                    # Dict format: extract completion field
+                    # OctoPrint format: extract completion field
                     completion = progress_value.get('completion')
                     if completion is not None:
-                        # completion is usually 0.0-1.0, convert to percentage
                         progress = int(completion * 100) if completion <= 1.0 else int(completion)
                 elif isinstance(progress_value, (int, float)):
-                    # Direct number: already a percentage
+                    # PrusaLink v1 format: direct number (0-100)
                     progress = int(progress_value)
 
             # Get state and map to JobStatus
