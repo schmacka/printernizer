@@ -16,7 +16,13 @@ class ApiClient {
      * Normalize an endpoint to start with a single "/" and collapse duplicate slashes
      */
     _normalizeEndpoint(endpoint) {
-        const raw = String(endpoint || '');
+        // Reject null/undefined endpoints to prevent "/null" URLs
+        if (endpoint === null || endpoint === undefined || endpoint === 'null' || endpoint === 'undefined') {
+            console.error('API Error: Attempting to call endpoint with null/undefined value:', endpoint);
+            console.trace();
+            throw new Error('Invalid API endpoint: cannot be null or undefined');
+        }
+        const raw = String(endpoint);
         const [path, query] = raw.split('?');
         const normalizedPath = '/' + path.replace(/(^\/+|\/+$)/g, '').replace(/\/{2,}/g, '/');
         return query ? `${normalizedPath}?${query}` : normalizedPath;
@@ -163,6 +169,23 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.WATCH_FOLDER_SETTINGS);
     }
 
+    // Setup Wizard Endpoints
+    async getSetupStatus() {
+        return this.get('/setup/status');
+    }
+
+    async getSetupDefaults() {
+        return this.get('/setup/defaults');
+    }
+
+    async completeSetup(skipWizard = false) {
+        return this.post('/setup/complete', { skip_wizard: skipWizard });
+    }
+
+    async resetSetup() {
+        return this.post('/setup/reset');
+    }
+
     // Printer Endpoints
     async getPrinters(filters = {}) {
         return this.get(CONFIG.ENDPOINTS.PRINTERS, filters);
@@ -182,6 +205,10 @@ class ApiClient {
 
     async deletePrinter(printerId) {
         return this.delete(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId));
+    }
+
+    async testPrinterConnection(printerConfig) {
+        return this.post('/printers/test-connection', printerConfig);
     }
 
     /**

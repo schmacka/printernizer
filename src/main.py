@@ -52,6 +52,7 @@ from src.api.routers.materials import router as materials_router
 from src.api.routers.timelapses import router as timelapses_router
 from src.api.routers.search import router as search_router
 from src.api.routers.usage_statistics import router as usage_statistics_router
+from src.api.routers.setup import router as setup_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -91,7 +92,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.7.0")
+APP_VERSION = get_version(fallback="2.11.7")
 
 
 # Prometheus metrics - initialized once
@@ -204,7 +205,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize camera snapshot service
     from src.services.camera_snapshot_service import CameraSnapshotService
-    camera_snapshot_service = CameraSnapshotService()
+    camera_snapshot_service = CameraSnapshotService(printer_service)
     await camera_snapshot_service.start()
 
     timer.end("Core services initialization")
@@ -559,8 +560,9 @@ def create_application() -> FastAPI:
         title="Printernizer API",
         description="Professional 3D Print Management System for Bambu Lab & Prusa Printers",
         version=APP_VERSION,
-        docs_url="/docs" if os.getenv("ENVIRONMENT") == "development" else None,
-        redoc_url="/redoc" if os.getenv("ENVIRONMENT") == "development" else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc/bundles/redoc.standalone.js",  # Use stable version instead of @next
         lifespan=lifespan,
         redirect_slashes=False  # Disable automatic trailing slash redirects to fix API routing with StaticFiles
     )
@@ -585,6 +587,47 @@ def create_application() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         allow_headers=["*"],
     )
+    
+    # Path normalization middleware for Home Assistant Ingress
+    # HA Ingress sometimes creates double slashes in paths which cause 404 errors
+    if os.getenv("HA_INGRESS") == "true":
+        import re
+        logger = structlog.get_logger()
+        
+        @app.middleware("http")
+        async def normalize_path_middleware(request: Request, call_next):
+            """Normalize paths by collapsing double slashes (common HA Ingress issue)."""
+            original_path = request.scope.get("path", "")
+            
+            # Log all incoming requests for debugging HA Ingress issues
+            logger.info(
+                "HA Ingress request received",
+                path=original_path,
+                method=request.method,
+                url=str(request.url)
+            )
+            
+            # Collapse multiple consecutive slashes into single slash
+            # But preserve the leading slash
+            if "//" in original_path:
+                normalized_path = re.sub(r'/+', '/', original_path)
+                # Ensure leading slash is preserved
+                if not normalized_path.startswith('/'):
+                    normalized_path = '/' + normalized_path
+                    
+                logger.info(
+                    "Normalized request path (double slash detected)",
+                    original=original_path,
+                    normalized=normalized_path
+                )
+                # Update both path and raw_path in the scope
+                request.scope["path"] = normalized_path
+                # raw_path is bytes, encode the normalized path
+                request.scope["raw_path"] = normalized_path.encode("utf-8")
+            
+            return await call_next(request)
+        
+        logger.info("Path normalization middleware enabled for HA Ingress")
     
     # Home Assistant Ingress security middleware (only active when HA_INGRESS=true)
     if os.getenv("HA_INGRESS") == "true":
@@ -636,6 +679,7 @@ def create_application() -> FastAPI:
     app.include_router(search_router, prefix="/api/v1/search", tags=["Search"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])
+    app.include_router(setup_router, prefix="/api/v1/setup", tags=["Setup"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(usage_statistics_router, prefix="/api/v1/usage-stats", tags=["Usage Statistics"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
@@ -656,10 +700,11 @@ def create_application() -> FastAPI:
 
         # Handle Home Assistant Ingress double-slash issue
         # HA Ingress sometimes forwards requests as // instead of /
+        # REDIRECT to single slash to fix relative path resolution in browser
         @app.get("//")
-        async def read_index_double_slash():
-            from fastapi.responses import FileResponse
-            return FileResponse(str(frontend_path / "index.html"))
+        async def redirect_double_slash():
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/", status_code=301)
 
         @app.get("/debug")
         async def read_debug():

@@ -71,10 +71,10 @@ Tests in `tests/backend/` use pytest fixtures. Mock printer services for integra
 3. Always test up/down migrations locally
 
 ### Code Sync for Home Assistant Add-on
-**CRITICAL:** The `/printernizer/` directory is auto-synced from `/src/` and `/frontend/` via git pre-commit hook.
-- **NEVER edit** `/printernizer/src/` or `/printernizer/frontend/` directly
-- Always edit source: `/src/` and `/frontend/`
-- Sync script: `.git-hooks/pre-commit`
+**Home Assistant add-on is maintained in a separate repository**: [printernizer-ha](https://github.com/schmacka/printernizer-ha)
+- Code automatically syncs via GitHub Actions workflow `.github/workflows/sync-to-ha-repo.yml`
+- Always edit source: `/src/` and `/frontend/` in this repository
+- Push to `master` or `development` branch triggers automatic sync to printernizer-ha
 
 ## Key Conventions
 
@@ -136,13 +136,13 @@ Broadcast function: `broadcast_printer_status()` in `src/api/routers/websocket.p
 - Version defined in `src/utils/version.py` (reads git tags, fallback in `main.py`)
 - Keep synced:
   - `src/api/routers/health.py` - API version response
-  - `printernizer/config.yaml` - Home Assistant add-on version
   - `CHANGELOG.md` - User-facing changes
+- Home Assistant add-on version in `printernizer-ha/config.yaml` is automatically synced from `src/main.py`
 
 ## Deployment Modes
 1. **Python Standalone**: `run.bat` → Local development/testing
 2. **Docker**: `docker-compose.yml` → Production single-container
-3. **Home Assistant Add-on**: `/printernizer/` → Supervised HA environment
+3. **Home Assistant Add-on**: [printernizer-ha repository](https://github.com/schmacka/printernizer-ha) → Supervised HA environment
 
 Check mode via `os.getenv("DEPLOYMENT_MODE")` if behavior differs.
 

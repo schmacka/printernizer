@@ -755,6 +755,7 @@ def test_app():
     mock_file_service.get_watch_status = AsyncMock(return_value={})
     mock_file_service.download_file = AsyncMock(return_value=None)
     mock_file_service.delete_file = AsyncMock(return_value=True)
+    mock_file_service.get_files_with_count = AsyncMock(return_value=([], 0))
 
     mock_trending_service = MagicMock()
     mock_session = MagicMock()
@@ -764,11 +765,25 @@ def test_app():
     # Create mock job service with async methods
     mock_job_service = MagicMock()
     mock_job_service.list_jobs = AsyncMock(return_value=[])  # Returns empty list of jobs
+    mock_job_service.list_jobs_with_count = AsyncMock(return_value=([], 0))  # Returns (jobs, total_count)
     mock_job_service.get_jobs = AsyncMock(return_value={'status': 'success', 'data': [], 'total_count': 0})
+    mock_job_service.get_job = AsyncMock(return_value=None)  # Get job by ID
     mock_job_service.get_job_by_id = AsyncMock(return_value={'status': 'success', 'data': None})
     mock_job_service.create_job = AsyncMock(return_value={'status': 'success', 'data': {}})
     mock_job_service.update_job = AsyncMock(return_value={'status': 'success', 'data': {}})
+    mock_job_service.update_job_status = AsyncMock(return_value={'status': 'success', 'data': {}})
     mock_job_service.delete_job = AsyncMock(return_value={'status': 'success'})
+
+    # Create mock material service with async methods
+    mock_material_service = MagicMock()
+    mock_material_service.get_consumption_history = AsyncMock(return_value=([], 0))
+    mock_material_service.get_all_materials = AsyncMock(return_value=[])
+    mock_material_service.get_material = AsyncMock(return_value=None)
+    mock_material_service.get_statistics = AsyncMock(return_value=None)
+    mock_material_service.create_material = AsyncMock(return_value=None)
+    mock_material_service.update_material = AsyncMock(return_value=None)
+    mock_material_service.delete_material = AsyncMock(return_value=True)
+    mock_material_service.record_consumption = AsyncMock(return_value=None)
 
     # Initialize minimal app state for tests
     app.state.database = mock_db
@@ -778,5 +793,6 @@ def test_app():
     app.state.trending_service = mock_trending_service
     app.state.event_service = mock_event_service
     app.state.job_service = mock_job_service
+    app.state.material_service = mock_material_service
 
     return app

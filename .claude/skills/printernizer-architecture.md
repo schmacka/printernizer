@@ -48,9 +48,11 @@
 Key directories:
 - `/src/` - Primary application code (EDIT HERE)
 - `/frontend/` - Primary web interface (EDIT HERE)
-- `/printernizer/` - Home Assistant add-on (AUTO-SYNCED)
+- `/migrations/` - Database migrations
 - `/docs/` - Documentation
 - `/tests/` - Test suite
+
+**Note**: HA add-on is in separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repo (auto-synced via GitHub Actions).
 
 Important files:
 - `assets/database/schema.sql` - SQLite schema (formerly `database_schema.sql`)

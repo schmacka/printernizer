@@ -646,6 +646,97 @@ async def get_library_file_metadata(
     return response
 
 
+@router.get("/files/{checksum}/thumbnail/animated")
+async def get_library_file_animated_thumbnail(
+    checksum: str = PathParam(..., description="File checksum (SHA-256)"),
+    library_service = Depends(get_library_service)
+):
+    """
+    Get animated GIF thumbnail for a library file (multi-angle preview).
+
+    Returns a rotating animated GIF showing the 3D model from multiple angles.
+    Only supported for STL and 3MF files.
+
+    **Parameters:**
+    - `checksum`: File checksum (SHA-256 hash)
+
+    **Returns:**
+    - GIF image data (binary)
+    - Content-Type: image/gif
+
+    **Status Codes:**
+    - `200`: Animated thumbnail returned successfully
+    - `404`: File not found
+    - `400`: File type not supported for animation
+    - `500`: Error generating animated thumbnail
+    """
+    from fastapi.responses import Response
+
+    # Get file record
+    file_record = await library_service.get_file_by_checksum(checksum)
+    if not file_record:
+        raise LibraryItemNotFoundError(checksum)
+
+    # Get file path and type
+    library_path = file_record.get('library_path')
+    file_type = file_record.get('file_type', '')
+
+    if not library_path:
+        raise LibraryItemNotFoundError(checksum, details={"reason": "no_file_path"})
+
+    # Construct full file path
+    file_path = library_service.library_path / library_path
+
+    # Only support animated previews for STL and 3MF files
+    # File types in database may or may not have leading dot
+    file_type_normalized = file_type.lower().lstrip('.')
+    if file_type_normalized not in ['stl', '3mf']:
+        raise FileProcessingError(
+            file_id=checksum[:16],
+            operation="generate_animated_thumbnail",
+            reason=f"Animated thumbnails not supported for {file_type} files"
+        )
+
+    try:
+        # Get or generate animated preview using library service's preview service
+        # Remove leading dot from file_type for preview service
+        file_type_clean = file_type.lstrip('.')
+        
+        gif_bytes = await library_service.preview_service.get_or_generate_animated_preview(
+            str(file_path),
+            file_type_clean,
+            size=(200, 200)
+        )
+
+        if not gif_bytes:
+            raise FileProcessingError(
+                file_id=checksum[:16],
+                operation="generate_animated_thumbnail",
+                reason="Failed to generate animated preview"
+            )
+
+        # Return GIF response
+        return Response(
+            content=gif_bytes,
+            media_type="image/gif",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "Content-Disposition": f"inline; filename=thumbnail_animated_{checksum[:16]}.gif"
+            }
+        )
+
+    except Exception as e:
+        logger.error("Failed to get animated thumbnail",
+                    checksum=checksum[:16],
+                    error=str(e),
+                    exc_info=True)
+        raise FileProcessingError(
+            filename=checksum[:16],
+            operation="get_animated_thumbnail",
+            reason=str(e)
+        )
+
+
 @router.get("/files/{checksum}/thumbnail")
 async def get_library_file_thumbnail(
     checksum: str = PathParam(..., description="File checksum (SHA-256)"),

@@ -22,6 +22,9 @@ logger = structlog.get_logger(__name__)
 try:
     import trimesh
     import numpy as np
+    # Set matplotlib to non-GUI backend before importing pyplot
+    import matplotlib
+    matplotlib.use('Agg')
     from matplotlib import pyplot as plt
     from matplotlib.backends.backend_agg import FigureCanvasAgg
     from mpl_toolkits.mplot3d import Axes3D
@@ -178,6 +181,12 @@ class PreviewRenderService:
         Returns:
             GIF image as bytes, or None if generation failed
         """
+        logger.info("Animated preview request",
+                   file_path=file_path,
+                   file_type=file_type,
+                   cache_enabled=self.animation_config['enabled'],
+                   size=size)
+
         if not RENDERING_AVAILABLE:
             logger.warning("Preview rendering not available - libraries not installed")
             return None
@@ -201,13 +210,17 @@ class PreviewRenderService:
                 # Check if cache is still valid
                 file_age = datetime.now() - datetime.fromtimestamp(cache_path.stat().st_mtime)
                 if file_age < self.cache_duration:
-                    logger.debug(f"Using cached animated preview: {cache_path}")
+                    logger.info("Serving cached animated GIF",
+                               cache_path=str(cache_path),
+                               age_minutes=file_age.total_seconds() / 60)
                     with open(cache_path, 'rb') as f:
                         self.stats['animated_renders_cached'] += 1
                         return f.read()
 
             # Generate new animated preview
-            logger.info(f"Generating animated preview for {file_path}", file_type=file_type, size=size)
+            logger.info("Generating new animated GIF",
+                       angles=self.animation_config['angles'],
+                       frame_count=len(self.animation_config['angles']))
 
             # Run rendering in executor to avoid blocking
             loop = asyncio.get_event_loop()
@@ -222,18 +235,27 @@ class PreviewRenderService:
                     f.write(gif_bytes)
 
                 self.stats['animated_renders_generated'] += 1
-                logger.info(f"Successfully generated and cached animated preview: {cache_path}")
+                logger.info("Animated GIF generated successfully",
+                           size_bytes=len(gif_bytes),
+                           cache_path=str(cache_path))
                 return gif_bytes
             else:
                 self.stats['render_failures'] += 1
+                logger.error("Animated GIF generation returned None")
                 return None
 
         except asyncio.TimeoutError:
-            logger.error(f"Animated preview rendering timed out for {file_path}")
+            logger.error("Animated GIF rendering timed out",
+                        file_path=file_path,
+                        timeout_seconds=self._render_timeout * len(self.animation_config['angles']))
             self.stats['render_failures'] += 1
             return None
         except Exception as e:
-            logger.error(f"Failed to generate animated preview for {file_path}: {e}", exc_info=True)
+            logger.error("Animated GIF generation failed",
+                        file_path=file_path,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        exc_info=True)
             self.stats['render_failures'] += 1
             return None
 

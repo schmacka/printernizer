@@ -7,6 +7,7 @@ import json
 import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+from io import BytesIO
 import structlog
 
 from src.config.constants import file_url
@@ -30,10 +31,12 @@ from src.constants import (
 # Import bambulabs_api dependencies
 try:
     from bambulabs_api import Printer as BambuClient
+    from bambulabs_api import PrinterFTPClient
     BAMBU_API_AVAILABLE = True
 except ImportError:
     BAMBU_API_AVAILABLE = False
     BambuClient = None
+    PrinterFTPClient = None
 
 # Fallback to paho.mqtt if bambulabs_api is not available
 try:
@@ -210,6 +213,37 @@ class BambuLabPrinter(BasePrinter):
             # Try to request file listing if supported
             if hasattr(self.bambu_client, 'request_file_list'):
                 self.bambu_client.request_file_list()
+
+            # Create PrinterFTPClient for file operations
+            if PrinterFTPClient:
+                try:
+                    self.bambu_ftp_client = PrinterFTPClient(
+                        server_ip=self.ip_address,
+                        access_code=self.access_code
+                    )
+                    logger.info("Created PrinterFTPClient for file operations",
+                               printer_id=self.printer_id)
+                except Exception as e:
+                    logger.warning("Failed to create PrinterFTPClient",
+                                 printer_id=self.printer_id, error=str(e))
+                    self.bambu_ftp_client = None
+            else:
+                self.bambu_ftp_client = None
+
+            # Initialize direct FTP service as fallback
+            if self.use_direct_ftp and not self.ftp_service:
+                try:
+                    from src.services.bambu_ftp_service import BambuFTPService
+                    self.ftp_service = BambuFTPService(
+                        ip_address=self.ip_address,
+                        access_code=self.access_code
+                    )
+                    logger.info("Initialized direct FTP service",
+                               printer_id=self.printer_id)
+                except Exception as e:
+                    logger.warning("Failed to initialize FTP service",
+                                 printer_id=self.printer_id, error=str(e))
+                    self.ftp_service = None
 
             self.is_connected = True
 
@@ -1048,19 +1082,121 @@ class BambuLabPrinter(BasePrinter):
         if not self.is_connected:
             raise PrinterConnectionError(self.printer_id, "Not connected")
 
-        try:
-            # Try direct FTP first if available
-            if self.ftp_service:
+        # Try methods in order: Direct FTP -> PrinterFTPClient -> bambulabs_api -> MQTT
+        # Direct FTP is prioritized as it has proper implicit TLS implementation
+        last_error = None
+
+        # Initialize FTP service on-demand if not already done
+        if self.use_direct_ftp and not self.ftp_service:
+            try:
+                logger.info("Lazy-initializing FTP service for file listing",
+                           printer_id=self.printer_id)
+                self.ftp_service = BambuFTPService(self.ip_address, self.access_code)
+            except Exception as e:
+                logger.warning("Failed to initialize FTP service on-demand",
+                             printer_id=self.printer_id, error=str(e))
+
+        # Try direct FTP FIRST (has proper implicit TLS fixes)
+        if self.ftp_service:
+            try:
+                logger.info("Attempting file list via direct FTP", printer_id=self.printer_id)
                 return await self._list_files_direct_ftp()
-            elif self.use_bambu_api:
+            except Exception as e:
+                logger.warning("Direct FTP file listing failed, trying fallback methods",
+                             printer_id=self.printer_id, error=str(e))
+                last_error = e
+
+        # Try PrinterFTPClient as fallback
+        if hasattr(self, 'bambu_ftp_client') and self.bambu_ftp_client:
+            try:
+                logger.info("Attempting file list via PrinterFTPClient", printer_id=self.printer_id)
+                return await self._list_files_printer_ftp_client()
+            except Exception as e:
+                logger.warning("PrinterFTPClient file listing failed, trying fallback methods",
+                             printer_id=self.printer_id, error=str(e))
+                last_error = e
+
+        # Fallback to bambulabs_api
+        if self.use_bambu_api:
+            try:
+                logger.info("Attempting file list via bambulabs_api", printer_id=self.printer_id)
                 return await self._list_files_bambu_api()
-            else:
-                return await self._list_files_mqtt()
+            except Exception as e:
+                logger.warning("bambulabs_api file listing failed, trying MQTT fallback",
+                             printer_id=self.printer_id, error=str(e))
+                last_error = e
+
+        # Final fallback to MQTT
+        try:
+            logger.info("Attempting file list via MQTT", printer_id=self.printer_id)
+            return await self._list_files_mqtt()
+        except Exception as e:
+            logger.error("All file listing methods failed",
+                        printer_id=self.printer_id, error=str(e))
+            last_error = e
+
+        # If we get here, all methods failed
+        raise PrinterConnectionError(self.printer_id, f"File listing failed: {str(last_error)}")
+
+    async def _list_files_printer_ftp_client(self) -> List[PrinterFile]:
+        """List files using PrinterFTPClient from bambulabs_api."""
+        logger.info("Listing files from /cache using PrinterFTPClient",
+                   printer_id=self.printer_id)
+
+        files = []
+
+        try:
+            # Run in executor since PrinterFTPClient methods are synchronous
+            loop = asyncio.get_event_loop()
+            ftp_lines = await loop.run_in_executor(None, self.bambu_ftp_client.list_cache_dir)
+
+            if not ftp_lines:
+                logger.info("No files found in /cache", printer_id=self.printer_id)
+                return files
+
+            # ftp_lines is typically ['226 ', [list of file lines]]
+            # Extract the actual file list
+            file_list = []
+            if isinstance(ftp_lines, list) and len(ftp_lines) >= 2:
+                file_list = ftp_lines[1] if isinstance(ftp_lines[1], list) else []
+
+            # Parse FTP LIST format: -rw-rw-rw-   1 root  root   3081365 Sep 28 03:57 filename.3mf
+            for line in file_list:
+                if not isinstance(line, str) or not line.strip():
+                    continue
+
+                parts = line.split()
+                if len(parts) < 9:  # Need at least permissions, links, user, group, size, month, day, time/year, filename
+                    continue
+
+                try:
+                    permissions = parts[0]
+                    size = int(parts[4])
+                    # Filename is everything after the time/year (index 8 onwards)
+                    filename = ' '.join(parts[8:])
+
+                    # Only include 3D printing files
+                    if filename.endswith(('.3mf', '.gcode', '.bgcode', '.stl')):
+                        files.append(PrinterFile(
+                            filename=filename,
+                            size=size,
+                            path=f"/cache/{filename}",
+                            modified=None,  # Could parse date if needed
+                            file_type=self._get_file_type_from_name(filename)
+                        ))
+                except (ValueError, IndexError) as e:
+                    logger.debug("Failed to parse FTP line", line=line, error=str(e))
+                    continue
+
+            logger.info("Retrieved files from PrinterFTPClient",
+                       printer_id=self.printer_id, file_count=len(files))
 
         except Exception as e:
-            logger.error("Failed to list files from Bambu Lab",
+            logger.error("PrinterFTPClient file listing failed",
                         printer_id=self.printer_id, error=str(e))
-            raise PrinterConnectionError(self.printer_id, f"File listing failed: {str(e)}")
+            raise
+
+        return files
 
     async def _list_files_bambu_api(self) -> List[PrinterFile]:
         """List files using bambulabs_api library with enhanced discovery."""
@@ -1630,17 +1766,64 @@ class BambuLabPrinter(BasePrinter):
         return None
 
     async def take_snapshot(self) -> Optional[bytes]:
-        """Take a camera snapshot from Bambu Lab printer.
+        """Take a camera snapshot from Bambu Lab printer using bambulabs-api library.
 
-        DEPRECATED: This method is deprecated.
-        Bambu Lab cameras use proprietary TCP/TLS protocol on port 6000, not HTTP.
-        Snapshot functionality is now handled by CameraSnapshotService with proper
-        binary protocol implementation, connection pooling, and frame caching.
+        Returns:
+            JPEG image data as bytes, or None if camera unavailable
 
-        Use the camera API endpoint: POST /api/v1/printers/{printer_id}/camera/snapshot
+        Raises:
+            Exception: If camera access fails
         """
-        logger.warning(
-            "BambuLabPrinter.take_snapshot is deprecated - use CameraSnapshotService via API",
-            printer_id=self.printer_id
-        )
-        return None
+        if not self.bambu_client:
+            logger.error(
+                "Cannot take snapshot - Bambu client not connected",
+                printer_id=self.printer_id
+            )
+            return None
+
+        try:
+            logger.debug("Requesting camera snapshot", printer_id=self.printer_id)
+
+            # Run blocking camera call in executor to maintain async compatibility
+            loop = asyncio.get_event_loop()
+            image = await loop.run_in_executor(
+                None,
+                self.bambu_client.get_camera_image
+            )
+
+            if not image:
+                logger.warning(
+                    "No camera image available from printer",
+                    printer_id=self.printer_id
+                )
+                return None
+
+            # Convert PIL Image to JPEG bytes
+            buffer = BytesIO()
+            image.save(buffer, format='JPEG', quality=85)
+            jpeg_bytes = buffer.getvalue()
+
+            logger.info(
+                "Camera snapshot captured successfully",
+                printer_id=self.printer_id,
+                size_bytes=len(jpeg_bytes)
+            )
+
+            return jpeg_bytes
+
+        except AttributeError as e:
+            logger.error(
+                "bambulabs-api camera method not available - may not support A1 series",
+                printer_id=self.printer_id,
+                error=str(e)
+            )
+            return None
+
+        except Exception as e:
+            logger.error(
+                "Camera snapshot failed",
+                printer_id=self.printer_id,
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            return None

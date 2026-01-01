@@ -66,9 +66,84 @@ class JobCreate(BaseModel):
 
 
 class JobUpdate(BaseModel):
-    """Job update model."""
+    """Job update model (legacy - use JobUpdateRequest for new code)."""
     status: Optional[JobStatus] = None
     progress: Optional[int] = None
     material_used: Optional[float] = None
     end_time: Optional[datetime] = None
     actual_duration: Optional[int] = None
+
+
+class JobUpdateRequest(BaseModel):
+    """Schema for job update requests (PUT /api/v1/jobs/{id})."""
+    job_name: Optional[str] = None
+    status: Optional[JobStatus] = None
+    is_business: Optional[bool] = None
+    customer_name: Optional[str] = None
+    notes: Optional[str] = None
+    file_name: Optional[str] = None
+    printer_id: Optional[str] = None
+
+    @field_validator('job_name')
+    @classmethod
+    def validate_job_name(cls, v):
+        if v is not None:
+            v = v.strip()
+            if not v:
+                raise ValueError("job_name cannot be empty")
+            if len(v) > 200:
+                raise ValueError("job_name max length is 200 characters")
+        return v
+
+    @field_validator('customer_name')
+    @classmethod
+    def validate_customer_name(cls, v):
+        if v is not None:
+            v = v.strip()
+            if len(v) > 200:
+                raise ValueError("customer_name max length is 200 characters")
+        return v
+
+    @field_validator('notes')
+    @classmethod
+    def validate_notes(cls, v):
+        if v is not None and len(v) > 1000:
+            raise ValueError("notes max length is 1000 characters")
+        return v
+
+    class Config:
+        """Pydantic configuration."""
+        use_enum_values = True
+
+
+class JobStatusUpdateRequest(BaseModel):
+    """Request schema for job status updates (PUT /api/v1/jobs/{id}/status)."""
+    status: JobStatus
+    completion_notes: Optional[str] = None
+    force: bool = False
+
+    @field_validator('completion_notes')
+    @classmethod
+    def validate_notes(cls, v):
+        if v and len(v) > 500:
+            raise ValueError("completion_notes max length is 500 characters")
+        return v
+
+    class Config:
+        """Pydantic configuration."""
+        use_enum_values = True
+
+
+class JobStatusUpdateResponse(BaseModel):
+    """Response schema for status updates."""
+    id: str
+    status: JobStatus
+    previous_status: JobStatus
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    updated_at: datetime
+
+    class Config:
+        """Pydantic configuration."""
+        from_attributes = True
+        use_enum_values = True

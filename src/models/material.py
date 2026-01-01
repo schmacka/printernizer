@@ -179,3 +179,32 @@ class MaterialReport(BaseModel):
     by_job_type: Dict[str, Dict[str, Any]]  # business vs private
     top_consumers: list[Dict[str, Any]]  # Top consuming jobs
     efficiency_metrics: Dict[str, float]
+
+
+class ConsumptionHistoryItem(BaseModel):
+    """Single consumption history record with material details."""
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    id: str
+    job_id: str
+    material_id: str
+    material_type: str
+    brand: str
+    color: str
+    weight_used: float  # grams
+    cost: Decimal
+    timestamp: datetime
+    printer_id: str
+    file_name: Optional[str] = None
+    print_time_hours: Optional[float] = None
+
+
+class ConsumptionHistoryResponse(BaseModel):
+    """Paginated consumption history response."""
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    items: list[ConsumptionHistoryItem]
+    total_count: int
+    page: int
+    limit: int
+    total_pages: int

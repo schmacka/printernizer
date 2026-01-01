@@ -23,9 +23,8 @@ assignees: ''
 
 ### Version Synchronization
 - [ ] Update `src/main.py` - `APP_VERSION = get_version(fallback="X.Y.Z")`
-- [ ] Update `printernizer/config.yaml` - `version: "X.Y.Z"`
 - [ ] Verify CHANGELOG.md has entry for this version
-- [ ] All three files have matching version numbers
+- [ ] Version will automatically sync to printernizer-ha repository via GitHub Actions
 
 ### Testing
 - [ ] Run test suite: `pytest`
@@ -46,13 +45,13 @@ assignees: ''
 ### Create Release
 ```bash
 # 1. Commit version bump
-git add CHANGELOG.md src/main.py printernizer/config.yaml
+git add CHANGELOG.md src/main.py
 git commit -m "chore: Bump version to X.Y.Z"
 
 # 2. Create git tag
 git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"
 
-# 3. Push to GitHub
+# 3. Push to GitHub (this triggers sync to printernizer-ha)
 git push origin master
 git push --tags
 ```

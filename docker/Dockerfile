@@ -21,7 +21,8 @@ FROM python:3.11-alpine as builder
 WORKDIR /build
 
 # Install build dependencies
-RUN apk add --no-cache \
+# Using --no-scripts to avoid QEMU emulation issues during cross-platform builds
+RUN apk add --no-cache --no-scripts \
     gcc \
     g++ \
     musl-dev \
@@ -50,7 +51,8 @@ ENV PYTHONUNBUFFERED=1 \
     TZ=Europe/Berlin
 
 # Install runtime dependencies
-RUN apk add --no-cache \
+# Using --no-scripts to avoid QEMU emulation issues during cross-platform builds
+RUN apk add --no-cache --no-scripts \
     sqlite \
     curl \
     bash \

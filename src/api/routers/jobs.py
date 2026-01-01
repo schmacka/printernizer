@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel, Field
 import structlog
 
-from src.models.job import Job, JobStatus, JobCreate
+from src.models.job import Job, JobStatus, JobCreate, JobUpdateRequest, JobStatusUpdateRequest, JobStatusUpdateResponse
 from src.services.job_service import JobService
 from src.utils.dependencies import get_job_service
 from src.utils.errors import (
@@ -167,6 +167,138 @@ async def get_job(
         raise JobNotFoundError(job_id)
     # Job is already a dictionary from the service layer
     return JobResponse.model_validate(_transform_job_to_response(job))
+
+
+@router.put("/{job_id}", response_model=JobResponse)
+async def update_job(
+    job_id: str,
+    updates: JobUpdateRequest,
+    job_service: JobService = Depends(get_job_service)
+):
+    """
+    Update job fields.
+
+    **Editable Fields**:
+    - `job_name`: Display name (required, max 200 chars)
+    - `status`: Job status (pending/running/completed/failed)
+    - `is_business`: Business vs personal job
+    - `customer_name`: Customer name (required if is_business=true)
+    - `notes`: Additional notes (max 1000 chars)
+    - `file_name`: Associated file name
+    - `printer_id`: Associated printer UUID
+
+    **Non-Editable Fields**:
+    - Timestamps (created_at, start_time, end_time) are managed automatically
+    - `id` is immutable
+
+    **Business Logic**:
+    - If `is_business=true`, `customer_name` is required
+    - `printer_id` must reference an existing printer (validation optional)
+
+    **Returns**: Updated job object
+
+    **Raises**:
+    - 404: Job not found
+    - 400: Validation error or invalid printer_id
+    - 422: Invalid request body
+    """
+    try:
+        updated_job = await job_service.update_job(job_id, updates)
+        return JobResponse.model_validate(_transform_job_to_response(updated_job))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error updating job", job_id=job_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.put("/{job_id}/status", response_model=JobStatusUpdateResponse)
+async def update_job_status(
+    job_id: str,
+    request: JobStatusUpdateRequest,
+    job_service: JobService = Depends(get_job_service)
+):
+    """
+    Update job status with transition validation.
+
+    This endpoint manages job workflow state transitions and automatically
+    updates relevant timestamps (start_time, end_time).
+
+    **Valid Status Transitions**:
+    - `pending → running`: Job started
+    - `pending → completed`: Manually mark as done (skip running)
+    - `pending → failed`: Manually mark as failed
+    - `running → completed`: Job finished successfully
+    - `running → failed`: Job failed or cancelled
+    - `completed → failed`: Correct status (rare)
+    - `failed → completed`: Retry succeeded (rare)
+
+    **Invalid Transitions**:
+    - Cannot restart completed/failed jobs (→ running)
+    - Cannot reset to pending from any state
+
+    **Timestamp Behavior**:
+    - Setting status to `running` sets `start_time` if not already set
+    - Setting status to `completed` or `failed` sets `end_time`
+    - Timestamps are immutable once set (unless using force=true)
+
+    **Completion Notes**:
+    - Optional notes explaining manual status change
+    - Appended to job notes with timestamp
+    - Useful for audit trail
+
+    **Force Flag**:
+    - Bypasses transition validation
+    - Use with caution (admin only)
+    - Allows any status change
+
+    **Returns**: Updated job with new status and timestamps
+
+    **Raises**:
+    - 404: Job not found
+    - 400: Invalid status transition
+    - 422: Invalid request body
+    """
+    try:
+        # Get job to capture previous status
+        job = await job_service.get_job(job_id)
+        if not job:
+            raise JobNotFoundError(job_id)
+
+        previous_status = job.get('status', 'unknown')
+
+        # Update status with validation
+        updated_job = await job_service.update_job_status(
+            job_id=job_id,
+            status=request.status,
+            completion_notes=request.completion_notes,
+            force=request.force,
+            validate_transitions=True  # Enable validation for this endpoint
+        )
+
+        if not updated_job:
+            raise HTTPException(status_code=500, detail="Failed to update job status")
+
+        # Build response
+        return JobStatusUpdateResponse(
+            id=updated_job['id'],
+            status=updated_job['status'],
+            previous_status=previous_status,
+            started_at=updated_job.get('start_time'),
+            completed_at=updated_job.get('end_time'),
+            updated_at=updated_job.get('updated_at') or datetime.now()
+        )
+
+    except ValueError as e:
+        # Invalid transition
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error updating job status", job_id=job_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{job_id}/cancel")

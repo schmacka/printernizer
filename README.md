@@ -35,6 +35,40 @@ Printernizer is a **production-ready** 3D printer management system that transfo
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard Overview
+
+Real-time monitoring of your printer fleet with live status updates, temperature monitoring, and job tracking.
+
+![Dashboard](screenshots/01-dashboard.png)
+
+### File Management
+
+Unified file browser with smart filtering, status tracking, and one-click downloads from all your printers.
+
+![File Management](screenshots/02-file-management.png)
+
+### Jobs & Printer Management
+
+Comprehensive job history and detailed printer status cards with live monitoring.
+
+![Jobs & Printers](screenshots/03-jobs-printers.png)
+
+### Printer Status Cards
+
+Detailed printer information including temperatures, current job progress, and quick actions.
+
+![Printer Status Card](screenshots/04-printer-status-card.png)
+
+### Mobile Responsive Design
+
+Full functionality on mobile devices with optimized responsive layout.
+
+![Mobile View](screenshots/05-mobile-view.png)
+
+---
+
 ## ✨ Features
 
 ### 🖨️ Printer Support
@@ -180,11 +214,14 @@ git clone https://github.com/schmacka/printernizer.git
 cd printernizer
 
 # Create virtual environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Configure for local development (required - see note below)
+cp src/.env.development src/.env
 
 # Run the application
 ./run.sh  # On Windows: run.bat
@@ -193,6 +230,12 @@ pip install -r requirements.txt
 # Web Interface: http://localhost:8000
 # API Docs: http://localhost:8000/docs
 ```
+
+> **Note:** The `.env` file is required for local development. The default configuration uses Docker/Home Assistant paths (`/data/printernizer/`) which won't work on a standard Linux system. The `src/.env.development` template provides working local paths.
+
+**Troubleshooting:**
+- If you get "permission denied" on `run.sh`, run: `chmod +x run.sh`
+- If you get "python: command not found", ensure your virtual environment is activated
 
 For detailed installation instructions, see the [**Installation Guide**](https://schmacka.github.io/printernizer/getting-started/installation/).
 
@@ -203,7 +246,7 @@ For detailed installation instructions, see the [**Installation Guide**](https:/
 | Method | Best For | Setup Time | Documentation |
 |--------|----------|------------|---------------|
 | **Docker Standalone** | Production servers, NAS | 5 minutes | [Guide](docker/README.md) |
-| **Home Assistant** | 24/7 operation, HA users | 10 minutes | [Guide](printernizer/README.md) |
+| **Home Assistant** | 24/7 operation, HA users | 10 minutes | [printernizer-ha repo](https://github.com/schmacka/printernizer-ha) |
 | **Raspberry Pi** | Dedicated device | 10 minutes | [Script](scripts/pi-deployment/) |
 | **Python Standalone** | Development, testing | 5 minutes | [Quick Start](#option-4-python-standalone-development) |
 
@@ -389,12 +432,11 @@ printernizer/
 ├── tests/                 # Test suites (562+ tests)
 ├── docs/                  # Documentation (MkDocs)
 ├── docker/                # Docker configurations
-├── printernizer/          # Home Assistant add-on (auto-synced)
 ├── scripts/               # Utility scripts
 └── migrations/            # Database migrations
 ```
 
-⚠️ **Important**: Edit code in `/src/` and `/frontend/` only. The `/printernizer/` directory is auto-synced for Home Assistant deployment.
+**Home Assistant Add-on**: Maintained separately at [printernizer-ha](https://github.com/schmacka/printernizer-ha). Code is automatically synced via GitHub Actions.
 
 ### Contributing
 

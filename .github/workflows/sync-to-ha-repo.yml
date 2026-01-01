@@ -1,0 +1,220 @@
+name: Sync to HA Add-on Repository
+
+# This workflow automatically synchronizes code from the main printernizer repository
+# to the separate printernizer-ha repository for Home Assistant add-on distribution.
+#
+# Sync Strategy:
+# - master branch → printernizer-ha/master (production releases)
+# - development branch → printernizer-ha/development (testing)
+# - Versions tied to main repo (src/main.py)
+# - Auto-sync on every commit to monitored files
+
+on:
+  push:
+    branches:
+      - master
+      - development
+    paths:
+      - 'src/**'
+      - 'frontend/**'
+      - 'migrations/**'
+      - 'requirements.txt'
+      - 'CHANGELOG.md'
+      - '.github/workflows/sync-to-ha-repo.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-to-ha-repo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout main printernizer repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for version info
+
+      - name: Checkout printernizer-ha repository
+        uses: actions/checkout@v4
+        with:
+          repository: schmacka/printernizer-ha
+          token: ${{ secrets.HA_REPO_TOKEN }}
+          path: ha-repo
+          ref: ${{ github.ref_name }}  # Match branch name (master/development)
+          fetch-depth: 0
+
+      - name: Configure Git for HA repo
+        run: |
+          cd ha-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if HA repo branch exists
+        id: check_branch
+        run: |
+          cd ha-repo
+          if git ls-remote --heads origin ${{ github.ref_name }} | grep -q ${{ github.ref_name }}; then
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+            echo "Branch ${{ github.ref_name }} exists in HA repo"
+          else
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+            echo "Branch ${{ github.ref_name }} does not exist in HA repo, will create it"
+          fi
+
+      - name: Create branch if needed
+        if: steps.check_branch.outputs.branch_exists == 'false'
+        run: |
+          cd ha-repo
+          git checkout -b ${{ github.ref_name }}
+          echo "Created new branch: ${{ github.ref_name }}"
+
+      - name: Sync files to HA repository
+        run: |
+          echo "Syncing files from printernizer to printernizer-ha..."
+
+          # Ensure add-on subdirectory exists
+          mkdir -p ha-repo/printernizer
+
+          # Remove old synced content (but keep HA-specific files)
+          rm -rf ha-repo/printernizer/src ha-repo/printernizer/frontend ha-repo/printernizer/migrations
+          rm -f ha-repo/printernizer/requirements.txt
+
+          # Copy fresh content from main repo to add-on subdirectory
+          cp -r src/ ha-repo/printernizer/src/
+          cp -r frontend/ ha-repo/printernizer/frontend/
+          cp -r migrations/ ha-repo/printernizer/migrations/
+          cp requirements.txt ha-repo/printernizer/
+          cp CHANGELOG.md ha-repo/printernizer/
+
+          echo "✅ Files synchronized successfully"
+
+      - name: Extract version from main repository
+        id: version
+        run: |
+          # Extract version from src/main.py
+          VERSION=$(grep "APP_VERSION = get_version(fallback=" src/main.py | grep -oP 'fallback="\K[^"]+')
+
+          if [ -z "$VERSION" ]; then
+            echo "❌ Error: Could not extract version from src/main.py"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Extracted version: $VERSION"
+
+      - name: Update HA config version (master branch only)
+        if: github.ref == 'refs/heads/master'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Update version in config.yaml (in add-on subdirectory)
+          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/printernizer/config.yaml
+
+          echo "✅ Updated config.yaml version to: $VERSION"
+
+      - name: Set development version (development branch only)
+        if: github.ref == 'refs/heads/development'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DEV_VERSION="${VERSION}-dev"
+
+          # Update version in config.yaml with -dev suffix (in add-on subdirectory)
+          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/printernizer/config.yaml
+
+          echo "✅ Updated config.yaml version to: $DEV_VERSION"
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          cd ha-repo
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "ℹ️ No changes detected after sync"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "✅ Changes detected after sync"
+
+            # Show what changed
+            echo "📝 Changed files:"
+            git status --short
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          cd ha-repo
+
+          # Stage all changes
+          git add .
+
+          # Double-check there are actually staged changes
+          if git diff --cached --quiet; then
+            echo "ℹ️ No staged changes to commit, skipping..."
+            exit 0
+          fi
+
+          # Determine version info for commit message
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            BRANCH_INFO="Production"
+            VERSION="${{ steps.version.outputs.version }}"
+          else
+            BRANCH_INFO="Development"
+            VERSION="${{ steps.version.outputs.version }}-dev"
+          fi
+
+          # Get short SHA from main repo
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+
+          # Create commit message
+          COMMIT_MSG="chore: Auto-sync from printernizer@${SHORT_SHA} (${BRANCH_INFO})
+
+          Synced version: ${VERSION}
+          Source commit: ${GITHUB_SHA}
+          Source branch: ${{ github.ref_name }}
+          Triggered by: ${{ github.actor }}
+
+          Automated sync via GitHub Actions"
+          git commit -m "$COMMIT_MSG"
+
+          # Push to HA repo
+          git push origin ${{ github.ref_name }}
+
+          echo "✅ Changes committed and pushed to printernizer-ha/${{ github.ref_name }}"
+
+      - name: Create sync summary
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          cd ha-repo
+
+          echo "## ✅ Home Assistant Add-on Sync Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Commit**: \`${GITHUB_SHA:0:7}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Synced Files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ src/ (complete directory)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ frontend/ (complete directory)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ migrations/ (complete directory)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ requirements.txt" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Changes" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          git diff HEAD~1 --stat 2>/dev/null || echo "Initial sync or new branch" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: No changes summary
+        if: steps.check_changes.outputs.changes == 'false'
+        run: |
+          echo "## ℹ️ No Sync Required" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The Home Assistant add-on code is already up to date." >> $GITHUB_STEP_SUMMARY

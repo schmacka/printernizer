@@ -44,8 +44,8 @@ You are a specialized code review agent for the Printernizer project. Your role 
 - [ ] Transaction handling for data integrity
 
 ### Critical Rules to Enforce
-- ⚠️ **NEVER** edit files in `/printernizer/src/` or `/printernizer/frontend/` directly
 - ⚠️ All edits must be in `/src/` and `/frontend/` (single source of truth)
+- ⚠️ Home Assistant add-on is maintained in separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository
 - ⚠️ Version files must be kept synchronized
 - ⚠️ API routes must use `""` not `"/"` for root endpoints
 

@@ -51,41 +51,41 @@ Feature branch → development (PR + review) → Docker testing → master (PR +
 
 **Single Source of Truth**: Edit code ONLY in `/src/` and `/frontend/` directories.
 
-### Automated Sync Process
+### Automated Sync to printernizer-ha Repository
 
-1. **During Development**:
-   - Edit files in `/src/` or `/frontend/` 
-   - NEVER touch `/printernizer/src/` or `/printernizer/frontend/`
-   - Pre-commit hook auto-syncs on commit
-   - Synced files automatically staged and included in commit
+**Home Assistant Add-on**: Code is automatically synced to the separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository.
 
-2. **Manual Sync** (if needed):
-   ```bash
-   # Linux/Mac
-   ./scripts/sync-ha-addon.sh
+1. **On Push to master/development**:
+   - Edit files in `/src/` or `/frontend/`
+   - Push to `master` or `development` branch
+   - GitHub Actions workflow `sync-to-ha-repo.yml` automatically syncs to printernizer-ha repository
+   - Version is automatically extracted from `src/main.py` and updated in printernizer-ha
 
-   # Windows
-   scripts\sync-ha-addon.bat
-   ```
+2. **Manual Trigger** (if needed):
+   - Visit: https://github.com/schmacka/printernizer/actions/workflows/sync-to-ha-repo.yml
+   - Click "Run workflow" button
+   - Select branch (master or development)
 
-3. **CI/CD Validation**:
-   - GitHub Actions runs sync on push to `master` or `development`
-   - Auto-bumps HA add-on version **only on `master`**
-   - Commits and pushes changes if needed
+3. **Verification**:
+   - Check workflow runs: https://github.com/schmacka/printernizer/actions/workflows/sync-to-ha-repo.yml
+   - Verify printernizer-ha repository: https://github.com/schmacka/printernizer-ha
 
 ### Why This Architecture
 
-- Home Assistant build system requires files in `printernizer/` directory
+- Home Assistant add-on is maintained in separate printernizer-ha repository
 - Single source prevents code divergence and version drift
-- Triple safety net (hook + CI + manual) ensures consistency
-- Developers work in one place, automation handles the rest
+- Automated sync ensures consistency
+- Developers work in one place, automation handles distribution
 
 ## Version Management
 
-**Version Files** (keep synchronized):
-- `src/api/routers/health.py` - API version
-- `printernizer/config.yaml` - Home Assistant add-on version
-- `printernizer/CHANGELOG.md` - Version history
+**Version is extracted from git tags** via `get_version()` utility in `src/utils/version.py`.
+
+**Files to update when releasing:**
+- `src/main.py` - Update fallback version in `get_version(fallback="X.Y.Z")`
+- `CHANGELOG.md` - Add version section with release notes
+
+**Note**: The HA add-on files (in [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository) are updated automatically by GitHub Actions.
 
 **Versioning Standard**: Semantic Versioning (MAJOR.MINOR.PATCH)
 - MAJOR: Breaking changes
@@ -93,8 +93,8 @@ Feature branch → development (PR + review) → Docker testing → master (PR +
 - PATCH: Bug fixes
 
 **Version Update Checklist**:
-1. Update version in health.py
-2. Update version in config.yaml
+1. Update CHANGELOG.md with release notes
+2. Update fallback version in src/main.py
 3. Add entry to CHANGELOG.md
 4. Commit with message: "chore: bump version to X.Y.Z"
 

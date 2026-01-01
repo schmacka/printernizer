@@ -73,35 +73,26 @@ docker-compose down
 
 ### Code Synchronization
 
-⚠️ **NEVER edit files in `/printernizer/src/` or `/printernizer/frontend/` directly**
+**Home Assistant Add-on Repository**: Code is automatically synced to the separate [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository via GitHub Actions.
 
 **Sync Process**:
-1. Make changes in `/src/` or `/frontend/` only
-2. Commit changes (pre-commit hook auto-syncs)
-3. Or run manual sync:
-   ```bash
-   # Windows
-   .\scripts\sync-ha-addon.bat
-   
-   # Linux/Mac
-   ./scripts/sync-ha-addon.sh
-   ```
+1. Make changes in `/src/` or `/frontend/` in this repository
+2. Push to `master` or `development` branch
+3. GitHub Actions workflow `sync-to-ha-repo.yml` automatically syncs to printernizer-ha
 
 **Verification**:
 ```bash
-# Check if sync is needed
-git status
-
-# Verify files are identical
-diff src/app.py printernizer/src/app.py
+# Check workflow runs
+# Visit: https://github.com/schmacka/printernizer/actions/workflows/sync-to-ha-repo.yml
 ```
 
 ### Version Management
 
 **Version Files to Update**:
-1. `src/api/routers/health.py` - API version
-2. `printernizer/config.yaml` - HA add-on version
-3. `printernizer/CHANGELOG.md` - Version history
+1. `src/main.py` - Application version (fallback value)
+2. `CHANGELOG.md` - Version history
+
+**Note**: HA add-on version in `printernizer-ha/config.yaml` is automatically synced from `src/main.py`
 
 **Semantic Versioning**:
 - **MAJOR** (X.0.0): Breaking changes
@@ -156,11 +147,10 @@ git push origin v1.5.3
 - [ ] Container starts and runs
 - [ ] Logs show no errors
 
-**Home Assistant Add-on**:
-- [ ] Code synced to printernizer/
-- [ ] config.yaml version bumped
-- [ ] CHANGELOG.md updated
-- [ ] Pushed to GitHub
+**Home Assistant Add-on** (auto-synced to [printernizer-ha](https://github.com/schmacka/printernizer-ha)):
+- [ ] Code pushed to master/development branch
+- [ ] GitHub Actions sync workflow completed
+- [ ] Version tag created (for releases)
 - [ ] Add-on updates in HA
 - [ ] Configuration validates
 - [ ] Add-on starts successfully
@@ -260,19 +250,19 @@ docker-compose up -d
 
 ### Common Issues
 
-**Code not synced**:
+**Code not synced to HA repo**:
 ```bash
-# Check for differences
-diff -r src/ printernizer/src/
+# Check GitHub Actions workflow runs
+# Visit: https://github.com/schmacka/printernizer/actions/workflows/sync-to-ha-repo.yml
 
-# Force sync
-.\scripts\sync-ha-addon.bat --force
+# Manually trigger sync if needed
+# Use "Run workflow" button on the Actions page
 ```
 
 **Version mismatch**:
-- Check health.py, config.yaml, and CHANGELOG.md
-- Ensure all three have same version
-- Commit and push changes
+- Check src/main.py for version
+- Version is automatically synced to printernizer-ha/config.yaml
+- Update CHANGELOG.md manually if needed
 
 **Database locked**:
 - Stop all running instances

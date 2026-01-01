@@ -1,0 +1,107 @@
+COPY-PASTABLE PROMPT FOR MOBILE IMAGE PREVIEW IMPLEMENTATION
+================================================================
+
+Implement mobile touch support for the rotating 3D model preview feature in the library file cards.
+
+## Context
+
+Currently, the animated image preview (showing rotating 3D models) only works on desktop with mouse hover events. It needs to work on mobile devices with touch events.
+
+## Current Implementation
+
+File: `frontend/js/library.js`
+Method: `setupAnimatedThumbnail()` (lines 315-400)
+Current behavior:
+- Mouse hover (`mouseenter`) shows animated GIF
+- Mouse leave (`mouseleave`) returns to static image
+- Does NOT work on touch devices
+
+## Implementation Requirements
+
+1. **Add touch event support** to `setupAnimatedThumbnail()` method
+   - Use tap/touch to toggle animation on/off
+   - Maintain existing mouse hover behavior for desktop
+   - Prevent conflicts between touch and mouse events
+   - Ensure touch events don't trigger the card click handler
+
+2. **Visual feedback for mobile users**
+   - Add CSS class when animation is active
+   - Show indicator (emoji or icon) when animating
+   - Use `.animating` class on `.file-card-thumbnail`
+
+3. **Update card click handler** in `renderFiles()` method
+   - Prevent detail modal from opening when tapping thumbnail on touch devices
+   - Detect touch device: `'ontouchstart' in window`
+
+4. **Add CSS styling**
+   - Visual indicator for animated state (`.file-card-thumbnail.animating::after`)
+   - Ensure minimum touch target size (44x44px)
+   - Consider `prefers-reduced-motion` for accessibility
+
+## Implementation Approach (Recommended)
+
+Use **hybrid approach**:
+- Desktop: Mouse hover shows/hides animation
+- Mobile: Tap toggles animation on/off
+- Track both `isHovering` (mouse) and `isAnimating` (touch) states
+- Prevent event conflicts with `e.stopPropagation()` on touch events
+
+## Technical Details
+
+The animated thumbnails work as follows:
+1. File cards with `.supports-animation` class have data attributes:
+   - `data-static-url`: Static thumbnail image
+   - `data-animated-url`: Rotating GIF (360° rotation)
+2. On hover/tap, preload the animated GIF
+3. Swap image src to show animation
+4. Return to static on mouse leave or second tap
+
+## Testing Requirements
+
+Test on:
+- iOS Safari (most restrictive browser)
+- Android Chrome
+- Desktop browsers (ensure no regression)
+- Various screen sizes
+- Check that drag-and-drop still works
+
+## Files to Modify
+
+1. `frontend/js/library.js` - Update `setupAnimatedThumbnail()` and card click handler
+2. `frontend/css/library.css` or main stylesheet - Add mobile styles
+
+## Reference Documentation
+
+See `/home/user/printernizer/docs/mobile-image-preview-implementation-plan.md` for:
+- Detailed implementation plan
+- Code examples
+- Testing checklist
+- Alternative approaches
+- Accessibility considerations
+
+## Git Workflow
+
+Branch: `claude/mobile-image-preview-[session-id]`
+Commit message: `feat: Add mobile touch support for animated image previews`
+Target branch: `development`
+
+## Success Criteria
+
+✓ Mouse hover works on desktop (no regression)
+✓ Tap toggles animation on mobile devices
+✓ No interference with card click behavior
+✓ Visual indicator shows when animation is active
+✓ No console errors
+✓ Smooth user experience on both platforms
+✓ Works on iOS Safari and Android Chrome
+
+## Additional Notes
+
+- Keep the 200ms delay for mouse hover (avoid accidental triggers)
+- Use `{ passive: true }` for touch events (better scroll performance)
+- Clean up state when animation loads fail
+- Consider memory usage with many animated GIFs
+
+---
+
+Please implement this feature following the plan in the documentation, test it thoroughly on mobile devices, and commit the changes to the development branch.

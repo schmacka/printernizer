@@ -117,6 +117,36 @@
     object-fit: cover;
 }
 
+/* Visual indicator for animated state on mobile */
+.file-card-thumbnail.animating::after {
+    content: '🔄';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Ensure touch targets are large enough (44x44px minimum for accessibility) */
+@media (max-width: 768px) {
+    .file-card-thumbnail {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Respect user's motion preferences for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .file-card-thumbnail.animating img {
+        animation: none !important;
+    }
+}
+
 .thumbnail-placeholder {
     position: absolute;
     top: 0;

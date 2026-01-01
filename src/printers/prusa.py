@@ -654,6 +654,24 @@ class PrusaPrinter(BasePrinter):
                            printer_id=self.printer_id, filename=filename)
                 return False
 
+            # IMPORTANT: PrusaLink Binary Download Endpoint
+            # ==============================================
+            # The PrusaLink API provides file metadata via refs.download field,
+            # but this path alone is NOT sufficient for authentication.
+            #
+            # CORRECT ENDPOINT: /api/v1/files/{storage}/{path}
+            #   - Requires X-Api-Key header (already set in self.session)
+            #   - Returns binary content (application/octet-stream)
+            #   - Supports: usb, local, sdcard storage types
+            #
+            # INCORRECT: Using refs.download directly (e.g., /usb/FILE)
+            #   - Returns 401 Unauthorized (no auth context)
+            #   - May return JSON metadata instead of binary
+            #
+            # Example: refs.download="/usb/FILENAME.BGC"
+            #   Parse to: storage="usb", path="FILENAME.BGC"
+            #   Full URL: http://{ip}/api/v1/files/usb/FILENAME.BGC
+
             # Get the download reference from the file info
             download_ref = file_info.get('refs', {}).get('download')
             if not download_ref:
@@ -661,25 +679,36 @@ class PrusaPrinter(BasePrinter):
                            printer_id=self.printer_id, filename=filename)
                 return False
 
-            logger.info(f"Raw file_info for debugging: {file_info}",
+            logger.debug(f"Raw file_info for debugging: {file_info}",
                         printer_id=self.printer_id)
-            logger.info(f"Download reference: '{download_ref}'",
+            logger.debug(f"Download reference: '{download_ref}'",
                         printer_id=self.printer_id)
 
-            # Construct the full download URL
-            # PrusaLink returns direct storage paths (e.g., "usb/FILE" or "/usb/FILE")
-            # These are HTTP file paths, NOT API endpoints
-            # The /api/v1/files/ endpoint returns JSON metadata, not the binary file
-            base_host = f"http://{self.ip_address}"
+            # Parse storage type and path from download_ref
+            # Expected formats: "/usb/FILE", "usb/FILE", "/local/path/FILE"
+            download_ref_clean = download_ref.lstrip('/')  # Remove leading slash
+            path_parts = download_ref_clean.split('/', 1)  # Split on first / only
 
-            # Ensure path starts with /
-            if not download_ref.startswith('/'):
-                download_ref = f"/{download_ref}"
+            if len(path_parts) != 2:
+                logger.error("Invalid download reference format",
+                           printer_id=self.printer_id,
+                           filename=filename,
+                           download_ref=download_ref,
+                           expected_format="storage/path")
+                return False
 
-            # Use direct path - NOT the API endpoint
-            download_url = f"{base_host}{download_ref}"
-            logger.info(f"Download URL: {download_ref} -> {download_url}",
-                       printer_id=self.printer_id)
+            storage_type = path_parts[0]  # e.g., "usb", "local", "sdcard"
+            file_path = path_parts[1]      # e.g., "FILENAME.BGC" or "subdir/file.gcode"
+
+            # Construct the correct PrusaLink API endpoint for binary download
+            download_url = f"http://{self.ip_address}/api/v1/files/{storage_type}/{file_path}"
+
+            logger.info("Constructed binary download URL",
+                       printer_id=self.printer_id,
+                       filename=filename,
+                       storage=storage_type,
+                       path=file_path,
+                       download_url=download_url)
 
             logger.info("Downloading file using API reference",
                        printer_id=self.printer_id,
@@ -708,6 +737,8 @@ class PrusaPrinter(BasePrinter):
                                                printer_id=self.printer_id,
                                                filename=filename,
                                                download_url=download_url,
+                                               storage=storage_type,
+                                               path=file_path,
                                                content_preview=json_preview)
                                     return False
                                 except Exception:
@@ -724,11 +755,31 @@ class PrusaPrinter(BasePrinter):
                                printer_id=self.printer_id, filename=filename,
                                local_path=local_path, size_bytes=file_size)
                     return True
+                elif response.status == 404:
+                    logger.error("File not found on printer",
+                                 printer_id=self.printer_id,
+                                 filename=filename,
+                                 storage=storage_type,
+                                 path=file_path,
+                                 download_url=download_url,
+                                 status=response.status)
+                    return False
+                elif response.status == 401 or response.status == 403:
+                    logger.error("Authentication/authorization failed for file download",
+                                 printer_id=self.printer_id,
+                                 filename=filename,
+                                 download_url=download_url,
+                                 status=response.status,
+                                 reason=response.reason,
+                                 hint="Check API key permissions in PrusaLink settings")
+                    return False
                 else:
                     logger.error("Download failed with HTTP status",
                                printer_id=self.printer_id,
                                filename=filename,
                                download_url=download_url,
+                               storage=storage_type,
+                               path=file_path,
                                status=response.status,
                                reason=response.reason)
                     return False
@@ -971,20 +1022,96 @@ class PrusaPrinter(BasePrinter):
                         printer_id=self.printer_id, error=str(e), exc_info=True)
             return False
 
+    async def _get_cameras(self) -> List[dict]:
+        """Get list of available cameras from PrusaLink API.
+        
+        Returns:
+            List of camera configuration dictionaries from PrusaLink.
+        """
+        if not self.session:
+            return []
+        try:
+            async with self.session.get(f"{self.base_url}/v1/cameras") as response:
+                if response.status == 200:
+                    cameras = await response.json()
+                    logger.debug("PrusaLink cameras found",
+                               printer_id=self.printer_id, count=len(cameras))
+                    return cameras
+                elif response.status == 404:
+                    # Camera API not available on this firmware version
+                    logger.debug("Camera API not available",
+                               printer_id=self.printer_id)
+                    return []
+        except asyncio.TimeoutError:
+            logger.debug("Timeout getting cameras", printer_id=self.printer_id)
+        except Exception as e:
+            logger.debug("Failed to get cameras",
+                        printer_id=self.printer_id, error=str(e))
+        return []
+
     async def has_camera(self) -> bool:
-        """Check if Prusa printer has camera support."""
-        # Prusa Core One typically doesn't have integrated camera support
-        # This could be extended in the future if camera support is added
-        return False
+        """Check if Prusa printer has camera support via PrusaLink API.
+        
+        Returns:
+            True if at least one camera is configured on the printer.
+        """
+        try:
+            cameras = await self._get_cameras()
+            has_cam = len(cameras) > 0
+            logger.debug("Prusa camera check",
+                        printer_id=self.printer_id, has_camera=has_cam)
+            return has_cam
+        except Exception as e:
+            logger.debug("Camera check failed",
+                        printer_id=self.printer_id, error=str(e))
+            return False
 
     async def get_camera_stream_url(self) -> Optional[str]:
-        """Get camera stream URL for Prusa printer."""
-        # Prusa Core One doesn't have integrated camera support
-        logger.debug("Camera not supported on Prusa printer", printer_id=self.printer_id)
+        """Get camera stream URL for Prusa printer.
+        
+        PrusaLink doesn't support true streaming, so we return the preview
+        endpoint which uses polling-based snapshot display.
+        
+        Returns:
+            Preview endpoint URL if camera is available, None otherwise.
+        """
+        if await self.has_camera():
+            # Return the preview endpoint URL (snapshot-based, not true streaming)
+            return f"/api/v1/printers/{self.printer_id}/camera/preview"
         return None
 
     async def take_snapshot(self) -> Optional[bytes]:
-        """Take a camera snapshot from Prusa printer."""
-        # Prusa Core One doesn't have integrated camera support
-        logger.debug("Camera not supported on Prusa printer", printer_id=self.printer_id)
+        """Take a camera snapshot from Prusa printer via PrusaLink API.
+        
+        PrusaLink returns PNG images from the /v1/cameras/snap endpoint.
+        
+        Returns:
+            PNG image data as bytes, or None if capture failed.
+        """
+        if not self.session:
+            return None
+        try:
+            async with self.session.get(f"{self.base_url}/v1/cameras/snap") as response:
+                if response.status == 200:
+                    # PrusaLink returns PNG images
+                    png_data = await response.read()
+                    logger.debug("Prusa snapshot captured",
+                               printer_id=self.printer_id, size=len(png_data))
+                    return png_data
+                elif response.status == 204:
+                    logger.debug("No camera image available",
+                               printer_id=self.printer_id)
+                elif response.status == 404:
+                    logger.debug("No camera configured",
+                               printer_id=self.printer_id)
+                else:
+                    logger.warning("Unexpected response from camera snap",
+                                 printer_id=self.printer_id,
+                                 status=response.status)
+        except asyncio.TimeoutError:
+            logger.warning("Timeout capturing Prusa snapshot",
+                         printer_id=self.printer_id)
+        except Exception as e:
+            logger.error("Failed to capture Prusa snapshot",
+                        printer_id=self.printer_id, error=str(e))
         return None

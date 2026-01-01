@@ -316,7 +316,7 @@ class FileUploadService:
         # Extract thumbnail if service available
         if self.thumbnail_service:
             try:
-                await self.thumbnail_service.extract_thumbnail(file_id, file_path)
+                await self.thumbnail_service.process_file_thumbnails(file_path, file_id)
                 logger.info("Thumbnail extraction queued", file_id=file_id)
             except Exception as e:
                 logger.warning(
@@ -328,7 +328,7 @@ class FileUploadService:
         # Extract metadata if service available
         if self.metadata_service:
             try:
-                await self.metadata_service.extract_metadata(file_id, file_path)
+                await self.metadata_service.extract_enhanced_metadata(file_id)
                 logger.info("Metadata extraction queued", file_id=file_id)
             except Exception as e:
                 logger.warning(

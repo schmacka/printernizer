@@ -65,6 +65,12 @@ class PrinterUpdateRequest(BaseModel):
     is_enabled: Optional[bool] = None
 
 
+class PrinterTestConnectionRequest(BaseModel):
+    """Request model for testing printer connection without creating."""
+    printer_type: PrinterType
+    connection_config: dict
+
+
 class PaginationResponse(BaseModel):
     """Pagination information."""
     page: int
@@ -341,12 +347,40 @@ async def clear_startup_discovered_printers():
         }
 
 
+@router.post("/test-connection")
+async def test_printer_connection(
+    test_request: PrinterTestConnectionRequest,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """Test printer connection without creating the printer.
+
+    This endpoint allows testing connection parameters before actually
+    creating a printer configuration. Useful for setup wizards.
+    """
+    try:
+        result = await printer_service.test_connection(
+            test_request.printer_type,
+            test_request.connection_config
+        )
+        return success_response({
+            "success": result.get("success", False),
+            "message": result.get("message", "Connection test completed"),
+            "details": result.get("details", {})
+        })
+    except Exception as e:
+        logger.error("Connection test failed", error=str(e))
+        return success_response({
+            "success": False,
+            "message": str(e)
+        })
+
+
 @router.post("", response_model=PrinterResponse, status_code=status.HTTP_201_CREATED)
 async def create_printer(
     printer_data: PrinterCreateRequest,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
-    """Create a new printer configuration."""
+    """Create a new printer configuration and automatically connect to it."""
     try:
         printer = await printer_service.create_printer(
             name=printer_data.name,
@@ -356,6 +390,24 @@ async def create_printer(
             description=printer_data.description
         )
         logger.info("Created printer", printer_type=type(printer).__name__, printer_dict=printer.__dict__)
+
+        # Automatically connect to the newly created printer
+        try:
+            connect_success = await printer_service.connect_printer(printer.id)
+            if connect_success:
+                logger.info("Auto-connected to newly created printer", printer_id=printer.id, printer_name=printer.name)
+                # Start monitoring for the new printer
+                await printer_service.start_monitoring(printer.id)
+                logger.info("Started monitoring for newly created printer", printer_id=printer.id)
+            else:
+                logger.warning("Failed to auto-connect to newly created printer", printer_id=printer.id, printer_name=printer.name)
+        except Exception as e:
+            # Log the connection error but don't fail the creation
+            logger.warning("Failed to auto-connect to newly created printer",
+                         printer_id=printer.id,
+                         printer_name=printer.name,
+                         error=str(e))
+
         response = _printer_to_response(printer, printer_service)
         logger.info("Converted to response", response_dict=response.model_dump())
         return response

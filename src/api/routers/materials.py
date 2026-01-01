@@ -21,7 +21,9 @@ from src.models.material import (
     MaterialConsumption,
     MaterialType,
     MaterialBrand,
-    MaterialColor
+    MaterialColor,
+    ConsumptionHistoryItem,
+    ConsumptionHistoryResponse
 )
 from src.services.material_service import MaterialService
 from src.utils.dependencies import get_material_service
@@ -305,14 +307,32 @@ async def delete_material(
     return Response(status_code=204)
 
 
-@router.get("/consumption/history")
+@router.get("/consumption/history", response_model=ConsumptionHistoryResponse)
 async def get_consumption_history(
-    material_id: Optional[str] = None,
-    job_id: Optional[str] = None,
-    printer_id: Optional[str] = None,
-    days: int = Query(30, ge=1, le=365),
+    material_id: Optional[str] = Query(None, description="Filter by material ID"),
+    job_id: Optional[str] = Query(None, description="Filter by job ID"),
+    printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
+    days: int = Query(30, ge=1, le=365, description="Number of days to look back"),
+    limit: int = Query(50, ge=1, le=1000, description="Results per page"),
+    page: int = Query(1, ge=1, description="Page number"),
     material_service: MaterialService = Depends(get_material_service)
-):
-    """Get material consumption history."""
-    # This would query the consumption table with filters
-    raise HTTPException(501, "Consumption history not yet implemented")
+) -> ConsumptionHistoryResponse:
+    """Get material consumption history with optional filters and pagination."""
+    items, total_count = await material_service.get_consumption_history(
+        material_id=material_id,
+        job_id=job_id,
+        printer_id=printer_id,
+        days=days,
+        limit=limit,
+        page=page
+    )
+
+    total_pages = max(1, (total_count + limit - 1) // limit)
+
+    return ConsumptionHistoryResponse(
+        items=[ConsumptionHistoryItem(**item) for item in items],
+        total_count=total_count,
+        page=page,
+        limit=limit,
+        total_pages=total_pages
+    )

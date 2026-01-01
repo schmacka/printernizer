@@ -7,6 +7,170 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.7] - 2026-01-01
+
+### Added
+- **Camera Diagnostics**: New diagnostic endpoint for troubleshooting Prusa webcam issues
+  - Endpoint: `GET /api/v1/printers/{printer_id}/camera/diagnostics`
+  - Tests camera support, detection, stream URL, and snapshot capture
+  - Provides troubleshooting recommendations based on test results
+  - Lists camera configuration from PrusaLink API
+
+### Improved
+- **Camera Error Messages**: Enhanced error messages for camera setup
+  - Printer-type-specific guidance (Prusa vs Bambu Lab)
+  - Better troubleshooting instructions when camera not detected
+  - Improved logging for camera status checks
+
+### Documentation
+- **Camera Setup Guide**: Comprehensive camera troubleshooting documentation
+  - Step-by-step PrusaLink camera configuration
+  - Common issues and solutions
+  - API testing commands and examples
+  - Browser compatibility and performance tips
+
+## [2.11.6] - 2025-12-18
+
+### Fixed
+- **Setup Wizard**: Re-add missing table creation in status endpoint
+  - Ensures settings table exists before querying wizard completion status
+
+## [2.11.5] - 2025-12-18
+
+### Fixed
+- **Job Creation**: Fix empty printer and file dropdowns in job creation form
+  - Dropdowns now correctly access nested arrays from API responses
+
+## [2.11.4] - 2025-12-18
+
+### Fixed
+- **Setup Wizard**: Fix wizard reappearing after completion
+  - Wizard now only shows if not completed (removed "no printers" trigger)
+  - Once skipped or completed, wizard stays dismissed
+
+## [2.11.0] - 2025-12-17
+
+### Added
+- **Setup Wizard**: First-run setup wizard for new installations
+  - 5-step guided configuration: Welcome, Printer Setup, Paths, Features, Summary
+  - Automatic printer discovery with network scanning
+  - Connection testing before adding printers
+  - Path configuration for downloads and library folders
+  - Optional features toggle (Timelapse, Watch Folders, MQTT)
+  - Re-run wizard from Settings > System
+  - German language throughout
+  - Dark mode support
+
+### Changed
+- **Printer API**: Added `/api/v1/printers/test-connection` endpoint for testing printer connections without creating configuration
+- **Settings**: Added Setup Wizard section in System settings tab
+
+## [2.10.0] - 2025-12-17
+
+### Added
+- **Prusa Webcam Support**: Enable camera preview for Prusa printers via PrusaLink Camera API
+  - Auto-detect connected webcams using `/api/v1/cameras` endpoint
+  - Capture snapshots from `/api/v1/cameras/snap` endpoint (PNG format)
+  - Dashboard now shows camera preview for Prusa printers with configured webcams
+  - Supports both Bambu Lab (JPEG) and Prusa (PNG) image formats
+
+### Changed
+- **Camera Service**: Refactored to support multiple printer types
+  - Added `get_snapshot_by_id()` method for universal printer support
+  - Added `detect_image_format()` helper for PNG/JPEG detection
+  - Camera API endpoints now work with any printer that implements `has_camera()`
+
+## [2.9.5] - 2025-12-17
+
+### Added
+- Materials API endpoint with full CRUD operations
+- PRUSA_WEBCAM_SUPPORT design document
+- Setup wizard design document
+
+## [2.8.9] - 2025-12-11
+
+### Fixed
+- **Database Migrations**: Fixed library_stats to be created as VIEW instead of TABLE
+  - Deactivated migrations 007, 008, and 009 (library system setup)
+  - Updated database.py to create library_stats as auto-calculating VIEW
+  - Library statistics now auto-update from library_files table
+  - Ensures base database schema contains all necessary structures without migrations
+
+## [2.8.8] - 2025-12-10
+
+### Fixed
+- **Installation Instructions**: Fixed Python standalone installation (Option 4) in README
+  - Changed `python` to `python3` for Linux compatibility
+  - Added required `.env` configuration step for local development
+  - Created `src/.env.development` template with working local paths
+  - Added troubleshooting tips for common issues (chmod, venv activation)
+  - Updated `.env.example` header to clarify it's for Docker/HA deployments
+
+## [2.8.7] - 2025-12-10
+
+### Changed
+- CI/CD pipeline testing
+
+## [2.8.5] - 2025-12-10
+
+### Changed
+- CI/CD pipeline testing
+
+## [2.8.0] - 2025-11-28
+
+### Changed
+- **API Documentation**: Enabled `/docs` (Swagger UI) and `/redoc` endpoints in all environments
+  - Previously only available in development mode
+  - Self-hosted applications benefit from always-available API documentation
+  - Updated Content Security Policy to allow external documentation resources (cdn.jsdelivr.net, fonts.googleapis.com, fonts.gstatic.com)
+  - Configured stable ReDoc JavaScript version (replaces unstable @next tag)
+
+### Fixed
+- **Security Headers**: Updated CSP to allow Swagger UI and ReDoc resources
+  - Added cdn.jsdelivr.net for documentation JavaScript/CSS
+  - Added fonts.googleapis.com and fonts.gstatic.com for ReDoc fonts
+  - Added fastapi.tiangolo.com for documentation favicons
+
+## [2.7.14] - 2025-11-28
+
+### Fixed
+- **Camera Preview**: Bambu Lab A1 camera preview now displays correctly on dashboard tiles
+  - Replaced custom TCP/TLS camera client with bambulabs-api library integration
+  - CameraSnapshotService now uses printer drivers directly via PrinterService
+  - Removed 493 lines of complex binary protocol code
+  - Simplified architecture: camera access delegated to printer drivers
+  - Frame caching (5-second TTL) preserved for performance
+  - Removed outdated integration tests for old camera client implementation
+
+### Changed
+- **Code Cleanup**: Significant codebase simplification (-2,927 lines)
+  - Deleted `src/services/bambu_camera_client.py` (493 lines)
+  - Deleted outdated test files: `test_camera_direct.py`, `test_camera_preview.py`, `test_camera_simple.py`
+  - Deleted `tests/integration/test_camera_snapshot.py` (793 lines)
+  - Removed CameraConnectionError exception handlers (no longer raised)
+  - Camera functionality now maintained by bambulabs-api library
+
+## [2.7.13] - 2025-11-26
+
+### Fixed
+- **Auto-connect after adding printer**: Newly added printers now automatically connect without requiring app restart
+  - Printers immediately establish connection when added via API/UI
+  - Monitoring starts automatically for newly added printers
+  - Graceful error handling if printer is offline during creation
+
+## [2.7.12] - 2025-11-25
+
+### Fixed
+- **Critical**: BambuLab file download functionality completely broken
+  - Fixed file ID generation when backend returns undefined values
+  - All file IDs were the string "undefined" preventing selection and download
+  - Added proper ID generation from `printer_id_filename` format
+  - Fixed status normalization to 'available' when backend returns undefined
+  - Enhanced checkbox availability logic to match download filter logic
+  - Added comprehensive diagnostic logging for debugging
+  - Added validation for required fields (printer_id, filename) before download
+  - Improved user feedback with specific error reasons
+
 ### Added
 - **Usage Statistics Phase 2**: Completed aggregation and submission infrastructure
   - **Aggregation Service**: Full FastAPI service for receiving usage statistics
@@ -568,3 +732,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Note**: This project has successfully completed all core features and is production-ready for 3D printer fleet management. The system provides enterprise-grade functionality while maintaining ease of use for individual users.
 
 **Status**: ✅ Production Ready - Core features complete and tested
+<!-- Sync trigger 2025-12-08T21:30:47Z -->

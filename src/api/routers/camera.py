@@ -15,7 +15,6 @@ import aiofiles.os
 from src.models.snapshot import Snapshot, SnapshotCreate, SnapshotResponse, CameraStatus, CameraTrigger
 from src.services.printer_service import PrinterService
 from src.services.camera_snapshot_service import CameraSnapshotService
-from src.services.bambu_camera_client import CameraConnectionError
 from src.database.database import Database
 from src.database.repositories import SnapshotRepository
 from src.utils.dependencies import get_printer_service, get_camera_snapshot_service, get_database, get_snapshot_repository
@@ -30,6 +29,132 @@ logger = structlog.get_logger()
 router = APIRouter()
 
 
+@router.get("/{printer_id}/camera/diagnostics")
+async def get_camera_diagnostics(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """
+    Diagnostic endpoint for camera troubleshooting.
+    Returns detailed information about camera availability and connectivity.
+    """
+    printer_id_str = str(printer_id)
+    printer_driver = await printer_service.get_printer_driver(printer_id_str)
+
+    if not printer_driver:
+        return {
+            "success": False,
+            "error": "Printer not found",
+            "printer_id": printer_id_str
+        }
+
+    diagnostics = {
+        "printer_id": printer_id_str,
+        "printer_type": type(printer_driver).__name__,
+        "printer_ip": printer_driver.ip_address if hasattr(printer_driver, 'ip_address') else None,
+        "tests": {}
+    }
+
+    # Test 1: Check if printer type supports cameras
+    diagnostics["tests"]["camera_support"] = {
+        "test": "Printer type supports cameras",
+        "passed": hasattr(printer_driver, 'has_camera'),
+        "details": f"{type(printer_driver).__name__} {'has' if hasattr(printer_driver, 'has_camera') else 'does not have'} camera support methods"
+    }
+
+    # Test 2: Check camera availability via API
+    try:
+        has_camera = await printer_driver.has_camera()
+        diagnostics["tests"]["camera_detected"] = {
+            "test": "Camera detected by printer API",
+            "passed": has_camera,
+            "details": f"PrusaLink reports {'camera configured' if has_camera else 'NO camera configured'}"
+        }
+
+        # For Prusa printers, get more details
+        if hasattr(printer_driver, '_get_cameras'):
+            try:
+                cameras = await printer_driver._get_cameras()
+                diagnostics["tests"]["camera_list"] = {
+                    "test": "Camera configuration details",
+                    "passed": len(cameras) > 0 if cameras else False,
+                    "details": f"Found {len(cameras) if cameras else 0} camera(s)",
+                    "cameras": cameras if cameras else []
+                }
+            except Exception as e:
+                diagnostics["tests"]["camera_list"] = {
+                    "test": "Camera configuration details",
+                    "passed": False,
+                    "details": f"Failed to get camera list: {str(e)}"
+                }
+    except Exception as e:
+        diagnostics["tests"]["camera_detected"] = {
+            "test": "Camera detected by printer API",
+            "passed": False,
+            "details": f"Error checking camera: {str(e)}"
+        }
+
+    # Test 3: Try to get stream URL
+    try:
+        stream_url = await printer_driver.get_camera_stream_url()
+        diagnostics["tests"]["stream_url"] = {
+            "test": "Camera stream URL available",
+            "passed": stream_url is not None,
+            "details": f"Stream URL: {stream_url if stream_url else 'None - will use polling-based preview'}"
+        }
+    except Exception as e:
+        diagnostics["tests"]["stream_url"] = {
+            "test": "Camera stream URL available",
+            "passed": False,
+            "details": f"Error getting stream URL: {str(e)}"
+        }
+
+    # Test 4: Try to capture a test snapshot
+    try:
+        snapshot_data = await printer_driver.take_snapshot()
+        diagnostics["tests"]["snapshot_capture"] = {
+            "test": "Camera snapshot capture",
+            "passed": snapshot_data is not None and len(snapshot_data) > 0,
+            "details": f"Snapshot {'captured successfully' if snapshot_data else 'FAILED'} ({len(snapshot_data) if snapshot_data else 0} bytes)"
+        }
+    except Exception as e:
+        diagnostics["tests"]["snapshot_capture"] = {
+            "test": "Camera snapshot capture",
+            "passed": False,
+            "details": f"Snapshot capture failed: {str(e)}"
+        }
+
+    # Summary
+    all_tests_passed = all(test.get("passed", False) for test in diagnostics["tests"].values())
+    diagnostics["summary"] = {
+        "all_tests_passed": all_tests_passed,
+        "total_tests": len(diagnostics["tests"]),
+        "passed_tests": sum(1 for test in diagnostics["tests"].values() if test.get("passed", False)),
+        "recommendation": None
+    }
+
+    # Provide troubleshooting recommendations
+    if not all_tests_passed:
+        if not diagnostics["tests"].get("camera_detected", {}).get("passed"):
+            diagnostics["summary"]["recommendation"] = (
+                "Camera is not detected by PrusaLink. Please:\n"
+                "1. Ensure a camera is physically connected to your Prusa Core One\n"
+                "2. Configure the camera in PrusaLink settings (http://<printer-ip>)\n"
+                "3. Check that PrusaLink firmware supports camera (version 2.1.2+)\n"
+                "4. Restart PrusaLink after connecting the camera"
+            )
+        elif not diagnostics["tests"].get("snapshot_capture", {}).get("passed"):
+            diagnostics["summary"]["recommendation"] = (
+                "Camera is detected but snapshot capture failed. Please:\n"
+                "1. Check camera connection and power\n"
+                "2. Test camera directly in PrusaLink web interface\n"
+                "3. Check PrusaLink logs for camera errors\n"
+                "4. Ensure camera has proper permissions in PrusaLink"
+            )
+
+    return diagnostics
+
+
 @router.get("/{printer_id}/camera/status", response_model=CameraStatus)
 async def get_camera_status(
     printer_id: UUID,
@@ -42,20 +167,68 @@ async def get_camera_status(
     if not printer_driver:
         raise PrinterNotFoundError(printer_id_str)
 
-    has_camera = await printer_driver.has_camera()
+    has_camera = False
+    is_available = False
     stream_url = None
     error_message = None
+    printer_type = type(printer_driver).__name__
 
-    if has_camera:
-        # Camera is available for snapshots even without live streaming
-        is_available = True
-        try:
-            stream_url = await printer_driver.get_camera_stream_url()
-        except Exception as e:
-            # Stream URL not available, but snapshots still work
-            error_message = str(e)
-    else:
+    try:
+        has_camera = await printer_driver.has_camera()
+
+        if has_camera:
+            # Camera is available for snapshots even without live streaming
+            is_available = True
+            try:
+                # Try to get live stream URL (will be None for Bambu Lab A1/P1)
+                live_stream_url = await printer_driver.get_camera_stream_url()
+
+                if live_stream_url:
+                    # Live stream available (e.g., future X1 series with RTSP)
+                    stream_url = live_stream_url
+                else:
+                    # Fall back to preview endpoint for snapshot-based preview
+                    stream_url = f"/api/v1/printers/{printer_id}/camera/preview"
+            except Exception as e:
+                # Stream URL not available, but snapshots still work
+                logger.warning(
+                    "Camera stream URL unavailable, using preview",
+                    printer_id=printer_id_str,
+                    error=str(e)
+                )
+                error_message = str(e)
+                # Still provide preview endpoint
+                stream_url = f"/api/v1/printers/{printer_id}/camera/preview"
+        else:
+            is_available = False
+            # Provide helpful error message based on printer type
+            if printer_type == "PrusaPrinter":
+                error_message = (
+                    "No camera detected by PrusaLink. "
+                    "Please ensure a camera is connected and configured in PrusaLink settings. "
+                    "Access PrusaLink at http://<printer-ip> to configure the camera."
+                )
+            elif printer_type == "BambuLabPrinter":
+                error_message = "Camera not available. Bambu Lab printers have built-in cameras that should be automatically detected."
+            else:
+                error_message = f"Camera not supported or not detected for {printer_type}"
+
+            logger.info(
+                "Camera not detected",
+                printer_id=printer_id_str,
+                printer_type=printer_type,
+                has_camera=has_camera
+            )
+    except Exception as e:
+        logger.error(
+            "Error checking camera status",
+            printer_id=printer_id_str,
+            error=str(e),
+            exc_info=True
+        )
+        has_camera = False
         is_available = False
+        error_message = f"Failed to check camera status: {str(e)}"
 
     return CameraStatus(
         has_camera=has_camera,
@@ -95,6 +268,55 @@ async def get_camera_stream(
     )
 
 
+@router.get("/{printer_id}/camera/preview")
+async def get_camera_preview(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service),
+    camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service)
+):
+    """
+    Get current camera preview as image (JPEG or PNG).
+
+    Returns a fresh or cached snapshot without saving to disk or database.
+    Intended for periodic polling to create "live preview" effect.
+    Uses 5-second cache to reduce load on printer.
+    
+    Supports both Bambu Lab (JPEG) and Prusa (PNG) printers.
+    """
+    printer_id_str = str(printer_id)
+    printer_driver = await printer_service.get_printer_driver(printer_id_str)
+
+    if not printer_driver:
+        raise PrinterNotFoundError(printer_id_str)
+
+    # Check if printer supports camera using the driver's has_camera() method
+    if not await printer_driver.has_camera():
+        raise PrinternizerValidationError(
+            field="camera",
+            error="Printer does not have camera support"
+        )
+
+    # Get snapshot using camera service (uses cache if fresh)
+    try:
+        image_data, content_type = await camera_service.get_snapshot_by_id(
+            printer_id=printer_id_str,
+            force_refresh=False  # Use cached frame if available
+        )
+    except ValueError as e:
+        logger.error("No frame available", printer_id=printer_id_str, error=str(e))
+        raise ServiceUnavailableError("camera_preview", "Failed to get preview: No frame available")
+
+    # Return image with appropriate content type and caching headers
+    return Response(
+        content=image_data,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=5",  # Match cache TTL
+            "Content-Disposition": "inline"
+        }
+    )
+
+
 @router.post("/{printer_id}/camera/snapshot", response_model=SnapshotResponse)
 async def take_snapshot(
     printer_id: UUID,
@@ -103,39 +325,39 @@ async def take_snapshot(
     camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service),
     snapshot_repository: SnapshotRepository = Depends(get_snapshot_repository)
 ):
-    """Take a camera snapshot and save it."""
+    """Take a camera snapshot and save it.
+    
+    Supports both Bambu Lab (JPEG) and Prusa (PNG) printers.
+    """
     printer_id_str = str(printer_id)
     printer_driver = await printer_service.get_printer_driver(printer_id_str)
 
     if not printer_driver:
         raise PrinterNotFoundError(printer_id_str)
 
-    # Check if printer supports camera (has required credentials)
-    if not hasattr(printer_driver, 'access_code') or not hasattr(printer_driver, 'serial_number'):
+    # Check if printer supports camera using the driver's has_camera() method
+    if not await printer_driver.has_camera():
         raise PrinternizerValidationError(
             field="camera",
-            error="Printer does not support camera (missing access code or serial number)"
+            error="Printer does not have camera support"
         )
 
     # Take snapshot using camera service
     try:
-        image_data = await camera_service.get_snapshot(
+        image_data, content_type = await camera_service.get_snapshot_by_id(
             printer_id=printer_id_str,
-            ip_address=printer_driver.ip_address,
-            access_code=printer_driver.access_code,
-            serial_number=printer_driver.serial_number,
             force_refresh=snapshot_data.capture_trigger == CameraTrigger.MANUAL
         )
-    except CameraConnectionError as e:
-        logger.error("Camera connection failed", printer_id=printer_id_str, error=str(e))
-        raise ServiceUnavailableError("camera_snapshot", f"Camera connection failed: {e}")
     except ValueError as e:
         logger.error("No frame available", printer_id=printer_id_str, error=str(e))
         raise ServiceUnavailableError("camera_snapshot", "Failed to capture snapshot: No frame available")
 
+    # Determine file extension based on content type
+    file_ext = 'png' if content_type == 'image/png' else 'jpg'
+    
     # Generate filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"snapshot_{printer_id_str}_{timestamp}.jpg"
+    filename = f"snapshot_{printer_id_str}_{timestamp}.{file_ext}"
 
     # Ensure snapshots directory exists
     from pathlib import Path
@@ -165,7 +387,7 @@ async def take_snapshot(
         'job_id': snapshot_data.job_id,
         'filename': filename,
         'file_size': len(image_data),
-        'content_type': 'image/jpeg',
+        'content_type': content_type,
         'storage_path': storage_path,
         'captured_at': datetime.now().isoformat(),
         'capture_trigger': snapshot_data.capture_trigger.value,

@@ -82,86 +82,44 @@ class PrinterCard {
      * Fetch camera status asynchronously
      */
     async fetchCameraStatus() {
-        if (!this.element) return;
-        
+        if (!this.printer || !this.printer.id) return;
+
         try {
-            const response = await fetch(`/api/v1/printers/${this.printer.id}/camera/status`);
-            if (response.ok) {
-                this.cameraStatus = await response.json();
-                // Update camera section in the DOM
+            // Delegate to CameraManager for consistency
+            if (window.cameraManager) {
+                await cameraManager.getCameraStatus(this.printer.id);
+                // Re-render camera section
                 const cameraSection = this.element.querySelector('.camera-section');
                 if (cameraSection) {
                     cameraSection.outerHTML = this.renderCameraSection();
                 }
             }
         } catch (error) {
-            Logger.error('Failed to fetch camera status:', error);
+            // Safe error logging - check if Logger exists first
+            if (typeof Logger !== 'undefined') {
+                Logger.error('Failed to fetch camera status:', error);
+            } else {
+                console.error('Failed to fetch camera status:', error);
+            }
         }
     }
 
     /**
-     * Render camera section
+     * Render camera section - delegated to CameraManager
      */
     renderCameraSection() {
-        // Show loading state if camera status not yet fetched
-        if (!this.cameraStatus) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-muted">Lade Kamerastatus...</span>
-                    </div>
-                </div>
-            `;
+        // Delegate to CameraManager for consistency
+        // CameraManager has proper null checks and preview support
+        if (window.cameraManager && this.printer) {
+            return cameraManager.renderCameraSection(this.printer);
         }
 
-        // No camera available
-        if (!this.cameraStatus.has_camera) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-muted">Keine Kamera verfügbar</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Camera not available/accessible
-        if (!this.cameraStatus.is_available) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-warning">Kamera nicht verfügbar</span>
-                        ${this.cameraStatus.error_message ? `<br><small class="text-muted">${escapeHtml(this.cameraStatus.error_message)}</small>` : ''}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Camera available - show stream
+        // Fallback if CameraManager not loaded yet
         return `
             <div class="info-section camera-section">
                 <h4>📷 Kamera</h4>
-                <div class="camera-preview-container">
-                    <img id="camera-stream-${this.printer.id}" 
-                         class="camera-stream" 
-                         src="${this.cameraStatus.stream_url}" 
-                         alt="Live Stream" 
-                         style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-                         onload="this.style.display='block'; this.nextElementSibling.style.display='none';">
-                    <div class="stream-error" style="display: none; padding: 8px; text-align: center;">
-                        <span class="text-muted">Stream nicht verfügbar</span>
-                    </div>
-                </div>
-                <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
-                    <button class="btn btn-sm btn-primary" 
-                            onclick="event.stopPropagation(); window.open('${this.cameraStatus.stream_url}', '_blank')"
-                            title="Vollbild anzeigen">
-                        🔍 Vollbild
-                    </button>
+                <div class="info-item">
+                    <span class="text-muted">Wird geladen...</span>
                 </div>
             </div>
         `;
@@ -929,21 +887,8 @@ class FileListItem {
             </div>
         `;
 
-        // Add click handler for enhanced thumbnails
-        if (this.file.has_thumbnail && this.file.id) {
-            const thumbnail = this.element.querySelector('.file-thumbnail.enhanced');
-            if (thumbnail) {
-                thumbnail.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.showFullThumbnail(this.file.id, this.file.filename);
-                });
-
-                // Add hover animation support for STL/3MF files
-                if (thumbnail.classList.contains('supports-animation')) {
-                    this.setupAnimatedThumbnail(thumbnail);
-                }
-            }
-        }
+        // Attach thumbnail event listeners using extracted method
+        this._attachThumbnailListeners();
 
         return this.element;
     }
@@ -956,6 +901,15 @@ class FileListItem {
             // Check if file supports animated preview (STL or 3MF)
             const supportsAnimation = this.file.file_type &&
                 ['stl', '3mf'].includes(this.file.file_type.toLowerCase());
+
+            // DEBUG: Log animation support detection
+            Logger.debug('Rendering thumbnail', {
+                fileId: this.file.id,
+                filename: this.file.filename,
+                fileType: this.file.file_type,
+                supportsAnimation: supportsAnimation,
+                hasThumbnail: this.file.has_thumbnail
+            });
 
             return `
                 <div class="file-thumbnail enhanced ${supportsAnimation ? 'supports-animation' : ''}"
@@ -1016,6 +970,28 @@ class FileListItem {
     }
 
     /**
+     * Attach thumbnail event listeners
+     * Called after render() and update() to ensure listeners persist
+     */
+    _attachThumbnailListeners() {
+        if (this.file.has_thumbnail && this.file.id) {
+            const thumbnail = this.element.querySelector('.file-thumbnail.enhanced');
+            if (thumbnail) {
+                // Click handler for full thumbnail
+                thumbnail.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showFullThumbnail(this.file.id, this.file.filename);
+                });
+
+                // Hover animation support for STL/3MF files
+                if (thumbnail.classList.contains('supports-animation')) {
+                    this.setupAnimatedThumbnail(thumbnail);
+                }
+            }
+        }
+    }
+
+    /**
      * Setup animated thumbnail on hover for 3D files
      */
     setupAnimatedThumbnail(thumbnailElement) {
@@ -1023,7 +999,22 @@ class FileListItem {
         const staticUrl = thumbnailElement.dataset.staticUrl;
         const animatedUrl = thumbnailElement.dataset.animatedUrl;
 
-        if (!img || !animatedUrl) return;
+        // DEBUG: Log setup attempt
+        Logger.debug('Setting up animated thumbnail', {
+            hasImg: !!img,
+            hasStaticUrl: !!staticUrl,
+            hasAnimatedUrl: !!animatedUrl,
+            staticUrl: staticUrl,
+            animatedUrl: animatedUrl
+        });
+
+        if (!img || !animatedUrl) {
+            Logger.warn('Animated thumbnail setup failed - missing requirements', {
+                hasImg: !!img,
+                hasAnimatedUrl: !!animatedUrl
+            });
+            return;
+        }
 
         let isAnimatedLoaded = false;
         let isHovering = false;
@@ -1031,25 +1022,39 @@ class FileListItem {
 
         // Preload the animated GIF on first hover
         const preloadAnimatedGif = () => {
-            if (isAnimatedLoaded) return;
+            if (isAnimatedLoaded) {
+                Logger.debug('Animated GIF already loaded');
+                return;
+            }
 
+            Logger.debug('Preloading animated GIF', { url: animatedUrl });
             const preloadImg = new Image();
+
             preloadImg.onload = () => {
                 isAnimatedLoaded = true;
+                Logger.info('Animated GIF loaded successfully', { url: animatedUrl });
+
                 // If still hovering, swap immediately
                 if (isHovering && img.src !== animatedUrl) {
+                    Logger.debug('Swapping to animated image');
                     img.src = animatedUrl;
                 }
             };
-            preloadImg.onerror = () => {
-                Logger.warn('Failed to load animated preview:', animatedUrl);
+
+            preloadImg.onerror = (error) => {
+                Logger.error('Failed to load animated preview', {
+                    url: animatedUrl,
+                    error: error
+                });
             };
+
             preloadImg.src = animatedUrl;
         };
 
         // Mouse enter: load and show animated GIF
         thumbnailElement.addEventListener('mouseenter', () => {
             isHovering = true;
+            Logger.debug('Mouse entered thumbnail - preparing animation');
 
             // Start loading after a short delay to avoid loading on quick passes
             loadTimeout = setTimeout(() => {
@@ -1067,6 +1072,7 @@ class FileListItem {
         // Mouse leave: restore static image
         thumbnailElement.addEventListener('mouseleave', () => {
             isHovering = false;
+            Logger.debug('Mouse left thumbnail - restoring static');
 
             // Cancel loading if not started yet
             if (loadTimeout) {
@@ -1076,9 +1082,12 @@ class FileListItem {
 
             // Restore static image
             if (img.src !== staticUrl) {
+                Logger.debug('Restoring static image');
                 img.src = staticUrl;
             }
         });
+
+        Logger.info('Animated thumbnail setup complete');
     }
 
     /**
@@ -1250,6 +1259,12 @@ class FileListItem {
         if (oldElement && oldElement.parentNode) {
             oldElement.parentNode.replaceChild(this.element, oldElement);
         }
+
+        // CRITICAL FIX: Re-attach listeners after DOM replacement
+        // render() already calls _attachThumbnailListeners(), but we call it again
+        // to ensure listeners are properly attached after replaceChild
+        this._attachThumbnailListeners();
+
         return this.element;
     }
 
@@ -1633,14 +1648,22 @@ class DruckerDateienManager {
         // File checkbox change handling using event delegation
         this.container.addEventListener('change', (e) => {
             if (e.target.classList.contains('file-checkbox')) {
+                console.log('Checkbox change detected:', e.target.value, 'checked:', e.target.checked);
                 this.updateSelectedCount();
                 this.updateBulkActions();
             }
         });
 
-        // Also listen for clicks on checkboxes (backup for change event)
+        // Also listen for clicks on checkboxes and labels (backup for change event)
         this.container.addEventListener('click', (e) => {
-            if (e.target.classList.contains('file-checkbox')) {
+            // Check if click is on checkbox, label, or custom checkbox span
+            const checkbox = e.target.classList.contains('file-checkbox') ? e.target :
+                           e.target.classList.contains('checkbox-custom') ? e.target.previousElementSibling :
+                           e.target.classList.contains('checkbox-label') ? e.target.querySelector('.file-checkbox') :
+                           null;
+            
+            if (checkbox) {
+                console.log('Checkbox click detected via delegation:', checkbox.value);
                 // Small delay to ensure checkbox state is updated
                 setTimeout(() => {
                     this.updateSelectedCount();
@@ -1660,18 +1683,37 @@ class DruckerDateienManager {
             if (this.printerId) {
                 // Load files for specific printer
                 const response = await api.getPrinterFiles(this.printerId);
-                files = response.files || [];
+                files = (response.data?.files || []).map(file => {
+                    // Generate proper ID from printer and filename
+                    const fileId = file.id && file.id !== 'undefined' ? file.id : `${this.printerId}_${file.filename}`;
+                    const fileStatus = file.status && file.status !== 'undefined' ? file.status : 'available';
+
+                    return {
+                        ...file,
+                        id: fileId,
+                        printer_id: this.printerId,
+                        status: fileStatus
+                    };
+                });
             } else {
                 // Load files from all printers
                 const printers = await api.getPrinters({ active: true });
                 for (const printer of printers.data || []) {
                     try {
                         const response = await api.getPrinterFiles(printer.id);
-                        const printerFiles = (response.files || []).map(file => ({
-                            ...file,
-                            printer_id: printer.id,
-                            printer_name: printer.name
-                        }));
+                        const printerFiles = (response.data?.files || []).map(file => {
+                            // Generate proper ID from printer and filename
+                            const fileId = file.id && file.id !== 'undefined' ? file.id : `${printer.id}_${file.filename}`;
+                            const fileStatus = file.status && file.status !== 'undefined' ? file.status : 'available';
+
+                            return {
+                                ...file,
+                                id: fileId,
+                                printer_id: printer.id,
+                                printer_name: printer.name,
+                                status: fileStatus
+                            };
+                        });
                         files = files.concat(printerFiles);
                     } catch (error) {
                         Logger.warn(`Failed to load files for printer ${printer.name}:`, error);
@@ -1798,13 +1840,17 @@ class DruckerDateienManager {
         const fileIcon = this.getFileIcon(file.filename);
         const downloadProgress = this.downloadProgress.get(file.id);
         const isDownloaded = file.status === 'downloaded';
+        const isAvailableForDownload = file.status !== 'downloaded' && file.status !== 'downloading';
 
         return `
             <div class="file-card ${file.status}" data-file-id="${file.id}">
                 <div class="file-header">
                     <div class="file-checkbox-container">
-                        <input type="checkbox" class="file-checkbox" value="${file.id}"
-                               ${file.status !== 'available' ? 'disabled' : ''}>
+                        <label class="checkbox-label">
+                            <input type="checkbox" class="file-checkbox" value="${file.id}"
+                                   ${!isAvailableForDownload ? 'disabled' : ''}>
+                            <span class="checkbox-custom"></span>
+                        </label>
                         ${isDownloaded ? '<span class="downloaded-indicator" title="Bereits heruntergeladen">✅</span>' : ''}
                     </div>
                     <div class="file-icon">${fileIcon}</div>
@@ -1948,7 +1994,23 @@ class DruckerDateienManager {
      */
     async downloadFile(fileId) {
         const file = this.files.find(f => f.id === fileId);
-        if (!file) return;
+
+        if (!file) {
+            console.error('File not found:', fileId, 'Available:', this.files.map(f => f.id));
+            throw new Error(`Datei mit ID ${fileId} nicht gefunden`);
+        }
+
+        if (!file.printer_id) {
+            console.error('Missing printer_id:', file);
+            throw new Error(`Datei "${file.filename}" hat keine Drucker-ID`);
+        }
+
+        if (!file.filename) {
+            console.error('Missing filename:', file);
+            throw new Error(`Datei hat keinen Dateinamen`);
+        }
+
+        console.log('Downloading:', { printer_id: file.printer_id, filename: file.filename });
 
         try {
             // Update file status to downloading

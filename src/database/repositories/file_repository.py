@@ -233,6 +233,13 @@ class FileRepository(BaseRepository):
                 return await self.update(file_id, updates)
             else:
                 # New file - insert with all fields
+                # Ensure file_type is populated from filename extension if not provided
+                file_type = file_data.get('file_type')
+                if not file_type and file_data.get('filename'):
+                    import os
+                    _, ext = os.path.splitext(file_data['filename'])
+                    file_type = ext.lstrip('.').lower() if ext else None
+
                 await self._execute_write(
                     """INSERT INTO files (id, printer_id, filename, display_name, file_path, file_size,
                                                 file_type, status, source, metadata, watch_folder_path,
@@ -245,7 +252,7 @@ class FileRepository(BaseRepository):
                         file_data.get('display_name'),
                         file_data.get('file_path'),
                         file_data.get('file_size'),
-                        file_data.get('file_type'),
+                        file_type,
                         file_data.get('status', 'available'),
                         file_data.get('source', 'printer'),
                         file_data.get('metadata'),
@@ -289,6 +296,16 @@ class FileRepository(BaseRepository):
                     except (json.JSONDecodeError, TypeError):
                         # If deserialization fails, set to empty dict
                         file_data['metadata'] = {}
+
+                # Ensure file_type is populated from filename if missing
+                # NOTE: Store WITHOUT leading dot for frontend compatibility
+                if not file_data.get('file_type') and file_data.get('filename'):
+                    import os
+                    _, ext = os.path.splitext(file_data['filename'])
+                    file_data['file_type'] = ext.lstrip('.').lower() if ext else None
+                elif file_data.get('file_type') and file_data['file_type'].startswith('.'):
+                    # Remove leading dot if present
+                    file_data['file_type'] = file_data['file_type'].lstrip('.')
 
             return file_data
         except Exception as e:
@@ -341,6 +358,17 @@ class FileRepository(BaseRepository):
                     except (json.JSONDecodeError, TypeError):
                         # If deserialization fails, set to empty dict
                         file_data['metadata'] = {}
+
+                # Ensure file_type is populated from filename if missing
+                # NOTE: Store WITHOUT leading dot for frontend compatibility
+                if not file_data.get('file_type') and file_data.get('filename'):
+                    import os
+                    _, ext = os.path.splitext(file_data['filename'])
+                    file_data['file_type'] = ext.lstrip('.').lower() if ext else None
+                elif file_data.get('file_type') and file_data['file_type'].startswith('.'):
+                    # Remove leading dot if present
+                    file_data['file_type'] = file_data['file_type'].lstrip('.')
+
                 files.append(file_data)
             return files
         except Exception as e:

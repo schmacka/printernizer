@@ -104,8 +104,8 @@ class JobManager {
             if (fileSelect) {
                 const files = await api.getFiles();
                 fileSelect.innerHTML = '<option value="">Datei auswählen...</option>';
-                if (files && files.length > 0) {
-                    files.forEach(file => {
+                if (files && files.files && files.files.length > 0) {
+                    files.files.forEach(file => {
                         const option = document.createElement('option');
                         option.value = file.id;
                         option.textContent = file.filename || file.name;
@@ -119,8 +119,8 @@ class JobManager {
             if (printerSelect) {
                 const printers = await api.getPrinters();
                 printerSelect.innerHTML = '<option value="">Drucker auswählen...</option>';
-                if (printers && printers.length > 0) {
-                    printers.forEach(printer => {
+                if (printers && printers.printers && printers.printers.length > 0) {
+                    printers.printers.forEach(printer => {
                         const option = document.createElement('option');
                         option.value = printer.id;
                         option.textContent = printer.name;
@@ -1084,18 +1084,50 @@ class JobManager {
         const customerName = document.getElementById('editJobCustomer').value.trim();
 
         try {
-            // For now, show success message since backend doesn't support updates
-            // TODO: Implement actual API call when backend supports job updates
+            // Prepare update data
+            const updateData = {
+                is_business: isBusiness
+            };
 
-            showToast('success', 'Erfolg', 'Auftrag wurde aktualisiert (Demo-Modus)');
+            // Only include customer_name if provided
+            if (customerName) {
+                updateData.customer_name = customerName;
+            } else if (isBusiness) {
+                // Validate: customer name required for business jobs
+                showToast('error', 'Fehler', 'Kundenname ist für geschäftliche Aufträge erforderlich');
+                return;
+            } else {
+                // Clear customer name for non-business jobs
+                updateData.customer_name = null;
+            }
+
+            // Make API call to update job
+            const response = await fetch(`/api/v1/jobs/${jobId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update job');
+            }
+
+            const updatedJob = await response.json();
+
+            showToast('success', 'Erfolg', 'Auftrag wurde erfolgreich aktualisiert');
             closeModal('editJobModal');
 
-            // Refresh job list
+            // Refresh job list to show changes
             this.loadJobs(this.currentPage);
+
+            Logger.info('Job updated successfully', { jobId, updatedJob });
 
         } catch (error) {
             Logger.error('Failed to update job:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Aktualisieren des Auftrags';
+            const message = error instanceof ApiError ? error.getUserMessage() : (error.message || 'Fehler beim Aktualisieren des Auftrags');
             showToast('error', 'Fehler', message);
         }
     }

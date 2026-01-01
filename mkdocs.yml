@@ -97,36 +97,46 @@ nav:
       - Repository Pattern: architecture/repository-pattern.md
   - API Reference:
       - Overview: api-reference/index.md
-      - Printers API: api-reference/printers.md
-      - Jobs API: api-reference/jobs.md
-      - Files API: api-reference/files.md
-      - Analytics API: api-reference/analytics.md
-      - WebSocket API: api-reference/websocket.md
   - Features:
       - Overview: features/index.md
-      - Auto File Download: features/auto-file-download.md
-      - Job Monitoring: features/job-monitoring.md
-      - File Management: features/file-management.md
-      - Business Analytics: features/business-analytics.md
-      - Metadata System: features/metadata.md
+      - Auto Download System: features/AUTO_DOWNLOAD_SYSTEM.md
+      - 3D Model Metadata: features/ENHANCED_3D_MODEL_METADATA_TECHNICAL.md
+      - Printer Feature Comparison: features/PRINTER_FEATURE_COMPARISON.md
+      - Preview Rendering: features/PREVIEW_RENDERING.md
+      - Thumbnails: features/THUMBNAILS.md
+      - Bambu Lab Thumbnails: features/bambu-thumbnails.md
+      - Frontend Auto Reload: features/FRONTEND_AUTO_RELOAD.md
+      - GCode Optimization: features/GCODE_OPTIMIZATION.md
+      - Trending Models Workflow: features/trending-models-workflow.md
   - Development:
-      - Contributing: development/contributing.md
-      - Development Workflow: development/workflow.md
-      - Code Sync: development/code-sync.md
-      - Testing Guide: development/testing.md
-      - Debugging: development/debugging.md
+      - Overview: development/index.md
+      - Current State: development/CURRENT_STATE.md
+      - Development Plan: development/development-plan.md
+      - Integration Patterns: development/integration_patterns.md
+      - File Operations Guide: development/FILE_OPERATIONS_GUIDE.md
+      - Debug Procedures: development/DEBUG_PROCEDURES.md
+      - Base Service Pattern: development/BASE_SERVICE_PATTERN.md
+      - Startup Optimization: development/STARTUP_OPTIMIZATION_SUMMARY.md
+      - Usage Statistics:
+          - Index: development/usage-statistics-index.md
+          - Technical Spec: development/usage-statistics-technical-spec.md
+          - Implementation Notes: development/usage-statistics-IMPLEMENTATION-NOTES.md
+          - Privacy: development/usage-statistics-privacy.md
+          - Quick Reference: development/usage-statistics-quick-reference.md
+          - Roadmap: development/usage-statistics-roadmap.md
   - Deployment:
       - Overview: deployment/index.md
-      - Docker Standalone: deployment/docker.md
-      - Home Assistant Add-on: deployment/home-assistant.md
-      - Raspberry Pi: deployment/raspberry-pi.md
-      - Production Deployment: deployment/production.md
+      - Production Deployment: deployment/PRODUCTION_DEPLOYMENT.md
+      - GitHub Releases Setup: deployment/GITHUB_RELEASES_SETUP.md
   - Testing:
       - Overview: testing/index.md
-      - Unit Testing: testing/unit-testing.md
-      - Integration Testing: testing/integration-testing.md
-      - E2E Testing: testing/e2e-testing.md
-      - Coverage Reports: testing/coverage.md
+      - Automated Job Creation Testing: testing/automated-job-creation-testing.md
+      - E2E Test Architecture: testing/E2E_ARCHITECTURE.md
+      - E2E Testing Quick Reference: testing/E2E_TESTING_QUICKREF.md
+      - E2E Test Analysis: testing/E2E_TEST_ANALYSIS.md
+      - Coverage Report Guide: testing/COVERAGE_REPORT_GUIDE.md
+      - Playwright Setup: testing/PLAYWRIGHT_SETUP_COMPLETE.md
+      - Testing Guide: testing/TESTING_GUIDE.md
   - Changelog: changelog.md
 
 # Plugins

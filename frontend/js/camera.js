@@ -7,6 +7,8 @@ class CameraManager {
     constructor() {
         this.cameraStatus = new Map(); // printer_id -> camera status
         this.activeStreams = new Set(); // Active stream URLs
+        this.previewIntervals = new Map(); // printer_id -> interval ID for auto-refresh
+        this.lastRefreshTime = new Map(); // printer_id -> last refresh timestamp
     }
 
     /**
@@ -18,12 +20,22 @@ class CameraManager {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            
+
             const status = await response.json();
             this.cameraStatus.set(printerId, status);
+
+            // Initialize auto-refresh for preview mode
+            this.initializePreviewAutoRefresh(printerId);
+
             return status;
         } catch (error) {
-            Logger.error(`Failed to get camera status for printer ${printerId}:`, error);
+            // Safe error logging - check if Logger exists first
+            const errorMsg = `Failed to get camera status for printer ${printerId}:`;
+            if (typeof Logger !== 'undefined') {
+                Logger.error(errorMsg, error);
+            } else {
+                console.error(errorMsg, error);
+            }
             this.cameraStatus.set(printerId, {
                 has_camera: false,
                 is_available: false,
@@ -64,7 +76,13 @@ class CameraManager {
             
             return snapshot;
         } catch (error) {
-            Logger.error(`Failed to take snapshot for printer ${printerId}:`, error);
+            // Safe error logging - check if Logger exists first
+            const errorMsg = `Failed to take snapshot for printer ${printerId}:`;
+            if (typeof Logger !== 'undefined') {
+                Logger.error(errorMsg, error);
+            } else {
+                console.error(errorMsg, error);
+            }
             showNotification(`Snapshot-Fehler: ${error.message}`, 'error');
             throw error;
         }
@@ -82,8 +100,21 @@ class CameraManager {
      * Render camera section for printer card
      */
     renderCameraSection(printer) {
-        const cameraStatus = this.cameraStatus.get(printer.id) || { has_camera: false, is_available: false };
-        
+        const cameraStatus = this.cameraStatus.get(printer.id);
+
+        // Loading state
+        if (!cameraStatus) {
+            return `
+                <div class="info-section camera-section">
+                    <h4>📷 Kamera</h4>
+                    <div class="info-item">
+                        <span class="text-muted">Wird geladen...</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // No camera available
         if (!cameraStatus.has_camera) {
             return `
                 <div class="info-section camera-section">
@@ -95,6 +126,7 @@ class CameraManager {
             `;
         }
 
+        // Camera not available (error state)
         if (!cameraStatus.is_available) {
             return `
                 <div class="info-section camera-section">
@@ -107,49 +139,145 @@ class CameraManager {
             `;
         }
 
-        // Show stream if available, otherwise show snapshot-only mode
-        const hasStream = cameraStatus.stream_url && cameraStatus.stream_url !== 'null';
+        // Check for valid stream URL
+        const hasValidUrl = cameraStatus.stream_url &&
+                           cameraStatus.stream_url !== 'null' &&
+                           cameraStatus.stream_url !== 'undefined';
+
+        if (!hasValidUrl) {
+            return `
+                <div class="info-section camera-section">
+                    <h4>📷 Kamera</h4>
+                    <div class="info-item">
+                        <span class="text-muted">Stream nicht verfügbar</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Detect preview mode vs live stream
+        const isPreview = cameraStatus.stream_url.includes('/camera/preview');
+        const imageUrl = isPreview
+            ? `${cameraStatus.stream_url}?t=${Date.now()}`  // Cache-busting for preview
+            : cameraStatus.stream_url;
 
         return `
             <div class="info-section camera-section">
                 <h4>📷 Kamera</h4>
                 <div class="camera-controls">
-                    ${hasStream ? `
-                        <div class="camera-preview-container">
-                            <img id="camera-stream-${printer.id}"
-                                 class="camera-stream"
-                                 src="${cameraStatus.stream_url}"
-                                 alt="Live Stream"
-                                 onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error').style.display='block';"
-                                 onload="this.style.display='block'; this.parentElement.querySelector('.stream-error').style.display='none';">
-                            <div class="stream-error" style="display: none;">
-                                <span class="text-muted">Stream nicht verfügbar</span>
+                    <div class="camera-preview-container">
+                        <img id="camera-stream-${printer.id}"
+                             class="camera-stream"
+                             src="${imageUrl}"
+                             alt="Kamera Vorschau"
+                             onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
+                             onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
+                             style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
+                        <div class="stream-error" style="display: none;">
+                            <span class="text-muted">Bild nicht verfügbar</span>
+                        </div>
+                        ${isPreview ? `
+                            <div class="camera-timestamp" id="camera-timestamp-${printer.id}" style="font-size: 0.85em; color: #6c757d; text-align: center; margin-top: 4px;">
+                                Aktualisiert: ${new Date().toLocaleTimeString('de-DE')}
                             </div>
-                        </div>
-                    ` : `
-                        <div class="camera-placeholder">
-                            <div class="placeholder-icon">📷</div>
-                            <div class="placeholder-text">Kamera bereit</div>
-                            <small class="text-muted">Live-Stream noch nicht verfügbar</small>
-                        </div>
-                    `}
-                    <div class="camera-actions">
+                        ` : ''}
+                    </div>
+                    <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
                         <button class="btn btn-sm btn-primary"
                                 onclick="cameraManager.takeSnapshotFromCard('${printer.id}')"
                                 title="Snapshot aufnehmen">
                             📸 Snapshot
                         </button>
-                        ${hasStream ? `
+                        ${isPreview ? `
                             <button class="btn btn-sm btn-secondary"
-                                    onclick="cameraManager.showCameraModal('${printer.id}')"
-                                    title="Vollbild anzeigen">
-                                🔍 Vollbild
+                                    onclick="cameraManager.refreshPreview('${printer.id}', true)"
+                                    title="Vorschau aktualisieren">
+                                🔄 Aktualisieren
                             </button>
                         ` : ''}
+                        <button class="btn btn-sm btn-secondary"
+                                onclick="cameraManager.showCameraModal('${printer.id}')"
+                                title="Vollbild anzeigen">
+                            🔍 Vollbild
+                        </button>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Start auto-refresh for preview (30 seconds)
+     */
+    startPreviewAutoRefresh(printerId) {
+        // Stop existing interval if any
+        this.stopPreviewAutoRefresh(printerId);
+
+        const intervalId = setInterval(() => {
+            this.refreshPreview(printerId, false);  // Silent refresh
+        }, 30000);  // 30 seconds
+
+        this.previewIntervals.set(printerId, intervalId);
+        Logger.debug(`Started auto-refresh for printer ${printerId}`);
+    }
+
+    /**
+     * Stop auto-refresh for preview
+     */
+    stopPreviewAutoRefresh(printerId) {
+        const intervalId = this.previewIntervals.get(printerId);
+        if (intervalId) {
+            clearInterval(intervalId);
+            this.previewIntervals.delete(printerId);
+            Logger.debug(`Stopped auto-refresh for printer ${printerId}`);
+        }
+    }
+
+    /**
+     * Refresh preview image manually or via auto-refresh
+     */
+    async refreshPreview(printerId, showFeedback = true) {
+        const cameraStatus = this.cameraStatus.get(printerId);
+        if (!cameraStatus || !cameraStatus.stream_url) return;
+
+        const isPreview = cameraStatus.stream_url.includes('/camera/preview');
+        if (!isPreview) return;
+
+        const imageElement = document.getElementById(`camera-stream-${printerId}`);
+        const timestampElement = document.getElementById(`camera-timestamp-${printerId}`);
+
+        if (imageElement) {
+            // Update image src with new timestamp for cache-busting
+            const newUrl = `${cameraStatus.stream_url}?t=${Date.now()}`;
+            imageElement.src = newUrl;
+
+            // Update timestamp display
+            if (timestampElement) {
+                const now = new Date();
+                timestampElement.textContent = `Aktualisiert: ${now.toLocaleTimeString('de-DE')}`;
+            }
+
+            this.lastRefreshTime.set(printerId, Date.now());
+
+            if (showFeedback) {
+                showNotification('Vorschau aktualisiert', 'success');
+            }
+        }
+    }
+
+    /**
+     * Initialize auto-refresh after camera status is loaded
+     */
+    initializePreviewAutoRefresh(printerId) {
+        const cameraStatus = this.cameraStatus.get(printerId);
+        if (!cameraStatus || !cameraStatus.is_available) return;
+
+        const isPreview = cameraStatus.stream_url &&
+                         cameraStatus.stream_url.includes('/camera/preview');
+
+        if (isPreview) {
+            this.startPreviewAutoRefresh(printerId);
+        }
     }
 
     /**
@@ -170,47 +298,77 @@ class CameraManager {
     /**
      * Show camera modal with full view
      */
-    async showCameraModal(printerId) {
-        const printer = printerManager.printers.get(printerId);
-        if (!printer) return;
+    showCameraModal(printerId) {
+        const cameraStatus = this.cameraStatus.get(printerId);
 
-        const status = await this.getCameraStatus(printerId);
-        if (!status.is_available) {
-            showNotification('Kamera nicht verfügbar', 'warning');
+        // Validate camera status
+        if (!cameraStatus) {
+            showNotification('Kamerastatus nicht verfügbar', 'error');
             return;
         }
 
+        if (!cameraStatus.is_available || !cameraStatus.stream_url) {
+            showNotification('Kamera nicht verfügbar', 'error');
+            return;
+        }
+
+        // Check for valid URL (not null/undefined)
+        if (cameraStatus.stream_url === 'null' ||
+            cameraStatus.stream_url === 'undefined' ||
+            !cameraStatus.stream_url) {
+            showNotification('Kamera-URL ungültig', 'error');
+            return;
+        }
+
+        const printer = printerManager.printers.get(printerId);
+        const printerName = printer ? printer.data.name : printerId;
+
+        const isPreview = cameraStatus.stream_url.includes('/camera/preview');
+        const imageUrl = isPreview
+            ? `${cameraStatus.stream_url}?t=${Date.now()}`
+            : cameraStatus.stream_url;
+
         const modal = document.createElement('div');
         modal.className = 'modal camera-modal';
+        modal.style.display = 'block';
         modal.innerHTML = `
             <div class="modal-content camera-modal-content">
                 <div class="modal-header">
-                    <h3>📷 ${escapeHtml(printer.data.name)} - Kamera</h3>
+                    <h3>📷 ${escapeHtml(printerName)} - Kamera</h3>
+                    ${isPreview ? `
+                        <span class="badge badge-secondary" id="modal-timestamp" style="margin-left: 10px;">
+                            Aktualisiert: ${new Date().toLocaleTimeString('de-DE')}
+                        </span>
+                    ` : ''}
                     <button class="btn btn-sm btn-secondary" onclick="this.closest('.modal').remove()">
                         ✕
                     </button>
                 </div>
                 <div class="modal-body">
                     <div class="camera-full-view">
-                        <img class="camera-stream-full" 
-                             src="${sanitizeUrl(status.stream_url)}" 
-                             alt="Live Stream" 
-                             onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error').style.display='block';">
-                        <div class="stream-error" style="display: none;">
-                            <p>Stream nicht verfügbar</p>
-                            <button class="btn btn-secondary" onclick="this.previousElementSibling.src='${sanitizeUrl(status.stream_url)}'; this.previousElementSibling.style.display='block'; this.style.display='none';">
-                                🔄 Erneut versuchen
-                            </button>
-                        </div>
+                        <img id="modal-camera-stream"
+                             class="camera-stream-full"
+                             src="${imageUrl}"
+                             alt="Kamera"
+                             style="width: 100%; height: auto;">
                     </div>
-                    <div class="camera-modal-controls">
-                        <button class="btn btn-primary" 
-                                onclick="cameraManager.takeSnapshot('${sanitizeAttribute(printerId)}', null, 'manual')">
+                    <div class="camera-modal-controls" style="margin-top: 16px; display: flex; gap: 8px; justify-content: center;">
+                        ${isPreview ? `
+                            <button class="btn btn-secondary"
+                                    onclick="cameraManager.refreshModalPreview('${printerId}')">
+                                🔄 Aktualisieren
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-primary"
+                                onclick="cameraManager.takeSnapshotFromCard('${printerId}')">
                             📸 Snapshot aufnehmen
                         </button>
-                        <button class="btn btn-secondary" 
-                                onclick="cameraManager.showSnapshotHistory('${sanitizeAttribute(printerId)}')">
+                        <button class="btn btn-secondary"
+                                onclick="cameraManager.showSnapshotHistory('${printerId}')">
                             🖼️ Snapshot-Historie
+                        </button>
+                        <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
+                            Schließen
                         </button>
                     </div>
                 </div>
@@ -218,17 +376,52 @@ class CameraManager {
         `;
 
         document.body.appendChild(modal);
-        
-        // Auto-refresh stream every 10 seconds
-        const refreshInterval = setInterval(() => {
-            const img = modal.querySelector('.camera-stream-full');
-            if (img && modal.parentElement) {
-                const currentSrc = img.src;
-                img.src = currentSrc + '?t=' + Date.now();
-            } else {
-                clearInterval(refreshInterval);
+
+        // Start auto-refresh for preview mode in modal (30 seconds)
+        if (isPreview) {
+            const modalIntervalId = setInterval(() => {
+                // Check if modal still exists
+                if (!document.body.contains(modal)) {
+                    clearInterval(modalIntervalId);
+                    return;
+                }
+                this.refreshModalPreview(printerId);
+            }, 30000);  // 30 seconds
+
+            // Store interval ID for cleanup
+            modal.dataset.intervalId = modalIntervalId;
+        }
+
+        // Cleanup on modal close
+        const closeButton = modal.querySelector('[onclick*="remove()"]');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => {
+                if (modal.dataset.intervalId) {
+                    clearInterval(parseInt(modal.dataset.intervalId));
+                }
+            });
+        }
+    }
+
+    /**
+     * Refresh preview in modal
+     */
+    refreshModalPreview(printerId) {
+        const cameraStatus = this.cameraStatus.get(printerId);
+        if (!cameraStatus || !cameraStatus.stream_url) return;
+
+        const imageElement = document.getElementById('modal-camera-stream');
+        const timestampElement = document.getElementById('modal-timestamp');
+
+        if (imageElement) {
+            const newUrl = `${cameraStatus.stream_url}?t=${Date.now()}`;
+            imageElement.src = newUrl;
+
+            if (timestampElement) {
+                const now = new Date();
+                timestampElement.textContent = `Aktualisiert: ${now.toLocaleTimeString('de-DE')}`;
             }
-        }, 10000);
+        }
     }
 
     /**
@@ -257,7 +450,12 @@ class CameraManager {
             
             document.body.appendChild(modal);
         } catch (error) {
-            Logger.error('Failed to load snapshot history:', error);
+            // Safe error logging - check if Logger exists first
+            if (typeof Logger !== 'undefined') {
+                Logger.error('Failed to load snapshot history:', error);
+            } else {
+                console.error('Failed to load snapshot history:', error);
+            }
             showNotification('Fehler beim Laden der Snapshot-Historie', 'error');
         }
     }
@@ -310,6 +508,16 @@ class CameraManager {
     }
 
     /**
+     * Cleanup camera resources for a printer
+     */
+    cleanup(printerId) {
+        this.stopPreviewAutoRefresh(printerId);
+        this.cameraStatus.delete(printerId);
+        this.lastRefreshTime.delete(printerId);
+        Logger.debug(`Cleaned up camera resources for printer ${printerId}`);
+    }
+
+    /**
      * Initialize camera status for all printers
      */
     async initializeCameraStatus() {
@@ -323,6 +531,9 @@ class CameraManager {
 
 // Global camera manager instance
 const cameraManager = new CameraManager();
+
+// Make cameraManager globally available (similar to Logger)
+window.cameraManager = cameraManager;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

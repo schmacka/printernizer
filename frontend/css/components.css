@@ -199,6 +199,7 @@
     gap: var(--spacing-3);
     cursor: pointer;
     font-weight: 400;
+    position: relative;
 }
 
 .checkbox-custom {
@@ -209,12 +210,26 @@
     border-radius: var(--radius-sm);
     background: var(--white);
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .checkbox-label input[type="checkbox"] {
     position: absolute;
     opacity: 0;
     cursor: pointer;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    z-index: 1;
+}
+
+.checkbox-label input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+.checkbox-label input[type="checkbox"]:disabled + .checkbox-custom {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
@@ -942,6 +957,18 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--spacing-3);
+}
+
+.file-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-right: var(--spacing-2);
+}
+
+.file-checkbox-container .checkbox-label {
+    margin: 0;
+    gap: 0;
 }
 
 .file-checkbox {
