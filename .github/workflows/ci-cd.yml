@@ -614,17 +614,11 @@ jobs:
         echo "✅ Kubernetes configuration loaded successfully"
 
     - name: Deploy to production environment
+      if: env.KUBE_CONFIG_AVAILABLE == 'true'
       env:
         VERSION: ${{ github.ref_name }}
         IMAGE: ${{ needs.build-image.outputs.image }}
       run: |
-        if [ "$KUBE_CONFIG_AVAILABLE" != "true" ]; then
-          echo "⚠️  Kubernetes configuration not available"
-          echo "⚠️  Skipping deployment steps"
-          echo "ℹ️  To enable production deployment, configure the KUBE_CONFIG secret"
-          exit 0
-        fi
-        
         echo "Deploying Printernizer $VERSION"
         echo "Image: $IMAGE"
 
@@ -682,13 +676,16 @@ jobs:
 
         echo "✅ Deployment process completed!"
 
-    - name: Run post-deployment health checks
+    - name: Skip deployment notification
+      if: env.KUBE_CONFIG_AVAILABLE != 'true'
       run: |
-        if [ "$KUBE_CONFIG_AVAILABLE" != "true" ]; then
-          echo "⚠️  Kubernetes configuration not available, skipping health checks"
-          exit 0
-        fi
-        
+        echo "⚠️  Kubernetes configuration not available"
+        echo "⚠️  Skipping deployment steps"
+        echo "ℹ️  To enable production deployment, configure the KUBE_CONFIG secret"
+
+    - name: Run post-deployment health checks
+      if: env.KUBE_CONFIG_AVAILABLE == 'true'
+      run: |
         # Health check with retry logic
         for i in {1..10}; do
           if kubectl exec -n printernizer deployment/printernizer -- curl -f http://localhost:8000/api/v1/health; then
