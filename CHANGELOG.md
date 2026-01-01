@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.7] - 2026-01-01
+
+### Added
+- **Camera Diagnostics**: New diagnostic endpoint for troubleshooting Prusa webcam issues
+  - Endpoint: `GET /api/v1/printers/{printer_id}/camera/diagnostics`
+  - Tests camera support, detection, stream URL, and snapshot capture
+  - Provides troubleshooting recommendations based on test results
+  - Lists camera configuration from PrusaLink API
+
+### Improved
+- **Camera Error Messages**: Enhanced error messages for camera setup
+  - Printer-type-specific guidance (Prusa vs Bambu Lab)
+  - Better troubleshooting instructions when camera not detected
+  - Improved logging for camera status checks
+
+### Documentation
+- **Camera Setup Guide**: Comprehensive camera troubleshooting documentation
+  - Step-by-step PrusaLink camera configuration
+  - Common issues and solutions
+  - API testing commands and examples
+  - Browser compatibility and performance tips
+
 ## [2.11.6] - 2025-12-18
 
 ### Fixed
