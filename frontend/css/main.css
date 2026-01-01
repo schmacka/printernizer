@@ -1420,6 +1420,51 @@ p {
         flex-wrap: wrap;
         justify-content: center;
     }
+
+    /* Better job name wrapping on mobile */
+    .tile-job-name {
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        line-height: 1.4;
+        max-height: 2.8em; /* Show up to 2 lines */
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    /* Make progress more visible on mobile */
+    .tile-progress-container {
+        margin-top: var(--spacing-3);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .tile-progress-container .progress {
+        height: 10px; /* Slightly taller on mobile */
+    }
+
+    .tile-progress-text {
+        font-size: var(--font-size-base);
+        font-weight: 700;
+        min-width: 50px;
+    }
+
+    /* Compact temperature display on mobile */
+    .printer-tile-temps {
+        flex-wrap: wrap;
+        gap: var(--spacing-2);
+    }
+
+    .tile-temp {
+        font-size: var(--font-size-sm);
+    }
+
+    /* Adjust job container for better mobile layout */
+    .printer-tile-job {
+        padding: var(--spacing-3);
+        min-height: 90px;
+    }
 }
 
 /* Mobile optimization */
@@ -1430,11 +1475,47 @@ p {
 
     .printer-tile-body {
         padding: var(--spacing-3);
+        gap: var(--spacing-2);
     }
 
     .printer-tile-header,
     .printer-tile-footer {
         padding: var(--spacing-3);
+    }
+
+    /* More compact job name on very small screens */
+    .tile-job-name {
+        font-size: var(--font-size-xs);
+        margin-bottom: var(--spacing-1);
+    }
+
+    /* Larger, more visible progress on small screens */
+    .tile-progress-container .progress {
+        height: 12px;
+    }
+
+    .tile-progress-text {
+        font-size: var(--font-size-lg);
+        font-weight: 700;
+    }
+
+    /* Stack temperatures vertically on very small screens if needed */
+    .printer-tile-temps {
+        gap: var(--spacing-2);
+    }
+
+    .tile-temp {
+        font-size: var(--font-size-xs);
+    }
+
+    /* Reduce minimum height on small screens */
+    .printer-tile-job {
+        min-height: auto;
+    }
+
+    /* More compact time remaining text */
+    .tile-time-remaining {
+        font-size: var(--font-size-xs);
     }
 }
 
