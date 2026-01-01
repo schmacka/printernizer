@@ -1,7 +1,7 @@
 # Remaining Tasks & Technical Debt
 
-> **Last Updated**: 2025-12-12
-> **Status**: Production Ready (v2.8.9) with identified improvement areas
+> **Last Updated**: 2026-01-01
+> **Status**: Production Ready (v2.11.6) with identified improvement areas
 
 This document tracks remaining TODOs, incomplete features, test gaps, and roadmap items for the Printernizer project.
 
@@ -9,32 +9,26 @@ This document tracks remaining TODOs, incomplete features, test gaps, and roadma
 
 ## 🔴 HIGH PRIORITY - Functional Gaps
 
-### 1. Job Update API (CRITICAL)
+### ✅ 1. Job Update API (COMPLETED)
 
-**Status**: ❌ Not Implemented
-**Impact**: HIGH - Users see working UI but changes don't save
+**Status**: ✅ **FULLY IMPLEMENTED** (since v2.11+)
+**Impact**: Feature is working correctly
 
-**Problem**:
-- Frontend has complete job edit form that operates in "Demo Mode"
-- Form submission shows success toast but doesn't actually persist changes
-- Creates false impression that feature works
+**Implementation**:
+- ✅ Backend endpoint: `PUT /api/v1/jobs/{id}` (fully functional)
+- ✅ Service layer: `JobService.update_job()` with validation
+- ✅ Repository: `JobRepository.update()`
+- ✅ Frontend: Full implementation in `jobs.js:1080-1140`
+- ✅ WebSocket events: `job_updated` emitted on changes
 
-**Location**:
-- Frontend: `frontend/js/jobs.js:1088`
-- TODO Comment: "Implement actual API call when backend supports job updates"
+**Editable Fields**:
+- Job name, status, is_business, customer_name, notes, file_name, printer_id
 
-**Requirements**:
-- Implement `PUT /api/v1/jobs/{id}` endpoint in backend
-- Support updating all editable job fields:
-  - Job name
-  - Status
-  - Business job flag
-  - Customer name
-  - Notes/metadata
-- Add validation and error handling
-- Write comprehensive tests
+**Verification**:
+- Outdated TODO comment already removed from code
+- Feature tested and working in production
 
-**Estimated Effort**: 4-6 hours
+**Reference**: See `docs/plans/JOB_UPDATE_API_STATUS.md` for complete analysis
 
 ---
 
@@ -385,28 +379,29 @@ These are documented roadmap items, not immediate tasks:
 
 ### Active Technical Debt
 
-- **High Priority**: 3 items (Job updates, status endpoint, consumption history)
+- **High Priority**: 2 items (status endpoint tests, consumption history)
 - **Medium Priority**: 12 items (Untested critical services)
 - **Low Priority**: 5 items (Polish and enhancements)
 - **Cleanup**: 2 items (Deprecated code)
+- **Completed**: 1 item (Job Update API) ✅
 
 ### Total Estimated Effort
 
-- **Critical Fixes**: 10-14 hours
+- **Critical Fixes**: 5-7 hours (reduced from 10-14h)
 - **Test Coverage**: 20-30 hours
 - **Feature Completion**: 20-30 hours
 - **Polish & Cleanup**: 10-15 hours
 
-**Total**: ~60-90 hours of development work
+**Total**: ~55-82 hours of development work (reduced from 60-90h)
 
 ---
 
 ## 🎯 Recommended Priorities
 
-### Sprint 1: Critical Functionality (2-3 days)
-1. ✅ Job Update API implementation
-2. ✅ Job Status Update endpoint
-3. ✅ Material Consumption History
+### Sprint 1: Critical Functionality (1-2 days) - REDUCED SCOPE
+1. ~~Job Update API implementation~~ ✅ **ALREADY COMPLETE**
+2. Job Status Update endpoint tests (enable 6 skipped tests)
+3. Material Consumption History endpoint
 
 ### Sprint 2: Critical Test Coverage (3-4 days)
 1. ✅ event_service tests
