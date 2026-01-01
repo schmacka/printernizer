@@ -600,11 +600,21 @@ jobs:
       env:
         KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       run: |
+        if [ -z "$KUBE_CONFIG" ]; then
+          echo "⚠️  KUBE_CONFIG secret is not set"
+          echo "⚠️  Skipping Kubernetes deployment configuration"
+          echo "KUBE_CONFIG_AVAILABLE=false" >> $GITHUB_ENV
+          exit 0
+        fi
+        
         mkdir -p ~/.kube
         echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
+        echo "KUBE_CONFIG_AVAILABLE=true" >> $GITHUB_ENV
+        echo "✅ Kubernetes configuration loaded successfully"
 
     - name: Deploy to production environment
+      if: env.KUBE_CONFIG_AVAILABLE == 'true'
       env:
         VERSION: ${{ github.ref_name }}
         IMAGE: ${{ needs.build-image.outputs.image }}
@@ -666,7 +676,15 @@ jobs:
 
         echo "✅ Deployment process completed!"
 
+    - name: Skip deployment notification
+      if: env.KUBE_CONFIG_AVAILABLE != 'true'
+      run: |
+        echo "⚠️  Kubernetes configuration not available"
+        echo "⚠️  Skipping deployment steps"
+        echo "ℹ️  To enable production deployment, configure the KUBE_CONFIG secret"
+
     - name: Run post-deployment health checks
+      if: env.KUBE_CONFIG_AVAILABLE == 'true'
       run: |
         # Health check with retry logic
         for i in {1..10}; do
@@ -701,11 +719,20 @@ jobs:
     - name: Notify deployment success
       if: success()
       run: |
-        echo "🚀 Printernizer deployed successfully!"
-        echo "📊 Version: ${{ github.ref_name }}"
-        echo "🔗 URL: https://printernizer.porcus3d.de"
-        echo "🖨️  Features: Real-time printer monitoring, WebSocket support, file management"
-        echo "🏢 Business: German VAT compliance, GDPR ready, Kornwestheim deployment"
+        if [ "$KUBE_CONFIG_AVAILABLE" != "true" ]; then
+          echo "📦 Docker image built successfully!"
+          echo "📊 Version: ${{ github.ref_name }}"
+          echo "🐳 Image: ${{ needs.build-image.outputs.image }}"
+          echo ""
+          echo "ℹ️  Production deployment was skipped (KUBE_CONFIG not configured)"
+          echo "ℹ️  To enable automatic deployment, configure the KUBE_CONFIG secret in repository settings"
+        else
+          echo "🚀 Printernizer deployed successfully!"
+          echo "📊 Version: ${{ github.ref_name }}"
+          echo "🔗 URL: https://printernizer.porcus3d.de"
+          echo "🖨️  Features: Real-time printer monitoring, WebSocket support, file management"
+          echo "🏢 Business: German VAT compliance, GDPR ready, Kornwestheim deployment"
+        fi
         echo ""
         echo "Note: GitHub Release is created by the separate 'Create Release' workflow"
 
