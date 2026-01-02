@@ -11,7 +11,7 @@ from io import BytesIO
 import structlog
 
 from src.config.constants import file_url
-from src.models.printer import PrinterStatus, PrinterStatusUpdate
+from src.models.printer import PrinterStatus, PrinterStatusUpdate, Filament
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 from .download_strategies import (
@@ -439,6 +439,93 @@ class BambuLabPrinter(BasePrinter):
         # Clean up FTP service
         self.ftp_service = None
             
+    def _extract_filaments_from_mqtt(self, mqtt_data: Dict[str, Any]) -> List[Filament]:
+        """Extract filament information from MQTT data (AMS system).
+
+        Args:
+            mqtt_data: Full MQTT data dump from bambulabs_api
+
+        Returns:
+            List of Filament objects with color, type, and slot information
+        """
+        filaments = []
+
+        try:
+            # Bambu Lab AMS (Automatic Material System) structure:
+            # mqtt_data['ams']['ams'][ams_index]['tray'][tray_index]
+            if not isinstance(mqtt_data, dict):
+                return filaments
+
+            ams_data = mqtt_data.get('ams', {})
+            if not isinstance(ams_data, dict):
+                return filaments
+
+            # Get current active tray info
+            active_tray_id = ams_data.get('tray_now', '')  # Format: "0" or "254" (external spool)
+
+            # Process AMS units
+            ams_units = ams_data.get('ams', [])
+            if isinstance(ams_units, list):
+                for ams_idx, ams_unit in enumerate(ams_units):
+                    if not isinstance(ams_unit, dict):
+                        continue
+
+                    # Each AMS unit can have multiple trays (typically 4)
+                    trays = ams_unit.get('tray', [])
+                    if isinstance(trays, list):
+                        for tray_idx, tray in enumerate(trays):
+                            if not isinstance(tray, dict):
+                                continue
+
+                            # Calculate global slot number (AMS unit * 4 + tray index)
+                            slot = ams_idx * 4 + tray_idx
+
+                            # Extract filament information
+                            filament_type = tray.get('tray_type', '').upper() or None
+                            filament_color = tray.get('tray_color', '') or None
+
+                            # Convert color from RRGGBBAA hex to #RRGGBB format
+                            if filament_color and len(filament_color) >= 6:
+                                filament_color = f"#{filament_color[:6]}"
+
+                            # Determine if this tray is currently active
+                            tray_id_str = str(slot)
+                            is_active = (active_tray_id == tray_id_str)
+
+                            # Only add filament if it has some information
+                            if filament_type or filament_color:
+                                filaments.append(Filament(
+                                    slot=slot,
+                                    color=filament_color,
+                                    type=filament_type,
+                                    is_active=is_active
+                                ))
+
+                                logger.debug("Extracted filament from AMS",
+                                           printer_id=self.printer_id,
+                                           slot=slot,
+                                           type=filament_type,
+                                           color=filament_color,
+                                           active=is_active)
+
+            # Handle external spool (slot 254)
+            if active_tray_id == "254":
+                # External spool is active, but we may not have detailed info
+                # Add it as a generic filament
+                filaments.append(Filament(
+                    slot=254,
+                    color=None,
+                    type="External",
+                    is_active=True
+                ))
+                logger.debug("External spool active", printer_id=self.printer_id)
+
+        except Exception as e:
+            logger.warning("Failed to extract filament data from MQTT",
+                         printer_id=self.printer_id, error=str(e))
+
+        return filaments
+
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Bambu Lab."""
         if not self.is_connected:
@@ -780,8 +867,22 @@ class BambuLabPrinter(BasePrinter):
                 message = f"Printing '{current_job}' - Layer {layer_num}, {progress}%"
             else:
                 message = f"Printing '{current_job}'"
-        
-        logger.debug("Parsed Bambu status", 
+
+        # Extract filament information from MQTT data
+        filaments = []
+        try:
+            if hasattr(self.bambu_client, 'mqtt_dump'):
+                mqtt_data = self.bambu_client.mqtt_dump()
+                if mqtt_data:
+                    filaments = self._extract_filaments_from_mqtt(mqtt_data)
+                    logger.debug("Extracted filaments from MQTT",
+                               printer_id=self.printer_id,
+                               filament_count=len(filaments))
+        except Exception as e:
+            logger.debug("Failed to extract filaments",
+                        printer_id=self.printer_id, error=str(e))
+
+        logger.debug("Parsed Bambu status",
                     printer_id=self.printer_id,
                     status_name=status_name,
                     printer_status=printer_status.value,
@@ -804,6 +905,7 @@ class BambuLabPrinter(BasePrinter):
             estimated_end_time=estimated_end_time,
             elapsed_time_minutes=elapsed_time_minutes,
             print_start_time=print_start_time,
+            filaments=filaments if filaments else None,
             timestamp=datetime.now(),
             raw_data=status.__dict__ if hasattr(status, '__dict__') else {}
         )
@@ -912,8 +1014,20 @@ class BambuLabPrinter(BasePrinter):
         # Enhance the message with filename if available and printing
         if printer_status == PrinterStatus.PRINTING and current_job and current_job != "Active Print Job":
             message = f"Printing '{current_job}'"
-        
-        logger.debug("Parsed MQTT status", 
+
+        # Extract filament information from MQTT data
+        filaments = []
+        try:
+            if self.latest_data:
+                filaments = self._extract_filaments_from_mqtt(self.latest_data)
+                logger.debug("Extracted filaments from direct MQTT",
+                           printer_id=self.printer_id,
+                           filament_count=len(filaments))
+        except Exception as e:
+            logger.debug("Failed to extract filaments from MQTT",
+                        printer_id=self.printer_id, error=str(e))
+
+        logger.debug("Parsed MQTT status",
                     printer_id=self.printer_id,
                     bed_temp=bed_temp,
                     nozzle_temp=nozzle_temp,
@@ -933,6 +1047,7 @@ class BambuLabPrinter(BasePrinter):
             current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
+            filaments=filaments if filaments else None,
             timestamp=datetime.now(),
             raw_data=self.latest_data
         )

@@ -11,7 +11,7 @@ import aiohttp
 import structlog
 
 from src.config.constants import file_url
-from src.models.printer import PrinterStatus, PrinterStatusUpdate
+from src.models.printer import PrinterStatus, PrinterStatusUpdate, Filament
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 from src.constants import NetworkConstants, FileConstants
@@ -154,17 +154,86 @@ class PrusaPrinter(BasePrinter):
             logger.error("Unexpected error disconnecting from Prusa printer",
                         printer_id=self.printer_id, error=str(e), exc_info=True)
             
+    def _extract_filaments_from_api(self, status_data: Dict[str, Any]) -> List[Filament]:
+        """Extract filament information from Prusa API response.
+
+        Args:
+            status_data: Printer status data from PrusaLink API
+
+        Returns:
+            List of Filament objects
+        """
+        filaments = []
+
+        try:
+            # Prusa printers may have filament sensor information
+            # Check for MMU2S (Multi Material Unit) data first
+            if 'mmu' in status_data:
+                mmu_data = status_data.get('mmu', {})
+                if isinstance(mmu_data, dict):
+                    # MMU2S typically has 5 filament slots
+                    for slot in range(5):
+                        # Check if filament data exists for this slot
+                        filament_key = f'filament_{slot}'
+                        if filament_key in mmu_data:
+                            filament_info = mmu_data[filament_key]
+                            if isinstance(filament_info, dict):
+                                filament_type = filament_info.get('material', None)
+                                filament_color = filament_info.get('color', None)
+                                is_active = mmu_data.get('active_slot', -1) == slot
+
+                                if filament_type or filament_color:
+                                    filaments.append(Filament(
+                                        slot=slot,
+                                        color=filament_color,
+                                        type=filament_type,
+                                        is_active=is_active
+                                    ))
+                                    logger.debug("Extracted MMU filament",
+                                               printer_id=self.printer_id,
+                                               slot=slot,
+                                               type=filament_type,
+                                               active=is_active)
+
+            # If no MMU data, check for single filament sensor
+            if not filaments and 'filament' in status_data:
+                filament_data = status_data.get('filament', {})
+                if isinstance(filament_data, dict):
+                    # Single filament setup - assume slot 0
+                    filament_type = filament_data.get('material', filament_data.get('type', None))
+                    filament_color = filament_data.get('color', None)
+
+                    # Check if filament is loaded
+                    is_loaded = filament_data.get('loaded', True)  # Default to True if not specified
+
+                    if is_loaded and (filament_type or filament_color):
+                        filaments.append(Filament(
+                            slot=0,
+                            color=filament_color,
+                            type=filament_type,
+                            is_active=True  # Single filament is always active if loaded
+                        ))
+                        logger.debug("Extracted single filament",
+                                   printer_id=self.printer_id,
+                                   type=filament_type)
+
+        except Exception as e:
+            logger.warning("Failed to extract filament data from Prusa API",
+                         printer_id=self.printer_id, error=str(e))
+
+        return filaments
+
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Prusa."""
         if not self.is_connected or not self.session:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
             # Get printer status from PrusaLink
             async with self.session.get(f"{self.base_url}/printer") as response:
                 if response.status != 200:
                     raise aiohttp.ClientError(f"HTTP {response.status}")
-                    
+
                 status_data = await response.json()
                 
             # Get job information
@@ -321,6 +390,12 @@ class PrusaPrinter(BasePrinter):
                                 filename=current_job,
                                 error=str(e))
 
+            # Extract filament information
+            filaments = self._extract_filaments_from_api(status_data)
+            logger.debug("Extracted filaments from Prusa API",
+                       printer_id=self.printer_id,
+                       filament_count=len(filaments))
+
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
                 status=printer_status,
@@ -336,6 +411,7 @@ class PrusaPrinter(BasePrinter):
                 estimated_end_time=estimated_end_time,
                 elapsed_time_minutes=elapsed_time_minutes,
                 print_start_time=print_start_time,
+                filaments=filaments if filaments else None,
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )
