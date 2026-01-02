@@ -150,7 +150,7 @@ async def get_consumption_report(
 
 @router.get("/export")
 async def export_inventory(
-    format: str = Query("csv", regex="^(csv|excel)$"),
+    format: str = Query("csv", pattern="^(csv|excel)$"),
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Export material inventory to file."""
