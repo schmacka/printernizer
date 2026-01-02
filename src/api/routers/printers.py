@@ -167,14 +167,26 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
 async def list_printers(
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(50, ge=1, le=100, description="Items per page"),
+    printer_type: Optional[PrinterType] = Query(None, description="Filter by printer type"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    status: Optional[PrinterStatus] = Query(None, description="Filter by printer status"),
     printer_service: PrinterService = Depends(get_printer_service)
 ):
-    """List all configured printers with pagination."""
+    """List all configured printers with optional filters and pagination."""
     # Global exception handler will catch any unexpected errors
     printers = await printer_service.list_printers()
 
+    # Apply filters
+    filtered_printers = printers
+    if printer_type is not None:
+        filtered_printers = [p for p in filtered_printers if p.type == printer_type]
+    if is_active is not None:
+        filtered_printers = [p for p in filtered_printers if p.is_active == is_active]
+    if status is not None:
+        filtered_printers = [p for p in filtered_printers if p.status == status]
+
     # Convert to response objects
-    printer_responses = [_printer_to_response(printer, printer_service) for printer in printers]
+    printer_responses = [_printer_to_response(printer, printer_service) for printer in filtered_printers]
 
     # Calculate pagination
     total_count = len(printer_responses)
@@ -448,12 +460,20 @@ async def update_printer(
 @router.delete("/{printer_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_printer(
     printer_id: str,
+    force: bool = Query(False, description="Force deletion even with active jobs"),
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Delete a printer configuration."""
-    success = await printer_service.delete_printer(printer_id)
-    if not success:
-        raise PrinterNotFoundError(printer_id)
+    try:
+        success = await printer_service.delete_printer(printer_id, force=force)
+        if not success:
+            raise PrinterNotFoundError(printer_id)
+    except ValueError as e:
+        # Handle active job deletion attempt
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
 
 
 @router.get("/{printer_id}/status")

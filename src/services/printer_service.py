@@ -839,20 +839,42 @@ class PrinterService:
             )
         return None
 
-    async def delete_printer(self, printer_id: str) -> bool:
+    async def delete_printer(self, printer_id: str, force: bool = False) -> bool:
         """
         Delete a printer configuration.
 
         Args:
             printer_id: Printer identifier
+            force: If True, skip active job validation
 
         Returns:
             True if deletion successful
+
+        Raises:
+            ValueError: If printer has active jobs and force=False
 
         Example:
             >>> success = await printer_service.delete_printer("bambu_001")
         """
         printer_id_str = printer_id
+
+        # Check for active jobs (unless force=True)
+        if not force:
+            # Check database for active jobs on this printer
+            active_statuses = ['running', 'pending', 'paused']
+            async with self.database.connection() as conn:
+                cursor = await conn.execute(
+                    "SELECT COUNT(*) FROM jobs WHERE printer_id = ? AND status IN (?, ?, ?)",
+                    (printer_id_str, *active_statuses)
+                )
+                row = await cursor.fetchone()
+                active_job_count = row[0] if row else 0
+
+                if active_job_count > 0:
+                    raise ValueError(
+                        f"Cannot delete printer with {active_job_count} active job(s). "
+                        "Complete or cancel active jobs first, or use force=true to override."
+                    )
 
         # Disconnect if connected
         if printer_id_str in self.connection.printer_instances:

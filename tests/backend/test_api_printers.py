@@ -83,86 +83,175 @@ class TestPrinterAPI:
         prusa_printer_data = next(p for p in data['printers'] if p['printer_type'] == 'prusa_core')
         assert prusa_printer_data['name'] == 'Prusa Core One #1'
     
-    @pytest.mark.skip(reason="Requires filtering implementation in printer_service.list_printers")
-    def test_get_printers_filter_by_type(self, client, populated_database):
-        """Test GET /api/v1/printers?type=bambu_lab"""
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.get("/api/v1/printers?type=bambu_lab")
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data['printers']) == 1
-            assert data['printers'][0]['type'] == 'bambu_lab'
+    def test_get_printers_filter_by_type(self, client, test_app):
+        """Test GET /api/v1/printers?printer_type=bambu_lab"""
+        from unittest.mock import AsyncMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus
+
+        # Create sample printers of different types
+        bambu_printer = Printer(
+            id='bambu_a1_001',
+            name='Bambu Lab A1 #1',
+            type=PrinterType.BAMBU_LAB,
+            ip_address='192.168.1.100',
+            access_code='test_access_code',
+            serial_number='AC12345678',
+            is_active=True,
+            status=PrinterStatus.ONLINE,
+            created_at=datetime.now()
+        )
+
+        prusa_printer = Printer(
+            id='prusa_core_001',
+            name='Prusa Core One #1',
+            type=PrinterType.PRUSA_CORE,
+            ip_address='192.168.1.101',
+            api_key='test_api_key',
+            is_active=True,
+            status=PrinterStatus.ONLINE,
+            created_at=datetime.now()
+        )
+
+        # Mock list_printers to return both printers
+        test_app.state.printer_service.list_printers = AsyncMock(return_value=[bambu_printer, prusa_printer])
+
+        # Test filter by Bambu Lab type
+        response = client.get("/api/v1/printers?printer_type=bambu_lab")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data['printers']) == 1
+        assert data['printers'][0]['printer_type'] == 'bambu_lab'
     
-    @pytest.mark.skip(reason="Requires filtering implementation in printer_service.list_printers")
-    def test_get_printers_filter_by_active_status(self, client, populated_database):
-        """Test GET /api/v1/printers?active=true"""
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.get("/api/v1/printers?active=true")
-            
-            assert response.status_code == 200
-            data = response.json()
-            for printer in data['printers']:
-                assert printer['is_active'] is True
+    def test_get_printers_filter_by_active_status(self, client, test_app):
+        """Test GET /api/v1/printers?is_active=true"""
+        from unittest.mock import AsyncMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus
+
+        # Create sample printers with different active statuses
+        active_printer = Printer(
+            id='active_printer_001',
+            name='Active Printer',
+            type=PrinterType.BAMBU_LAB,
+            ip_address='192.168.1.100',
+            is_active=True,
+            status=PrinterStatus.ONLINE,
+            created_at=datetime.now()
+        )
+
+        inactive_printer = Printer(
+            id='inactive_printer_001',
+            name='Inactive Printer',
+            type=PrinterType.PRUSA_CORE,
+            ip_address='192.168.1.101',
+            is_active=False,
+            status=PrinterStatus.OFFLINE,
+            created_at=datetime.now()
+        )
+
+        # Mock list_printers to return both printers
+        test_app.state.printer_service.list_printers = AsyncMock(return_value=[active_printer, inactive_printer])
+
+        # Test filter by active status
+        response = client.get("/api/v1/printers?is_active=true")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data['printers']) == 1
+        assert data['printers'][0]['is_enabled'] is True
     
-    @pytest.mark.skip(reason="Requires printer_service.create_printer implementation and database service integration")
-    def test_post_printers_bambu_lab(self, client, db_connection):
+    def test_post_printers_bambu_lab(self, client, test_app):
         """Test POST /api/v1/printers - Add Bambu Lab printer"""
+        from unittest.mock import AsyncMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus
+
         printer_data = {
             'name': 'New Bambu Lab A1',
-            'type': 'bambu_lab',
-            'model': 'A1',
-            'ip_address': '192.168.1.102',
-            'access_code': 'new_access_code',
-            'serial_number': 'AC87654321',
-            'has_camera': True,
-            'has_ams': True,
-            'supports_remote_control': True
+            'printer_type': 'bambu_lab',
+            'connection_config': {
+                'ip_address': '192.168.1.102',
+                'access_code': 'new_access_code',
+                'serial_number': 'AC87654321'
+            }
         }
-        
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = db_connection
-            
-            response = client.post(
-                "/api/v1/printers",
-                json=printer_data
-            )
-            
-            assert response.status_code == 201
-            data = response.json()
-            assert data['printer']['name'] == printer_data['name']
-            assert data['printer']['type'] == 'bambu_lab'
-            assert 'id' in data['printer']
-            assert data['printer']['is_active'] is True
+
+        # Mock the created printer
+        created_printer = Printer(
+            id='new_bambu_001',
+            name='New Bambu Lab A1',
+            type=PrinterType.BAMBU_LAB,
+            ip_address='192.168.1.102',
+            access_code='new_access_code',
+            serial_number='AC87654321',
+            is_active=True,
+            status=PrinterStatus.UNKNOWN,
+            created_at=datetime.now()
+        )
+
+        # Mock the service methods
+        test_app.state.printer_service.create_printer = AsyncMock(return_value=created_printer)
+        test_app.state.printer_service.connect_printer = AsyncMock(return_value=True)
+        test_app.state.printer_service.start_monitoring = AsyncMock(return_value=None)
+        test_app.state.printer_service.printer_instances = {}
+
+        response = client.post(
+            "/api/v1/printers",
+            json=printer_data
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data['name'] == printer_data['name']
+        assert data['printer_type'] == 'bambu_lab'
+        assert 'id' in data
+        assert data['is_enabled'] is True
     
-    @pytest.mark.skip(reason="Requires printer_service.create_printer implementation and database service integration")
-    def test_post_printers_prusa(self, client, db_connection):
+    def test_post_printers_prusa(self, client, test_app):
         """Test POST /api/v1/printers - Add Prusa printer"""
+        from unittest.mock import AsyncMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus
+
         printer_data = {
             'name': 'New Prusa Core One',
-            'type': 'prusa',
-            'model': 'Core One',
-            'ip_address': '192.168.1.103',
-            'api_key': 'new_prusa_api_key_67890'
+            'printer_type': 'prusa_core',
+            'connection_config': {
+                'ip_address': '192.168.1.103',
+                'api_key': 'new_prusa_api_key_67890'
+            }
         }
-        
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = db_connection
-            
-            response = client.post(
-                "/api/v1/printers",
-                json=printer_data
-            )
-            
-            assert response.status_code == 201
-            data = response.json()
-            assert data['printer']['name'] == printer_data['name']
-            assert data['printer']['type'] == 'prusa'
-            assert data['printer']['api_key'] == printer_data['api_key']
+
+        # Mock the created printer
+        created_printer = Printer(
+            id='new_prusa_001',
+            name='New Prusa Core One',
+            type=PrinterType.PRUSA_CORE,
+            ip_address='192.168.1.103',
+            api_key='new_prusa_api_key_67890',
+            is_active=True,
+            status=PrinterStatus.UNKNOWN,
+            created_at=datetime.now()
+        )
+
+        # Mock the service methods
+        test_app.state.printer_service.create_printer = AsyncMock(return_value=created_printer)
+        test_app.state.printer_service.connect_printer = AsyncMock(return_value=True)
+        test_app.state.printer_service.start_monitoring = AsyncMock(return_value=None)
+        test_app.state.printer_service.printer_instances = {}
+
+        response = client.post(
+            "/api/v1/printers",
+            json=printer_data
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data['name'] == printer_data['name']
+        assert data['printer_type'] == 'prusa_core'
+        # Note: API response doesn't include api_key in connection_config for security
     
     def test_post_printers_validation_errors(self, client):
         """Test POST /api/v1/printers with validation errors"""
@@ -290,29 +379,47 @@ class TestPrinterAPI:
         assert error_data['status'] == 'error'
         assert 'not found' in error_data['message'].lower()
     
-    @pytest.mark.skip(reason="Requires printer_service.update_printer implementation and database service integration")
-    def test_put_printers_update_config(self, client, populated_database):
+    def test_put_printers_update_config(self, client, test_app):
         """Test PUT /api/v1/printers/{id} - Update printer configuration"""
+        from unittest.mock import AsyncMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus
+
         printer_id = 'bambu_a1_001'
         update_data = {
             'name': 'Updated Bambu Lab A1',
-            'ip_address': '192.168.1.150',
-            'is_active': False
+            'connection_config': {
+                'ip_address': '192.168.1.150'
+            },
+            'is_enabled': False
         }
-        
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.put(
-                "/api/v1/printers/{printer_id}",
-                json=update_data
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['printer']['name'] == update_data['name']
-            assert data['printer']['ip_address'] == update_data['ip_address']
-            assert data['printer']['is_active'] is False
+
+        # Mock the updated printer
+        updated_printer = Printer(
+            id=printer_id,
+            name='Updated Bambu Lab A1',
+            type=PrinterType.BAMBU_LAB,
+            ip_address='192.168.1.150',
+            access_code='test_code',
+            is_active=False,
+            status=PrinterStatus.OFFLINE,
+            created_at=datetime.now()
+        )
+
+        # Mock the service method
+        test_app.state.printer_service.update_printer = AsyncMock(return_value=updated_printer)
+        test_app.state.printer_service.printer_instances = {}
+
+        response = client.put(
+            f"/api/v1/printers/{printer_id}",
+            json=update_data
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['name'] == 'Updated Bambu Lab A1'
+        assert data['connection_config']['ip_address'] == '192.168.1.150'
+        assert data['is_enabled'] is False
     
     @pytest.mark.skip(reason="Requires printer_service.update_printer implementation with validation")
     def test_put_printers_invalid_update(self, client):
@@ -339,77 +446,105 @@ class TestPrinterAPI:
             assert response.status_code == 400
             assert expected_error in response.json()['error']['message']
     
-    @pytest.mark.skip(reason="Requires printer_service.delete_printer implementation and database service integration")
-    def test_delete_printers(self, client, populated_database):
+    def test_delete_printers(self, client, test_app):
         """Test DELETE /api/v1/printers/{id}"""
+        from unittest.mock import AsyncMock
+
         printer_id = 'prusa_core_001'
-        
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.delete(
-                "/api/v1/printers/{printer_id}"
-            )
-            
-            assert response.status_code == 204
-            
-            # Verify printer is marked as inactive, not actually deleted
-            cursor = populated_database.cursor()
-            cursor.execute("SELECT is_active FROM printers WHERE id = ?", (printer_id,))
-            result = cursor.fetchone()
-            assert result is not None  # Printer still exists
-            assert result[0] == 0  # But is marked inactive
+
+        # Mock the service method to return success
+        test_app.state.printer_service.delete_printer = AsyncMock(return_value=True)
+
+        response = client.delete(
+            f"/api/v1/printers/{printer_id}"
+        )
+
+        assert response.status_code == 204
+
+        # Verify delete_printer was called
+        test_app.state.printer_service.delete_printer.assert_called_once_with(printer_id, force=False)
     
-    @pytest.mark.skip(reason="Requires printer_service.delete_printer implementation with active job validation")
-    def test_delete_printer_with_active_jobs(self, client, populated_database):
+    def test_delete_printer_with_active_jobs(self, client, test_app):
         """Test DELETE /api/v1/printers/{id} with active print jobs"""
+        from unittest.mock import AsyncMock
+
         printer_id = 'bambu_a1_001'  # This printer has an active printing job
-        
-        with patch('src.database.database.get_connection') as mock_db:
-            mock_db.return_value = populated_database
-            
-            response = client.delete(
-                "/api/v1/printers/{printer_id}"
-            )
-            
-            assert response.status_code == 409
-            error_data = response.json()
-            assert 'Cannot delete printer with active jobs' in error_data['error']['message']
+
+        # Mock delete_printer to raise ValueError (active job protection)
+        test_app.state.printer_service.delete_printer = AsyncMock(
+            side_effect=ValueError("Cannot delete printer with 2 active job(s). Complete or cancel active jobs first, or use force=true to override.")
+        )
+
+        response = client.delete(
+            f"/api/v1/printers/{printer_id}"
+        )
+
+        assert response.status_code == 409
+        error_data = response.json()
+        assert 'Cannot delete printer with' in error_data['detail']
+        assert 'active job' in error_data['detail']
     
-    @pytest.mark.skip(reason="Test uses wrong endpoint: /test-connection instead of /connect")
-    def test_printer_connection_test(self, client, mock_bambu_api):
-        """Test POST /api/v1/printers/{id}/test-connection"""
-        printer_id = 'bambu_a1_001'
-        
-        with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
-            mock_api_class.return_value = mock_bambu_api
-            mock_bambu_api.test_connection.return_value = True
-            
-            response = client.post(
-                "/api/v1/printers/{printer_id}/test-connection"
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['connection_test']['success'] is True
-            assert 'response_time_ms' in data['connection_test']
+    def test_printer_connection_test(self, client, test_app):
+        """Test POST /api/v1/printers/test-connection"""
+        from unittest.mock import AsyncMock
+
+        test_data = {
+            'printer_type': 'bambu_lab',
+            'connection_config': {
+                'ip_address': '192.168.1.100',
+                'access_code': 'test12345',
+                'serial_number': 'AC123456'
+            }
+        }
+
+        # Mock test_connection to return success
+        test_app.state.printer_service.test_connection = AsyncMock(return_value={
+            'success': True,
+            'message': 'Connection successful',
+            'response_time_ms': 150
+        })
+
+        response = client.post(
+            "/api/v1/printers/test-connection",
+            json=test_data
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['success'] is True
+        assert 'response_time_ms' in data['data']
     
-    @pytest.mark.skip(reason="Test uses wrong endpoint: /test-connection instead of /connect")
-    def test_printer_connection_test_failed(self, client):
-        """Test POST /api/v1/printers/{id}/test-connection with failed connection"""
-        printer_id = 'offline_printer'
-        
-        with patch('src.printers.get_printer_api') as mock_get_api:
-            mock_get_api.side_effect = ConnectionError("Connection timeout")
-            
-            response = client.post(
-                "/api/v1/printers/{printer_id}/test-connection"
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['connection_test']['success'] is False
-            assert 'Connection timeout' in data['connection_test']['error']
+    def test_printer_connection_test_failed(self, client, test_app):
+        """Test POST /api/v1/printers/test-connection with failed connection"""
+        from unittest.mock import AsyncMock
+
+        test_data = {
+            'printer_type': 'bambu_lab',
+            'connection_config': {
+                'ip_address': '192.168.1.200',  # Non-existent IP
+                'access_code': 'wrong_code',
+                'serial_number': 'INVALID'
+            }
+        }
+
+        # Mock test_connection to return failure
+        test_app.state.printer_service.test_connection = AsyncMock(return_value={
+            'success': False,
+            'message': 'Connection failed: Connection timeout',
+            'error': 'Connection timeout'
+        })
+
+        response = client.post(
+            "/api/v1/printers/test-connection",
+            json=test_data
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'  # API call succeeded even though connection failed
+        assert data['data']['success'] is False
+        assert 'Connection timeout' in data['data']['message']
 
 
 class TestPrinterBusinessLogic:
