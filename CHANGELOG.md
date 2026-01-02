@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-01-02
+
+### Added
+- **Filament Display**: Added comprehensive filament information to printer tiles
+  - Display all loaded filaments with color, type, and slot number
+  - Visual color indicators showing actual filament colors
+  - Highlight currently selected/active filament with distinctive styling
+  - Support for BambuLab AMS (Automatic Material System) with multiple trays
+  - Support for Prusa single filament and MMU2S (Multi Material Unit) setups
+  - Added `Filament` data model with slot, color, type, and active status
+  - Filament information displayed in both dashboard and printer management pages
+  - Responsive design with hover effects and tooltips
+
+### Changed
+- **API Enhancement**: Extended `PrinterStatusUpdate` model with optional `filaments` field (backward compatible)
+- **BambuLab Integration**: Enhanced MQTT data extraction to parse AMS filament information
+- **Prusa Integration**: Enhanced API data extraction to parse filament sensor information
+
 ## [2.11.9] - 2026-01-01
 
 ### Fixed
