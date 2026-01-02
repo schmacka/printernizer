@@ -1,8 +1,10 @@
 # Printernizer Documentation
 
-**Professional 3D Printer Management System for Bambu Lab A1 and Prusa Core One**
+**Professional 3D Printer Management System for Bambu Lab & Prusa Printers**
 
 Enterprise-grade fleet management with real-time monitoring, automated file handling, and business analytics. Perfect for 3D printing services, educational institutions, and production environments.
+
+> **Tested with:** Bambu Lab A1 and Prusa Core One
 
 ---
 
@@ -62,11 +64,13 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 ## Key Features
 
 ### Printer Support
-- **Bambu Lab A1** - Full MQTT integration with real-time status updates
-- **Prusa Core One** - HTTP API integration via PrusaLink
+- **Bambu Lab Printers** - Full MQTT integration with real-time status updates
+- **Prusa Printers** - HTTP API integration via PrusaLink
 - **Auto-discovery** - Automatically find printers on your network (SSDP + mDNS)
 - **Multi-printer management** - Simultaneous monitoring of multiple printers
 - **Connection health monitoring** - Automatic retry and error handling
+
+> **Tested with:** Bambu Lab A1 and Prusa Core One
 
 ### Real-time Monitoring
 - **Live status updates** - Current printer state, temperatures, progress
@@ -158,7 +162,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
 - ✅ Complete backend with FastAPI + async SQLite
 - ✅ Professional web interface with mobile-responsive design
-- ✅ Full printer integration (Bambu Lab A1 + Prusa Core One)
+- ✅ Full printer integration (Bambu Lab & Prusa manufacturers)
 - ✅ Real-time monitoring with WebSocket updates
 - ✅ File management and download system
 - ✅ 3D preview system (STL, 3MF, GCODE, BGCODE rendering)
