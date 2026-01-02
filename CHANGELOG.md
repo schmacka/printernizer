@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.2] - 2026-01-02
+
+### Fixed
+- **Prusa Job Display**: Fixed print job information not showing for Prusa printers
+  - Job filename now correctly extracted from `file.display_name` in PrusaLink v1 API response
+  - Progress percentage and remaining time now displayed during active prints
+  - Filament type (e.g., "PLA") now extracted from `telemetry.material` field
+
 ## [2.12.1] - 2026-01-02
 
 ### Fixed

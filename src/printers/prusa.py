@@ -195,7 +195,24 @@ class PrusaPrinter(BasePrinter):
                                                type=filament_type,
                                                active=is_active)
 
-            # If no MMU data, check for single filament sensor
+            # If no MMU data, check for telemetry.material (PrusaLink v1 API)
+            # This is the most common format for Core One and other modern Prusa printers
+            if not filaments and 'telemetry' in status_data:
+                telemetry = status_data.get('telemetry', {})
+                if isinstance(telemetry, dict):
+                    filament_type = telemetry.get('material')
+                    if filament_type:
+                        filaments.append(Filament(
+                            slot=0,
+                            color=None,  # Telemetry doesn't provide color info
+                            type=filament_type,
+                            is_active=True  # Single filament is always active
+                        ))
+                        logger.debug("Extracted filament from telemetry",
+                                   printer_id=self.printer_id,
+                                   type=filament_type)
+
+            # Fall back to 'filament' field if present
             if not filaments and 'filament' in status_data:
                 filament_data = status_data.get('filament', {})
                 if isinstance(filament_data, dict):
@@ -288,15 +305,22 @@ class PrusaPrinter(BasePrinter):
             print_start_time = None
 
             if job_data:
-                # PrusaLink API returns filename directly, not nested in 'job'
-                # Try PrusaLink structure first, then fall back to OctoPrint structure
-                current_job = job_data.get('display_name', '')
+                # PrusaLink v1 API returns filename in 'file.display_name'
+                # Check nested 'file' structure first, then fall back to other structures
+                file_info = job_data.get('file', {})
+                if file_info:
+                    current_job = file_info.get('display_name', file_info.get('name', ''))
+
+                if not current_job:
+                    # Fall back to top-level display_name (older API versions)
+                    current_job = job_data.get('display_name', '')
+
                 if not current_job:
                     # Fall back to OctoPrint structure
                     job_info = job_data.get('job', {})
                     if job_info and job_info.get('file'):
-                        file_info = job_info.get('file', {})
-                        current_job = file_info.get('display_name', file_info.get('name', ''))
+                        octo_file_info = job_info.get('file', {})
+                        current_job = octo_file_info.get('display_name', octo_file_info.get('name', ''))
 
                 # Extract progress
                 # PrusaLink v1 API: progress is a direct number (0-100)
@@ -487,16 +511,23 @@ class PrusaPrinter(BasePrinter):
                 else:
                     job_data = await response.json()
                 
-            # PrusaLink API returns job data directly, not nested in 'job'
-            # Try PrusaLink structure first
-            job_name = job_data.get('display_name', '')
+            # PrusaLink v1 API returns job data in 'file' structure
+            # Check nested 'file' structure first
+            job_name = ''
+            file_info = job_data.get('file', {})
+            if file_info:
+                job_name = file_info.get('display_name', file_info.get('name', ''))
+
+            if not job_name:
+                # Fall back to top-level display_name (older API versions)
+                job_name = job_data.get('display_name', '')
+
             if not job_name:
                 # Fall back to OctoPrint structure
                 job_info_data = job_data.get('job', {})
-                if not job_info_data.get('file', {}).get('name'):
-                    return None  # No active job
-                file_info = job_info_data.get('file', {})
-                job_name = file_info.get('display_name', file_info.get('name', 'Unknown Job'))
+                if job_info_data and job_info_data.get('file'):
+                    octo_file_info = job_info_data.get('file', {})
+                    job_name = octo_file_info.get('display_name', octo_file_info.get('name', 'Unknown Job'))
 
             if not job_name:
                 return None  # No active job
