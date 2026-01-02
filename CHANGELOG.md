@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.1] - 2026-01-02
+
+### Fixed
+- **Prusa Camera Detection**: Improved camera detection with snapshot fallback method
+  - Fixed issue where cameras were not detected even when configured in PrusaLink
+  - Implemented two-step detection: `/api/v1/cameras` endpoint with fallback to `/api/v1/cameras/snap`
+  - Camera now detected if snapshot endpoint returns HTTP 200, even when camera list is empty
+  - Enhanced logging to show which detection method succeeded
+  - Updated diagnostics endpoint with fallback detection details and improved recommendations
+
 ## [2.12.0] - 2026-01-02
 
 ### Added
