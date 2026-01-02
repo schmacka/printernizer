@@ -62,6 +62,7 @@ class PrinterCard {
                 
                 ${this.renderCurrentJob()}
                 ${this.renderTemperatures()}
+                ${this.renderFilaments()}
                 ${this.renderRealtimeProgress()}
                 ${this.renderCameraSection()}
             </div>
@@ -373,7 +374,7 @@ class PrinterCard {
      */
     renderTemperatureItem(type, label, temperature) {
         let tempValue, tempTarget = '';
-        
+
         if (typeof temperature === 'object') {
             tempValue = `${parseFloat(temperature.current).toFixed(1)}°C`;
             if (temperature.target) {
@@ -383,8 +384,8 @@ class PrinterCard {
             tempValue = `${parseFloat(temperature).toFixed(1)}°C`;
         }
 
-        const isHeating = typeof temperature === 'object' && 
-                          temperature.target && 
+        const isHeating = typeof temperature === 'object' &&
+                          temperature.target &&
                           Math.abs(temperature.current - temperature.target) > 2;
 
         return `
@@ -392,6 +393,51 @@ class PrinterCard {
                 <div class="temp-label">${label}</div>
                 <div class="temp-value ${isHeating ? 'temp-heating' : ''}">${tempValue}</div>
                 ${tempTarget}
+            </div>
+        `;
+    }
+
+    /**
+     * Render filaments section
+     */
+    renderFilaments() {
+        // Don't show filaments section if no filament data
+        if (!this.printer.filaments || this.printer.filaments.length === 0) {
+            return '';
+        }
+
+        const filamentItems = this.printer.filaments.map(filament =>
+            this.renderFilamentItem(filament)
+        ).join('');
+
+        return `
+            <div class="filaments">
+                <div class="filaments-header">
+                    <span class="filaments-label">Filamente</span>
+                </div>
+                <div class="filaments-list">
+                    ${filamentItems}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render individual filament item
+     */
+    renderFilamentItem(filament) {
+        const slotLabel = filament.slot === 254 ? 'Ext' : `${filament.slot + 1}`;
+        const filamentType = filament.type || '?';
+        const filamentColor = filament.color || '#CCCCCC';
+        const isActive = filament.is_active;
+
+        return `
+            <div class="filament-item ${isActive ? 'filament-active' : ''}" data-slot="${filament.slot}" title="Slot ${slotLabel}: ${filamentType}">
+                <div class="filament-color" style="background-color: ${escapeHtml(filamentColor)}"></div>
+                <div class="filament-info">
+                    <span class="filament-slot">${slotLabel}</span>
+                    <span class="filament-type">${escapeHtml(filamentType)}</span>
+                </div>
             </div>
         `;
     }

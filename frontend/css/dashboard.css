@@ -282,6 +282,89 @@
     animation: pulse 2s infinite;
 }
 
+/* Filaments Section */
+.filaments {
+    margin-top: var(--spacing-4);
+    padding: var(--spacing-3);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.filaments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-3);
+}
+
+.filaments-label {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.filaments-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+}
+
+.filament-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-3);
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.filament-item:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.filament-active {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--white) 0%, var(--primary-color-10) 100%);
+    box-shadow: 0 2px 8px rgba(var(--primary-color-rgb), 0.2);
+}
+
+.filament-active .filament-color {
+    box-shadow: 0 0 0 2px var(--white), 0 0 0 4px var(--primary-color);
+}
+
+.filament-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.filament-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.filament-slot {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    font-weight: 600;
+}
+
+.filament-type {
+    font-size: var(--font-size-sm);
+    color: var(--gray-900);
+    font-weight: 500;
+}
+
 /* Jobs Preview */
 .jobs-preview {
     display: flex;

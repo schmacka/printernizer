@@ -159,6 +159,7 @@ class PrinterManager {
 
                 ${this.renderTileCurrentJob(printer)}
                 ${this.renderTileTemperatures(printer.temperatures)}
+                ${this.renderTileFilaments(printer.filaments)}
 
                 <div class="printer-tile-stats">
                     ${this.renderTileStatistics(printer.statistics)}
@@ -252,6 +253,43 @@ class PrinterManager {
         return `
             <div class="printer-tile-temps">
                 ${tempItems.join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render filaments for tile layout
+     */
+    renderTileFilaments(filaments) {
+        if (!filaments || filaments.length === 0) {
+            return '';
+        }
+
+        const filamentItems = filaments.map(filament => {
+            const slotLabel = filament.slot === 254 ? 'Ext' : `${filament.slot + 1}`;
+            const filamentType = filament.type || '?';
+            const filamentColor = filament.color || '#CCCCCC';
+            const isActive = filament.is_active;
+
+            return `
+                <div class="filament-item ${isActive ? 'filament-active' : ''}" data-slot="${filament.slot}" title="Slot ${slotLabel}: ${filamentType}">
+                    <div class="filament-color" style="background-color: ${escapeHtml(filamentColor)}"></div>
+                    <div class="filament-info">
+                        <span class="filament-slot">${slotLabel}</span>
+                        <span class="filament-type">${escapeHtml(filamentType)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="filaments">
+                <div class="filaments-header">
+                    <span class="filaments-label">Filamente</span>
+                </div>
+                <div class="filaments-list">
+                    ${filamentItems}
+                </div>
             </div>
         `;
     }

@@ -3,7 +3,7 @@ Printer models for Printernizer.
 Pydantic models for printer data validation and serialization.
 """
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -23,6 +23,20 @@ class PrinterStatus(str, Enum):
     PAUSED = "paused"
     ERROR = "error"
     UNKNOWN = "unknown"
+
+
+class Filament(BaseModel):
+    """Filament information model."""
+    slot: int = Field(..., description="Filament slot/tray number (0-indexed)")
+    color: Optional[str] = Field(None, description="Filament color (hex code or name)")
+    type: Optional[str] = Field(None, description="Filament material type (PLA, PETG, ABS, etc.)")
+    is_active: bool = Field(False, description="Whether this filament is currently selected/active")
+
+    class Config:
+        """Pydantic configuration."""
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
 
 
 class Printer(BaseModel):
@@ -74,5 +88,7 @@ class PrinterStatusUpdate(BaseModel):
     # Direct printer-reported timing (only if available from printer)
     elapsed_time_minutes: Optional[int] = None  # Time since print started
     print_start_time: Optional[datetime] = None  # Actual start time from printer
+    # Filament information (color, type, slot)
+    filaments: Optional[List[Filament]] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     raw_data: Optional[Dict[str, Any]] = None
