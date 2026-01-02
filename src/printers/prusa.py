@@ -1136,7 +1136,7 @@ class PrusaPrinter(BasePrinter):
 
     async def _get_cameras(self) -> List[dict]:
         """Get list of available cameras from PrusaLink API.
-        
+
         Returns:
             List of camera configuration dictionaries from PrusaLink.
         """
@@ -1146,13 +1146,17 @@ class PrusaPrinter(BasePrinter):
             async with self.session.get(f"{self.base_url}/v1/cameras") as response:
                 if response.status == 200:
                     cameras = await response.json()
-                    logger.debug("PrusaLink cameras found",
-                               printer_id=self.printer_id, count=len(cameras))
+                    logger.debug("PrusaLink cameras API response",
+                               printer_id=self.printer_id,
+                               count=len(cameras),
+                               status=response.status,
+                               cameras=cameras)
                     return cameras
-                elif response.status == 404:
-                    # Camera API not available on this firmware version
-                    logger.debug("Camera API not available",
-                               printer_id=self.printer_id)
+                else:
+                    # API not available or returned non-200 status
+                    logger.debug("Camera list API unavailable or returned error",
+                               printer_id=self.printer_id,
+                               status=response.status)
                     return []
         except asyncio.TimeoutError:
             logger.debug("Timeout getting cameras", printer_id=self.printer_id)
@@ -1163,16 +1167,54 @@ class PrusaPrinter(BasePrinter):
 
     async def has_camera(self) -> bool:
         """Check if Prusa printer has camera support via PrusaLink API.
-        
+
+        Uses a two-step detection approach:
+        1. Try /api/v1/cameras endpoint to list cameras
+        2. If that fails or returns empty, try capturing a snapshot as fallback
+
         Returns:
             True if at least one camera is configured on the printer.
         """
         try:
+            # First, try the cameras list endpoint
             cameras = await self._get_cameras()
-            has_cam = len(cameras) > 0
-            logger.debug("Prusa camera check",
-                        printer_id=self.printer_id, has_camera=has_cam)
-            return has_cam
+            if len(cameras) > 0:
+                logger.debug("Prusa camera detected via cameras list",
+                            printer_id=self.printer_id,
+                            camera_count=len(cameras))
+                return True
+
+            # Fallback: Try to capture a snapshot to detect if camera exists
+            # This handles cases where /v1/cameras returns empty but camera is configured
+            logger.debug("Camera list empty, trying snapshot fallback",
+                        printer_id=self.printer_id)
+
+            if not self.session:
+                return False
+
+            try:
+                async with self.session.get(f"{self.base_url}/v1/cameras/snap",
+                                           timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    if response.status == 200:
+                        # Snapshot succeeded - camera is available
+                        logger.info("Prusa camera detected via snapshot fallback",
+                                   printer_id=self.printer_id,
+                                   status=response.status)
+                        return True
+                    else:
+                        logger.debug("Snapshot endpoint returned non-200 status",
+                                   printer_id=self.printer_id,
+                                   status=response.status)
+                        return False
+            except asyncio.TimeoutError:
+                logger.debug("Snapshot fallback timeout", printer_id=self.printer_id)
+                return False
+            except Exception as snap_error:
+                logger.debug("Snapshot fallback failed",
+                           printer_id=self.printer_id,
+                           error=str(snap_error))
+                return False
+
         except Exception as e:
             logger.debug("Camera check failed",
                         printer_id=self.printer_id, error=str(e))
