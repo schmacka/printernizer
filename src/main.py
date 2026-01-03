@@ -53,6 +53,7 @@ from src.api.routers.timelapses import router as timelapses_router
 from src.api.routers.search import router as search_router
 from src.api.routers.usage_statistics import router as usage_statistics_router
 from src.api.routers.setup import router as setup_router
+from src.api.routers.slicing import router as slicing_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -283,6 +284,28 @@ async def lifespan(app: FastAPI):
     timer.end("Trending service initialization")
     logger.info("[OK] Trending service initialized")
 
+    # Initialize slicer services
+    timer.start("Slicer services initialization")
+    logger.info("Initializing slicer services...")
+    from src.services.slicer_service import SlicerService
+    from src.services.slicing_queue import SlicingQueue
+    
+    slicer_service = SlicerService(database, event_service)
+    await slicer_service.initialize()
+    
+    slicing_queue = SlicingQueue(
+        database,
+        event_service,
+        slicer_service,
+        file_service=file_service,
+        printer_service=printer_service,
+        library_service=library_service
+    )
+    await slicing_queue.initialize()
+    
+    timer.end("Slicer services initialization")
+    logger.info("[OK] Slicer services initialized")
+
     app.state.config_service = config_service
     app.state.event_service = event_service
     app.state.job_service = job_service
@@ -298,6 +321,8 @@ async def lifespan(app: FastAPI):
     app.state.usage_statistics_service = usage_statistics_service
     app.state.usage_statistics_scheduler = usage_statistics_scheduler
     app.state.camera_snapshot_service = camera_snapshot_service
+    app.state.slicer_service = slicer_service
+    app.state.slicing_queue = slicing_queue
 
     # Initialize and start background services in parallel
     timer.start("Background services startup (parallel)")
@@ -526,6 +551,16 @@ async def lifespan(app: FastAPI):
             )
         )
 
+    # Slicing queue
+    if hasattr(app.state, 'slicing_queue') and app.state.slicing_queue:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.slicing_queue.shutdown(),
+                "Slicing queue",
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
+            )
+        )
+
     # Execute all service shutdowns in parallel
     if shutdown_tasks:
         await asyncio.gather(*shutdown_tasks, return_exceptions=True)
@@ -682,6 +717,7 @@ def create_application() -> FastAPI:
     app.include_router(setup_router, prefix="/api/v1/setup", tags=["Setup"])
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(usage_statistics_router, prefix="/api/v1/usage-stats", tags=["Usage Statistics"])
+    app.include_router(slicing_router, prefix="/api/v1/slicing", tags=["Slicing"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     # Temporary debug endpoints (remove before production if not needed)
     app.include_router(debug_router, prefix="/api/v1/debug", tags=["Debug"])
