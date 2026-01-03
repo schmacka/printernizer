@@ -154,7 +154,9 @@ async def export_inventory(
     material_service: MaterialService = Depends(get_material_service)
 ):
     """Export material inventory to file."""
-    export_path = Path(f"exports/materials_{datetime.now():%Y%m%d_%H%M%S}.{format}")
+    # Determine file extension
+    file_ext = "csv" if format == "csv" else "xlsx"
+    export_path = Path(f"exports/materials_{datetime.now():%Y%m%d_%H%M%S}.{file_ext}")
     export_path.parent.mkdir(parents=True, exist_ok=True)
 
     if format == "csv":
@@ -165,9 +167,14 @@ async def export_inventory(
                 media_type="text/csv",
                 filename=export_path.name
             )
-    else:
-        # Excel export would go here
-        raise HTTPException(501, "Excel export not yet implemented")
+    elif format == "excel":
+        success = await material_service.export_inventory_excel(export_path)
+        if success:
+            return FileResponse(
+                path=str(export_path),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename=export_path.name
+            )
 
     raise HTTPException(500, "Export failed")
 

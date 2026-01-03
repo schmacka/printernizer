@@ -65,6 +65,7 @@ gunicorn>=22.0.0
 # File Processing and Validation
 # magic==0.4.27
 filetype==1.2.0
+openpyxl>=3.1.0  # Excel file generation for material exports
 
 # 3D File Processing and Preview Rendering
 trimesh>=4.0.5
