@@ -49,6 +49,7 @@ class DiscoveredPrinter:
         self.model = model
         self.serial = serial
         self.discovered_at = datetime.utcnow()
+        self.already_added = False  # Set by discover_all() based on configured IPs
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API response."""
@@ -59,7 +60,8 @@ class DiscoveredPrinter:
             "hostname": self.hostname,
             "model": self.model,
             "serial": self.serial,
-            "discovered_at": self.discovered_at.isoformat()
+            "discovered_at": self.discovered_at.isoformat(),
+            "already_added": self.already_added
         }
 
 

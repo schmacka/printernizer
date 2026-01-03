@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.1] - 2026-01-03
+
+### Fixed
+- **Printer Auto-Detection**: Fixed duplicate printers showing in discovery results
+  - The `already_added` flag was being set but not included in API response
+  - Discovery now correctly filters out printers that are already configured
+  - Setup wizard also now filters already-added printers from the list
+
 ## [2.13.0] - 2026-01-03
 
 ### Added
