@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-01-03
+
+### Added
+- **Excel Export for Materials**: Implemented Excel export functionality for material inventory
+  - Added support for `.xlsx` format export via `/api/v1/materials/export?format=excel` endpoint
+  - Professional formatting with styled headers (blue background, white text, bold)
+  - Auto-adjusted column widths for optimal readability
+  - Includes all 12 material inventory fields (ID, Type, Brand, Color, Diameter, Weight, Remaining, Cost/kg, Value, Vendor, Batch, Notes)
+  - Added `openpyxl>=3.1.0` dependency for Excel file generation
+  - Created comprehensive tests for export functionality
+
+### Fixed
+- Resolved 501 "Not Yet Implemented" error when requesting Excel format material exports
+
 ## [2.12.2] - 2026-01-02
 
 ### Fixed
