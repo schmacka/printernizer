@@ -186,7 +186,7 @@ class SlicingQueue(BaseService):
             row = await cursor.fetchone()
 
         if not row:
-            raise NotFoundError(f"Slicing job not found: {job_id}")
+            raise NotFoundError("Slicing job", job_id)
 
         return self._row_to_job(row)
 

@@ -160,7 +160,7 @@ class SlicerService(BaseService):
             row = await cursor.fetchone()
 
         if not row:
-            raise NotFoundError(f"Slicer not found: {slicer_id}")
+            raise NotFoundError("Slicer", slicer_id)
 
         return self._row_to_slicer_config(row)
 
@@ -373,7 +373,7 @@ class SlicerService(BaseService):
             row = await cursor.fetchone()
 
         if not row:
-            raise NotFoundError(f"Profile not found: {profile_id}")
+            raise NotFoundError("Profile", profile_id)
 
         return self._row_to_profile(row)
 
