@@ -390,22 +390,40 @@ class SlicingQueue(BaseService):
                 stderr=asyncio.subprocess.PIPE
             )
             
-            # Monitor progress (simplified - actual progress tracking would parse output)
+            # Monitor progress with timeout tracking
+            start_time = asyncio.get_event_loop().time()
             progress_steps = [30, 40, 50, 60, 70, 80, 90]
+            step_interval = 5  # Fixed 5-second interval between progress updates
+            
             for progress in progress_steps:
-                await asyncio.sleep(timeout / len(progress_steps) / 2)
+                # Check if we've exceeded timeout
+                elapsed = asyncio.get_event_loop().time() - start_time
+                if elapsed >= timeout:
+                    process.kill()
+                    raise Exception("Slicing timed out")
+                
+                await asyncio.sleep(step_interval)
                 if process.returncode is not None:
                     break
                 await self._update_job_progress(job_id, progress)
             
-            # Wait for completion
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=timeout
-            )
+            # Wait for completion with remaining timeout
+            elapsed = asyncio.get_event_loop().time() - start_time
+            remaining_timeout = max(1, timeout - elapsed)
+            
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=remaining_timeout
+                )
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                raise Exception("Slicing timed out")
             
             if process.returncode != 0:
-                error_msg = stderr.decode('utf-8', errors='ignore')
+                # stderr is already bytes from communicate()
+                error_msg = stderr.decode('utf-8', errors='ignore') if isinstance(stderr, bytes) else str(stderr)
                 raise Exception(f"Slicing failed: {error_msg}")
             
             if not output_file.exists():
