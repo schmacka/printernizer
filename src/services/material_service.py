@@ -13,6 +13,9 @@ from uuid import uuid4
 
 import aiofiles
 import structlog
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 
 from src.database.database import Database
 from src.models.material import (
@@ -636,6 +639,76 @@ class MaterialService:
 
         except Exception as e:
             logger.error(f"Failed to export inventory: {e}")
+            return False
+
+    async def export_inventory_excel(self, file_path: Path) -> bool:
+        """Export material inventory to Excel format with formatting."""
+        try:
+            materials = list(self.materials_cache.values())
+
+            # Create workbook and select active sheet
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Material Inventory"
+
+            # Define headers
+            headers = [
+                "ID", "Type", "Brand", "Color", "Diameter (mm)",
+                "Weight (kg)", "Remaining (kg)", "Cost/kg (€)",
+                "Value (€)", "Vendor", "Batch", "Notes"
+            ]
+
+            # Style for headers
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+
+            # Write headers
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num, value=header)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = header_alignment
+
+            # Write data rows
+            for row_num, m in enumerate(materials, 2):
+                ws.cell(row=row_num, column=1, value=m.id)
+                ws.cell(row=row_num, column=2, value=m.material_type.value)
+                ws.cell(row=row_num, column=3, value=m.brand.value)
+                ws.cell(row=row_num, column=4, value=m.color.value)
+                ws.cell(row=row_num, column=5, value=float(m.diameter))
+                ws.cell(row=row_num, column=6, value=float(m.weight))
+                ws.cell(row=row_num, column=7, value=float(m.remaining_weight))
+                ws.cell(row=row_num, column=8, value=float(m.cost_per_kg))
+                ws.cell(row=row_num, column=9, value=float(m.remaining_value))
+                ws.cell(row=row_num, column=10, value=m.vendor or "")
+                ws.cell(row=row_num, column=11, value=m.batch_number or "")
+                ws.cell(row=row_num, column=12, value=m.notes or "")
+
+            # Auto-adjust column widths
+            for col_num in range(1, len(headers) + 1):
+                column_letter = get_column_letter(col_num)
+                max_length = len(headers[col_num - 1])
+
+                # Check data rows for maximum length
+                for row in ws.iter_rows(min_row=2, max_row=ws.max_row,
+                                       min_col=col_num, max_col=col_num):
+                    for cell in row:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+
+                # Set column width (add some padding)
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
+
+            # Save workbook
+            wb.save(file_path)
+
+            logger.info(f"Exported {len(materials)} materials to Excel: {file_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to export inventory to Excel: {e}")
             return False
 
     async def cleanup(self):
