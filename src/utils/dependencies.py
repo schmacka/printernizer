@@ -26,6 +26,8 @@ from src.services.material_service import MaterialService
 from src.services.timelapse_service import TimelapseService
 from src.services.search_service import SearchService
 from src.services.camera_snapshot_service import CameraSnapshotService
+from src.services.slicer_service import SlicerService
+from src.services.slicing_queue import SlicingQueue
 
 
 async def get_database(request: Request) -> Database:
@@ -150,3 +152,13 @@ async def get_search_service(
 async def get_camera_snapshot_service(request: Request) -> CameraSnapshotService:
     """Get camera snapshot service instance from app state."""
     return request.app.state.camera_snapshot_service
+
+
+async def get_slicer_service(request: Request) -> SlicerService:
+    """Get slicer service instance from app state."""
+    return request.app.state.slicer_service
+
+
+async def get_slicing_queue(request: Request) -> SlicingQueue:
+    """Get slicing queue instance from app state."""
+    return request.app.state.slicing_queue
