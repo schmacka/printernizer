@@ -142,43 +142,60 @@ describe('WebSocket Integration', () => {
     
     test('should reconnect after connection loss', async () => {
       await webSocketManager.connect();
-      
+
       expect(webSocketManager.isConnected).toBe(true);
-      
+
       // Simulate connection loss
       webSocketManager.ws.close();
-      
-      // Wait for reconnection attempt
-      await testUtils.waitFor(() => {
+
+      // Wait for reconnection attempt (fixed: was using undefined testUtils)
+      await waitFor(() => {
         return webSocketManager.reconnectAttempts > 0;
-      });
-      
+      }, { timeout: 3000 });
+
       expect(webSocketManager.reconnectAttempts).toBeGreaterThan(0);
     });
-    
-    // TODO: Fix flaky test - timing issues with WebSocket reconnection attempts
-    // See GitHub Actions run #19493470198 for details
-    test.skip('should stop reconnecting after max attempts', async () => {
+
+    // Fixed: Improved timing handling for reconnection attempts
+    test('should stop reconnecting after max attempts', async () => {
+      // Enable fake timers for deterministic timing
+      jest.useFakeTimers();
+
       webSocketManager.maxReconnectAttempts = 2;
-      
-      // Mock WebSocket to always fail
+      webSocketManager.reconnectInterval = 100; // Reduce interval for faster test
+
+      // Mock WebSocket to always fail immediately
       const originalWebSocket = global.WebSocket;
       global.WebSocket = jest.fn().mockImplementation(() => {
-        const mockWs = new originalWebSocket('ws://localhost:8000/ws');
-        setTimeout(() => mockWs.close(), 10);
+        const mockWs = {
+          close: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn()
+        };
+        // Trigger close event immediately
+        setTimeout(() => {
+          if (mockWs.onclose) mockWs.onclose({ code: 1006 });
+        }, 0);
         return mockWs;
       });
-      
-      await webSocketManager.connect();
-      
-      // Wait for all reconnection attempts to exhaust
-      await testUtils.waitFor(() => {
-        return webSocketManager.reconnectAttempts >= webSocketManager.maxReconnectAttempts;
-      });
-      
+
+      // Start connection (will fail and trigger reconnects)
+      const connectPromise = webSocketManager.connect().catch(() => {});
+
+      // Fast-forward through all reconnection attempts
+      // Attempt 1: 100ms, Attempt 2: 200ms
+      for (let i = 0; i < webSocketManager.maxReconnectAttempts; i++) {
+        await jest.advanceTimersByTimeAsync(webSocketManager.reconnectInterval * Math.pow(2, i));
+        await Promise.resolve(); // Let promises resolve
+      }
+
+      // Wait a bit more to ensure no additional attempts
+      await jest.advanceTimersByTimeAsync(1000);
+
       expect(webSocketManager.reconnectAttempts).toBe(2);
-      
-      // Restore WebSocket
+
+      // Restore
+      jest.useRealTimers();
       global.WebSocket = originalWebSocket;
     });
   });
