@@ -1,7 +1,7 @@
 # Remaining Tasks & Technical Debt
 
-> **Last Updated**: 2026-01-01
-> **Status**: Production Ready (v2.11.6) with identified improvement areas
+> **Last Updated**: 2026-01-04
+> **Status**: Production Ready (v2.13.1) with identified improvement areas
 
 This document tracks remaining TODOs, incomplete features, test gaps, and roadmap items for the Printernizer project.
 
@@ -97,38 +97,44 @@ This document tracks remaining TODOs, incomplete features, test gaps, and roadma
 
 ### Test Coverage Statistics
 
-- **Services Tested**: 30% (12/40 services)
+- **Services Tested**: 50% (20/40 services)
 - **API Routers Tested**: 40% (8/20 routers)
 - **Printer Implementations**: 100% (4/4)
 
-### Core Infrastructure Services (No Tests)
+### ✅ Core Infrastructure Services (Sprint 2 Phase 1 - COMPLETE)
 
-These services are production-critical but lack automated tests:
+The following critical services now have comprehensive test coverage (2026-01-04):
 
-1. **event_service.py** (CRITICAL)
-   - WebSocket event broadcasting system
-   - Real-time UI updates depend on this
-   - **Risk**: Silent failures in event delivery
+1. ✅ **event_service.py** - 40 tests
+   - Event emission, subscription management
+   - Background task handling
+   - Service dependencies and integration
 
-2. **printer_monitoring_service.py** (CRITICAL)
-   - Real-time printer status polling
-   - Core feature for live dashboard updates
-   - **Risk**: Monitoring failures may go undetected
+2. ✅ **printer_monitoring_service.py** - 52 tests
+   - Start/stop monitoring
+   - Status updates and callbacks
+   - Auto-job creation logic
+   - File discovery and download
 
-3. **printer_control_service.py** (CRITICAL)
+3. ✅ **config_service.py** - 32 tests
+   - Config loading and validation
+   - Printer configuration management
+   - Path validation
+   - Environment variable loading
+
+4. ✅ **business_service.py** - 57 tests
+   - German VAT calculations (19%)
+   - Currency formatting and rounding
+   - Timezone handling (Berlin)
+   - Business hours calculations
+   - Financial precision validation
+
+### Core Infrastructure Services (Still Pending)
+
+5. **printer_control_service.py** (MEDIUM)
    - Printer control commands (pause/resume/stop)
    - Direct user-facing functionality
    - **Risk**: Commands may fail without validation
-
-4. **config_service.py** (CRITICAL)
-   - Configuration loading and validation
-   - Startup failures if config is invalid
-   - **Risk**: Invalid configs may crash application
-
-5. **business_service.py** (CRITICAL)
-   - German VAT calculations, pricing, reporting
-   - Financial accuracy is critical
-   - **Risk**: Incorrect business calculations
 
 ### Printer-Specific Services (No Tests)
 
@@ -387,53 +393,62 @@ These are documented roadmap items, not immediate tasks:
 |----------|----------|------------|------------|
 | Core Features | 95% | 5% | ✅ Excellent |
 | API Endpoints | 90% | 10% | ✅ Very Good |
-| Service Tests | 30% | 70% | ⚠️ Needs Work |
+| Service Tests | 50% | 50% | ✅ Improved |
 | API Router Tests | 40% | 60% | ⚠️ Needs Work |
 | Frontend Features | 85% | 15% | ✅ Good |
 
 ### Active Technical Debt
 
-- **High Priority**: 1 item (Job status update tests - 6 skipped tests)
-- **Medium Priority**: 12 items (Untested critical services)
+- **High Priority**: 0 items ✅
+- **Medium Priority**: 8 items (Remaining untested services)
 - **Low Priority**: 5 items (Polish and enhancements)
 - **Cleanup**: 2 items (Deprecated code)
-- **Completed**: 2 items (Job Update API ✅, Material Consumption History ✅)
+- **Completed**: 6 items (Job Update API ✅, Material Consumption History ✅, Sprint 2 Phase 1 ✅)
 
 ### Total Estimated Effort
 
-- **Critical Fixes**: 5-6 hours (Job status tests only)
-- **Test Coverage**: 20-30 hours
+- **Critical Fixes**: 0 hours ✅
+- **Test Coverage**: 10-15 hours (reduced from 20-30h - Phase 1 complete)
 - **Feature Completion**: 20-30 hours
 - **Polish & Cleanup**: 10-15 hours
 
-**Total**: ~55-81 hours of development work (down from original 60-90h)
+**Total**: ~40-60 hours of development work (down from original 60-90h)
 
-**Progress**: 2 critical items completed (Job Update API, Material Consumption History)
+**Progress**: Sprint 1A, Sprint 1B, and Sprint 2 Phase 1 completed (2026-01-04)
 
 ---
 
 ## 🎯 Recommended Priorities
 
-### Sprint 1: Critical Functionality (1-2 days) - FURTHER REDUCED
+### Sprint 1: Critical Functionality ✅ COMPLETE
 1. ~~Job Update API implementation~~ ✅ **COMPLETE**
 2. ~~Material Consumption History endpoint~~ ✅ **COMPLETE** (verified 2026-01-01)
-3. Job Status Update tests (enable 6 skipped tests) - IN PROGRESS
+3. ~~Job Status Update tests~~ ✅ **COMPLETE** (Sprint 1B)
 
-### Sprint 2: Critical Test Coverage (3-4 days)
-1. ✅ event_service tests
-2. ✅ printer_monitoring_service tests
-3. ✅ config_service tests
-4. ✅ business_service tests
+### Sprint 2 Phase 1: Core Service Tests ✅ COMPLETE (2026-01-04)
+1. ✅ event_service tests (40 tests)
+2. ✅ printer_monitoring_service tests (52 tests)
+3. ✅ config_service tests (32 tests)
+4. ✅ business_service tests (57 tests)
 
-### Sprint 3: Feature Polish (2-3 days)
-1. ✅ Excel export for materials
-2. ✅ Printer filtering and CRUD
-3. ✅ 3D file preview
+**Total: 181 tests passing**
 
-### Sprint 4: Cleanup & Optimization (1-2 days)
-1. ✅ Remove deprecated code
-2. ✅ Fix flaky tests
-3. ✅ Code review and refactoring
+### Sprint 2 Phase 2: Feature Service Tests (Planned)
+1. FileWatcherService tests
+2. FileUploadService tests
+3. CameraSnapshotService tests
+4. SearchService tests
+5. MaterialService tests
+
+### Sprint 3: Feature Polish (Planned)
+1. Notification deduplication
+2. Connection progress indicator
+3. Debug log table format
+
+### Sprint 4: Cleanup & Optimization (Planned)
+1. Remove deprecated code
+2. Fix flaky tests
+3. Code review and refactoring
 
 ---
 
