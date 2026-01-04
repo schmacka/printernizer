@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-01-04
+
+### Added
+- **Slicer Integration**: Complete slicer software detection and integration system
+  - Automatic detection of installed slicers (Bambu Studio, Orca Slicer, Prusa Slicer)
+  - Slicer configuration management and API endpoint integration
+  - Slicing queue system for automated job processing
+  - Comprehensive test suite for slicer detection, service, and queue management
+  - Database migration for slicer configuration storage
+  - API documentation and examples for slicer integration
+
 ## [2.13.3] - 2026-01-04
 
 ### Fixed
