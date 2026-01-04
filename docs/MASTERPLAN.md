@@ -12,10 +12,10 @@
 |----------|--------|------------|
 | Core Features | Production Ready | 95% |
 | Printer Support | Bambu + Prusa | 100% |
-| Test Coverage | Improved | ~75% |
+| Test Coverage | Improved | ~85% |
 | Sprint 1 (P1 Tasks) | Complete | 100% |
 | Sprint 2 Phase 1 (Service Tests) | Complete | 100% |
-| Sprint 2 Phase 2 (Feature Tests) | Planned | 0% |
+| Sprint 2 Phase 2 (Feature Tests) | Complete | 100% |
 | Sprint 3 (Frontend Polish) | Planned | 0% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
@@ -140,7 +140,7 @@
 
 ## Priority 2 - Test Coverage
 
-> **Current**: ~30-40% service coverage | **Target**: 80%
+> **Current**: ~85% service coverage | **Target**: 80% ✅ ACHIEVED
 
 ### Sprint 2 Phase 1: Core Service Tests ✅ COMPLETE (2026-01-04)
 
@@ -185,15 +185,50 @@
 
 **Total: 181 tests passing**
 
-### Sprint 2 Phase 2: Feature Service Tests
+### Sprint 2 Phase 2: Feature Service Tests ✅ COMPLETE (2026-01-04)
 
-**Estimated Effort**: 6-8 hours
+**Actual Effort**: Completed alongside Phase 1
 
-- [ ] FileWatcherService tests
-- [ ] FileUploadService tests
-- [ ] CameraSnapshotService tests
-- [ ] SearchService tests
-- [ ] MaterialService tests
+#### FileWatcherService (`src/services/file_watcher_service.py`) ✅
+- [x] Created `tests/services/test_file_watcher_service.py` - **41 tests**
+- [x] Test file filtering and extensions
+- [x] Test watch folder management
+- [x] Test file event handling (create, modify, delete, move)
+- [x] Test debouncing and scanning
+- [x] Test library integration
+
+#### CameraSnapshotService (`src/services/camera_snapshot_service.py`) ✅
+- [x] Created `tests/services/test_camera_snapshot_service.py` - **29 tests**
+- [x] Test image format detection
+- [x] Test cache lifecycle and expiration
+- [x] Test snapshot retrieval and caching
+- [x] Test concurrent access handling
+
+#### FileUploadService (`src/services/file_upload_service.py`) ✅
+- [x] Created `tests/services/test_file_upload_service.py` - **29 tests**
+- [x] Test file validation and extensions
+- [x] Test duplicate detection
+- [x] Test file saving and hash calculation
+- [x] Test post-upload processing
+- [x] Test multi-file uploads
+
+#### SearchService (`src/services/search_service.py`) ✅
+- [x] Created `tests/services/test_search_service.py` - **48 tests**
+- [x] Test cache management
+- [x] Test relevance scoring
+- [x] Test filter application
+- [x] Test unified search
+- [x] Test search history and suggestions
+
+#### MaterialService (`src/services/material_service.py`) ✅
+- [x] Created `tests/services/test_material_service.py` - **27 tests**
+- [x] Test CRUD operations
+- [x] Test material filtering
+- [x] Test consumption tracking
+- [x] Test statistics and reporting
+- [x] Test CSV/Excel export
+
+**Total Phase 2: 174 tests passing**
 
 ### Sprint 2 Phase 3: Printer Service Tests
 
@@ -450,7 +485,7 @@ python3 -m pytest --cov=src tests/
 | 1A | 2026-01-01 | Job API, Test Fixes | ✅ Complete |
 | 1B | 2026-01-01 | Printer API, Filtering | ✅ Complete |
 | 2 Phase 1 | 2026-01-04 | Core Service Tests | ✅ Complete |
-| 2 Phase 2 | Planned | Feature Service Tests | ⏳ Pending |
+| 2 Phase 2 | 2026-01-04 | Feature Service Tests | ✅ Complete |
 | 3 | Planned | Frontend Polish | ⏳ Pending |
 
 ### Sprint 1 Summary
@@ -468,12 +503,22 @@ python3 -m pytest --cov=src tests/
 - **Services Covered**: 4 critical infrastructure services
 - **Test Coverage Improvement**: ~30% → ~50% service coverage
 
+### Sprint 2 Phase 2 Summary
+
+- **Date**: 2026-01-04
+- **Tests Added**: 174 tests (FileWatcher, CameraSnapshot, FileUpload, Search, Material)
+- **Result**: All 174 tests passing (179 total with fixtures)
+- **Services Covered**: 5 feature services
+- **Test Coverage Improvement**: ~50% → ~85% service coverage
+- **Combined Sprint 2 Total**: 355 new service tests
+
 ---
 
 ## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 5.0 | 2026-01-04 | Sprint 2 Phase 2 completion (355 total service tests) |
 | 4.0 | 2026-01-04 | Sprint 2 Phase 1 completion (181 service tests) |
 | 3.0 | 2026-01-03 | Consolidated from multiple docs |
 | 2.0 | 2026-01-01 | Sprint 1A/1B completion |
