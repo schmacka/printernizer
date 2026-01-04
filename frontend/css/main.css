@@ -1019,6 +1019,141 @@ p {
     border-left-color: var(--error-color);
 }
 
+/* Debug Log Table Styles */
+.logs-table-wrapper {
+    overflow-x: auto;
+    margin-top: var(--spacing-3);
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+    background: var(--white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.logs-table thead {
+    background: var(--gray-100);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.logs-table th {
+    text-align: left;
+    padding: var(--spacing-3);
+    font-weight: 600;
+    color: var(--gray-700);
+    border-bottom: 2px solid var(--gray-200);
+    white-space: nowrap;
+}
+
+.logs-table td {
+    padding: var(--spacing-2) var(--spacing-3);
+    border-bottom: 1px solid var(--gray-100);
+    vertical-align: top;
+}
+
+.logs-table tbody tr:hover {
+    background: var(--gray-50);
+}
+
+.logs-table .col-timestamp {
+    width: 160px;
+}
+
+.logs-table .col-level {
+    width: 100px;
+}
+
+.logs-table .col-source {
+    width: 180px;
+}
+
+.logs-table .col-message {
+    min-width: 200px;
+}
+
+.logs-table .log-timestamp {
+    font-family: 'Courier New', monospace;
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.logs-table .log-logger {
+    font-family: 'Courier New', monospace;
+    color: var(--gray-500);
+    font-size: var(--font-size-xs);
+}
+
+.logs-table .log-message {
+    word-break: break-word;
+}
+
+.level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+}
+
+.level-badge.log-level-debug {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.level-badge.log-level-info {
+    background: var(--info-bg);
+    color: var(--info-color);
+}
+
+.level-badge.log-level-warning {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.level-badge.log-level-error {
+    background: var(--error-bg);
+    color: var(--error-color);
+}
+
+.level-badge .level-icon {
+    font-size: 12px;
+}
+
+/* Row highlighting by log level */
+.logs-table tr.log-level-error {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.logs-table tr.log-level-warning {
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-2) 0;
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+}
+
+.logs-count {
+    font-weight: 500;
+}
+
+.logs-updated {
+    color: var(--gray-500);
+}
+
 .entry-header {
     display: flex;
     justify-content: space-between;

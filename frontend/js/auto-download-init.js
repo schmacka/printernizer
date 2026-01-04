@@ -47,18 +47,17 @@ class AutoDownloadSystemInitializer {
 
             Logger.debug('✅ Auto-Download System initialization complete');
 
-            // Show success notification only if backend is healthy
-            setTimeout(() => {
-                // Check if backend is healthy before showing ready notification
-                const backendHealthy = window.printernizer?.backendHealthy !== false;
+            // Show success notification only if backend is actually reachable
+            setTimeout(async () => {
+                const backendStatus = await this.checkBackendConnectivity();
 
-                if (backendHealthy) {
+                if (backendStatus.healthy) {
                     showToast('success', 'System Ready', 'Auto-Download System is now active and monitoring printers', CONFIG.TOAST_DURATION, {
                         uniqueKey: CONFIG.NOTIFICATION_KEYS.AUTO_DOWNLOAD_READY,
                         deduplicateMode: 'update'
                     });
                 } else {
-                    showToast('warning', 'System Offline', 'Auto-Download System wird gestartet, sobald Backend verfügbar ist', CONFIG.TOAST_DURATION, {
+                    showToast('warning', 'Backend Offline', backendStatus.message || 'Auto-Download System wartet auf Backend-Verbindung', CONFIG.TOAST_DURATION, {
                         uniqueKey: CONFIG.NOTIFICATION_KEYS.AUTO_DOWNLOAD_OFFLINE,
                         deduplicateMode: 'update'
                     });
@@ -361,6 +360,60 @@ class AutoDownloadSystemInitializer {
                 ui: this.components.ui ? 'initialized' : 'not_initialized'
             }
         };
+    }
+
+    /**
+     * Check backend connectivity by calling the health endpoint
+     * @returns {Promise<{healthy: boolean, message: string}>}
+     */
+    async checkBackendConnectivity() {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+            const response = await fetch(`${CONFIG.API_BASE_URL}/health`, {
+                method: 'GET',
+                signal: controller.signal,
+                cache: 'no-cache'
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const data = await response.json();
+                // Update global health flag
+                window.printernizer = window.printernizer || {};
+                window.printernizer.backendHealthy = true;
+
+                return {
+                    healthy: true,
+                    message: `Backend v${data.version || 'unknown'} connected`
+                };
+            } else {
+                window.printernizer = window.printernizer || {};
+                window.printernizer.backendHealthy = false;
+
+                return {
+                    healthy: false,
+                    message: `Backend returned status ${response.status}`
+                };
+            }
+        } catch (error) {
+            window.printernizer = window.printernizer || {};
+            window.printernizer.backendHealthy = false;
+
+            if (error.name === 'AbortError') {
+                return {
+                    healthy: false,
+                    message: 'Backend connection timeout'
+                };
+            }
+
+            return {
+                healthy: false,
+                message: 'Backend not reachable'
+            };
+        }
     }
 
     /**

@@ -135,16 +135,25 @@ class PrinterManager {
      */
     createPrinterManagementCard(printer) {
         const card = document.createElement('div');
-        card.className = `card printer-tile-card status-${printer.status}`;
+        const isConnecting = printer.status === 'connecting' || printer.connection_state === 'connecting';
+        const statusClass = isConnecting ? 'status-connecting' : `status-${printer.status}`;
+        card.className = `card printer-tile-card ${statusClass}`;
         card.setAttribute('data-printer-id', printer.id);
 
-        const status = getStatusConfig('printer', printer.status);
+        const status = getStatusConfig('printer', isConnecting ? 'connecting' : printer.status);
         const printerType = CONFIG.PRINTER_TYPES[printer.printer_type] || { label: printer.printer_type, color: '#6b7280' };
+
+        // Connection type indicator
+        const connectionType = printer.connection_type || (printer.printer_type === 'bambu_lab' ? 'MQTT' : 'HTTP');
+        const connectionIndicator = isConnecting
+            ? `<span class="connection-indicator connecting" title="Verbindung wird hergestellt...">⟳ ${connectionType}</span>`
+            : `<span class="connection-indicator ${printer.status === 'online' || printer.status === 'printing' ? 'connected' : 'disconnected'}" title="${connectionType}-Verbindung">${connectionType}</span>`;
 
         card.innerHTML = `
             <div class="printer-tile-header">
                 <div class="printer-tile-status">
                     <span class="status-badge ${status.class}">${status.icon}</span>
+                    ${connectionIndicator}
                 </div>
                 <div class="printer-tile-type" style="background-color: ${sanitizeAttribute(printerType.color)};">
                     ${printerType.label}
@@ -407,7 +416,18 @@ class PrinterManager {
     renderJobThumbnail(printer) {
         // Check if we have current job file data
         if (!printer.current_job_file_id) {
-            return '';
+            // Show camera unavailable placeholder
+            return `
+                <div class="info-item">
+                    <label>Vorschau:</label>
+                    <div class="job-thumbnail-info thumbnail-unavailable">
+                        <div class="camera-placeholder">
+                            <span class="camera-icon">📷</span>
+                            <span class="camera-text">Keine Vorschau</span>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // Determine thumbnail source
@@ -425,7 +445,7 @@ class PrinterManager {
                          data-file-id="${printer.current_job_file_id}"
                          loading="lazy"
                          onclick="showFullThumbnail('${printer.current_job_file_id}', '${escapeHtml(printer.current_job || 'Current Job')}')"
-                         ${printer.current_job_has_thumbnail ? "onerror=\"this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');\"" : ''}>
+                         ${printer.current_job_has_thumbnail ? "onerror=\"this.onerror=null; this.parentElement.innerHTML='<div class=\\'camera-placeholder\\'><span class=\\'camera-icon\\'>📷</span><span class=\\'camera-text\\'>Bild nicht verfügbar</span></div>';\"" : ''}>
                 </div>
             </div>
         `;

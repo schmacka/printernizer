@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.3] - 2026-01-04
+
+### Fixed
+- **Duplicate Notifications**: Fixed multiple identical notifications appearing simultaneously
+  - Notifications now use message-based deduplication with 3-second cooldown
+  - Same notification won't appear multiple times within the cooldown period
+- **Backend Offline Detection**: Auto-download status now correctly shows when backend is offline
+  - Added actual health endpoint check instead of relying on global flag
+  - Shows "Backend Offline" or "Backend not reachable" when connectivity fails
+- **Debug Log Table Format**: Fixed logs showing in blocks instead of proper table columns
+  - Logs now display in proper HTML table with columns: Timestamp, Level, Source, Message
+  - Added sticky header, hover states, and level-based row highlighting
+
+### Added
+- **Connection Progress Indicator**: Printer tiles now show connection state
+  - Grey overlay with shimmer animation during connection
+  - Connection type indicator (MQTT/HTTP) in printer tile header
+  - Visual feedback for connecting/connected/disconnected states
+- **Camera Preview Placeholder**: Added placeholder when camera/thumbnail unavailable
+  - Shows camera icon with "Keine Vorschau" text instead of blank space
+  - Graceful fallback on image load errors
+
 ## [2.13.2] - 2026-01-04
 
 ### Added
