@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
 **Last Updated**: 2026-01-04
-**Current Version**: v2.13.1
+**Current Version**: v2.14.1
 **Status**: Production Ready
 
 ---
@@ -12,10 +12,11 @@
 |----------|--------|------------|
 | Core Features | Production Ready | 95% |
 | Printer Support | Bambu + Prusa | 100% |
-| Test Coverage | Improved | ~85% |
+| Test Coverage | Excellent | ~90% |
 | Sprint 1 (P1 Tasks) | Complete | 100% |
 | Sprint 2 Phase 1 (Service Tests) | Complete | 100% |
 | Sprint 2 Phase 2 (Feature Tests) | Complete | 100% |
+| Sprint 2 Phase 3 (Printer Tests) | Complete | 100% |
 | Sprint 3 (Frontend Polish) | Planned | 0% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
@@ -140,7 +141,7 @@
 
 ## Priority 2 - Test Coverage
 
-> **Current**: ~85% service coverage | **Target**: 80% ✅ ACHIEVED
+> **Current**: ~90% service coverage | **Target**: 80% ✅ EXCEEDED
 
 ### Sprint 2 Phase 1: Core Service Tests ✅ COMPLETE (2026-01-04)
 
@@ -230,13 +231,42 @@
 
 **Total Phase 2: 174 tests passing**
 
-### Sprint 2 Phase 3: Printer Service Tests
+### Sprint 2 Phase 3: Printer Service Tests ✅ COMPLETE (2026-01-04)
 
-**Estimated Effort**: 4-6 hours
+**Actual Effort**: Approximately 4-5 hours (on budget)
 
-- [ ] BambuService tests
-- [ ] PrusaService tests
-- [ ] PrinterControlService tests
+#### BambuLabPrinter (`src/printers/bambu_lab.py`) ✅
+- [x] Created `tests/printers/test_bambu_lab.py` - **47 tests**
+- [x] Test initialization (bambulabs_api and MQTT fallback)
+- [x] Test connection management
+- [x] Test status retrieval and mapping
+- [x] Test job information
+- [x] Test file operations (FTP, MQTT, downloads)
+- [x] Test print control (pause/resume/stop)
+- [x] Test camera functionality
+- [x] Test helper methods
+
+#### PrusaPrinter (`src/printers/prusa.py`) ✅
+- [x] Created `tests/printers/test_prusa.py` - **42 tests**
+- [x] Test initialization with PrusaLink HTTP API
+- [x] Test connection with retry logic
+- [x] Test status retrieval via HTTP
+- [x] Test job information
+- [x] Test file operations and downloads
+- [x] Test print control operations
+- [x] Test camera and thumbnail functionality
+- [x] Test error handling (auth, timeouts, forbidden)
+
+#### PrinterControlService (`src/services/printer_control_service.py`) ✅
+- [x] Created `tests/services/test_printer_control_service.py` - **35 tests**
+- [x] Test service initialization
+- [x] Test pause/resume/stop operations
+- [x] Test monitoring control
+- [x] Test event emissions
+- [x] Test error handling
+- [x] Test auto-connection logic
+
+**Total Phase 3: 124 tests passing**
 
 ---
 
@@ -486,6 +516,7 @@ python3 -m pytest --cov=src tests/
 | 1B | 2026-01-01 | Printer API, Filtering | ✅ Complete |
 | 2 Phase 1 | 2026-01-04 | Core Service Tests | ✅ Complete |
 | 2 Phase 2 | 2026-01-04 | Feature Service Tests | ✅ Complete |
+| 2 Phase 3 | 2026-01-04 | Printer Service Tests | ✅ Complete |
 | 3 | Planned | Frontend Polish | ⏳ Pending |
 
 ### Sprint 1 Summary
@@ -510,7 +541,15 @@ python3 -m pytest --cov=src tests/
 - **Result**: All 174 tests passing (179 total with fixtures)
 - **Services Covered**: 5 feature services
 - **Test Coverage Improvement**: ~50% → ~85% service coverage
-- **Combined Sprint 2 Total**: 355 new service tests
+
+### Sprint 2 Phase 3 Summary
+
+- **Date**: 2026-01-04
+- **Tests Added**: 124 tests (BambuLabPrinter, PrusaPrinter, PrinterControlService)
+- **Result**: All 124 tests passing
+- **Components Covered**: 2 printer integrations + 1 control service
+- **Test Coverage Improvement**: ~85% → ~90% service coverage
+- **Combined Sprint 2 Total**: 479 new tests (181 + 174 + 124)
 
 ---
 
@@ -518,6 +557,7 @@ python3 -m pytest --cov=src tests/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 6.0 | 2026-01-04 | Sprint 2 Phase 3 completion (479 total Sprint 2 tests) |
 | 5.0 | 2026-01-04 | Sprint 2 Phase 2 completion (355 total service tests) |
 | 4.0 | 2026-01-04 | Sprint 2 Phase 1 completion (181 service tests) |
 | 3.0 | 2026-01-03 | Consolidated from multiple docs |
