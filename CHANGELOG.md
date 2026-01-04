@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.2] - 2026-01-04
+
+### Added
+- **Comprehensive Service Tests**: Sprint 2 Phase 1 adds 181 tests for core infrastructure
+  - EventService: 40 tests (event emission, subscriptions, concurrency)
+  - PrinterMonitoringService: 52 tests (polling, status detection, auto-job)
+  - ConfigService: 32 tests (loading, validation, env overrides)
+  - BusinessService: 57 tests (VAT, currency, timezone, DST)
+  - Test coverage improved from ~30% to ~50%
+
 ## [2.13.1] - 2026-01-03
 
 ### Fixed
