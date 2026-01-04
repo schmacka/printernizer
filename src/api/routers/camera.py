@@ -68,24 +68,26 @@ async def get_camera_diagnostics(
         diagnostics["tests"]["camera_detected"] = {
             "test": "Camera detected by printer API",
             "passed": has_camera,
-            "details": f"PrusaLink reports {'camera configured' if has_camera else 'NO camera configured'}"
+            "details": f"Camera {'detected' if has_camera else 'NOT detected'} (checked via API + snapshot fallback)"
         }
 
-        # For Prusa printers, get more details
+        # For Prusa printers, get more details about camera list endpoint
         if hasattr(printer_driver, '_get_cameras'):
             try:
                 cameras = await printer_driver._get_cameras()
                 diagnostics["tests"]["camera_list"] = {
-                    "test": "Camera configuration details",
+                    "test": "Camera list endpoint (/api/v1/cameras)",
                     "passed": len(cameras) > 0 if cameras else False,
-                    "details": f"Found {len(cameras) if cameras else 0} camera(s)",
-                    "cameras": cameras if cameras else []
+                    "details": f"Endpoint returned {len(cameras) if cameras else 0} camera(s)",
+                    "cameras": cameras if cameras else [],
+                    "note": "Empty list is OK if snapshot endpoint works (see test below)"
                 }
             except Exception as e:
                 diagnostics["tests"]["camera_list"] = {
-                    "test": "Camera configuration details",
+                    "test": "Camera list endpoint (/api/v1/cameras)",
                     "passed": False,
-                    "details": f"Failed to get camera list: {str(e)}"
+                    "details": f"Endpoint failed: {str(e)}",
+                    "note": "This is OK if snapshot endpoint works (see test below)"
                 }
     except Exception as e:
         diagnostics["tests"]["camera_detected"] = {
@@ -136,20 +138,33 @@ async def get_camera_diagnostics(
     # Provide troubleshooting recommendations
     if not all_tests_passed:
         if not diagnostics["tests"].get("camera_detected", {}).get("passed"):
+            # Camera not detected at all
             diagnostics["summary"]["recommendation"] = (
-                "Camera is not detected by PrusaLink. Please:\n"
-                "1. Ensure a camera is physically connected to your Prusa Core One\n"
-                "2. Configure the camera in PrusaLink settings (http://<printer-ip>)\n"
-                "3. Check that PrusaLink firmware supports camera (version 2.1.2+)\n"
-                "4. Restart PrusaLink after connecting the camera"
+                "Camera is not detected. Please check:\n"
+                "1. Is a camera physically connected to your Prusa printer?\n"
+                "2. Access PrusaLink web interface at http://<printer-ip>\n"
+                "3. Navigate to Settings → Camera and verify camera is enabled\n"
+                "4. Test the camera directly in PrusaLink (you should see a live view)\n"
+                "5. Check PrusaLink firmware version (requires 2.1.2+)\n"
+                "6. After configuring, restart PrusaLink or reboot the printer"
             )
         elif not diagnostics["tests"].get("snapshot_capture", {}).get("passed"):
+            # Camera detected but snapshot fails
             diagnostics["summary"]["recommendation"] = (
                 "Camera is detected but snapshot capture failed. Please:\n"
-                "1. Check camera connection and power\n"
-                "2. Test camera directly in PrusaLink web interface\n"
-                "3. Check PrusaLink logs for camera errors\n"
-                "4. Ensure camera has proper permissions in PrusaLink"
+                "1. Test camera in PrusaLink web interface (http://<printer-ip>)\n"
+                "2. Check if you can see camera preview in PrusaLink\n"
+                "3. Verify camera permissions in PrusaLink settings\n"
+                "4. Check PrusaLink logs: journalctl -u prusalink -f\n"
+                "5. Try reconnecting the camera or using a different USB port\n"
+                "6. Ensure camera is compatible with your printer hardware"
+            )
+        elif diagnostics["tests"].get("camera_list", {}).get("passed") == False:
+            # Camera list endpoint failed but camera might still work
+            diagnostics["summary"]["recommendation"] = (
+                "Note: Camera list endpoint returned empty, but this may be OK.\n"
+                "The camera might still work if snapshot endpoint succeeds.\n"
+                "If snapshots work, you can safely ignore the empty camera list."
             )
 
     return diagnostics

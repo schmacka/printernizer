@@ -1264,7 +1264,7 @@ window.loadAppVersion = loadAppVersion;
 
 /**
  * Simplified notification wrapper for backward compatibility
- * Maps simple notification calls to the full showToast system
+ * Maps simple notification calls to the full showToast system with deduplication
  *
  * @param {string} message - The notification message
  * @param {string} type - Notification type: 'success', 'error', 'warning', 'info'
@@ -1280,8 +1280,31 @@ function showNotification(message, type = 'info') {
 
     const title = titles[type] || titles.info;
 
-    // Use existing showToast with appropriate defaults
-    return showToast(type, title, message);
+    // Generate a hash of the message for deduplication
+    const messageHash = hashString(message);
+
+    // Use existing showToast with deduplication based on type+message
+    return showToast(type, title, message, CONFIG.TOAST_DURATION, {
+        uniqueKey: `notification:${type}:${messageHash}`,
+        deduplicateMode: 'update',
+        cooldown: 3000  // Prevent same notification within 3 seconds
+    });
+}
+
+/**
+ * Simple string hash for notification deduplication
+ * @param {string} str - String to hash
+ * @returns {number} - Hash value
+ */
+function hashString(str) {
+    let hash = 0;
+    if (!str || str.length === 0) return hash;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
 }
 
 // Make showNotification available globally

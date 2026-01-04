@@ -13,7 +13,9 @@ For detailed information on specific topics, see the Claude Code Skills in `.cla
 
 ## Project Overview
 
-**Printernizer** is a professional 3D print management system designed for managing Bambu Lab A1 and Prusa Core One printers. It provides automated job tracking, file downloads, and business reporting capabilities for 3D printing operations.
+**Printernizer** is a professional 3D print management system designed for managing Bambu Lab and Prusa printers. It provides automated job tracking, file downloads, and business reporting capabilities for 3D printing operations.
+
+> **Tested with:** Bambu Lab A1 and Prusa Core One
 
 **Primary Use Case**: Enterprise-grade 3D printer fleet management with automated job monitoring, file organization, and business analytics while maintaining simplicity for individual users.
 

@@ -739,24 +739,32 @@ class SetupWizardManager {
             
             if (list) {
                 if (result.discovered && result.discovered.length > 0) {
-                    list.innerHTML = result.discovered.map(printer => `
-                        <div class="discovered-printer-item">
-                            <div class="discovered-printer-info">
-                                <span class="printer-icon">${printer.type === 'bambu_lab' ? '🖨️' : '🦎'}</span>
-                                <div>
-                                    <strong>${escapeHtml(printer.name || printer.ip)}</strong>
-                                    <div style="font-size: 0.85em; color: var(--gray-500);">${escapeHtml(printer.ip)}</div>
+                    // Filter to only show printers not already added
+                    const newPrinters = result.discovered.filter(p => !p.already_added);
+
+                    if (newPrinters.length > 0) {
+                        list.innerHTML = newPrinters.map(printer => `
+                            <div class="discovered-printer-item">
+                                <div class="discovered-printer-info">
+                                    <span class="printer-icon">${printer.type === 'bambu_lab' ? '🖨️' : '🦎'}</span>
+                                    <div>
+                                        <strong>${escapeHtml(printer.name || printer.ip)}</strong>
+                                        <div style="font-size: 0.85em; color: var(--gray-500);">${escapeHtml(printer.ip)}</div>
+                                    </div>
                                 </div>
+                                <button class="btn btn-sm btn-primary discovered-printer-select"
+                                        data-type="${printer.type}"
+                                        data-name="${escapeHtml(printer.name || '')}"
+                                        data-ip="${escapeHtml(printer.ip)}"
+                                        data-serial="${escapeHtml(printer.serial || '')}">
+                                    Auswählen
+                                </button>
                             </div>
-                            <button class="btn btn-sm btn-primary discovered-printer-select" 
-                                    data-type="${printer.type}"
-                                    data-name="${escapeHtml(printer.name || '')}"
-                                    data-ip="${escapeHtml(printer.ip)}"
-                                    data-serial="${escapeHtml(printer.serial || '')}">
-                                Auswählen
-                            </button>
-                        </div>
-                    `).join('');
+                        `).join('');
+                    } else {
+                        // All discovered printers are already added
+                        list.innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:1rem;">Alle gefundenen Drucker sind bereits hinzugefügt. Du kannst die Daten manuell eingeben.</p>';
+                    }
                 } else {
                     list.innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:1rem;">Keine Drucker gefunden. Du kannst die Daten manuell eingeben.</p>';
                 }

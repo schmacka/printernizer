@@ -7,9 +7,11 @@
 [![Documentation](https://img.shields.io/badge/docs-MkDocs-blue)](https://schmacka.github.io/printernizer/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**Professional 3D Printer Management System for Bambu Lab & Prusa Core One**
+**Professional 3D Printer Management System for Bambu Lab & Prusa Printers**
 
 Enterprise-grade fleet management with real-time monitoring, automated job tracking, file management, and business analytics. Perfect for 3D printing services, maker spaces, educational institutions, and production environments.
+
+> **Tested with:** Bambu Lab A1 and Prusa Core One
 
 [📖 Documentation](https://schmacka.github.io/printernizer/) • [🚀 Quick Start](#-quick-start) • [✨ Features](#-features) • [🐳 Deployment](#-deployment-options) • [🤝 Contributing](CONTRIBUTING.md)
 
@@ -73,12 +75,14 @@ Full functionality on mobile devices with optimized responsive layout.
 
 ### 🖨️ Printer Support
 
-- **Bambu Lab A1** - Full MQTT integration with real-time status updates
-- **Prusa Core One** - Complete PrusaLink HTTP API integration
+- **Bambu Lab Printers** - Full MQTT integration with real-time status updates
+- **Prusa Printers** - Complete PrusaLink HTTP API integration
 - **Auto-Discovery** - Automatic printer detection via SSDP + mDNS
 - **Multi-Printer Fleet** - Monitor unlimited printers simultaneously
 - **Connection Health** - Automatic retry, reconnection, and error handling
 - **Live Monitoring** - 30-second polling with WebSocket push updates
+
+> **Tested with:** Bambu Lab A1 and Prusa Core One
 
 ### 📊 Real-Time Monitoring & Job Management
 
@@ -162,8 +166,10 @@ Full functionality on mobile devices with optimized responsive layout.
 
 ### Printer Requirements
 
-- **Bambu Lab A1**: IP address, Access Code (8 digits), Serial Number
-- **Prusa Core One**: IP address, PrusaLink API Key
+- **Bambu Lab Printers**: IP address, Access Code (8 digits), Serial Number
+- **Prusa Printers**: IP address, PrusaLink API Key
+
+> **Tested with:** Bambu Lab A1 and Prusa Core One
 
 ---
 
@@ -602,7 +608,7 @@ For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.
 
 **Completed Features:**
 - ✅ Complete backend with FastAPI + async SQLite
-- ✅ Full printer integration (Bambu Lab A1 + Prusa Core One)
+- ✅ Full printer integration (Bambu Lab & Prusa manufacturers)
 - ✅ Real-time monitoring with WebSocket updates
 - ✅ Advanced file management and download system
 - ✅ Automated job creation and tracking

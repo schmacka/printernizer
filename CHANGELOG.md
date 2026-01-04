@@ -7,6 +7,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.3] - 2026-01-04
+
+### Fixed
+- **Duplicate Notifications**: Fixed multiple identical notifications appearing simultaneously
+  - Notifications now use message-based deduplication with 3-second cooldown
+  - Same notification won't appear multiple times within the cooldown period
+- **Backend Offline Detection**: Auto-download status now correctly shows when backend is offline
+  - Added actual health endpoint check instead of relying on global flag
+  - Shows "Backend Offline" or "Backend not reachable" when connectivity fails
+- **Debug Log Table Format**: Fixed logs showing in blocks instead of proper table columns
+  - Logs now display in proper HTML table with columns: Timestamp, Level, Source, Message
+  - Added sticky header, hover states, and level-based row highlighting
+
+### Added
+- **Connection Progress Indicator**: Printer tiles now show connection state
+  - Grey overlay with shimmer animation during connection
+  - Connection type indicator (MQTT/HTTP) in printer tile header
+  - Visual feedback for connecting/connected/disconnected states
+- **Camera Preview Placeholder**: Added placeholder when camera/thumbnail unavailable
+  - Shows camera icon with "Keine Vorschau" text instead of blank space
+  - Graceful fallback on image load errors
+
+## [2.13.2] - 2026-01-04
+
+### Added
+- **Comprehensive Service Tests**: Sprint 2 Phase 1 adds 181 tests for core infrastructure
+  - EventService: 40 tests (event emission, subscriptions, concurrency)
+  - PrinterMonitoringService: 52 tests (polling, status detection, auto-job)
+  - ConfigService: 32 tests (loading, validation, env overrides)
+  - BusinessService: 57 tests (VAT, currency, timezone, DST)
+  - Test coverage improved from ~30% to ~50%
+
+## [2.13.1] - 2026-01-03
+
+### Fixed
+- **Printer Auto-Detection**: Fixed duplicate printers showing in discovery results
+  - The `already_added` flag was being set but not included in API response
+  - Discovery now correctly filters out printers that are already configured
+  - Setup wizard also now filters already-added printers from the list
+
+## [2.13.0] - 2026-01-03
+
+### Added
+- **Excel Export for Materials**: Implemented Excel export functionality for material inventory
+  - Added support for `.xlsx` format export via `/api/v1/materials/export?format=excel` endpoint
+  - Professional formatting with styled headers (blue background, white text, bold)
+  - Auto-adjusted column widths for optimal readability
+  - Includes all 12 material inventory fields (ID, Type, Brand, Color, Diameter, Weight, Remaining, Cost/kg, Value, Vendor, Batch, Notes)
+  - Added `openpyxl>=3.1.0` dependency for Excel file generation
+  - Created comprehensive tests for export functionality
+
+### Fixed
+- Resolved 501 "Not Yet Implemented" error when requesting Excel format material exports
+
+## [2.12.2] - 2026-01-02
+
+### Fixed
+- **Prusa Job Display**: Fixed print job information not showing for Prusa printers
+  - Job filename now correctly extracted from `file.display_name` in PrusaLink v1 API response
+  - Progress percentage and remaining time now displayed during active prints
+  - Filament type (e.g., "PLA") now extracted from `telemetry.material` field
+
+## [2.12.1] - 2026-01-02
+
+### Fixed
+- **Prusa Camera Detection**: Improved camera detection with snapshot fallback method
+  - Fixed issue where cameras were not detected even when configured in PrusaLink
+  - Implemented two-step detection: `/api/v1/cameras` endpoint with fallback to `/api/v1/cameras/snap`
+  - Camera now detected if snapshot endpoint returns HTTP 200, even when camera list is empty
+  - Enhanced logging to show which detection method succeeded
+  - Updated diagnostics endpoint with fallback detection details and improved recommendations
+
+## [2.12.0] - 2026-01-02
+
+### Added
+- **Filament Display**: Added comprehensive filament information to printer tiles
+  - Display all loaded filaments with color, type, and slot number
+  - Visual color indicators showing actual filament colors
+  - Highlight currently selected/active filament with distinctive styling
+  - Support for BambuLab AMS (Automatic Material System) with multiple trays
+  - Support for Prusa single filament and MMU2S (Multi Material Unit) setups
+  - Added `Filament` data model with slot, color, type, and active status
+  - Filament information displayed in both dashboard and printer management pages
+  - Responsive design with hover effects and tooltips
+
+### Changed
+- **API Enhancement**: Extended `PrinterStatusUpdate` model with optional `filaments` field (backward compatible)
+- **BambuLab Integration**: Enhanced MQTT data extraction to parse AMS filament information
+- **Prusa Integration**: Enhanced API data extraction to parse filament sensor information
+
+## [2.11.9] - 2026-01-01
+
+### Fixed
+- **Test Infrastructure**: Fixed test import errors and test fixtures for job API tests
+  - Resolved ImportError by using `python3 -m pytest` instead of `pytest` command
+  - Fixed 5 failing tests by mocking `list_jobs_with_count()` instead of `list_jobs()`
+  - All job API tests now passing (27/31 tests, 87% pass rate)
+
+### Added
+- **Job Deletion Safety**: Implemented active job deletion protection
+  - Prevents deletion of jobs in active states (running, pending, paused)
+  - Returns HTTP 409 Conflict when attempting to delete active job
+  - Added comprehensive safety checks with descriptive error messages
+
+### Improved
+- **Test Coverage**: Enabled 2 high-priority skipped tests
+  - `test_delete_active_job_forbidden` - Active job deletion protection
+  - `test_job_deletion_safety_checks` - Job deletion safety validation
+- **Documentation**: Updated MASTERPLAN.md and REMAINING_TASKS.md
+  - Verified Material Consumption History endpoint is fully implemented
+  - Corrected job status update test status (all passing)
+  - Created comprehensive Sprint 1A planning and status documents
+
 ## [2.11.8] - 2026-01-01
 
 ### Fixed

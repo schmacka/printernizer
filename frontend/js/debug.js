@@ -342,14 +342,26 @@ class DebugManager {
                 <span class="logs-count">${logs.length} Einträge gefunden</span>
                 <span class="logs-updated">Letzte Aktualisierung: ${new Date().toLocaleString('de-DE')}</span>
             </div>
-            <div class="logs-list">
-                ${logs.map(log => this.formatLogEntry(log)).join('')}
+            <div class="logs-table-wrapper">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th class="col-timestamp">Zeitstempel</th>
+                            <th class="col-level">Level</th>
+                            <th class="col-source">Quelle</th>
+                            <th class="col-message">Nachricht</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${logs.map(log => this.formatLogEntry(log)).join('')}
+                    </tbody>
+                </table>
             </div>
         `;
     }
 
     /**
-     * Format a single log entry
+     * Format a single log entry as table row
      */
     formatLogEntry(log) {
         const timestamp = new Date(log.timestamp).toLocaleString('de-DE');
@@ -357,15 +369,17 @@ class DebugManager {
         const levelIcon = this.getLogLevelIcon(log.level);
 
         return `
-            <div class="log-entry ${levelClass}">
-                <div class="log-timestamp">${timestamp}</div>
-                <div class="log-level">
-                    <span class="level-icon">${levelIcon}</span>
-                    ${log.level}
-                </div>
-                <div class="log-logger">${log.logger}</div>
-                <div class="log-message">${log.message}</div>
-            </div>
+            <tr class="log-entry ${levelClass}">
+                <td class="log-timestamp">${timestamp}</td>
+                <td class="log-level">
+                    <span class="level-badge ${levelClass}">
+                        <span class="level-icon">${levelIcon}</span>
+                        ${log.level}
+                    </span>
+                </td>
+                <td class="log-logger">${log.logger}</td>
+                <td class="log-message">${log.message}</td>
+            </tr>
         `;
     }
 

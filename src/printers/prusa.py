@@ -11,7 +11,7 @@ import aiohttp
 import structlog
 
 from src.config.constants import file_url
-from src.models.printer import PrinterStatus, PrinterStatusUpdate
+from src.models.printer import PrinterStatus, PrinterStatusUpdate, Filament
 from src.utils.exceptions import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 from src.constants import NetworkConstants, FileConstants
@@ -154,17 +154,103 @@ class PrusaPrinter(BasePrinter):
             logger.error("Unexpected error disconnecting from Prusa printer",
                         printer_id=self.printer_id, error=str(e), exc_info=True)
             
+    def _extract_filaments_from_api(self, status_data: Dict[str, Any]) -> List[Filament]:
+        """Extract filament information from Prusa API response.
+
+        Args:
+            status_data: Printer status data from PrusaLink API
+
+        Returns:
+            List of Filament objects
+        """
+        filaments = []
+
+        try:
+            # Prusa printers may have filament sensor information
+            # Check for MMU2S (Multi Material Unit) data first
+            if 'mmu' in status_data:
+                mmu_data = status_data.get('mmu', {})
+                if isinstance(mmu_data, dict):
+                    # MMU2S typically has 5 filament slots
+                    for slot in range(5):
+                        # Check if filament data exists for this slot
+                        filament_key = f'filament_{slot}'
+                        if filament_key in mmu_data:
+                            filament_info = mmu_data[filament_key]
+                            if isinstance(filament_info, dict):
+                                filament_type = filament_info.get('material', None)
+                                filament_color = filament_info.get('color', None)
+                                is_active = mmu_data.get('active_slot', -1) == slot
+
+                                if filament_type or filament_color:
+                                    filaments.append(Filament(
+                                        slot=slot,
+                                        color=filament_color,
+                                        type=filament_type,
+                                        is_active=is_active
+                                    ))
+                                    logger.debug("Extracted MMU filament",
+                                               printer_id=self.printer_id,
+                                               slot=slot,
+                                               type=filament_type,
+                                               active=is_active)
+
+            # If no MMU data, check for telemetry.material (PrusaLink v1 API)
+            # This is the most common format for Core One and other modern Prusa printers
+            if not filaments and 'telemetry' in status_data:
+                telemetry = status_data.get('telemetry', {})
+                if isinstance(telemetry, dict):
+                    filament_type = telemetry.get('material')
+                    if filament_type:
+                        filaments.append(Filament(
+                            slot=0,
+                            color=None,  # Telemetry doesn't provide color info
+                            type=filament_type,
+                            is_active=True  # Single filament is always active
+                        ))
+                        logger.debug("Extracted filament from telemetry",
+                                   printer_id=self.printer_id,
+                                   type=filament_type)
+
+            # Fall back to 'filament' field if present
+            if not filaments and 'filament' in status_data:
+                filament_data = status_data.get('filament', {})
+                if isinstance(filament_data, dict):
+                    # Single filament setup - assume slot 0
+                    filament_type = filament_data.get('material', filament_data.get('type', None))
+                    filament_color = filament_data.get('color', None)
+
+                    # Check if filament is loaded
+                    is_loaded = filament_data.get('loaded', True)  # Default to True if not specified
+
+                    if is_loaded and (filament_type or filament_color):
+                        filaments.append(Filament(
+                            slot=0,
+                            color=filament_color,
+                            type=filament_type,
+                            is_active=True  # Single filament is always active if loaded
+                        ))
+                        logger.debug("Extracted single filament",
+                                   printer_id=self.printer_id,
+                                   type=filament_type)
+
+        except Exception as e:
+            logger.warning("Failed to extract filament data from Prusa API",
+                         printer_id=self.printer_id, error=str(e))
+
+        return filaments
+
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Prusa."""
         if not self.is_connected or not self.session:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
             # Get printer status from PrusaLink
             async with self.session.get(f"{self.base_url}/printer") as response:
                 if response.status != 200:
                     raise aiohttp.ClientError(f"HTTP {response.status}")
-                    
+
                 status_data = await response.json()
                 
             # Get job information
@@ -219,15 +305,22 @@ class PrusaPrinter(BasePrinter):
             print_start_time = None
 
             if job_data:
-                # PrusaLink API returns filename directly, not nested in 'job'
-                # Try PrusaLink structure first, then fall back to OctoPrint structure
-                current_job = job_data.get('display_name', '')
+                # PrusaLink v1 API returns filename in 'file.display_name'
+                # Check nested 'file' structure first, then fall back to other structures
+                file_info = job_data.get('file', {})
+                if file_info:
+                    current_job = file_info.get('display_name', file_info.get('name', ''))
+
+                if not current_job:
+                    # Fall back to top-level display_name (older API versions)
+                    current_job = job_data.get('display_name', '')
+
                 if not current_job:
                     # Fall back to OctoPrint structure
                     job_info = job_data.get('job', {})
                     if job_info and job_info.get('file'):
-                        file_info = job_info.get('file', {})
-                        current_job = file_info.get('display_name', file_info.get('name', ''))
+                        octo_file_info = job_info.get('file', {})
+                        current_job = octo_file_info.get('display_name', octo_file_info.get('name', ''))
 
                 # Extract progress
                 # PrusaLink v1 API: progress is a direct number (0-100)
@@ -321,6 +414,12 @@ class PrusaPrinter(BasePrinter):
                                 filename=current_job,
                                 error=str(e))
 
+            # Extract filament information
+            filaments = self._extract_filaments_from_api(status_data)
+            logger.debug("Extracted filaments from Prusa API",
+                       printer_id=self.printer_id,
+                       filament_count=len(filaments))
+
             return PrinterStatusUpdate(
                 printer_id=self.printer_id,
                 status=printer_status,
@@ -336,6 +435,7 @@ class PrusaPrinter(BasePrinter):
                 estimated_end_time=estimated_end_time,
                 elapsed_time_minutes=elapsed_time_minutes,
                 print_start_time=print_start_time,
+                filaments=filaments if filaments else None,
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )
@@ -411,16 +511,23 @@ class PrusaPrinter(BasePrinter):
                 else:
                     job_data = await response.json()
                 
-            # PrusaLink API returns job data directly, not nested in 'job'
-            # Try PrusaLink structure first
-            job_name = job_data.get('display_name', '')
+            # PrusaLink v1 API returns job data in 'file' structure
+            # Check nested 'file' structure first
+            job_name = ''
+            file_info = job_data.get('file', {})
+            if file_info:
+                job_name = file_info.get('display_name', file_info.get('name', ''))
+
+            if not job_name:
+                # Fall back to top-level display_name (older API versions)
+                job_name = job_data.get('display_name', '')
+
             if not job_name:
                 # Fall back to OctoPrint structure
                 job_info_data = job_data.get('job', {})
-                if not job_info_data.get('file', {}).get('name'):
-                    return None  # No active job
-                file_info = job_info_data.get('file', {})
-                job_name = file_info.get('display_name', file_info.get('name', 'Unknown Job'))
+                if job_info_data and job_info_data.get('file'):
+                    octo_file_info = job_info_data.get('file', {})
+                    job_name = octo_file_info.get('display_name', octo_file_info.get('name', 'Unknown Job'))
 
             if not job_name:
                 return None  # No active job
@@ -1060,7 +1167,7 @@ class PrusaPrinter(BasePrinter):
 
     async def _get_cameras(self) -> List[dict]:
         """Get list of available cameras from PrusaLink API.
-        
+
         Returns:
             List of camera configuration dictionaries from PrusaLink.
         """
@@ -1070,13 +1177,17 @@ class PrusaPrinter(BasePrinter):
             async with self.session.get(f"{self.base_url}/v1/cameras") as response:
                 if response.status == 200:
                     cameras = await response.json()
-                    logger.debug("PrusaLink cameras found",
-                               printer_id=self.printer_id, count=len(cameras))
+                    logger.debug("PrusaLink cameras API response",
+                               printer_id=self.printer_id,
+                               count=len(cameras),
+                               status=response.status,
+                               cameras=cameras)
                     return cameras
-                elif response.status == 404:
-                    # Camera API not available on this firmware version
-                    logger.debug("Camera API not available",
-                               printer_id=self.printer_id)
+                else:
+                    # API not available or returned non-200 status
+                    logger.debug("Camera list API unavailable or returned error",
+                               printer_id=self.printer_id,
+                               status=response.status)
                     return []
         except asyncio.TimeoutError:
             logger.debug("Timeout getting cameras", printer_id=self.printer_id)
@@ -1087,16 +1198,54 @@ class PrusaPrinter(BasePrinter):
 
     async def has_camera(self) -> bool:
         """Check if Prusa printer has camera support via PrusaLink API.
-        
+
+        Uses a two-step detection approach:
+        1. Try /api/v1/cameras endpoint to list cameras
+        2. If that fails or returns empty, try capturing a snapshot as fallback
+
         Returns:
             True if at least one camera is configured on the printer.
         """
         try:
+            # First, try the cameras list endpoint
             cameras = await self._get_cameras()
-            has_cam = len(cameras) > 0
-            logger.debug("Prusa camera check",
-                        printer_id=self.printer_id, has_camera=has_cam)
-            return has_cam
+            if len(cameras) > 0:
+                logger.debug("Prusa camera detected via cameras list",
+                            printer_id=self.printer_id,
+                            camera_count=len(cameras))
+                return True
+
+            # Fallback: Try to capture a snapshot to detect if camera exists
+            # This handles cases where /v1/cameras returns empty but camera is configured
+            logger.debug("Camera list empty, trying snapshot fallback",
+                        printer_id=self.printer_id)
+
+            if not self.session:
+                return False
+
+            try:
+                async with self.session.get(f"{self.base_url}/v1/cameras/snap",
+                                           timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    if response.status == 200:
+                        # Snapshot succeeded - camera is available
+                        logger.info("Prusa camera detected via snapshot fallback",
+                                   printer_id=self.printer_id,
+                                   status=response.status)
+                        return True
+                    else:
+                        logger.debug("Snapshot endpoint returned non-200 status",
+                                   printer_id=self.printer_id,
+                                   status=response.status)
+                        return False
+            except asyncio.TimeoutError:
+                logger.debug("Snapshot fallback timeout", printer_id=self.printer_id)
+                return False
+            except Exception as snap_error:
+                logger.debug("Snapshot fallback failed",
+                           printer_id=self.printer_id,
+                           error=str(snap_error))
+                return False
+
         except Exception as e:
             logger.debug("Camera check failed",
                         printer_id=self.printer_id, error=str(e))
