@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.1] - 2026-01-04
+
+### Fixed
+- **Legacy Exception Handler**: Fixed inconsistent error response format
+  - Changed `"error"` field to `"error_code"` for consistency with new error handling
+  - Improved structured logging to match standardized format
+  - Added documentation about ongoing migration to PrinternizerError
+
+- **Flaky WebSocket Test**: Fixed timing issues in reconnection test
+  - Fixed undefined `testUtils` reference bug
+  - Implemented Jest fake timers for deterministic timing
+  - Re-enabled previously skipped test
+  - Test now passes reliably in CI/CD environments
+
+### Changed
+- **Environment Configuration**: Complete rewrite of `.env.example` with improved documentation
+  - Added clear legend: [REQUIRED], [OPTIONAL], [UNUSED], [INTERNAL]
+  - Organized into 13 logical sections with descriptive headers
+  - Documented default values inline for all variables
+  - Marked unused/planned features explicitly
+  - Added helpful comments and usage examples
+
+### Removed
+- **Deprecated Code**: Removed unused `get_printers()` method from PrinterService
+  - Method was marked deprecated since v1.3.1
+  - Replaced by `list_printers()` throughout codebase
+  - Removed unused `warnings` import
+
+## [2.14.0] - 2026-01-04
+
+### Added
+- **Slicer Integration**: Complete slicer software detection and integration system
+  - Automatic detection of installed slicers (Bambu Studio, Orca Slicer, Prusa Slicer)
+  - Slicer configuration management and API endpoint integration
+  - Slicing queue system for automated job processing
+  - Comprehensive test suite for slicer detection, service, and queue management
+  - Database migration for slicer configuration storage
+  - API documentation and examples for slicer integration
+
 ## [2.13.3] - 2026-01-04
 
 ### Fixed

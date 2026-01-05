@@ -93,7 +93,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.13.3")
+APP_VERSION = get_version(fallback="2.14.1")
 
 
 # Prometheus metrics - initialized once
@@ -766,16 +766,26 @@ def create_application() -> FastAPI:
     app.add_exception_handler(PrinternizerError, new_printernizer_exception_handler)
 
     # Legacy PrinternizerException handler (backwards compatibility)
+    # NOTE: Still needed - many exceptions inherit from PrinternizerException
+    # (PrinterConnectionError, NotFoundError, etc. in src/utils/exceptions.py)
+    # TODO: Migrate all exceptions to inherit from PrinternizerError (src/utils/errors.py)
     @app.exception_handler(PrinternizerException)
     async def legacy_printernizer_exception_handler(request: Request, exc: PrinternizerException):
         logger = structlog.get_logger()
-        logger.error("Legacy Printernizer exception", error=str(exc), path=request.url.path)
+        logger.error(
+            "Legacy Printernizer exception",
+            error_code=exc.error_code,
+            status_code=exc.status_code,
+            message=exc.message,
+            path=request.url.path,
+            method=request.method
+        )
 
         return JSONResponse(
             status_code=exc.status_code,
             content={
                 "status": "error",
-                "error": exc.error_code,
+                "error_code": exc.error_code,  # Fixed: was "error" (inconsistent with new format)
                 "message": exc.message,
                 "details": exc.details,
                 "timestamp": exc.timestamp.isoformat()

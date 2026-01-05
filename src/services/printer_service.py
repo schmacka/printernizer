@@ -11,7 +11,6 @@ This version delegates responsibilities to specialized services:
 The PrinterService now acts as a coordinator, maintaining backward compatibility
 while using the specialized services internally.
 """
-import warnings
 from typing import List, Dict, Any, Optional
 from uuid import uuid4
 from datetime import datetime
@@ -180,42 +179,6 @@ class PrinterService:
 
         return printers
 
-    async def get_printers(self) -> List[Dict[str, Any]]:
-        """
-        Get list of all configured printers as dictionaries (legacy method).
-
-        .. deprecated:: 1.3.1
-            This method is deprecated and unused. Use :meth:`list_printers` instead,
-            which returns properly typed Printer objects with full status information.
-            This method will be removed in version 2.0.0.
-
-        Returns:
-            List[Dict[str, Any]]: List of printer dictionaries
-
-        Example:
-            >>> printers = await printer_service.get_printers()  # deprecated
-        """
-        warnings.warn(
-            "PrinterService.get_printers() is deprecated and will be removed in v2.0.0. "
-            "Use PrinterService.list_printers() instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-
-        printers = []
-
-        for printer_id, instance in self.connection.printer_instances.items():
-            printer_data = {
-                "id": printer_id,
-                "name": instance.name,
-                "type": type(instance).__name__.lower().replace('printer', ''),
-                "ip_address": instance.ip_address,
-                "is_connected": instance.is_connected,
-                "last_status": instance.last_status.dict() if instance.last_status else None
-            }
-            printers.append(printer_data)
-
-        return printers
 
     async def get_printer(self, printer_id: str) -> Optional[Printer]:
         """
