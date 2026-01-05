@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.1] - 2026-01-05
+
+### Added
+- **Tag Filtering in Library**: Filter library files by tags via dropdown
+- **Enhanced Printer Modal Tabs**: Tabbed interface (Overview, Status, History, Diagnostics)
+- **Printer Controls**: Pause, resume, stop controls in printer details modal
+- **Temperature Indicators**: Visual heating/cooling status for printer temperatures
+- **Filament Slots Display**: Active filament badge and color swatches
+- **Connection Diagnostics**: Test connection, reconnect, and refresh files buttons
+
 ## [2.15.0] - 2026-01-05
 
 ### Added
