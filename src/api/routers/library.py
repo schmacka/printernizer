@@ -159,6 +159,7 @@ async def list_library_files(
     has_metadata: Optional[bool] = Query(None, description="Filter by metadata analysis"),
     manufacturer: Optional[str] = Query(None, description="Filter by manufacturer (bambu_lab, prusa_research)"),
     printer_model: Optional[str] = Query(None, description="Filter by printer model (A1, Core One, etc.)"),
+    tags: Optional[str] = Query(None, description="Filter by tag IDs (comma-separated)"),
     show_duplicates: Optional[bool] = Query(True, description="Show duplicate files (default: true)"),
     only_duplicates: Optional[bool] = Query(False, description="Show only duplicate files (default: false)"),
     sort_by: Optional[str] = Query('created_at', description="Sort by field (created_at, filename, file_size, last_modified)"),
@@ -177,6 +178,7 @@ async def list_library_files(
     - `has_metadata`: Only files with/without extracted metadata
     - `manufacturer`: Filter by printer manufacturer (bambu_lab, prusa_research)
     - `printer_model`: Filter by printer model (A1, P1P, Core One, MK4, etc.)
+    - `tags`: Filter by tags (comma-separated tag IDs)
 
     **Pagination:**
     - `page`: Page number (starts at 1)
@@ -208,6 +210,9 @@ async def list_library_files(
         filters['manufacturer'] = manufacturer
     if printer_model:
         filters['printer_model'] = printer_model
+    if tags:
+        # Convert comma-separated string to list
+        filters['tags'] = [t.strip() for t in tags.split(',') if t.strip()]
     if show_duplicates is not None:
         filters['show_duplicates'] = show_duplicates
     if only_duplicates is not None:

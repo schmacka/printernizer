@@ -15,6 +15,7 @@ class LibraryManager {
             search: null,
             manufacturer: null,
             printer_model: null,
+            tags: null,
             show_duplicates: true,
             only_duplicates: false,
             sort_by: 'created_at',
@@ -34,11 +35,38 @@ class LibraryManager {
         await this.loadStatistics();
         await this.loadFiles();
 
+        // Initialize tag filter dropdown
+        await this.initializeTagFilter();
+
         // Setup WebSocket for real-time updates
         if (window.wsManager) {
             window.wsManager.on('library_file_added', () => this.handleFileAdded());
             window.wsManager.on('library_file_updated', () => this.handleFileUpdated());
             window.wsManager.on('library_file_deleted', () => this.handleFileDeleted());
+        }
+    }
+
+    /**
+     * Initialize the tag filter dropdown with available tags
+     */
+    async initializeTagFilter() {
+        const filterTag = document.getElementById('filterTag');
+        if (!filterTag) return;
+
+        try {
+            await window.tagsManager.initialize();
+
+            // Populate dropdown with tags
+            const tags = window.tagsManager.allTags;
+            tags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag.id;
+                option.textContent = `${tag.name} (${tag.usage_count})`;
+                option.style.color = tag.color;
+                filterTag.appendChild(option);
+            });
+        } catch (error) {
+            Logger.error('Failed to initialize tag filter', error);
         }
     }
 
@@ -68,6 +96,7 @@ class LibraryManager {
             'filterFileType',
             'filterStatus',
             'filterMetadata',
+            'filterTag',
             'sortBy'
         ];
 
@@ -111,6 +140,7 @@ class LibraryManager {
         const fileType = document.getElementById('filterFileType')?.value;
         const status = document.getElementById('filterStatus')?.value;
         const metadata = document.getElementById('filterMetadata')?.value;
+        const tagId = document.getElementById('filterTag')?.value;
         const sortBy = document.getElementById('sortBy')?.value;
 
         this.filters.source_type = sourceType !== 'all' ? sourceType : null;
@@ -118,6 +148,7 @@ class LibraryManager {
         this.filters.printer_model = printerModel !== 'all' ? printerModel : null;
         this.filters.file_type = fileType !== 'all' ? fileType : null;
         this.filters.status = status !== 'all' ? status : null;
+        this.filters.tags = tagId || null;
 
         if (metadata === 'with_thumbnail') {
             this.filters.has_thumbnail = true;

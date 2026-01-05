@@ -200,3 +200,51 @@ class WatchFolderSettings(BaseModel):
     enabled: bool
     recursive: bool
     supported_extensions: List[str]
+
+
+# =====================================================
+# TAG MODELS
+# =====================================================
+
+class FileTag(BaseModel):
+    """File tag model."""
+    id: str = Field(..., description="Unique tag identifier")
+    name: str = Field(..., description="Tag name (unique, case-insensitive)")
+    color: str = Field(default="#6b7280", description="Hex color for visual display")
+    description: Optional[str] = Field(None, description="Tag description")
+    usage_count: int = Field(default=0, description="Number of files using this tag")
+    created_at: Optional[datetime] = Field(None, description="Tag creation timestamp")
+    updated_at: Optional[datetime] = Field(None, description="Tag update timestamp")
+
+    class Config:
+        """Pydantic configuration."""
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }
+
+
+class FileTagCreate(BaseModel):
+    """Model for creating a new tag."""
+    name: str = Field(..., min_length=1, max_length=50, description="Tag name")
+    color: str = Field(default="#6b7280", description="Hex color code")
+    description: Optional[str] = Field(None, max_length=200, description="Tag description")
+
+
+class FileTagUpdate(BaseModel):
+    """Model for updating a tag."""
+    name: Optional[str] = Field(None, min_length=1, max_length=50, description="New tag name")
+    color: Optional[str] = Field(None, description="New hex color code")
+    description: Optional[str] = Field(None, max_length=200, description="New description")
+
+
+class FileTagAssignment(BaseModel):
+    """Model for tag assignment to a file."""
+    file_checksum: str = Field(..., description="File checksum")
+    tag_id: str = Field(..., description="Tag ID")
+    assigned_at: Optional[datetime] = Field(None, description="Assignment timestamp")
+
+
+class TagListResponse(BaseModel):
+    """Response model for tag list."""
+    tags: List[FileTag]
+    total_count: int

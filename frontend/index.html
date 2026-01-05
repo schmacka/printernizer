@@ -623,6 +623,13 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label for="filterTag">Tag:</label>
+                    <select id="filterTag" class="filter-select" onchange="applyLibraryFilters()">
+                        <option value="">🏷️ Alle Tags</option>
+                        <!-- Dynamically populated by TagsManager -->
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label for="sortBy">Sortierung:</label>
                     <select id="sortBy" class="filter-select">
                         <option value="created_at:desc">Neueste zuerst</option>

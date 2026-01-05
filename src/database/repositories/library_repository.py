@@ -414,6 +414,21 @@ class LibraryRepository(BaseRepository):
             if filters.get('only_duplicates') is True:
                 where_clauses.append("lf.is_duplicate = 1")
 
+            # Tag filters - check if filtering by tags
+            needs_tag_join = bool(filters.get('tags'))
+            if needs_tag_join:
+                tag_ids = filters['tags']
+                placeholders = ",".join("?" * len(tag_ids))
+                where_clauses.append(f"""
+                    lf.checksum IN (
+                        SELECT file_checksum FROM file_tag_assignments
+                        WHERE tag_id IN ({placeholders})
+                        GROUP BY file_checksum
+                        HAVING COUNT(DISTINCT tag_id) >= 1
+                    )
+                """)
+                params.extend(tag_ids)
+
             # Build query based on whether JOIN is needed
             where_clause = " AND ".join(where_clauses) if where_clauses else "1=1"
 
@@ -608,4 +623,294 @@ class LibraryRepository(BaseRepository):
         except Exception as e:
             logger.error("Failed to check library file existence", checksum=checksum,
                         error=str(e), exc_info=True)
+            return False
+
+    # =====================================================
+    # TAG MANAGEMENT METHODS
+    # =====================================================
+
+    async def create_tag(self, tag_data: Dict[str, Any]) -> bool:
+        """Create a new file tag.
+
+        Args:
+            tag_data: Dictionary containing tag information:
+                - id: Unique tag identifier (required)
+                - name: Tag name (required, unique case-insensitive)
+                - color: Hex color for visual display (default: #6b7280)
+                - description: Tag description (optional)
+
+        Returns:
+            True if tag was created, False if name already exists
+        """
+        try:
+            await self._execute_write(
+                """INSERT INTO file_tags (id, name, color, description)
+                VALUES (?, ?, ?, ?)""",
+                (
+                    tag_data['id'],
+                    tag_data['name'],
+                    tag_data.get('color', '#6b7280'),
+                    tag_data.get('description')
+                )
+            )
+            logger.info("Created file tag", tag_id=tag_data['id'], name=tag_data['name'])
+            return True
+        except Exception as e:
+            if 'unique' in str(e).lower():
+                logger.info("Tag name already exists", name=tag_data['name'])
+                return False
+            logger.error("Failed to create tag", tag_id=tag_data.get('id'), error=str(e))
+            return False
+
+    async def get_tag(self, tag_id: str) -> Optional[Dict[str, Any]]:
+        """Get a tag by ID.
+
+        Args:
+            tag_id: Tag identifier
+
+        Returns:
+            Tag dictionary or None if not found
+        """
+        try:
+            return await self._fetch_one("SELECT * FROM file_tags WHERE id = ?", (tag_id,))
+        except Exception as e:
+            logger.error("Failed to get tag", tag_id=tag_id, error=str(e))
+            return None
+
+    async def get_tag_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get a tag by name (case-insensitive).
+
+        Args:
+            name: Tag name
+
+        Returns:
+            Tag dictionary or None if not found
+        """
+        try:
+            return await self._fetch_one("SELECT * FROM file_tags WHERE name = ? COLLATE NOCASE", (name,))
+        except Exception as e:
+            logger.error("Failed to get tag by name", name=name, error=str(e))
+            return None
+
+    async def list_tags(self, search: Optional[str] = None, sort_by: str = 'name') -> List[Dict[str, Any]]:
+        """List all tags.
+
+        Args:
+            search: Optional search query for tag name
+            sort_by: Sort field ('name', 'usage_count', 'created_at')
+
+        Returns:
+            List of tag dictionaries
+        """
+        try:
+            where_clause = ""
+            params = []
+
+            if search:
+                where_clause = "WHERE name LIKE ?"
+                params.append(f"%{search}%")
+
+            # Validate sort field
+            valid_sort_fields = {'name': 'name', 'usage_count': 'usage_count DESC', 'created_at': 'created_at DESC'}
+            order_by = valid_sort_fields.get(sort_by, 'name')
+
+            query = f"SELECT * FROM file_tags {where_clause} ORDER BY {order_by}"
+            return await self._fetch_all(query, tuple(params))
+        except Exception as e:
+            logger.error("Failed to list tags", error=str(e))
+            return []
+
+    async def update_tag(self, tag_id: str, updates: Dict[str, Any]) -> bool:
+        """Update a tag.
+
+        Args:
+            tag_id: Tag identifier
+            updates: Dictionary of fields to update (name, color, description)
+
+        Returns:
+            True if update succeeded, False otherwise
+        """
+        try:
+            if not updates:
+                return False
+
+            # Filter to allowed update fields
+            allowed_fields = {'name', 'color', 'description'}
+            filtered_updates = {k: v for k, v in updates.items() if k in allowed_fields}
+
+            if not filtered_updates:
+                return False
+
+            # Add updated_at timestamp
+            filtered_updates['updated_at'] = 'CURRENT_TIMESTAMP'
+
+            set_clauses = []
+            params = []
+            for key, value in filtered_updates.items():
+                if value == 'CURRENT_TIMESTAMP':
+                    set_clauses.append(f"{key} = CURRENT_TIMESTAMP")
+                else:
+                    set_clauses.append(f"{key} = ?")
+                    params.append(value)
+
+            params.append(tag_id)
+            query = f"UPDATE file_tags SET {', '.join(set_clauses)} WHERE id = ?"
+
+            await self._execute_write(query, tuple(params))
+            logger.info("Updated tag", tag_id=tag_id, updates=list(filtered_updates.keys()))
+            return True
+        except Exception as e:
+            if 'unique' in str(e).lower():
+                logger.info("Tag name already exists", tag_id=tag_id)
+                return False
+            logger.error("Failed to update tag", tag_id=tag_id, error=str(e))
+            return False
+
+    async def delete_tag(self, tag_id: str) -> bool:
+        """Delete a tag.
+
+        Args:
+            tag_id: Tag identifier
+
+        Returns:
+            True if deletion succeeded, False otherwise
+
+        Notes:
+            - CASCADE delete will remove all assignments
+        """
+        try:
+            await self._execute_write("DELETE FROM file_tags WHERE id = ?", (tag_id,))
+            logger.info("Deleted tag", tag_id=tag_id)
+            return True
+        except Exception as e:
+            logger.error("Failed to delete tag", tag_id=tag_id, error=str(e))
+            return False
+
+    async def assign_tag_to_file(self, file_checksum: str, tag_id: str) -> bool:
+        """Assign a tag to a file.
+
+        Args:
+            file_checksum: File checksum
+            tag_id: Tag identifier
+
+        Returns:
+            True if assignment succeeded, False if already exists or error
+
+        Notes:
+            - Trigger automatically updates usage_count
+        """
+        try:
+            await self._execute_write(
+                """INSERT INTO file_tag_assignments (file_checksum, tag_id)
+                VALUES (?, ?)""",
+                (file_checksum, tag_id)
+            )
+            logger.debug("Assigned tag to file", file_checksum=file_checksum[:8], tag_id=tag_id)
+            return True
+        except Exception as e:
+            if 'unique' in str(e).lower():
+                logger.debug("Tag already assigned", file_checksum=file_checksum[:8], tag_id=tag_id)
+                return False
+            logger.error("Failed to assign tag", file_checksum=file_checksum[:8], tag_id=tag_id, error=str(e))
+            return False
+
+    async def remove_tag_from_file(self, file_checksum: str, tag_id: str) -> bool:
+        """Remove a tag from a file.
+
+        Args:
+            file_checksum: File checksum
+            tag_id: Tag identifier
+
+        Returns:
+            True if removal succeeded, False otherwise
+
+        Notes:
+            - Trigger automatically updates usage_count
+        """
+        try:
+            await self._execute_write(
+                "DELETE FROM file_tag_assignments WHERE file_checksum = ? AND tag_id = ?",
+                (file_checksum, tag_id)
+            )
+            logger.debug("Removed tag from file", file_checksum=file_checksum[:8], tag_id=tag_id)
+            return True
+        except Exception as e:
+            logger.error("Failed to remove tag", file_checksum=file_checksum[:8], tag_id=tag_id, error=str(e))
+            return False
+
+    async def get_file_tags(self, file_checksum: str) -> List[Dict[str, Any]]:
+        """Get all tags for a file.
+
+        Args:
+            file_checksum: File checksum
+
+        Returns:
+            List of tag dictionaries
+        """
+        try:
+            return await self._fetch_all(
+                """SELECT t.*, a.assigned_at
+                FROM file_tags t
+                INNER JOIN file_tag_assignments a ON t.id = a.tag_id
+                WHERE a.file_checksum = ?
+                ORDER BY t.name""",
+                (file_checksum,)
+            )
+        except Exception as e:
+            logger.error("Failed to get file tags", file_checksum=file_checksum[:8], error=str(e))
+            return []
+
+    async def get_files_by_tag(self, tag_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Get all files with a specific tag.
+
+        Args:
+            tag_id: Tag identifier
+            limit: Maximum number of files to return
+
+        Returns:
+            List of file dictionaries with the tag
+        """
+        try:
+            return await self._fetch_all(
+                """SELECT lf.*
+                FROM library_files lf
+                INNER JOIN file_tag_assignments a ON lf.checksum = a.file_checksum
+                WHERE a.tag_id = ?
+                ORDER BY a.assigned_at DESC
+                LIMIT ?""",
+                (tag_id, limit)
+            )
+        except Exception as e:
+            logger.error("Failed to get files by tag", tag_id=tag_id, error=str(e))
+            return []
+
+    async def set_file_tags(self, file_checksum: str, tag_ids: List[str]) -> bool:
+        """Set all tags for a file (replaces existing tags).
+
+        Args:
+            file_checksum: File checksum
+            tag_ids: List of tag IDs to assign
+
+        Returns:
+            True if operation succeeded, False otherwise
+        """
+        try:
+            # Remove all existing tags
+            await self._execute_write(
+                "DELETE FROM file_tag_assignments WHERE file_checksum = ?",
+                (file_checksum,)
+            )
+
+            # Add new tags
+            for tag_id in tag_ids:
+                await self._execute_write(
+                    """INSERT OR IGNORE INTO file_tag_assignments (file_checksum, tag_id)
+                    VALUES (?, ?)""",
+                    (file_checksum, tag_id)
+                )
+
+            logger.debug("Set file tags", file_checksum=file_checksum[:8], tag_count=len(tag_ids))
+            return True
+        except Exception as e:
+            logger.error("Failed to set file tags", file_checksum=file_checksum[:8], error=str(e))
             return False
