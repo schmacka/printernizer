@@ -153,7 +153,98 @@ class PrusaPrinter(BasePrinter):
         except Exception as e:
             logger.error("Unexpected error disconnecting from Prusa printer",
                         printer_id=self.printer_id, error=str(e), exc_info=True)
-            
+
+    def _extract_filament_status(self, status_data: Dict[str, Any]) -> Optional['FilamentStatus']:
+        """
+        Extract filament sensor status from PrusaLink API response.
+
+        Prusa printers report filament sensor data via the /api/printer endpoint.
+        Unlike Bambu Lab's multi-material AMS, Prusa uses a single filament setup
+        with basic runout detection.
+
+        Args:
+            status_data: Status response from /api/printer endpoint
+
+        Returns:
+            FilamentStatus with single slot, or None if no sensor data
+        """
+        try:
+            from src.models.printer import FilamentSlot, FilamentStatus
+
+            # Extract telemetry data
+            telemetry = status_data.get('telemetry', {})
+            filament_data = telemetry.get('filament', {})
+            material_data = telemetry.get('material')
+
+            # Check if printer has filament sensor
+            has_sensor = (
+                filament_data.get('sensor', False) or
+                filament_data.get('loaded') is not None or
+                material_data is not None
+            )
+
+            if not has_sensor:
+                logger.debug(
+                    "No filament sensor data available",
+                    printer_id=self.printer_id
+                )
+                return None
+
+            # Extract filament state
+            is_loaded = filament_data.get('loaded', False)
+            is_runout = filament_data.get('runout', False)
+            filament_type = filament_data.get('type')
+
+            # Get material information if available
+            material_name = None
+            material_color = None
+            if material_data and isinstance(material_data, dict):
+                material_name = material_data.get('name') or material_data.get('type')
+                material_color = material_data.get('color')
+
+            # Fallback: use filament type if material name not set
+            if not material_name and filament_type:
+                material_name = filament_type
+
+            # Create single slot for Prusa (slot 0 = only slot)
+            slot = FilamentSlot(
+                slot_id=0,
+                tray_id=None,
+                tray_type=material_name,
+                tray_color=material_color,
+                filament_id=None,
+                color_name=None,
+                remaining_percentage=None,
+                is_loaded=is_loaded,
+                is_runout=is_runout,
+                material_name=material_name
+            )
+
+            logger.info(
+                "Extracted Prusa filament status",
+                printer_id=self.printer_id,
+                is_loaded=is_loaded,
+                is_runout=is_runout,
+                material=material_name
+            )
+
+            return FilamentStatus(
+                is_multi_material=False,
+                active_slot=0 if is_loaded else None,
+                slots=[slot] if (is_loaded or material_name) else [],
+                ams_id=None,
+                has_runout_sensor=has_sensor
+            )
+
+        except Exception as e:
+            logger.warning(
+                "Failed to extract filament status",
+                printer_id=self.printer_id,
+                error=str(e),
+                exc_info=True
+            )
+            return None
+
     async def get_status(self) -> PrinterStatusUpdate:
         """Get current printer status from Prusa."""
         if not self.is_connected or not self.session:
@@ -209,7 +300,10 @@ class PrusaPrinter(BasePrinter):
             temp_data = status_data.get('temperature', {})
             bed_temp = temp_data.get('bed', {}).get('actual', 0)
             nozzle_temp = temp_data.get('tool0', {}).get('actual', 0)
-            
+
+            # Extract filament sensor status
+            filament_status = self._extract_filament_status(status_data)
+
             # Extract job information - handle case where job_data might be None
             current_job = ''
             progress = 0
@@ -336,6 +430,7 @@ class PrusaPrinter(BasePrinter):
                 estimated_end_time=estimated_end_time,
                 elapsed_time_minutes=elapsed_time_minutes,
                 print_start_time=print_start_time,
+                filament_status=filament_status,
                 timestamp=datetime.now(),
                 raw_data={**status_data, 'job': job_data or {}}
             )

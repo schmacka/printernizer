@@ -93,6 +93,7 @@ class PrinterResponse(BaseModel):
     last_seen: Optional[str]
     current_job: Optional[CurrentJobInfo] = None
     temperatures: Optional[dict] = None
+    filament_status: Optional[dict] = None
     created_at: str
     updated_at: str
 
@@ -110,7 +111,8 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
     # Extract job information and temperatures from printer service if available
     current_job = None
     temperatures = None
-    
+    filament_status = None
+
     if printer_service:
         # Try to get the printer instance to access last_status
         try:
@@ -135,7 +137,12 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
                         temperatures['bed'] = status.temperature_bed
                     if status.temperature_nozzle is not None:
                         temperatures['nozzle'] = status.temperature_nozzle
-                        
+
+                # Get filament status
+                filament_status = None
+                if status.filament_status:
+                    filament_status = status.filament_status.dict()
+
         except Exception as e:
             logger.warning("Failed to get status details for printer", 
                          printer_id=printer.id, error=str(e))
@@ -158,6 +165,7 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
         last_seen=printer.last_seen.isoformat() if printer.last_seen else None,
         current_job=current_job,
         temperatures=temperatures,
+        filament_status=filament_status,
         created_at=printer.created_at.isoformat(),
         updated_at=printer.created_at.isoformat()  # Use created_at as fallback
     )

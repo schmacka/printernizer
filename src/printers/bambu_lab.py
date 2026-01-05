@@ -460,6 +460,164 @@ class BambuLabPrinter(BasePrinter):
                 timestamp=datetime.now()
             )
 
+    def _extract_ams_status(self, mqtt_data: Dict[str, Any]) -> Optional['FilamentStatus']:
+        """
+        Extract AMS (Automatic Material System) filament status from MQTT data.
+
+        Bambu Lab printers with AMS report filament status via MQTT messages.
+        This method parses the AMS data structure to extract:
+        - Loaded filament types, colors, and IDs
+        - Remaining filament percentages
+        - Active slot during printing
+
+        Args:
+            mqtt_data: MQTT dump from bambulabs_api.mqtt_dump() or self.latest_data
+
+        Returns:
+            FilamentStatus object with AMS slot data, or None if no AMS present
+        """
+        try:
+            from src.models.printer import FilamentSlot, FilamentStatus
+            from src.services.filament_colors import extract_color_from_filament_id
+
+            # Locate AMS data in MQTT structure
+            ams_data = mqtt_data.get('ams')
+            if not ams_data:
+                # Try alternate location (some firmware versions)
+                print_data = mqtt_data.get('print', {})
+                ams_data = print_data.get('ams')
+
+            if not ams_data or not isinstance(ams_data, dict):
+                logger.debug(
+                    "No AMS data in MQTT dump",
+                    printer_id=self.printer_id,
+                    mqtt_keys=list(mqtt_data.keys()) if isinstance(mqtt_data, dict) else None
+                )
+                return None
+
+            # AMS can be single dict or list of units (multi-AMS support)
+            ams_list = ams_data if isinstance(ams_data, list) else [ams_data]
+
+            slots = []
+            ams_id = None
+            active_slot = None
+
+            for ams_unit in ams_list:
+                if not isinstance(ams_unit, dict):
+                    continue
+
+                # Extract AMS unit ID
+                if ams_id is None:
+                    ams_id = str(ams_unit.get('id', '0'))
+
+                # Get tray information (typically array of 4 slots)
+                trays = ams_unit.get('tray', [])
+                if not isinstance(trays, list):
+                    logger.warning(
+                        "AMS tray data is not a list",
+                        printer_id=self.printer_id,
+                        tray_type=type(trays).__name__
+                    )
+                    continue
+
+                for slot_idx, tray in enumerate(trays):
+                    if not isinstance(tray, dict):
+                        continue
+
+                    # Extract tray fields
+                    tray_id = tray.get('tray_id')
+                    tray_type = tray.get('tray_type', '').strip()
+                    tray_color = tray.get('tray_color', '').strip()
+                    filament_id = tray.get('tray_id_name', '').strip()
+                    remain = tray.get('remain')
+
+                    # Check if this slot is currently active (printing from it)
+                    is_active = tray.get('tray_now', 0) == 1
+                    if is_active:
+                        active_slot = slot_idx
+
+                    # Map Bambu filament ID to human-readable color name
+                    color_name = None
+                    if filament_id:
+                        try:
+                            color_name = extract_color_from_filament_id(filament_id)
+                        except Exception as e:
+                            logger.debug(
+                                "Failed to extract color from filament ID",
+                                filament_id=filament_id,
+                                error=str(e)
+                            )
+
+                    # Convert remaining filament to percentage
+                    remaining_pct = None
+                    if remain is not None:
+                        try:
+                            remain_float = float(remain)
+                            if remain_float <= 100:
+                                # Already a percentage
+                                remaining_pct = remain_float
+                            else:
+                                # Assume grams, convert to percentage (1000g = 100%)
+                                remaining_pct = min(100.0, (remain_float / 1000.0) * 100)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(
+                                "Invalid remain value",
+                                printer_id=self.printer_id,
+                                slot_id=slot_idx,
+                                remain=remain,
+                                error=str(e)
+                            )
+
+                    # Only add slot if it contains filament data
+                    if tray_id or tray_type or filament_id:
+                        slot = FilamentSlot(
+                            slot_id=slot_idx,
+                            tray_id=str(tray_id) if tray_id else None,
+                            tray_type=tray_type if tray_type else None,
+                            tray_color=tray_color if tray_color else None,
+                            filament_id=filament_id if filament_id else None,
+                            color_name=color_name,
+                            remaining_percentage=remaining_pct,
+                            is_loaded=True,
+                            is_runout=False,
+                            material_name=tray_type
+                        )
+                        slots.append(slot)
+
+            # If no slots found, AMS might be empty or disconnected
+            if not slots:
+                logger.debug(
+                    "No filament slots found in AMS data",
+                    printer_id=self.printer_id,
+                    ams_id=ams_id
+                )
+                return None
+
+            logger.info(
+                "Extracted AMS status",
+                printer_id=self.printer_id,
+                slot_count=len(slots),
+                ams_id=ams_id,
+                active_slot=active_slot
+            )
+
+            return FilamentStatus(
+                is_multi_material=True,
+                active_slot=active_slot,
+                slots=slots,
+                ams_id=ams_id,
+                has_runout_sensor=True
+            )
+
+        except Exception as e:
+            logger.warning(
+                "Failed to extract AMS status",
+                printer_id=self.printer_id,
+                error=str(e),
+                exc_info=True
+            )
+            return None
+
     async def _get_status_bambu_api(self) -> PrinterStatusUpdate:
         """Get status using bambulabs_api with improved timeout handling."""
         if not self.bambu_client:
@@ -578,6 +736,7 @@ class BambuLabPrinter(BasePrinter):
         estimated_end_time = None
         elapsed_time_minutes = None
         print_start_time = None
+        filament_status = None
 
         try:
             # First, try to get data from MQTT dump which is most reliable
@@ -658,6 +817,9 @@ class BambuLabPrinter(BasePrinter):
                                    remaining_time_minutes=remaining_time_minutes,
                                    elapsed_time_minutes=elapsed_time_minutes,
                                    mqtt_keys=list(print_data.keys()))
+
+                        # Extract filament/AMS status from MQTT data
+                        filament_status = self._extract_ams_status(mqtt_data)
 
             # If MQTT didn't provide data, use direct method calls
             if bed_temp == 0.0 and hasattr(self.bambu_client, 'get_bed_temperature'):
@@ -804,6 +966,7 @@ class BambuLabPrinter(BasePrinter):
             estimated_end_time=estimated_end_time,
             elapsed_time_minutes=elapsed_time_minutes,
             print_start_time=print_start_time,
+            filament_status=filament_status,
             timestamp=datetime.now(),
             raw_data=status.__dict__ if hasattr(status, '__dict__') else {}
         )
@@ -836,6 +999,9 @@ class BambuLabPrinter(BasePrinter):
                     from datetime import timedelta
                     estimated_end_time = datetime.now() + timedelta(minutes=remaining_time_minutes)
                 break
+
+        # Extract filament/AMS status from MQTT data
+        filament_status = self._extract_ams_status(self.latest_data)
 
         # Improved status detection for printing
         # High temperatures usually indicate printing activity
@@ -933,6 +1099,7 @@ class BambuLabPrinter(BasePrinter):
             current_job_thumbnail_url=(file_url(current_job_file_id, 'thumbnail') if current_job_file_id and current_job_has_thumbnail else None),
             remaining_time_minutes=remaining_time_minutes,
             estimated_end_time=estimated_end_time,
+            filament_status=filament_status,
             timestamp=datetime.now(),
             raw_data=self.latest_data
         )

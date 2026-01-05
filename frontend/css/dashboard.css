@@ -282,6 +282,198 @@
     animation: pulse 2s infinite;
 }
 
+/* ========================================
+   Filament Status Display
+   ======================================== */
+
+.filament-section {
+    margin-top: var(--spacing-4);
+    padding-top: var(--spacing-4);
+    border-top: 1px solid var(--gray-200);
+}
+
+.section-title {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-3);
+    font-weight: 600;
+}
+
+/* Filament Slots Grid */
+.filament-slots {
+    display: grid;
+    gap: var(--spacing-2);
+}
+
+.filament-slots.multi-material {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.filament-slots.single-material {
+    grid-template-columns: 1fr;
+}
+
+/* Individual Filament Slot */
+.filament-slot {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-2);
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+/* Active Slot (currently printing) */
+.filament-slot.active-slot {
+    border-color: var(--primary-color);
+    background: var(--primary-50);
+    box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+/* Empty Slot */
+.filament-slot.empty-slot {
+    opacity: 0.5;
+    background: var(--gray-100);
+}
+
+/* Filament Runout */
+.filament-slot.runout {
+    border-color: var(--error-color);
+    background: var(--error-50);
+}
+
+/* Low Stock Warning */
+.filament-slot.low-stock {
+    border-color: var(--warning-color);
+}
+
+/* Color Indicator Circle */
+.filament-color-indicator {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--gray-300);
+    margin-right: var(--spacing-2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Empty Slot Color Indicator */
+.filament-slot.empty-slot .filament-color-indicator {
+    background: var(--gray-200) !important;
+    border-style: dashed;
+}
+
+/* Active Indicator (pulsing dot) */
+.active-indicator {
+    color: white;
+    font-size: 24px;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
+}
+
+/* Filament Info Container */
+.filament-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+}
+
+/* Material Name */
+.filament-material {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--gray-900);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Remaining Percentage */
+.filament-remaining {
+    font-size: var(--font-size-xs);
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.filament-slot.low-stock .filament-remaining {
+    color: var(--warning-color);
+    font-weight: 700;
+}
+
+/* Warning Messages */
+.filament-warning {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+}
+
+.runout-warning {
+    color: var(--error-color);
+}
+
+.low-stock-warning {
+    color: var(--warning-color);
+}
+
+/* Empty Slot Label */
+.filament-empty-label {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    font-style: italic;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+    /* Stack AMS slots vertically on mobile */
+    .filament-slots.multi-material {
+        grid-template-columns: 1fr;
+    }
+
+    /* Slightly smaller color indicators on mobile */
+    .filament-color-indicator {
+        width: 28px;
+        height: 28px;
+    }
+
+    .active-indicator {
+        font-size: 20px;
+    }
+}
+
+/* Container query support (modern browsers) */
+@supports (container-type: inline-size) {
+    @container printer-grid (max-width: 500px) {
+        .filament-slots.multi-material {
+            grid-template-columns: 1fr;
+        }
+    }
+}
+
 /* Jobs Preview */
 .jobs-preview {
     display: flex;

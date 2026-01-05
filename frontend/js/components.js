@@ -59,9 +59,10 @@ class PrinterCard {
                         ${this.renderQuickStats()}
                     </div>
                 </div>
-                
+
                 ${this.renderCurrentJob()}
                 ${this.renderTemperatures()}
+                ${this.renderFilamentStatus()}
                 ${this.renderRealtimeProgress()}
                 ${this.renderCameraSection()}
             </div>
@@ -397,6 +398,171 @@ class PrinterCard {
     }
 
     /**
+     * Render filament status section
+     */
+    renderFilamentStatus() {
+        // Check if printer has filament status data
+        if (!this.printer.filament_status ||
+            !this.printer.filament_status.slots ||
+            this.printer.filament_status.slots.length === 0) {
+            return '';  // No filament data available
+        }
+
+        const filamentStatus = this.printer.filament_status;
+        const isMultiMaterial = filamentStatus.is_multi_material;
+
+        // Render each slot
+        const slotsHtml = filamentStatus.slots
+            .map(slot => this.renderFilamentSlot(
+                slot,
+                filamentStatus.active_slot === slot.slot_id
+            ))
+            .join('');
+
+        // Section title (AMS for multi-material, Filament for single)
+        const title = isMultiMaterial ? 'AMS' : 'Filament';
+
+        return `
+            <div class="filament-section">
+                <div class="section-title">${title}</div>
+                <div class="filament-slots ${isMultiMaterial ? 'multi-material' : 'single-material'}">
+                    ${slotsHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render individual filament slot
+     */
+    renderFilamentSlot(slot, isActive) {
+        // CSS classes based on slot state
+        const classes = [
+            'filament-slot',
+            isActive ? 'active-slot' : '',
+            slot.is_runout ? 'runout' : '',
+            !slot.is_loaded ? 'empty-slot' : '',
+            (slot.remaining_percentage !== null &&
+             slot.remaining_percentage < 20) ? 'low-stock' : ''
+        ].filter(Boolean).join(' ');
+
+        // Determine display color
+        const color = slot.tray_color || this.getColorFromName(slot.color_name);
+        const colorStyle = color ? `background-color: ${color};` : '';
+
+        // Material label
+        const materialLabel = slot.color_name ||
+                             slot.tray_type ||
+                             slot.material_name ||
+                             'Unknown';
+
+        // Remaining percentage display
+        const remainingHtml = slot.remaining_percentage !== null
+            ? `<div class="filament-remaining">${Math.round(slot.remaining_percentage)}%</div>`
+            : '';
+
+        // Warning indicators
+        const runoutHtml = slot.is_runout
+            ? `<div class="filament-warning runout-warning">⚠️ Runout</div>`
+            : '';
+
+        const lowStockHtml = (slot.remaining_percentage !== null &&
+                             slot.remaining_percentage < 20 &&
+                             !slot.is_runout)
+            ? `<div class="filament-warning low-stock-warning">⚠️ Low</div>`
+            : '';
+
+        // Empty slot indicator
+        const emptyHtml = (!slot.is_loaded && !slot.tray_type)
+            ? `<div class="filament-empty-label">Empty</div>`
+            : '';
+
+        // Active indicator
+        const activeIndicator = isActive
+            ? '<span class="active-indicator">●</span>'
+            : '';
+
+        return `
+            <div class="${classes}" data-slot-id="${slot.slot_id}">
+                <div class="filament-color-indicator" style="${colorStyle}">
+                    ${activeIndicator}
+                </div>
+                <div class="filament-info">
+                    <div class="filament-material">${materialLabel}</div>
+                    ${remainingHtml}
+                    ${runoutHtml}
+                    ${lowStockHtml}
+                    ${emptyHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Map color name to CSS color value
+     */
+    getColorFromName(colorName) {
+        if (!colorName) return null;
+
+        const colorMap = {
+            'Black': '#000000',
+            'White': '#FFFFFF',
+            'Red': '#FF0000',
+            'Orange': '#FF8800',
+            'Yellow': '#FFFF00',
+            'Green': '#00FF00',
+            'Blue': '#0000FF',
+            'Purple': '#800080',
+            'Gray': '#808080',
+            'Grey': '#808080',
+            'Pink': '#FFC0CB',
+            'Brown': '#8B4513',
+            'Cyan': '#00FFFF',
+            'Magenta': '#FF00FF',
+            'Lime': '#00FF00',
+            'Navy': '#000080',
+            'Teal': '#008080',
+            'Silver': '#C0C0C0',
+            'Gold': '#FFD700',
+            'Clear': '#E8E8E8',
+            'Natural': '#F5E6D3',
+            'Transparent': '#E8E8E8'
+        };
+
+        return colorMap[colorName] || null;
+    }
+
+    /**
+     * Update filament display without full re-render
+     */
+    updateFilamentDisplay(filamentStatus) {
+        if (!filamentStatus || !filamentStatus.slots) return;
+
+        filamentStatus.slots.forEach(slot => {
+            const slotElement = this.element.querySelector(
+                `[data-slot-id="${slot.slot_id}"]`
+            );
+            if (!slotElement) return;
+
+            // Update remaining percentage if present
+            const remainingElement = slotElement.querySelector('.filament-remaining');
+            if (remainingElement && slot.remaining_percentage !== null) {
+                remainingElement.textContent = `${Math.round(slot.remaining_percentage)}%`;
+            }
+
+            // Update warning states
+            const isLowStock = slot.remaining_percentage !== null &&
+                              slot.remaining_percentage < 20;
+            slotElement.classList.toggle('low-stock', isLowStock);
+            slotElement.classList.toggle('runout', slot.is_runout || false);
+
+            // Update active slot highlight
+            const isActive = filamentStatus.active_slot === slot.slot_id;
+            slotElement.classList.toggle('active-slot', isActive);
+        });
+    }
+
+    /**
      * Start real-time monitoring for this printer
      */
     async startRealtimeMonitoring() {
@@ -479,7 +645,12 @@ class PrinterCard {
         if (statusData.temperatures) {
             this.updateTemperatureDisplay(statusData.temperatures);
         }
-        
+
+        // Update filament status
+        if (statusData.filament_status) {
+            this.updateFilamentDisplay(statusData.filament_status);
+        }
+
         // Update job progress
         if (statusData.current_job) {
             this.updateJobProgress(statusData.current_job);
