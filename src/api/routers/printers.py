@@ -93,6 +93,7 @@ class PrinterResponse(BaseModel):
     last_seen: Optional[str]
     current_job: Optional[CurrentJobInfo] = None
     temperatures: Optional[dict] = None
+    filaments: Optional[list] = None
     created_at: str
     updated_at: str
 
@@ -107,17 +108,18 @@ class PrinterListResponse(BaseModel):
 def _printer_to_response(printer: Printer, printer_service: PrinterService = None) -> PrinterResponse:
     """Convert a Printer model to PrinterResponse."""
     
-    # Extract job information and temperatures from printer service if available
+    # Extract job information, temperatures, and filaments from printer service if available
     current_job = None
     temperatures = None
-    
+    filaments = None
+
     if printer_service:
         # Try to get the printer instance to access last_status
         try:
             instance = printer_service.printer_instances.get(printer.id)
             if instance and instance.last_status:
                 status = instance.last_status
-                
+
                 # Get current job info
                 job_name = status.current_job
                 if job_name and isinstance(job_name, str) and job_name.strip():
@@ -127,7 +129,7 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
                         progress=status.progress,
                         started_at=status.timestamp
                     )
-                
+
                 # Get temperature info
                 if status.temperature_bed is not None or status.temperature_nozzle is not None:
                     temperatures = {}
@@ -135,9 +137,13 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
                         temperatures['bed'] = status.temperature_bed
                     if status.temperature_nozzle is not None:
                         temperatures['nozzle'] = status.temperature_nozzle
-                        
+
+                # Get filament info
+                if status.filaments:
+                    filaments = [filament.dict() for filament in status.filaments]
+
         except Exception as e:
-            logger.warning("Failed to get status details for printer", 
+            logger.warning("Failed to get status details for printer",
                          printer_id=printer.id, error=str(e))
     
     return PrinterResponse(
@@ -158,6 +164,7 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
         last_seen=printer.last_seen.isoformat() if printer.last_seen else None,
         current_job=current_job,
         temperatures=temperatures,
+        filaments=filaments,
         created_at=printer.created_at.isoformat(),
         updated_at=printer.created_at.isoformat()  # Use created_at as fallback
     )
