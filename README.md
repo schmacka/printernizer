@@ -31,7 +31,7 @@ Printernizer is a **production-ready** 3D printer management system that transfo
 - **🌐 Multi-Deployment** - Docker, Home Assistant, Raspberry Pi, or standalone Python
 - **📱 Mobile Ready** - Fully responsive interface works on any device
 
-### Status: Production Ready (v2.7.0)
+### Status: Production Ready (v2.14.2)
 
 ✅ **Stable** • ✅ **Tested** • ✅ **Documented** • ✅ **Multi-Platform**
 
@@ -149,7 +149,7 @@ Full functionality on mobile devices with optimized responsive layout.
 - **WebSocket API** - Real-time event streaming for custom integrations
 - **Database Migrations** - Automatic schema migrations with SQLite
 - **Extensible Architecture** - Service-based design for easy customization
-- **Comprehensive Testing** - 562+ tests including unit, integration, and E2E tests
+- **Comprehensive Testing** - 1200+ tests including unit, integration, and E2E tests
 - **Prometheus Metrics** - Built-in monitoring and metrics export
 - **Health Endpoints** - `/api/v1/health` and `/api/v1/update-check`
 
@@ -435,7 +435,7 @@ printernizer/
 │   ├── js/                # JavaScript modules
 │   ├── css/               # Stylesheets
 │   └── index.html         # Main HTML
-├── tests/                 # Test suites (562+ tests)
+├── tests/                 # Test suites (1200+ tests)
 ├── docs/                  # Documentation (MkDocs)
 ├── docker/                # Docker configurations
 ├── scripts/               # Utility scripts
@@ -466,7 +466,7 @@ We welcome contributions! Please read our [**Contributing Guide**](CONTRIBUTING.
 
 ## 🧪 Testing
 
-Printernizer includes comprehensive testing with **562+ tests**:
+Printernizer includes comprehensive testing with **1200+ tests**:
 
 ```bash
 # Run all tests
@@ -604,7 +604,7 @@ For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.
 
 ## 🗺️ Roadmap
 
-### Current Version: 2.7.0 (Production Ready) ✅
+### Current Version: 2.14.2 (Production Ready) ✅
 
 **Completed Features:**
 - ✅ Complete backend with FastAPI + async SQLite
@@ -618,7 +618,12 @@ For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.
 - ✅ Docker containerization (standalone & Home Assistant)
 - ✅ Multi-architecture support (x86_64, ARM64, ARMv7)
 - ✅ Comprehensive documentation (GitHub Pages)
-- ✅ 562+ tests with CI/CD pipeline
+- ✅ 1200+ tests with CI/CD pipeline
+- ✅ Slicer integration (Bambu Studio, Orca Slicer, Prusa Slicer)
+- ✅ Setup wizard for guided first-run configuration
+- ✅ Filament display with AMS support
+- ✅ Camera diagnostics and snapshot system
+- ✅ Material inventory with Excel export
 
 ### Coming Soon
 
