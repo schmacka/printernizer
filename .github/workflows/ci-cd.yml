@@ -368,8 +368,9 @@ jobs:
         DATABASE_URL: sqlite:///e2e_test.db
         DOWNLOADS_PATH: /tmp/printernizer-e2e-downloads
         LIBRARY_PATH: /tmp/printernizer-e2e-library
-        TIMELAPSE_SOURCE_DIR: /tmp/printernizer-e2e-timelapse
-        TIMELAPSE_OUTPUT_DIR: /tmp/printernizer-e2e-output
+        TIMELAPSE_SOURCE_FOLDER: /tmp/printernizer-e2e-timelapse
+        TIMELAPSE_OUTPUT_FOLDER: /tmp/printernizer-e2e-output
+        SLICING_OUTPUT_DIR: /tmp/printernizer-e2e-sliced
         LOG_LEVEL: INFO
         MOCK_PRINTERS: "true"
 
