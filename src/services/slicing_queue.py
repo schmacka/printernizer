@@ -70,19 +70,19 @@ class SlicingQueue(BaseService):
         self.settings = get_settings()
         self._running_jobs: Dict[str, asyncio.Task] = {}
         self._max_concurrent = 2
-        self._output_dir = Path("/data/printernizer/sliced")
+        self._output_dir = Path(self.settings.slicing_output_dir)
         self._enabled = True
 
     async def initialize(self) -> None:
         """Initialize service and load settings."""
         await super().initialize()
-        
+
         logger.info("Initializing slicing queue")
-        
-        # Load settings
+
+        # Load settings (database settings override config/env vars)
         self._enabled = await self._get_setting("slicing.enabled", True)
         self._max_concurrent = await self._get_setting("slicing.max_concurrent", 2)
-        output_dir = await self._get_setting("slicing.output_dir", "/data/printernizer/sliced")
+        output_dir = await self._get_setting("slicing.output_dir", self.settings.slicing_output_dir)
         self._output_dir = Path(output_dir)
         
         # Create output directory

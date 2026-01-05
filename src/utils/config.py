@@ -348,6 +348,13 @@ class PrinternizerSettings(BaseSettings):
         description="Path to FlickerFree do_timelapse.sh script for video processing."
     )
 
+    # Slicing Configuration
+    slicing_output_dir: str = Field(
+        default="/data/printernizer/sliced",
+        env="SLICING_OUTPUT_DIR",
+        description="Directory for sliced G-code output files. Will be created if doesn't exist."
+    )
+
     # =====================================================================
     # USAGE STATISTICS - Privacy-first telemetry (opt-in only)
     # =====================================================================

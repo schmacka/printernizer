@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.3] - 2026-01-05
+
+### Fixed
+- **Slicing Output Directory Configuration**: Added configurable slicing output directory
+  - Added `SLICING_OUTPUT_DIR` environment variable support to config
+  - Updated slicing queue to use configurable output directory instead of hardcoded `/data` path
+  - Note: CI workflow env var names need manual update (TIMELAPSE_SOURCE_DIR -> TIMELAPSE_SOURCE_FOLDER)
+
 ## [2.15.2] - 2026-01-05
 
 ### Fixed
