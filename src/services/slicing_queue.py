@@ -76,21 +76,36 @@ class SlicingQueue(BaseService):
     async def initialize(self) -> None:
         """Initialize service and load settings."""
         await super().initialize()
-        
+
         logger.info("Initializing slicing queue")
-        
+
         # Load settings
         self._enabled = await self._get_setting("slicing.enabled", True)
         self._max_concurrent = await self._get_setting("slicing.max_concurrent", 2)
         output_dir = await self._get_setting("slicing.output_dir", "/data/printernizer/sliced")
         self._output_dir = Path(output_dir)
-        
+
         # Create output directory
-        self._output_dir.mkdir(parents=True, exist_ok=True)
-        
+        try:
+            self._output_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            logger.warning(
+                "Cannot create slicing output directory - slicing will be disabled",
+                path=str(self._output_dir),
+                error=str(e)
+            )
+            self._enabled = False
+        except Exception as e:
+            logger.error(
+                "Failed to create slicing output directory",
+                path=str(self._output_dir),
+                error=str(e)
+            )
+            self._enabled = False
+
         # Resume queued jobs from previous session
         await self._resume_queued_jobs()
-        
+
         logger.info(
             "Slicing queue initialized",
             enabled=self._enabled,
