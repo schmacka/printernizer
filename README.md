@@ -31,7 +31,7 @@ Printernizer is a **production-ready** 3D printer management system that transfo
 - **🌐 Multi-Deployment** - Docker, Home Assistant, Raspberry Pi, or standalone Python
 - **📱 Mobile Ready** - Fully responsive interface works on any device
 
-### Status: Production Ready (v2.14.2)
+### Status: Production Ready (v2.14.3)
 
 ✅ **Stable** • ✅ **Tested** • ✅ **Documented** • ✅ **Multi-Platform**
 
@@ -604,7 +604,7 @@ For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.
 
 ## 🗺️ Roadmap
 
-### Current Version: 2.14.2 (Production Ready) ✅
+### Current Version: 2.14.3 (Production Ready) ✅
 
 **Completed Features:**
 - ✅ Complete backend with FastAPI + async SQLite

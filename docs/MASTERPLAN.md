@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
 **Last Updated**: 2026-01-05
-**Current Version**: v2.14.2
+**Current Version**: v2.14.3
 **Status**: Production Ready
 
 ---
