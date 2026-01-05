@@ -8,7 +8,7 @@ import secrets
 from typing import Optional, List
 from pathlib import Path
 from pydantic import Field, validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import structlog
 
 logger = structlog.get_logger()
@@ -588,10 +588,13 @@ class PrinternizerSettings(BaseSettings):
         """Check if MQTT configuration is available."""
         return self.mqtt_host is not None
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        # Enable case-insensitive env var matching
+        case_sensitive=False,
+    )
 
 
 # Global settings instance
