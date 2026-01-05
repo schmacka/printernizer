@@ -631,19 +631,224 @@ class PrinterManager {
     }
 
     /**
-     * Show printer details
+     * Show printer details modal
      */
     async showPrinterDetails(printerId) {
         try {
-            const printer = await api.getPrinter(printerId);
-            
-            // Create and show details modal (placeholder implementation)
-            showToast('info', 'Details', `Drucker: ${printer.name}\nStatus: ${printer.status}\nIP: ${printer.ip_address}`);
-            
+            // Fetch comprehensive printer details
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/details`);
+            if (!response.ok) throw new Error('Failed to fetch printer details');
+
+            const data = await response.json();
+
+            // Create modal HTML
+            const modalHtml = this.renderPrinterDetailsModal(data);
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('printerDetailsModal');
+            if (existingModal) existingModal.remove();
+
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Show modal
+            const modal = document.getElementById('printerDetailsModal');
+            modal.style.display = 'flex';
+
+            // Setup close handlers
+            modal.querySelector('.btn-close').onclick = () => this.closePrinterDetailsModal();
+            modal.onclick = (e) => {
+                if (e.target === modal) this.closePrinterDetailsModal();
+            };
+
         } catch (error) {
             Logger.error('Failed to load printer details:', error);
             showToast('error', 'Fehler', 'Drucker-Details konnten nicht geladen werden');
         }
+    }
+
+    /**
+     * Close printer details modal
+     */
+    closePrinterDetailsModal() {
+        const modal = document.getElementById('printerDetailsModal');
+        if (modal) modal.remove();
+    }
+
+    /**
+     * Render printer details modal HTML
+     */
+    renderPrinterDetailsModal(data) {
+        const { printer, connection, statistics, recent_jobs, current_status } = data;
+
+        const statusIcon = this.getStatusIcon(printer.status);
+        const connectionStatus = connection.is_connected ? '🟢 Verbunden' : '🔴 Getrennt';
+
+        return `
+            <div id="printerDetailsModal" class="modal-overlay printer-details-modal">
+                <div class="modal-content printer-details-content">
+                    <div class="modal-header">
+                        <h2>${statusIcon} ${escapeHtml(printer.name)}</h2>
+                        <button class="btn-close">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Printer Info Section -->
+                        <div class="details-section">
+                            <h3>📋 Druckerinformationen</h3>
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Typ</span>
+                                    <span class="detail-value">${this.formatPrinterType(printer.type)}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Status</span>
+                                    <span class="detail-value status-badge status-${printer.status}">${printer.status}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Standort</span>
+                                    <span class="detail-value">${printer.location || '-'}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Aktiviert</span>
+                                    <span class="detail-value">${printer.is_enabled ? '✅ Ja' : '❌ Nein'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connection Section -->
+                        <div class="details-section">
+                            <h3>🔌 Verbindung</h3>
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <span class="detail-label">Status</span>
+                                    <span class="detail-value">${connectionStatus}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Verbindungstyp</span>
+                                    <span class="detail-value">${connection.connection_type.toUpperCase()}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">IP-Adresse</span>
+                                    <span class="detail-value">${connection.ip_address}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Zuletzt gesehen</span>
+                                    <span class="detail-value">${connection.last_seen ? new Date(connection.last_seen).toLocaleString('de-DE') : '-'}</span>
+                                </div>
+                                ${connection.firmware_version ? `
+                                <div class="detail-item">
+                                    <span class="detail-label">Firmware</span>
+                                    <span class="detail-value">${connection.firmware_version}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Statistics Section -->
+                        <div class="details-section">
+                            <h3>📊 Statistiken</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card-small">
+                                    <div class="stat-value">${statistics.total_jobs}</div>
+                                    <div class="stat-label">Aufträge</div>
+                                </div>
+                                <div class="stat-card-small">
+                                    <div class="stat-value">${statistics.success_rate}%</div>
+                                    <div class="stat-label">Erfolgsrate</div>
+                                </div>
+                                <div class="stat-card-small">
+                                    <div class="stat-value">${statistics.total_print_time_hours}h</div>
+                                    <div class="stat-label">Druckzeit</div>
+                                </div>
+                                <div class="stat-card-small">
+                                    <div class="stat-value">${statistics.total_material_kg}kg</div>
+                                    <div class="stat-label">Material</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${current_status ? `
+                        <!-- Current Status Section -->
+                        <div class="details-section">
+                            <h3>⚡ Aktueller Status</h3>
+                            <div class="current-status-info">
+                                ${current_status.current_job ? `
+                                    <p><strong>Aktueller Auftrag:</strong> ${escapeHtml(current_status.current_job)}</p>
+                                    <p><strong>Fortschritt:</strong> ${current_status.progress || 0}%</p>
+                                    ${current_status.remaining_time ? `<p><strong>Verbleibend:</strong> ${this.formatMinutes(current_status.remaining_time)}</p>` : ''}
+                                ` : '<p>Kein aktiver Druckauftrag</p>'}
+                                ${current_status.temperatures ? `
+                                <div class="temps-display">
+                                    <span>🛏️ Bett: ${current_status.temperatures.bed.current || '-'}°C / ${current_status.temperatures.bed.target || '-'}°C</span>
+                                    <span>🔥 Düse: ${current_status.temperatures.nozzle.current || '-'}°C / ${current_status.temperatures.nozzle.target || '-'}°C</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <!-- Recent Jobs Section -->
+                        <div class="details-section">
+                            <h3>📜 Letzte Aufträge</h3>
+                            ${recent_jobs.length > 0 ? `
+                            <div class="recent-jobs-list">
+                                ${recent_jobs.slice(0, 5).map(job => `
+                                    <div class="recent-job-item">
+                                        <span class="job-name">${escapeHtml(job.file_name || 'Unbekannt')}</span>
+                                        <span class="job-status status-badge status-${job.status}">${job.status}</span>
+                                        <span class="job-date">${job.started_at ? new Date(job.started_at).toLocaleDateString('de-DE') : '-'}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ` : '<p class="no-data">Keine Aufträge vorhanden</p>'}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="printerManager.closePrinterDetailsModal()">Schließen</button>
+                        <button class="btn btn-primary" onclick="printerManager.closePrinterDetailsModal(); printerManager.editPrinter('${printer.id}')">Bearbeiten</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get status icon for printer
+     */
+    getStatusIcon(status) {
+        const icons = {
+            'online': '🟢',
+            'offline': '🔴',
+            'printing': '🖨️',
+            'idle': '💤',
+            'error': '⚠️',
+            'paused': '⏸️'
+        };
+        return icons[status] || '❓';
+    }
+
+    /**
+     * Format printer type for display
+     */
+    formatPrinterType(type) {
+        const types = {
+            'bambu_lab': 'Bambu Lab',
+            'prusa': 'Prusa'
+        };
+        return types[type] || type;
+    }
+
+    /**
+     * Format minutes to readable string
+     */
+    formatMinutes(minutes) {
+        if (!minutes) return '-';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0) {
+            return `${hours}h ${mins}min`;
+        }
+        return `${mins}min`;
     }
 
     /**

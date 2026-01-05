@@ -4153,3 +4153,188 @@ label .required {
 [data-theme="dark"] .stat-value {
     color: var(--text-primary);
 }
+
+/* ============ Printer Details Modal ============ */
+.printer-details-modal {
+    z-index: 1100;
+}
+
+.printer-details-content {
+    max-width: 700px;
+    width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.printer-details-content .modal-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.details-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.details-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.details-section h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--gray-700, #374151);
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    color: var(--gray-500, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.detail-value {
+    font-size: 0.95rem;
+    color: var(--gray-900, #111827);
+    font-weight: 500;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.stat-card-small {
+    background: var(--gray-50, #f9fafb);
+    border-radius: 8px;
+    padding: 16px 12px;
+    text-align: center;
+}
+
+.stat-card-small .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #667eea);
+}
+
+.stat-card-small .stat-label {
+    font-size: 0.7rem;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+.current-status-info {
+    background: var(--gray-50, #f9fafb);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.current-status-info p {
+    margin: 8px 0;
+}
+
+.temps-display {
+    display: flex;
+    gap: 24px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.recent-jobs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.recent-job-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--gray-50, #f9fafb);
+    border-radius: 6px;
+}
+
+.recent-job-item .job-name {
+    flex: 1;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recent-job-item .job-date {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+.no-data {
+    color: var(--gray-400);
+    font-style: italic;
+    padding: 16px;
+    text-align: center;
+}
+
+/* Dark theme for printer details */
+[data-theme="dark"] .details-section {
+    border-bottom-color: var(--gray-700);
+}
+
+[data-theme="dark"] .details-section h3 {
+    color: var(--gray-200);
+}
+
+[data-theme="dark"] .detail-value {
+    color: var(--gray-100);
+}
+
+[data-theme="dark"] .stat-card-small {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .current-status-info {
+    background: var(--gray-800);
+}
+
+[data-theme="dark"] .temps-display {
+    border-top-color: var(--gray-700);
+}
+
+[data-theme="dark"] .recent-job-item {
+    background: var(--gray-800);
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .temps-display {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
