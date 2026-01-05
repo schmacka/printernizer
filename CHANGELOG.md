@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.0] - 2026-01-05
+
+### Added
+- **Custom File Tags**: Complete tagging system for library files
+  - New database tables: `file_tags` and `file_tag_assignments` with automatic usage count tracking
+  - Full CRUD API endpoints (`/api/v1/tags`) for tag management
+  - File-tag assignment endpoints for linking tags to library files
+  - Search files by tags (`/api/v1/tags/search/files`)
+  - Frontend TagsManager class with modal tag picker UI
+  - Tags displayed as colored badges in library file detail view
+  - Dark mode support for all tag UI components
+
+- **Enhanced Printer Details Modal**: Comprehensive printer information display
+  - New `/api/v1/printers/{id}/details` endpoint returning full printer diagnostics
+  - Connection info with type (MQTT/HTTP), status, and last check timestamp
+  - Printer statistics: total jobs, completed, failed, total print time, material used
+  - Recent jobs list with status and completion time
+  - Current status with temperatures and active job info
+  - Full modal UI replacing previous placeholder toast notification
+  - Responsive design with dark mode support
+
 ## [2.14.3] - 2026-01-05
 
 ### Changed

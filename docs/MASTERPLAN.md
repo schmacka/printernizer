@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
 **Last Updated**: 2026-01-05
-**Current Version**: v2.14.3
+**Current Version**: v2.15.0
 **Status**: Production Ready
 
 ---
@@ -18,6 +18,7 @@
 | Sprint 2 Phase 2 (Feature Tests) | Complete | 100% |
 | Sprint 2 Phase 3 (Printer Tests) | Complete | 100% |
 | Sprint 3 (Frontend Polish) | Complete | 100% |
+| Sprint 4 (Tags & Printer Modal) | Complete | 100% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
 ---
@@ -110,6 +111,23 @@
 ## In Progress
 
 > No tasks currently in progress. Ready for next sprint.
+
+### Sprint 4 - Tags & Printer Details ✅ COMPLETE (2026-01-05)
+
+- [x] **Custom Tags for Files**
+  - Database migration for file_tags and file_tag_assignments tables
+  - Full CRUD API endpoints for tags (`/api/v1/tags`)
+  - File-tag assignment endpoints (`/api/v1/tags/file/{checksum}/assign`)
+  - Search files by tags (`/api/v1/tags/search/files`)
+  - Frontend TagsManager class with tag picker modal
+  - CSS styling with dark mode support
+  - Tags displayed in library file detail view
+
+- [x] **Enhanced Printer Details Modal**
+  - New `/api/v1/printers/{id}/details` endpoint
+  - Returns comprehensive printer info: connection diagnostics, statistics, recent jobs
+  - Full modal UI replacing placeholder toast
+  - Responsive design with dark mode support
 
 ### Documentation Cleanup ✅ COMPLETE (2026-01-05)
 
@@ -303,12 +321,12 @@
   - Logs display in proper HTML table with columns
   - Added sticky header, hover states, level-based highlighting
 
-### Library Features (Deferred to Future Sprint)
+### Library Features ✅ COMPLETE (v2.15.0)
 
-- [ ] **Custom Tags for Files**
-  - Add tags column to library_files table
-  - Add tag management API endpoints
-  - Add frontend tag picker UI
+- [x] **Custom Tags for Files** (Sprint 4)
+  - Added file_tags and file_tag_assignments tables
+  - Full tag management API with CRUD endpoints
+  - Frontend tag picker modal UI
   - Effort: 4-6 hours
 
 ---
@@ -336,11 +354,11 @@
 - Custom protocol handler (15-20 hours)
 - **Recommendation**: Defer (low ROI)
 
-### Enhanced Printer Details Modal
+### Enhanced Printer Details Modal ✅ COMPLETE (v2.15.0)
 
-**Status**: Simple toast with basic info
-**Location**: `frontend/js/printers.js:582`
-**Enhancement**: Full modal with specs, history, controls
+**Status**: Full modal with comprehensive info
+**Location**: `frontend/js/printers.js:showPrinterDetails()`
+**Completed**: Sprint 4 - Full modal with specs, statistics, recent jobs
 **Effort**: 6-8 hours
 
 ### Detailed Log Viewer
@@ -511,6 +529,7 @@ python3 -m pytest --cov=src tests/
 | 2 Phase 2 | 2026-01-04 | Feature Service Tests | ✅ Complete |
 | 2 Phase 3 | 2026-01-04 | Printer Service Tests | ✅ Complete |
 | 3 | 2026-01-04 | Frontend Polish | ✅ Complete |
+| 4 | 2026-01-05 | Tags & Printer Modal | ✅ Complete |
 
 ### Sprint 1 Summary
 
@@ -556,12 +575,27 @@ python3 -m pytest --cov=src tests/
   - Camera preview placeholder
 - **Status**: All 5 priority items completed
 
+### Sprint 4 Summary
+
+- **Date**: 2026-01-05 (v2.15.0)
+- **Focus**: Library tagging and printer details
+- **Completed Items**:
+  - Custom tags for library files (database, API, UI)
+  - Enhanced printer details modal (backend endpoint, full modal)
+- **Status**: All 2 priority items completed
+- **New Endpoints**:
+  - `GET/POST /api/v1/tags` - Tag CRUD
+  - `GET/PUT/DELETE /api/v1/tags/{id}` - Tag management
+  - `POST /api/v1/tags/file/{checksum}/assign` - Assign tags to files
+  - `GET /api/v1/printers/{id}/details` - Comprehensive printer info
+
 ---
 
 ## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 8.0 | 2026-01-05 | Sprint 4 completion (tags, printer modal) |
 | 7.0 | 2026-01-05 | Sprint 3 completion, doc cleanup, README update |
 | 6.0 | 2026-01-04 | Sprint 2 Phase 3 completion (479 total Sprint 2 tests) |
 | 5.0 | 2026-01-04 | Sprint 2 Phase 2 completion (355 total service tests) |
