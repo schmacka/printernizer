@@ -4338,3 +4338,459 @@ label .required {
         gap: 8px;
     }
 }
+
+/* ============================================
+   Enhanced Printer Details Modal
+   ============================================ */
+
+.printer-details-enhanced {
+    max-width: 800px;
+    max-height: 90vh;
+}
+
+.printer-details-enhanced .modal-header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.printer-type-badge {
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-600, #6b7280);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Modal Tabs for Printer Details */
+.modal-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: var(--gray-50, #f9fafb);
+    border-bottom: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.printer-details-enhanced .tab-btn {
+    flex: none;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--gray-600, #6b7280);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.printer-details-enhanced .tab-btn:hover {
+    color: var(--gray-900, #111827);
+    background: var(--gray-100, #f3f4f6);
+}
+
+.printer-details-enhanced .tab-btn.active {
+    color: var(--primary-color, #3b82f6);
+    border-bottom-color: var(--primary-color, #3b82f6);
+}
+
+.printer-details-enhanced .tab-content {
+    display: none;
+    padding: 0;
+}
+
+.printer-details-enhanced .tab-content.active {
+    display: block;
+}
+
+/* Stats Grid Variant */
+.stats-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.stat-card-small.stat-success .stat-value {
+    color: var(--green-500, #10b981);
+}
+
+/* Details Grid Variant */
+.details-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* Job Info in Recent Jobs */
+.recent-job-item .job-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.recent-job-item .job-meta {
+    font-size: 0.7rem;
+    color: var(--gray-400, #9ca3af);
+}
+
+/* Current Job Card */
+.current-job-card {
+    background: var(--gray-50, #f9fafb);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.current-job-card .job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.job-name-large {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900, #111827);
+}
+
+.job-progress-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color, #3b82f6);
+}
+
+.progress-bar-container {
+    height: 8px;
+    background: var(--gray-200, #e5e7eb);
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color, #3b82f6), var(--primary-600, #2563eb));
+    border-radius: 9999px;
+    transition: width 0.3s ease;
+}
+
+.job-time-info {
+    color: var(--gray-600, #6b7280);
+    font-size: 0.875rem;
+}
+
+.no-active-job {
+    padding: 40px;
+    text-align: center;
+    color: var(--gray-400, #9ca3af);
+}
+
+/* Printer Controls */
+.printer-controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--gray-200, #e5e7eb);
+}
+
+/* Temperature Cards */
+.temperature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.temp-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--gray-50, #f9fafb);
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.temp-icon {
+    font-size: 2rem;
+}
+
+.temp-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.temp-label {
+    font-size: 0.7rem;
+    color: var(--gray-500, #6b7280);
+    text-transform: uppercase;
+}
+
+.temp-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gray-900, #111827);
+}
+
+.temp-value.temp-heating {
+    color: var(--orange-500, #f97316);
+}
+
+.temp-value.temp-at-target {
+    color: var(--green-500, #10b981);
+}
+
+.temp-value.temp-cooling {
+    color: var(--blue-500, #3b82f6);
+}
+
+.temp-target {
+    font-size: 0.7rem;
+    color: var(--gray-400, #9ca3af);
+}
+
+/* Filament Slots */
+.filament-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filament-slot {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--gray-50, #f9fafb);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    min-width: 140px;
+}
+
+.filament-slot.active {
+    border-color: var(--primary-color, #3b82f6);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.filament-color {
+    width: 24px;
+    height: 24px;
+    border-radius: 9999px;
+    border: 2px solid var(--gray-300, #d1d5db);
+    flex-shrink: 0;
+}
+
+.filament-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.filament-slot-num {
+    font-size: 0.7rem;
+    color: var(--gray-500, #6b7280);
+}
+
+.filament-type {
+    font-weight: 500;
+    color: var(--gray-900, #111827);
+}
+
+.filament-active-badge {
+    background: var(--primary-color, #3b82f6);
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    margin-left: auto;
+}
+
+/* Job History Table */
+.job-history-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.job-history-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--gray-100, #f3f4f6);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--gray-600, #6b7280);
+    text-transform: uppercase;
+    border-radius: 6px 6px 0 0;
+}
+
+.job-history-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--gray-50, #f9fafb);
+    font-size: 0.875rem;
+    align-items: center;
+}
+
+.job-history-row:hover {
+    background: var(--gray-100, #f3f4f6);
+}
+
+.job-history-row .job-filename {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Diagnostics */
+.diagnostics-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.system-info {
+    background: var(--gray-50, #f9fafb);
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.system-info p {
+    margin: 8px 0;
+}
+
+.system-info code {
+    background: var(--gray-200, #e5e7eb);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+/* Button Link */
+.btn-link {
+    background: none;
+    border: none;
+    color: var(--primary-color, #3b82f6);
+    padding: 8px 0;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+/* Dark Theme for Enhanced Printer Details */
+[data-theme="dark"] .printer-details-enhanced {
+    background: var(--gray-900, #111827);
+}
+
+[data-theme="dark"] .printer-type-badge {
+    background: var(--gray-700, #374151);
+    color: var(--gray-300, #d1d5db);
+}
+
+[data-theme="dark"] .modal-tabs {
+    background: var(--gray-800, #1f2937);
+    border-bottom-color: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .printer-details-enhanced .tab-btn {
+    color: var(--gray-400, #9ca3af);
+}
+
+[data-theme="dark"] .printer-details-enhanced .tab-btn:hover {
+    color: var(--gray-200, #e5e7eb);
+    background: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .printer-details-enhanced .tab-btn.active {
+    color: var(--primary-color, #3b82f6);
+}
+
+[data-theme="dark"] .current-job-card,
+[data-theme="dark"] .temp-card,
+[data-theme="dark"] .filament-slot,
+[data-theme="dark"] .system-info {
+    background: var(--gray-800, #1f2937);
+}
+
+[data-theme="dark"] .progress-bar-container {
+    background: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .job-history-header {
+    background: var(--gray-800, #1f2937);
+}
+
+[data-theme="dark"] .job-history-row {
+    background: var(--gray-850, #1a1f2c);
+}
+
+[data-theme="dark"] .job-history-row:hover {
+    background: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .filament-slot.active {
+    background: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"] .system-info code {
+    background: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .temp-value {
+    color: var(--gray-100, #f3f4f6);
+}
+
+[data-theme="dark"] .filament-type {
+    color: var(--gray-100, #f3f4f6);
+}
+
+[data-theme="dark"] .job-name-large {
+    color: var(--gray-100, #f3f4f6);
+}
+
+/* Responsive adjustments for enhanced modal */
+@media (max-width: 768px) {
+    .printer-details-enhanced {
+        max-width: 100%;
+        margin: 0;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+
+    .modal-tabs {
+        overflow-x: auto;
+        padding: 0 12px;
+    }
+
+    .stats-grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .temperature-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .job-history-header,
+    .job-history-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .job-history-header span:nth-child(3),
+    .job-history-header span:nth-child(4),
+    .job-history-row span:nth-child(3),
+    .job-history-row span:nth-child(4) {
+        display: none;
+    }
+
+    .printer-controls {
+        flex-direction: column;
+    }
+
+    .details-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

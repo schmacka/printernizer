@@ -661,6 +661,11 @@ class PrinterManager {
                 if (e.target === modal) this.closePrinterDetailsModal();
             };
 
+            // Setup tab handlers
+            modal.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = () => this.switchTab(btn.dataset.tab);
+            });
+
         } catch (error) {
             Logger.error('Failed to load printer details:', error);
             showToast('error', 'Fehler', 'Drucker-Details konnten nicht geladen werden');
@@ -683,76 +688,39 @@ class PrinterManager {
 
         const statusIcon = this.getStatusIcon(printer.status);
         const connectionStatus = connection.is_connected ? '🟢 Verbunden' : '🔴 Getrennt';
+        const isPrinting = printer.status === 'printing';
+        const isPaused = printer.status === 'paused';
+        const canControl = connection.is_connected && (isPrinting || isPaused);
 
         return `
             <div id="printerDetailsModal" class="modal-overlay printer-details-modal">
-                <div class="modal-content printer-details-content">
+                <div class="modal-content printer-details-content printer-details-enhanced">
                     <div class="modal-header">
-                        <h2>${statusIcon} ${escapeHtml(printer.name)}</h2>
+                        <div class="modal-header-info">
+                            <h2>${statusIcon} ${escapeHtml(printer.name)}</h2>
+                            <span class="printer-type-badge">${this.formatPrinterType(printer.type)}</span>
+                        </div>
                         <button class="btn-close">×</button>
                     </div>
+
+                    <!-- Tab Navigation -->
+                    <div class="modal-tabs">
+                        <button class="tab-btn active" data-tab="overview">📊 Übersicht</button>
+                        <button class="tab-btn" data-tab="status">⚡ Status</button>
+                        <button class="tab-btn" data-tab="history">📜 Verlauf</button>
+                        <button class="tab-btn" data-tab="diagnostics">🔧 Diagnose</button>
+                    </div>
+
                     <div class="modal-body">
-                        <!-- Printer Info Section -->
-                        <div class="details-section">
-                            <h3>📋 Druckerinformationen</h3>
-                            <div class="details-grid">
-                                <div class="detail-item">
-                                    <span class="detail-label">Typ</span>
-                                    <span class="detail-value">${this.formatPrinterType(printer.type)}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Status</span>
-                                    <span class="detail-value status-badge status-${printer.status}">${printer.status}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Standort</span>
-                                    <span class="detail-value">${printer.location || '-'}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Aktiviert</span>
-                                    <span class="detail-value">${printer.is_enabled ? '✅ Ja' : '❌ Nein'}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Connection Section -->
-                        <div class="details-section">
-                            <h3>🔌 Verbindung</h3>
-                            <div class="details-grid">
-                                <div class="detail-item">
-                                    <span class="detail-label">Status</span>
-                                    <span class="detail-value">${connectionStatus}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Verbindungstyp</span>
-                                    <span class="detail-value">${connection.connection_type.toUpperCase()}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">IP-Adresse</span>
-                                    <span class="detail-value">${connection.ip_address}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Zuletzt gesehen</span>
-                                    <span class="detail-value">${connection.last_seen ? new Date(connection.last_seen).toLocaleString('de-DE') : '-'}</span>
-                                </div>
-                                ${connection.firmware_version ? `
-                                <div class="detail-item">
-                                    <span class="detail-label">Firmware</span>
-                                    <span class="detail-value">${connection.firmware_version}</span>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-
-                        <!-- Statistics Section -->
-                        <div class="details-section">
-                            <h3>📊 Statistiken</h3>
-                            <div class="stats-grid">
+                        <!-- Overview Tab -->
+                        <div class="tab-content active" data-tab="overview">
+                            <!-- Statistics Cards -->
+                            <div class="stats-grid stats-grid-4">
                                 <div class="stat-card-small">
                                     <div class="stat-value">${statistics.total_jobs}</div>
-                                    <div class="stat-label">Aufträge</div>
+                                    <div class="stat-label">Aufträge gesamt</div>
                                 </div>
-                                <div class="stat-card-small">
+                                <div class="stat-card-small stat-success">
                                     <div class="stat-value">${statistics.success_rate}%</div>
                                     <div class="stat-label">Erfolgsrate</div>
                                 </div>
@@ -762,54 +730,426 @@ class PrinterManager {
                                 </div>
                                 <div class="stat-card-small">
                                     <div class="stat-value">${statistics.total_material_kg}kg</div>
-                                    <div class="stat-label">Material</div>
+                                    <div class="stat-label">Material verbraucht</div>
                                 </div>
                             </div>
-                        </div>
 
-                        ${current_status ? `
-                        <!-- Current Status Section -->
-                        <div class="details-section">
-                            <h3>⚡ Aktueller Status</h3>
-                            <div class="current-status-info">
-                                ${current_status.current_job ? `
-                                    <p><strong>Aktueller Auftrag:</strong> ${escapeHtml(current_status.current_job)}</p>
-                                    <p><strong>Fortschritt:</strong> ${current_status.progress || 0}%</p>
-                                    ${current_status.remaining_time ? `<p><strong>Verbleibend:</strong> ${this.formatMinutes(current_status.remaining_time)}</p>` : ''}
-                                ` : '<p>Kein aktiver Druckauftrag</p>'}
-                                ${current_status.temperatures ? `
-                                <div class="temps-display">
-                                    <span>🛏️ Bett: ${current_status.temperatures.bed.current || '-'}°C / ${current_status.temperatures.bed.target || '-'}°C</span>
-                                    <span>🔥 Düse: ${current_status.temperatures.nozzle.current || '-'}°C / ${current_status.temperatures.nozzle.target || '-'}°C</span>
-                                </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                        ` : ''}
-
-                        <!-- Recent Jobs Section -->
-                        <div class="details-section">
-                            <h3>📜 Letzte Aufträge</h3>
-                            ${recent_jobs.length > 0 ? `
-                            <div class="recent-jobs-list">
-                                ${recent_jobs.slice(0, 5).map(job => `
-                                    <div class="recent-job-item">
-                                        <span class="job-name">${escapeHtml(job.file_name || 'Unbekannt')}</span>
-                                        <span class="job-status status-badge status-${job.status}">${job.status}</span>
-                                        <span class="job-date">${job.started_at ? new Date(job.started_at).toLocaleDateString('de-DE') : '-'}</span>
+                            <!-- Printer Info Grid -->
+                            <div class="details-section">
+                                <h3>📋 Druckerinformationen</h3>
+                                <div class="details-grid details-grid-2">
+                                    <div class="detail-item">
+                                        <span class="detail-label">Status</span>
+                                        <span class="detail-value status-badge status-${printer.status}">${this.formatStatus(printer.status)}</span>
                                     </div>
-                                `).join('')}
+                                    <div class="detail-item">
+                                        <span class="detail-label">Standort</span>
+                                        <span class="detail-value">${escapeHtml(printer.location) || '-'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Beschreibung</span>
+                                        <span class="detail-value">${escapeHtml(printer.description) || '-'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Aktiviert</span>
+                                        <span class="detail-value">${printer.is_enabled ? '✅ Ja' : '❌ Nein'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Erstellt</span>
+                                        <span class="detail-value">${printer.created_at ? new Date(printer.created_at).toLocaleDateString('de-DE') : '-'}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Letzte Aktivität</span>
+                                        <span class="detail-value">${printer.last_seen ? new Date(printer.last_seen).toLocaleString('de-DE') : '-'}</span>
+                                    </div>
+                                </div>
                             </div>
-                            ` : '<p class="no-data">Keine Aufträge vorhanden</p>'}
+
+                            <!-- Recent Jobs Preview -->
+                            <div class="details-section">
+                                <h3>📜 Letzte Aufträge</h3>
+                                ${recent_jobs.length > 0 ? `
+                                <div class="recent-jobs-list">
+                                    ${recent_jobs.slice(0, 3).map(job => `
+                                        <div class="recent-job-item">
+                                            <div class="job-info">
+                                                <span class="job-name">${escapeHtml(job.file_name || 'Unbekannt')}</span>
+                                                <span class="job-meta">${job.print_time_minutes ? this.formatMinutes(job.print_time_minutes) : ''} ${job.material_used ? `· ${job.material_used}g` : ''}</span>
+                                            </div>
+                                            <span class="job-status status-badge status-${job.status}">${this.formatJobStatus(job.status)}</span>
+                                            <span class="job-date">${job.started_at ? new Date(job.started_at).toLocaleDateString('de-DE') : '-'}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <button class="btn btn-link" onclick="printerManager.switchTab('history')">Alle Aufträge anzeigen →</button>
+                                ` : '<p class="no-data">Keine Aufträge vorhanden</p>'}
+                            </div>
+                        </div>
+
+                        <!-- Status Tab -->
+                        <div class="tab-content" data-tab="status">
+                            ${current_status ? `
+                            <!-- Current Job Section -->
+                            <div class="details-section current-job-section">
+                                <h3>🖨️ Aktueller Druckauftrag</h3>
+                                ${current_status.current_job ? `
+                                <div class="current-job-card">
+                                    <div class="job-header">
+                                        <span class="job-name-large">${escapeHtml(current_status.current_job)}</span>
+                                        <span class="job-progress-value">${current_status.progress || 0}%</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar" style="width: ${current_status.progress || 0}%"></div>
+                                    </div>
+                                    ${current_status.remaining_time ? `
+                                    <div class="job-time-info">
+                                        <span>⏱️ Verbleibend: ${this.formatMinutes(current_status.remaining_time)}</span>
+                                    </div>
+                                    ` : ''}
+
+                                    <!-- Printer Controls -->
+                                    ${canControl ? `
+                                    <div class="printer-controls">
+                                        ${isPrinting ? `
+                                            <button class="btn btn-warning" onclick="printerManager.pausePrinter('${printer.id}')">
+                                                ⏸️ Pausieren
+                                            </button>
+                                        ` : ''}
+                                        ${isPaused ? `
+                                            <button class="btn btn-success" onclick="printerManager.resumePrinter('${printer.id}')">
+                                                ▶️ Fortsetzen
+                                            </button>
+                                        ` : ''}
+                                        <button class="btn btn-danger" onclick="printerManager.stopPrinter('${printer.id}')">
+                                            ⏹️ Abbrechen
+                                        </button>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                                ` : '<p class="no-active-job">Kein aktiver Druckauftrag</p>'}
+                            </div>
+
+                            <!-- Temperature Section -->
+                            ${current_status.temperatures ? `
+                            <div class="details-section">
+                                <h3>🌡️ Temperaturen</h3>
+                                <div class="temperature-grid">
+                                    <div class="temp-card">
+                                        <div class="temp-icon">🛏️</div>
+                                        <div class="temp-info">
+                                            <span class="temp-label">Druckbett</span>
+                                            <span class="temp-value ${this.getTempClass(current_status.temperatures.bed)}">
+                                                ${current_status.temperatures.bed.current || 0}°C
+                                            </span>
+                                            <span class="temp-target">Ziel: ${current_status.temperatures.bed.target || 0}°C</span>
+                                        </div>
+                                    </div>
+                                    <div class="temp-card">
+                                        <div class="temp-icon">🔥</div>
+                                        <div class="temp-info">
+                                            <span class="temp-label">Düse</span>
+                                            <span class="temp-value ${this.getTempClass(current_status.temperatures.nozzle)}">
+                                                ${current_status.temperatures.nozzle.current || 0}°C
+                                            </span>
+                                            <span class="temp-target">Ziel: ${current_status.temperatures.nozzle.target || 0}°C</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <!-- Filament Section -->
+                            ${current_status.filaments && current_status.filaments.length > 0 ? `
+                            <div class="details-section">
+                                <h3>🧵 Filament</h3>
+                                <div class="filament-slots">
+                                    ${current_status.filaments.map(f => `
+                                        <div class="filament-slot ${f.is_active ? 'active' : ''}">
+                                            <div class="filament-color" style="background-color: ${f.color || '#ccc'}"></div>
+                                            <div class="filament-info">
+                                                <span class="filament-slot-num">Slot ${f.slot === 254 ? 'Ext' : f.slot + 1}</span>
+                                                <span class="filament-type">${f.type || 'Unbekannt'}</span>
+                                            </div>
+                                            ${f.is_active ? '<span class="filament-active-badge">Aktiv</span>' : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+                            ` : '<p class="no-data">Status nicht verfügbar</p>'}
+                        </div>
+
+                        <!-- History Tab -->
+                        <div class="tab-content" data-tab="history">
+                            <div class="details-section">
+                                <h3>📜 Druckverlauf</h3>
+                                ${recent_jobs.length > 0 ? `
+                                <div class="job-history-table">
+                                    <div class="job-history-header">
+                                        <span>Datei</span>
+                                        <span>Status</span>
+                                        <span>Dauer</span>
+                                        <span>Material</span>
+                                        <span>Datum</span>
+                                    </div>
+                                    ${recent_jobs.map(job => `
+                                        <div class="job-history-row">
+                                            <span class="job-filename" title="${escapeHtml(job.file_name || 'Unbekannt')}">${escapeHtml(job.file_name || 'Unbekannt')}</span>
+                                            <span class="job-status status-badge status-${job.status}">${this.formatJobStatus(job.status)}</span>
+                                            <span>${job.print_time_minutes ? this.formatMinutes(job.print_time_minutes) : '-'}</span>
+                                            <span>${job.material_used ? `${job.material_used}g` : '-'}</span>
+                                            <span>${job.started_at ? new Date(job.started_at).toLocaleString('de-DE') : '-'}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ` : '<p class="no-data">Keine Aufträge vorhanden</p>'}
+                            </div>
+                        </div>
+
+                        <!-- Diagnostics Tab -->
+                        <div class="tab-content" data-tab="diagnostics">
+                            <div class="details-section">
+                                <h3>🔌 Verbindungsdetails</h3>
+                                <div class="details-grid details-grid-2">
+                                    <div class="detail-item">
+                                        <span class="detail-label">Verbindungsstatus</span>
+                                        <span class="detail-value">${connectionStatus}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Protokoll</span>
+                                        <span class="detail-value">${connection.connection_type.toUpperCase()}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">IP-Adresse</span>
+                                        <span class="detail-value">${connection.ip_address}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">Zuletzt gesehen</span>
+                                        <span class="detail-value">${connection.last_seen ? new Date(connection.last_seen).toLocaleString('de-DE') : '-'}</span>
+                                    </div>
+                                    ${connection.firmware_version ? `
+                                    <div class="detail-item">
+                                        <span class="detail-label">Firmware-Version</span>
+                                        <span class="detail-value">${connection.firmware_version}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${connection.uptime ? `
+                                    <div class="detail-item">
+                                        <span class="detail-label">Betriebszeit</span>
+                                        <span class="detail-value">${this.formatUptime(connection.uptime)}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <div class="details-section">
+                                <h3>🔧 Diagnose-Aktionen</h3>
+                                <div class="diagnostics-actions">
+                                    <button class="btn btn-secondary" onclick="printerManager.testConnection('${printer.id}')">
+                                        🔍 Verbindung testen
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="printerManager.reconnectPrinter('${printer.id}')">
+                                        🔄 Neu verbinden
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="printerManager.refreshPrinterFiles('${printer.id}')">
+                                        📁 Dateien aktualisieren
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="details-section">
+                                <h3>ℹ️ System-Informationen</h3>
+                                <div class="system-info">
+                                    <p><strong>Drucker-ID:</strong> <code>${printer.id}</code></p>
+                                    <p><strong>Seriennummer:</strong> <code>${printer.serial_number || 'N/A'}</code></p>
+                                    <p><strong>Drucker-Typ:</strong> ${this.formatPrinterType(printer.type)}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="printerManager.closePrinterDetailsModal()">Schließen</button>
-                        <button class="btn btn-primary" onclick="printerManager.closePrinterDetailsModal(); printerManager.editPrinter('${printer.id}')">Bearbeiten</button>
+                        <button class="btn btn-primary" onclick="printerManager.closePrinterDetailsModal(); printerManager.editPrinter('${printer.id}')">✏️ Bearbeiten</button>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Switch tab in printer details modal
+     */
+    switchTab(tabName) {
+        const modal = document.getElementById('printerDetailsModal');
+        if (!modal) return;
+
+        // Update tab buttons
+        modal.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        // Update tab content
+        modal.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.dataset.tab === tabName);
+        });
+    }
+
+    /**
+     * Get temperature CSS class based on current vs target
+     */
+    getTempClass(temp) {
+        if (!temp || !temp.target || temp.target === 0) return '';
+        const diff = Math.abs((temp.current || 0) - temp.target);
+        if (diff <= 2) return 'temp-at-target';
+        if (temp.current < temp.target) return 'temp-heating';
+        return 'temp-cooling';
+    }
+
+    /**
+     * Format uptime in human readable format
+     */
+    formatUptime(seconds) {
+        if (!seconds) return '-';
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        if (days > 0) return `${days}d ${hours}h`;
+        if (hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
+    }
+
+    /**
+     * Format status for display
+     */
+    formatStatus(status) {
+        const labels = {
+            'online': 'Online',
+            'offline': 'Offline',
+            'printing': 'Druckt',
+            'paused': 'Pausiert',
+            'idle': 'Bereit',
+            'error': 'Fehler'
+        };
+        return labels[status] || status;
+    }
+
+    /**
+     * Format job status for display
+     */
+    formatJobStatus(status) {
+        const labels = {
+            'pending': 'Wartend',
+            'running': 'Läuft',
+            'printing': 'Druckt',
+            'completed': 'Fertig',
+            'failed': 'Fehlgeschlagen',
+            'cancelled': 'Abgebrochen',
+            'paused': 'Pausiert'
+        };
+        return labels[status] || status;
+    }
+
+    /**
+     * Pause a printing job
+     */
+    async pausePrinter(printerId) {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/pause`, { method: 'POST' });
+            if (!response.ok) throw new Error('Failed to pause printer');
+            showToast('success', 'Erfolg', 'Druck wurde pausiert');
+            this.showPrinterDetails(printerId); // Refresh modal
+        } catch (error) {
+            Logger.error('Failed to pause printer:', error);
+            showToast('error', 'Fehler', 'Konnte Druck nicht pausieren');
+        }
+    }
+
+    /**
+     * Resume a paused job
+     */
+    async resumePrinter(printerId) {
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/resume`, { method: 'POST' });
+            if (!response.ok) throw new Error('Failed to resume printer');
+            showToast('success', 'Erfolg', 'Druck wird fortgesetzt');
+            this.showPrinterDetails(printerId); // Refresh modal
+        } catch (error) {
+            Logger.error('Failed to resume printer:', error);
+            showToast('error', 'Fehler', 'Konnte Druck nicht fortsetzen');
+        }
+    }
+
+    /**
+     * Stop/cancel a job
+     */
+    async stopPrinter(printerId) {
+        if (!confirm('Möchten Sie den Druckauftrag wirklich abbrechen?')) return;
+
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/stop`, { method: 'POST' });
+            if (!response.ok) throw new Error('Failed to stop printer');
+            showToast('success', 'Erfolg', 'Druckauftrag wurde abgebrochen');
+            this.showPrinterDetails(printerId); // Refresh modal
+        } catch (error) {
+            Logger.error('Failed to stop printer:', error);
+            showToast('error', 'Fehler', 'Konnte Druckauftrag nicht abbrechen');
+        }
+    }
+
+    /**
+     * Test connection to printer
+     */
+    async testConnection(printerId) {
+        showToast('info', 'Test', 'Verbindung wird getestet...');
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/status`);
+            if (response.ok) {
+                showToast('success', 'Erfolg', 'Verbindung erfolgreich');
+            } else {
+                showToast('warning', 'Warnung', 'Drucker antwortet nicht');
+            }
+        } catch (error) {
+            showToast('error', 'Fehler', 'Verbindungstest fehlgeschlagen');
+        }
+    }
+
+    /**
+     * Reconnect to printer
+     */
+    async reconnectPrinter(printerId) {
+        showToast('info', 'Verbindung', 'Verbinde neu...');
+        try {
+            await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/disconnect`, { method: 'POST' });
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/connect`, { method: 'POST' });
+            if (response.ok) {
+                showToast('success', 'Erfolg', 'Neu verbunden');
+                this.showPrinterDetails(printerId); // Refresh modal
+            } else {
+                showToast('error', 'Fehler', 'Verbindung fehlgeschlagen');
+            }
+        } catch (error) {
+            showToast('error', 'Fehler', 'Verbindung fehlgeschlagen');
+        }
+    }
+
+    /**
+     * Refresh printer files
+     */
+    async refreshPrinterFiles(printerId) {
+        showToast('info', 'Dateien', 'Dateien werden aktualisiert...');
+        try {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/files`);
+            if (response.ok) {
+                const data = await response.json();
+                showToast('success', 'Erfolg', `${data.files?.length || 0} Dateien gefunden`);
+            } else {
+                showToast('warning', 'Warnung', 'Konnte Dateien nicht laden');
+            }
+        } catch (error) {
+            showToast('error', 'Fehler', 'Dateiaktualisierung fehlgeschlagen');
+        }
     }
 
     /**
