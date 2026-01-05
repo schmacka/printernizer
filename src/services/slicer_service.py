@@ -90,7 +90,7 @@ class SlicerService(BaseService):
                 )
 
         logger.info("Slicer detection completed", count=len(registered))
-        await self.event_service.emit("slicer.detected", {"count": len(registered)})
+        await self.event_service.emit_event("slicer.detected", {"count": len(registered)})
         
         return registered
 
