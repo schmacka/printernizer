@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
-**Last Updated**: 2026-01-04
-**Current Version**: v2.14.1
+**Last Updated**: 2026-01-05
+**Current Version**: v2.14.2
 **Status**: Production Ready
 
 ---
@@ -10,14 +10,14 @@
 
 | Category | Status | Completion |
 |----------|--------|------------|
-| Core Features | Production Ready | 95% |
+| Core Features | Production Ready | 98% |
 | Printer Support | Bambu + Prusa | 100% |
 | Test Coverage | Excellent | ~90% |
 | Sprint 1 (P1 Tasks) | Complete | 100% |
 | Sprint 2 Phase 1 (Service Tests) | Complete | 100% |
 | Sprint 2 Phase 2 (Feature Tests) | Complete | 100% |
 | Sprint 2 Phase 3 (Printer Tests) | Complete | 100% |
-| Sprint 3 (Frontend Polish) | Planned | 0% |
+| Sprint 3 (Frontend Polish) | Complete | 100% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
 ---
@@ -109,11 +109,13 @@
 
 ## In Progress
 
-### Documentation Cleanup
+> No tasks currently in progress. Ready for next sprint.
 
-- [ ] Consolidate duplicate plan files
-- [ ] Archive completed sprint reports
-- [ ] Update README with current features
+### Documentation Cleanup ✅ COMPLETE (2026-01-05)
+
+- [x] Consolidate duplicate plan files
+- [x] Archive completed sprint reports
+- [x] Update README with current features
 
 ---
 
@@ -272,43 +274,36 @@
 
 ## Priority 3 - Frontend Polish
 
-> **Source**: `docs/development/root-todos.md`
+> **Status**: Sprint 3 Complete ✅ (v2.13.3)
 
-### Notification System Issues
+### Notification System Issues ✅ COMPLETE
 
-- [ ] **Duplicate Notifications**
-  - Issue: Multiple of same notification appear
-  - Location: `frontend/js/utils.js`
-  - Fix: Implement notification deduplication with Map tracking
-  - Effort: 1-2 hours
+- [x] **Duplicate Notifications** (v2.13.3)
+  - Implemented message-based deduplication with 3-second cooldown
+  - Same notification won't appear multiple times within cooldown
 
-- [ ] **Backend Offline Detection**
-  - Issue: Auto-download shows "ready" when backend offline
-  - Location: `frontend/js/auto-download-init.js`
-  - Fix: Add connectivity check before showing status
-  - Effort: 1-2 hours
+- [x] **Backend Offline Detection** (v2.13.3)
+  - Added actual health endpoint check
+  - Shows "Backend Offline" or "Backend not reachable" on connectivity failure
 
-### Printer Dashboard Improvements
+### Printer Dashboard Improvements ✅ COMPLETE
 
-- [ ] **Connection Progress Indicator**
-  - Issue: Unclear when printer is connecting
-  - Fix: Grey out printer tile, show connection type
-  - Effort: 2 hours
+- [x] **Connection Progress Indicator** (v2.13.3)
+  - Grey overlay with shimmer animation during connection
+  - Connection type indicator (MQTT/HTTP) in printer tile header
+  - Visual feedback for connecting/connected/disconnected states
 
-- [ ] **Camera Preview Placeholder**
-  - Issue: Blank space when camera unavailable
-  - Fix: Add placeholder image/icon
-  - Effort: 1 hour
+- [x] **Camera Preview Placeholder** (v2.13.3)
+  - Shows camera icon with "Keine Vorschau" text
+  - Graceful fallback on image load errors
 
-### Debug Page Improvements
+### Debug Page Improvements ✅ COMPLETE
 
-- [ ] **Log Table Format**
-  - Issue: Logs shown in blocks instead of columns
-  - Location: `frontend/js/debug.js`
-  - Fix: Implement table layout with columns
-  - Effort: 2 hours
+- [x] **Log Table Format** (v2.13.3)
+  - Logs display in proper HTML table with columns
+  - Added sticky header, hover states, level-based highlighting
 
-### Library Features
+### Library Features (Deferred to Future Sprint)
 
 - [ ] **Custom Tags for Files**
   - Add tags column to library_files table
@@ -407,29 +402,27 @@
 
 ### Code Cleanup
 
-- [ ] **Remove Deprecated Method**
-  - `get_printers()` in `src/services/printer_service.py:185-199`
-  - Replaced by `list_printers()`
-  - Effort: 30 minutes
+- [x] **Remove Deprecated Method** (v2.14.1)
+  - Removed `get_printers()` from `src/services/printer_service.py`
+  - Replaced by `list_printers()` throughout codebase
 
-- [ ] **Review Legacy Exception Handler**
-  - Location: `src/main.py:730-734`
-  - Legacy PrinternizerException handler
-  - Effort: 1 hour
+- [x] **Review Legacy Exception Handler** (v2.14.1)
+  - Fixed inconsistent error response format
+  - Changed `"error"` field to `"error_code"` for consistency
+  - Documented ongoing migration to PrinternizerError
 
-- [ ] **Fix Flaky WebSocket Test**
-  - Location: `tests/frontend/websocket.test.js:159`
-  - Issue: Timing issues in CI/CD
-  - Effort: 2-3 hours
+- [x] **Fix Flaky WebSocket Test** (v2.14.1)
+  - Fixed undefined `testUtils` reference bug
+  - Implemented Jest fake timers for deterministic timing
+  - Test now passes reliably in CI/CD
 
-### Environment Configuration
+### Environment Configuration ✅ COMPLETE
 
-- [ ] **Clean up .env/.env.sample**
-  - Audit all environment variables
-  - Mark REQUIRED vs OPTIONAL
-  - Add descriptions and examples
-  - Remove unused variables
-  - Effort: 2-3 hours
+- [x] **Clean up .env/.env.sample** (v2.14.1)
+  - Added clear legend: [REQUIRED], [OPTIONAL], [UNUSED], [INTERNAL]
+  - Organized into 13 logical sections with descriptive headers
+  - Documented default values inline
+  - Marked unused/planned features explicitly
 
 ### Platform Compatibility
 
@@ -517,7 +510,7 @@ python3 -m pytest --cov=src tests/
 | 2 Phase 1 | 2026-01-04 | Core Service Tests | ✅ Complete |
 | 2 Phase 2 | 2026-01-04 | Feature Service Tests | ✅ Complete |
 | 2 Phase 3 | 2026-01-04 | Printer Service Tests | ✅ Complete |
-| 3 | Planned | Frontend Polish | ⏳ Pending |
+| 3 | 2026-01-04 | Frontend Polish | ✅ Complete |
 
 ### Sprint 1 Summary
 
@@ -551,12 +544,25 @@ python3 -m pytest --cov=src tests/
 - **Test Coverage Improvement**: ~85% → ~90% service coverage
 - **Combined Sprint 2 Total**: 479 new tests (181 + 174 + 124)
 
+### Sprint 3 Summary
+
+- **Date**: 2026-01-04 (v2.13.3)
+- **Focus**: Frontend polish and UX improvements
+- **Completed Items**:
+  - Duplicate notification fix with deduplication
+  - Backend offline detection for auto-download status
+  - Debug log table format with proper columns
+  - Printer connection progress indicator
+  - Camera preview placeholder
+- **Status**: All 5 priority items completed
+
 ---
 
 ## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 7.0 | 2026-01-05 | Sprint 3 completion, doc cleanup, README update |
 | 6.0 | 2026-01-04 | Sprint 2 Phase 3 completion (479 total Sprint 2 tests) |
 | 5.0 | 2026-01-04 | Sprint 2 Phase 2 completion (355 total service tests) |
 | 4.0 | 2026-01-04 | Sprint 2 Phase 1 completion (181 service tests) |
