@@ -4,7 +4,7 @@ Provides REST API for tag CRUD operations and file-tag assignments.
 """
 
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Query, Path as PathParam
+from fastapi import APIRouter, HTTPException, Query, Path as PathParam, Depends
 from pydantic import BaseModel, Field
 import structlog
 import uuid
@@ -15,7 +15,8 @@ from src.utils.errors import (
     ValidationError as PrinternizerValidationError,
     success_response
 )
-from src.database.database import get_db
+from src.database.database import Database
+from src.utils.dependencies import get_database
 
 logger = structlog.get_logger()
 
@@ -91,7 +92,8 @@ def _row_to_tag(row) -> TagResponse:
 @router.get("", response_model=TagListResponse)
 async def list_tags(
     sort_by: str = Query("name", enum=["name", "usage_count", "created_at"]),
-    sort_order: str = Query("asc", enum=["asc", "desc"])
+    sort_order: str = Query("asc", enum=["asc", "desc"]),
+    db: Database = Depends(get_database)
 ):
     """
     List all available tags.
@@ -99,8 +101,6 @@ async def list_tags(
     Returns all tags sorted by the specified field.
     """
     try:
-        db = await get_db()
-
         order_direction = "DESC" if sort_order == "desc" else "ASC"
         query = f"""
             SELECT * FROM file_tags
@@ -118,10 +118,12 @@ async def list_tags(
 
 
 @router.get("/{tag_id}", response_model=TagResponse)
-async def get_tag(tag_id: str = PathParam(..., description="Tag ID")):
+async def get_tag(
+    tag_id: str = PathParam(..., description="Tag ID"),
+    db: Database = Depends(get_database)
+):
     """Get a specific tag by ID."""
     try:
-        db = await get_db()
 
         row = await db.fetch_one(
             "SELECT * FROM file_tags WHERE id = ?",
@@ -141,14 +143,16 @@ async def get_tag(tag_id: str = PathParam(..., description="Tag ID")):
 
 
 @router.post("", response_model=TagResponse, status_code=201)
-async def create_tag(tag: TagCreate):
+async def create_tag(
+    tag: TagCreate,
+    db: Database = Depends(get_database)
+):
     """
     Create a new tag.
 
     Tag names must be unique (case-insensitive).
     """
     try:
-        db = await get_db()
 
         # Check for duplicate name
         existing = await db.fetch_one(
@@ -191,11 +195,11 @@ async def create_tag(tag: TagCreate):
 @router.put("/{tag_id}", response_model=TagResponse)
 async def update_tag(
     tag_id: str = PathParam(..., description="Tag ID"),
-    tag: TagUpdate = None
+    tag: TagUpdate = None,
+    db: Database = Depends(get_database)
 ):
     """Update an existing tag."""
     try:
-        db = await get_db()
 
         # Verify tag exists
         existing = await db.fetch_one(
@@ -251,14 +255,16 @@ async def update_tag(
 
 
 @router.delete("/{tag_id}")
-async def delete_tag(tag_id: str = PathParam(..., description="Tag ID")):
+async def delete_tag(
+    tag_id: str = PathParam(..., description="Tag ID"),
+    db: Database = Depends(get_database)
+):
     """
     Delete a tag.
 
     This will also remove all file-tag assignments for this tag.
     """
     try:
-        db = await get_db()
 
         # Verify tag exists
         existing = await db.fetch_one(
@@ -285,10 +291,12 @@ async def delete_tag(tag_id: str = PathParam(..., description="Tag ID")):
 # ==================== FILE-TAG ASSIGNMENT ENDPOINTS ====================
 
 @router.get("/file/{file_checksum}", response_model=FileTagsResponse)
-async def get_file_tags(file_checksum: str = PathParam(..., description="File checksum")):
+async def get_file_tags(
+    file_checksum: str = PathParam(..., description="File checksum"),
+    db: Database = Depends(get_database)
+):
     """Get all tags assigned to a specific file."""
     try:
-        db = await get_db()
 
         rows = await db.fetch_all(
             """
@@ -312,7 +320,8 @@ async def get_file_tags(file_checksum: str = PathParam(..., description="File ch
 @router.post("/file/{file_checksum}/assign")
 async def assign_tags_to_file(
     file_checksum: str = PathParam(..., description="File checksum"),
-    tag_ids: List[str] = Query(..., description="Tag IDs to assign")
+    tag_ids: List[str] = Query(..., description="Tag IDs to assign"),
+    db: Database = Depends(get_database)
 ):
     """
     Assign one or more tags to a file.
@@ -320,7 +329,6 @@ async def assign_tags_to_file(
     Silently ignores tags already assigned to the file.
     """
     try:
-        db = await get_db()
 
         # Verify file exists
         file_exists = await db.fetch_one(
@@ -371,11 +379,11 @@ async def assign_tags_to_file(
 @router.post("/file/{file_checksum}/remove")
 async def remove_tags_from_file(
     file_checksum: str = PathParam(..., description="File checksum"),
-    tag_ids: List[str] = Query(..., description="Tag IDs to remove")
+    tag_ids: List[str] = Query(..., description="Tag IDs to remove"),
+    db: Database = Depends(get_database)
 ):
     """Remove one or more tags from a file."""
     try:
-        db = await get_db()
 
         removed_count = 0
         for tag_id in tag_ids:
@@ -404,7 +412,8 @@ async def remove_tags_from_file(
 @router.get("/search/files")
 async def search_files_by_tags(
     tag_ids: List[str] = Query(..., description="Tag IDs to filter by"),
-    match_all: bool = Query(False, description="Require all tags (AND) vs any tag (OR)")
+    match_all: bool = Query(False, description="Require all tags (AND) vs any tag (OR)"),
+    db: Database = Depends(get_database)
 ):
     """
     Search for files by tags.
@@ -413,7 +422,6 @@ async def search_files_by_tags(
     - match_all=True: Return files with ALL specified tags (AND)
     """
     try:
-        db = await get_db()
 
         if match_all:
             # AND logic: files must have all tags

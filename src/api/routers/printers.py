@@ -12,7 +12,8 @@ import structlog
 
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
-from src.utils.dependencies import get_printer_service
+from src.utils.dependencies import get_printer_service, get_database
+from src.database.database import Database
 from src.utils.errors import (
     PrinterNotFoundError,
     PrinterConnectionError,
@@ -540,20 +541,17 @@ async def get_printer_status(
 @router.get("/{printer_id}/details")
 async def get_printer_details(
     printer_id: str,
-    printer_service: PrinterService = Depends(get_printer_service)
+    printer_service: PrinterService = Depends(get_printer_service),
+    db: Database = Depends(get_database)
 ):
     """
     Get comprehensive printer details for the printer details modal.
 
     Returns printer info, recent job history, statistics, and connection diagnostics.
     """
-    from src.database.database import get_db
-
     printer = await printer_service.get_printer(printer_id)
     if not printer:
         raise PrinterNotFoundError(printer_id)
-
-    db = await get_db()
     instance = printer_service.printer_instances.get(printer_id)
 
     # Get recent jobs for this printer (last 10)

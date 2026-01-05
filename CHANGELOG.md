@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.2] - 2026-01-05
+
+### Fixed
+- **CI Pipeline Fix**: Resolved import error causing test failures
+  - Fixed missing `get_db` function import in `tags.py` and `printers.py` routers
+  - Migrated database access to proper FastAPI dependency injection pattern
+  - Uses `get_database` from `src.utils.dependencies` instead of non-existent `get_db`
+
 ## [2.15.1] - 2026-01-05
 
 ### Added
