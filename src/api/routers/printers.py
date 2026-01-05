@@ -537,6 +537,129 @@ async def get_printer_status(
     return response
 
 
+@router.get("/{printer_id}/details")
+async def get_printer_details(
+    printer_id: str,
+    printer_service: PrinterService = Depends(get_printer_service)
+):
+    """
+    Get comprehensive printer details for the printer details modal.
+
+    Returns printer info, recent job history, statistics, and connection diagnostics.
+    """
+    from src.database.database import get_db
+
+    printer = await printer_service.get_printer(printer_id)
+    if not printer:
+        raise PrinterNotFoundError(printer_id)
+
+    db = await get_db()
+    instance = printer_service.printer_instances.get(printer_id)
+
+    # Get recent jobs for this printer (last 10)
+    recent_jobs = await db.fetch_all(
+        """
+        SELECT id, file_name, status, progress, started_at, ended_at,
+               actual_print_time, material_used, material_cost
+        FROM jobs
+        WHERE printer_id = ?
+        ORDER BY started_at DESC
+        LIMIT 10
+        """,
+        (printer_id,)
+    )
+
+    # Get job statistics
+    job_stats = await db.fetch_one(
+        """
+        SELECT
+            COUNT(*) as total_jobs,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_jobs,
+            COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_jobs,
+            SUM(CASE WHEN status = 'completed' THEN actual_print_time ELSE 0 END) as total_print_time,
+            SUM(CASE WHEN status = 'completed' THEN material_used ELSE 0 END) as total_material_used,
+            AVG(CASE WHEN status = 'completed' THEN progress ELSE NULL END) as avg_completion
+        FROM jobs
+        WHERE printer_id = ?
+        """,
+        (printer_id,)
+    )
+
+    # Get connection diagnostics
+    connection_info = {
+        "is_connected": instance.is_connected if instance else False,
+        "connection_type": printer.printer_type.value,
+        "ip_address": printer.connection_config.get("ip_address", "N/A"),
+        "last_seen": printer.last_seen.isoformat() if printer.last_seen else None,
+        "firmware_version": None,
+        "uptime": None
+    }
+
+    if instance and instance.last_status:
+        status_data = instance.last_status
+        connection_info["firmware_version"] = getattr(status_data, 'firmware_version', None)
+
+    # Build response
+    response = {
+        "printer": {
+            "id": printer.id,
+            "name": printer.name,
+            "type": printer.printer_type.value,
+            "status": printer.status.value,
+            "location": printer.location,
+            "description": printer.description,
+            "is_enabled": printer.is_enabled,
+            "created_at": printer.created_at.isoformat() if printer.created_at else None,
+            "last_seen": printer.last_seen.isoformat() if printer.last_seen else None
+        },
+        "connection": connection_info,
+        "statistics": {
+            "total_jobs": job_stats["total_jobs"] if job_stats else 0,
+            "completed_jobs": job_stats["completed_jobs"] if job_stats else 0,
+            "failed_jobs": job_stats["failed_jobs"] if job_stats else 0,
+            "success_rate": round(
+                (job_stats["completed_jobs"] / job_stats["total_jobs"] * 100)
+                if job_stats and job_stats["total_jobs"] > 0 else 0, 1
+            ),
+            "total_print_time_hours": round(
+                (job_stats["total_print_time"] or 0) / 60, 1
+            ) if job_stats else 0,
+            "total_material_kg": round(
+                (job_stats["total_material_used"] or 0) / 1000, 2
+            ) if job_stats else 0
+        },
+        "recent_jobs": [
+            {
+                "id": job["id"],
+                "file_name": job["file_name"],
+                "status": job["status"],
+                "progress": job["progress"],
+                "started_at": job["started_at"],
+                "ended_at": job["ended_at"],
+                "print_time_minutes": job["actual_print_time"],
+                "material_used": job["material_used"]
+            }
+            for job in recent_jobs
+        ] if recent_jobs else [],
+        "current_status": None
+    }
+
+    # Add current status if available
+    if instance and instance.last_status:
+        status_data = instance.last_status
+        response["current_status"] = {
+            "current_job": status_data.current_job,
+            "progress": status_data.progress,
+            "remaining_time": status_data.remaining_time_minutes,
+            "temperatures": {
+                "bed": {"current": status_data.bed_temperature, "target": status_data.bed_target_temperature},
+                "nozzle": {"current": status_data.nozzle_temperature, "target": status_data.nozzle_target_temperature}
+            }
+        }
+
+    return response
+
+
 @router.post("/{printer_id}/connect")
 async def connect_printer(
     printer_id: str,
