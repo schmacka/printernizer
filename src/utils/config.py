@@ -351,9 +351,9 @@ class PrinternizerSettings(BaseSettings):
     # Slicing Configuration
     slicing_output_dir: str = Field(
         default="/data/printernizer/sliced",
-        env="SLICING_OUTPUT_DIR",
         description="Directory for sliced G-code output files. Will be created if doesn't exist."
     )
+    # Note: Env var SLICING_OUTPUT_DIR is automatically mapped from field name
 
     # =====================================================================
     # USAGE STATISTICS - Privacy-first telemetry (opt-in only)
