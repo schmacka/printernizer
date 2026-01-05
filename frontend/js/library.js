@@ -637,9 +637,41 @@ class LibraryManager {
             // Setup action buttons
             this.setupFileDetailActions(fullFile);
 
+            // Load and display file tags
+            this.loadFileTags(fullFile.checksum);
+
         } catch (error) {
             Logger.error('Failed to load file details:', error);
             content.innerHTML = '<div class="error">Fehler beim Laden der Details</div>';
+        }
+    }
+
+    /**
+     * Load and display tags for a file in detail view
+     */
+    async loadFileTags(checksum) {
+        const container = document.querySelector(`#fileDetailTags[data-file-checksum="${checksum}"] .tags-list`);
+        if (!container) return;
+
+        try {
+            const tags = await window.tagsManager.getFileTags(checksum);
+
+            if (tags.length === 0) {
+                container.innerHTML = '<span class="no-tags">No tags</span>';
+            } else {
+                container.innerHTML = tags.map(tag => `
+                    <span class="tag-badge tag-removable"
+                          style="background-color: ${tag.color}20; border-color: ${tag.color}; color: ${tag.color}"
+                          data-tag-id="${tag.id}"
+                          onclick="window.tagsManager.removeTagFromFile('${checksum}', '${tag.id}')">
+                        ${escapeHtml(tag.name)}
+                        <span class="tag-remove">×</span>
+                    </span>
+                `).join('');
+            }
+        } catch (error) {
+            Logger.error('Failed to load file tags', { checksum, error });
+            container.innerHTML = '<span class="no-tags">Failed to load tags</span>';
         }
     }
 
@@ -657,6 +689,21 @@ class LibraryManager {
                     <div class="file-detail-meta">
                         ${this.getSourceIcon(file.sources)} ${this.getStatusBadge(file.status)}
                         <span class="file-size">${this.formatFileSize(file.file_size)}</span>
+                    </div>
+                </div>
+
+                <!-- Tags Section -->
+                <div id="fileDetailTags" data-file-checksum="${file.checksum}">
+                    <div class="tags-section">
+                        <div class="tags-header">
+                            <span class="tags-label">Tags</span>
+                            <button class="btn-icon btn-edit-tags" onclick="window.tagsManager.openTagPicker('${file.checksum}')" title="Edit tags">
+                                ✏️
+                            </button>
+                        </div>
+                        <div class="tags-list">
+                            <span class="no-tags">Loading tags...</span>
+                        </div>
                     </div>
                 </div>
 
