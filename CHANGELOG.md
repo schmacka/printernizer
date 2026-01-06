@@ -7,21 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.15.3] - 2026-01-05
+## [2.15.4] - 2026-01-06
 
 ### Fixed
-- **E2E Test Environment Fix**: Resolved E2E test failures in CI pipeline
-  - Fixed timelapse env var names in CI workflow (`TIMELAPSE_SOURCE_DIR` -> `TIMELAPSE_SOURCE_FOLDER`)
-  - Added `SLICING_OUTPUT_DIR` environment variable support to config and CI workflow
-  - Updated slicing queue to use configurable output directory instead of hardcoded `/data` path
-
-## [2.15.2] - 2026-01-05
-
-### Fixed
-- **CI Pipeline Fix**: Resolved import error causing test failures
-  - Fixed missing `get_db` function import in `tags.py` and `printers.py` routers
-  - Migrated database access to proper FastAPI dependency injection pattern
-  - Uses `get_database` from `src.utils.dependencies` instead of non-existent `get_db`
+- **CI/CD Pipeline Fixes**: Comprehensive fixes to restore CI pipeline functionality
+  - Fixed database access pattern in `tags.py` and `printers.py` routers using proper FastAPI dependency injection
+  - Corrected environment variable names for timelapse configuration in E2E tests
+  - Added configurable `SLICING_OUTPUT_DIR` environment variable for slicing output path
+  - Updated pydantic-settings configuration for v2 compatibility
+  - Pre-create required test directories in E2E workflow for reliable test execution
 
 ## [2.15.1] - 2026-01-05
 
