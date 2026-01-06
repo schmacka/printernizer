@@ -1,11 +1,12 @@
 name: Sync to HA Add-on Repository
 
 # This workflow automatically synchronizes code from the main printernizer repository
-# to the homeassistant-addons repository for Home Assistant add-on distribution.
+# to the printernizer-ha repository for Home Assistant add-on distribution.
 #
 # Sync Strategy:
-# - master branch → homeassistant-addons/main (production releases)
-# - development branch → homeassistant-addons/main (with -dev version suffix)
+# - printernizer → printernizer-ha → homeassistant-addons (via sync-addons.yml)
+# - master branch → production releases
+# - development branch → -dev version suffix
 # - Versions tied to main repo (src/main.py)
 # - Auto-sync on every commit to monitored files
 
@@ -35,13 +36,13 @@ jobs:
         with:
           fetch-depth: 0  # Full history for version info
 
-      - name: Checkout homeassistant-addons repository
+      - name: Checkout printernizer-ha repository
         uses: actions/checkout@v4
         with:
-          repository: schmacka/homeassistant-addons
+          repository: schmacka/printernizer-ha
           token: ${{ secrets.HA_REPO_TOKEN }}
           path: ha-repo
-          ref: main  # homeassistant-addons uses main branch
+          ref: master
           fetch-depth: 0
 
       - name: Configure Git for HA repo
@@ -52,23 +53,23 @@ jobs:
 
       - name: Sync files to HA repository
         run: |
-          echo "Syncing files from printernizer to homeassistant-addons..."
+          echo "Syncing files from printernizer to printernizer-ha..."
 
-          # Ensure add-on subdirectory exists
-          mkdir -p ha-repo/printernizer-ha
+          # Ensure add-on subdirectory exists (printernizer-ha uses 'printernizer' subfolder)
+          mkdir -p ha-repo/printernizer
 
-          # Remove old synced content (but keep HA-specific files)
-          rm -rf ha-repo/printernizer-ha/src ha-repo/printernizer-ha/frontend ha-repo/printernizer-ha/migrations
-          rm -f ha-repo/printernizer-ha/requirements.txt
+          # Remove old synced content (but keep HA-specific files like config.yaml, Dockerfile, etc.)
+          rm -rf ha-repo/printernizer/src ha-repo/printernizer/frontend ha-repo/printernizer/migrations
+          rm -f ha-repo/printernizer/requirements.txt
 
           # Copy fresh content from main repo to add-on subdirectory
-          cp -r src/ ha-repo/printernizer-ha/src/
-          cp -r frontend/ ha-repo/printernizer-ha/frontend/
-          cp -r migrations/ ha-repo/printernizer-ha/migrations/
-          cp requirements.txt ha-repo/printernizer-ha/
-          cp CHANGELOG.md ha-repo/printernizer-ha/
+          cp -r src/ ha-repo/printernizer/src/
+          cp -r frontend/ ha-repo/printernizer/frontend/
+          cp -r migrations/ ha-repo/printernizer/migrations/
+          cp requirements.txt ha-repo/printernizer/
+          cp CHANGELOG.md ha-repo/printernizer/
 
-          echo "✅ Files synchronized successfully"
+          echo "Files synchronized successfully"
 
       - name: Extract version from main repository
         id: version
@@ -77,22 +78,22 @@ jobs:
           VERSION=$(grep "APP_VERSION = get_version(fallback=" src/main.py | grep -oP 'fallback="\K[^"]+')
 
           if [ -z "$VERSION" ]; then
-            echo "❌ Error: Could not extract version from src/main.py"
+            echo "Error: Could not extract version from src/main.py"
             exit 1
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Extracted version: $VERSION"
+          echo "Extracted version: $VERSION"
 
       - name: Update HA config version (master branch only)
         if: github.ref == 'refs/heads/master'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
 
-          # Update version in config.yaml (in add-on subdirectory)
-          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/printernizer-ha/config.yaml
+          # Update version in config.yaml (in printernizer subfolder)
+          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/printernizer/config.yaml
 
-          echo "✅ Updated config.yaml version to: $VERSION"
+          echo "Updated config.yaml version to: $VERSION"
 
       - name: Set development version (development branch only)
         if: github.ref == 'refs/heads/development'
@@ -100,10 +101,10 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           DEV_VERSION="${VERSION}-dev"
 
-          # Update version in config.yaml with -dev suffix (in add-on subdirectory)
-          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/printernizer-ha/config.yaml
+          # Update version in config.yaml with -dev suffix
+          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/printernizer/config.yaml
 
-          echo "✅ Updated config.yaml version to: $DEV_VERSION"
+          echo "Updated config.yaml version to: $DEV_VERSION"
 
       - name: Check for changes
         id: check_changes
@@ -112,13 +113,13 @@ jobs:
 
           if git diff --quiet && git diff --cached --quiet; then
             echo "changes=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No changes detected after sync"
+            echo "No changes detected after sync"
           else
             echo "changes=true" >> $GITHUB_OUTPUT
-            echo "✅ Changes detected after sync"
+            echo "Changes detected after sync"
 
             # Show what changed
-            echo "📝 Changed files:"
+            echo "Changed files:"
             git status --short
           fi
 
@@ -132,7 +133,7 @@ jobs:
 
           # Double-check there are actually staged changes
           if git diff --cached --quiet; then
-            echo "ℹ️ No staged changes to commit, skipping..."
+            echo "No staged changes to commit, skipping..."
             exit 0
           fi
 
@@ -159,43 +160,45 @@ jobs:
           Automated sync via GitHub Actions"
           git commit -m "$COMMIT_MSG"
 
-          # Push to HA repo (always to main branch)
-          git push origin main
+          # Push to printernizer-ha repo
+          git push origin master
 
-          echo "✅ Changes committed and pushed to homeassistant-addons/main"
+          echo "Changes committed and pushed to printernizer-ha/master"
 
       - name: Create sync summary
         if: steps.check_changes.outputs.changes == 'true'
         run: |
           cd ha-repo
 
-          echo "## ✅ Home Assistant Add-on Sync Completed" >> $GITHUB_STEP_SUMMARY
+          echo "## Home Assistant Add-on Sync Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Target Repository**: schmacka/homeassistant-addons" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: main" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: master" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Source Commit**: \`${GITHUB_SHA:0:7}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Synced Files" >> $GITHUB_STEP_SUMMARY
+          echo "### Synced Files" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ src/ (complete directory)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ frontend/ (complete directory)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ migrations/ (complete directory)" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ requirements.txt" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
+          echo "- src/ (complete directory)" >> $GITHUB_STEP_SUMMARY
+          echo "- frontend/ (complete directory)" >> $GITHUB_STEP_SUMMARY
+          echo "- migrations/ (complete directory)" >> $GITHUB_STEP_SUMMARY
+          echo "- requirements.txt" >> $GITHUB_STEP_SUMMARY
+          echo "- CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📝 Changes" >> $GITHUB_STEP_SUMMARY
+          echo "### Changes" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           git diff HEAD~1 --stat 2>/dev/null || echo "Initial sync or new branch" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Note: homeassistant-addons will pick up these changes via sync-addons.yml" >> $GITHUB_STEP_SUMMARY
 
       - name: No changes summary
         if: steps.check_changes.outputs.changes == 'false'
         run: |
-          echo "## ℹ️ No Sync Required" >> $GITHUB_STEP_SUMMARY
+          echo "## No Sync Required" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: schmacka/homeassistant-addons" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: main" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: master" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The Home Assistant add-on code is already up to date." >> $GITHUB_STEP_SUMMARY
+          echo "The printernizer-ha code is already up to date." >> $GITHUB_STEP_SUMMARY
