@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.7] - 2026-01-06
+
+### Fixed
+- **Tag Edit Button Not Working**: Fixed tag picker modal not displaying when clicking edit (pen) button in Library file details
+  - Added missing `.modal-overlay` CSS class that was causing the tag picker modal to be invisible
+  - Added dark theme support for modal overlay
+
 ## [2.15.6] - 2026-01-06
 
 ### Fixed

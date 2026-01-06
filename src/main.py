@@ -94,7 +94,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.15.6")
+APP_VERSION = get_version(fallback="2.15.7")
 
 
 # Prometheus metrics - initialized once

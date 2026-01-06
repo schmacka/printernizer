@@ -126,7 +126,8 @@
 }
 
 /* Modals */
-[data-theme="dark"] .modal {
+[data-theme="dark"] .modal,
+[data-theme="dark"] .modal-overlay {
     background-color: rgba(0, 0, 0, 0.8);
 }
 
