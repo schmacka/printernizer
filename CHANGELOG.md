@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.16.0] - 2026-01-06
+
+### Added
+- **Detailed Log Viewer**: New log viewer modal in auto-download UI for troubleshooting
+  - Stats display showing counts by log level (error, warning, info, debug)
+  - Filtering by log level, category (downloads, api, queue), and text search
+  - Paginated table with 50 entries per page
+  - CSV and JSON export functionality
+  - Clear logs with confirmation dialog
+  - Dark mode and responsive design support
+
+### Fixed
+- **Bambu Lab Connection Stability**: Improved FTP and MQTT connection reliability
+  - Added exponential backoff with jitter for FTP retry delays (1.0s base, 2.0x backoff, 30s max)
+  - Added MQTT auto-reconnect on unexpected disconnect with configurable delay
+  - New retry constants for fine-tuned connection management
+
 ## [2.15.8] - 2026-01-06
 
 ### Fixed
