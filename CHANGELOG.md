@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.6] - 2026-01-06
+
+### Fixed
+- **Missing slicing_jobs Table**: Added missing `slicing_jobs` database table that was causing startup failures
+  - The table creation was missing from the database schema, causing `sqlite3.OperationalError: no such table: slicing_jobs`
+  - Added proper table schema with all required columns and indexes for slicing queue functionality
+
 ## [2.15.5] - 2026-01-06
 
 ### Fixed

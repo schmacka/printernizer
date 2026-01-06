@@ -434,6 +434,37 @@ class Database:
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_events_timestamp ON usage_events(timestamp)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_events_submitted ON usage_events(submitted)")
 
+            # Slicing jobs table for slicing queue management
+            await cursor.execute("""
+                CREATE TABLE IF NOT EXISTS slicing_jobs (
+                    id TEXT PRIMARY KEY,
+                    file_checksum TEXT NOT NULL,
+                    slicer_id TEXT NOT NULL,
+                    profile_id TEXT,
+                    target_printer_id TEXT,
+                    status TEXT NOT NULL DEFAULT 'queued',
+                    priority INTEGER DEFAULT 0,
+                    progress INTEGER DEFAULT 0,
+                    output_file_path TEXT,
+                    output_gcode_checksum TEXT,
+                    estimated_print_time INTEGER,
+                    filament_used REAL,
+                    error_message TEXT,
+                    retry_count INTEGER DEFAULT 0,
+                    auto_upload BOOLEAN DEFAULT 0,
+                    auto_start BOOLEAN DEFAULT 0,
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Create indexes for slicing jobs
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_slicing_jobs_status ON slicing_jobs(status)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_slicing_jobs_priority ON slicing_jobs(priority)")
+            await cursor.execute("CREATE INDEX IF NOT EXISTS idx_slicing_jobs_created ON slicing_jobs(created_at)")
+
             # Create indexes for performance
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_printer_id ON jobs(printer_id)")
             await cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)")
