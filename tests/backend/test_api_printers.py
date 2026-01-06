@@ -481,8 +481,9 @@ class TestPrinterAPI:
 
         assert response.status_code == 409
         error_data = response.json()
-        assert 'Cannot delete printer with' in error_data['detail']
-        assert 'active job' in error_data['detail']
+        # Global http_exception_handler converts HTTPException to standardized format with 'message' key
+        assert 'Cannot delete printer with' in error_data['message']
+        assert 'active job' in error_data['message']
     
     def test_printer_connection_test(self, client, test_app):
         """Test POST /api/v1/printers/test-connection"""

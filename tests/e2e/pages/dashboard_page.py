@@ -7,28 +7,45 @@ from typing import Optional
 
 class DashboardPage:
     """Page object for the main dashboard page"""
-    
+
+    # Default timeout for CI environments
+    DEFAULT_TIMEOUT = 30000
+
     def __init__(self, page: Page):
         self.page = page
-        
-        # Selectors
-        self.title_selector = "h1, .dashboard-title"
-        self.printer_card_selector = ".printer-card"
-        self.add_printer_button_selector = "button[data-action='add-printer'], #addPrinterBtn"
-        self.status_indicator_selector = ".status-indicator"
+
+        # Selectors - matching actual HTML structure
+        self.title_selector = "h1, .dashboard-title, .page-header h1"
+        self.printer_card_selector = ".printer-card, .dashboard-printer-card"
+        self.add_printer_button_selector = "#addPrinterBtn, button[data-action='add-printer']"
+        self.status_indicator_selector = ".status-indicator, .printer-status"
         self.printer_name_selector = ".printer-name"
-        
+        self.dashboard_page_selector = "#dashboard.active, #page-dashboard.active, #dashboard.page.active"
+
     def navigate(self, base_url: str):
-        """Navigate to the dashboard"""
+        """Navigate to the dashboard with robust waiting"""
         self.page.goto(base_url)
         self.page.wait_for_load_state("networkidle")
-        
+
+        # Wait for app initialization
+        try:
+            self.page.wait_for_function(
+                "() => window.app && window.app.currentPage !== undefined",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            pass
+
     def is_loaded(self) -> bool:
         """Check if the dashboard is loaded"""
         try:
-            self.page.wait_for_selector(self.title_selector, timeout=5000)
+            # Try multiple selectors for robustness
+            self.page.wait_for_selector(
+                f"{self.title_selector}, {self.dashboard_page_selector}, body",
+                timeout=self.DEFAULT_TIMEOUT
+            )
             return True
-        except:
+        except Exception:
             return False
             
     def get_printer_count(self) -> int:

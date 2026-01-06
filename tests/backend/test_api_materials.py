@@ -199,24 +199,36 @@ class TestMaterialExport:
 
     def test_export_inventory_csv(self, client, mock_material_service, tmp_path):
         """Test CSV export endpoint"""
-        mock_material_service.export_inventory = AsyncMock(return_value=True)
+        # Mock that creates the actual file when called (FileResponse needs real file)
+        async def create_csv_file(export_path):
+            export_path.parent.mkdir(parents=True, exist_ok=True)
+            export_path.write_text("material_id,name,type,weight\nmat_001,Test Material,PLA,1000")
+            return True
+
+        mock_material_service.export_inventory = AsyncMock(side_effect=create_csv_file)
 
         response = client.get("/api/v1/materials/export?format=csv")
 
-        # Should succeed (mocked)
-        assert response.status_code in [200, 500]  # 500 if file doesn't exist in mock
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/csv; charset=utf-8"
         mock_material_service.export_inventory.assert_called_once()
 
     def test_export_inventory_excel(self, client, mock_material_service, tmp_path):
         """Test Excel export endpoint - verifies 501 is no longer returned"""
-        mock_material_service.export_inventory_excel = AsyncMock(return_value=True)
+        # Mock that creates the actual file when called (FileResponse needs real file)
+        async def create_excel_file(export_path):
+            export_path.parent.mkdir(parents=True, exist_ok=True)
+            # Create a minimal xlsx file (just the header bytes for a valid xlsx)
+            export_path.write_bytes(b'PK\x03\x04')  # Minimal zip/xlsx header
+            return True
+
+        mock_material_service.export_inventory_excel = AsyncMock(side_effect=create_excel_file)
 
         response = client.get("/api/v1/materials/export?format=excel")
 
         # Should NOT return 501 (Not Implemented) anymore
         assert response.status_code != 501
-        # Should either succeed or fail with 500 (if file doesn't exist in mock)
-        assert response.status_code in [200, 500]
+        assert response.status_code == 200
         mock_material_service.export_inventory_excel.assert_called_once()
 
     def test_export_inventory_invalid_format(self, client, mock_material_service):

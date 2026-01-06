@@ -6,6 +6,9 @@ import pytest
 from playwright.sync_api import Page, expect, TimeoutError
 from tests.e2e.pages import DashboardPage, PrintersPage, JobsPage
 
+# Timeout for E2E tests (longer for CI)
+E2E_TIMEOUT = 30000
+
 
 @pytest.mark.e2e
 @pytest.mark.playwright
@@ -14,7 +17,7 @@ class TestPrintWorkflow:
     Example test suite demonstrating a complete print workflow
     from adding a printer to creating a job
     """
-    
+
     def test_complete_workflow_example(self, app_page: Page, base_url: str):
         """
         Comprehensive workflow test showing:
@@ -28,42 +31,48 @@ class TestPrintWorkflow:
         dashboard = DashboardPage(app_page)
         dashboard.navigate(base_url)
         assert dashboard.is_loaded(), "Dashboard should load"
-        
+
         # Step 2: Navigate to printers page
         printers = PrintersPage(app_page)
         printers.navigate(base_url)
-        
+
         # Step 3: Get initial printer count
         initial_count = len(printers.get_printer_list())
-        
+
         # Step 4: Try to add printer (will work if backend is running)
         try:
-            add_button = app_page.locator("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
-            if add_button.count() > 0:
+            add_button = app_page.locator(printers.add_printer_button_selector)
+            add_button.wait_for(state="visible", timeout=E2E_TIMEOUT)
+
+            if add_button.is_visible():
                 printers.open_add_printer_modal()
-                
+
                 # Fill form
                 printers.fill_printer_form(
                     name="E2E Test Printer",
                     ip="192.168.1.200",
                     printer_type="bambu"
                 )
-                
+
                 # Note: Don't submit in this example to avoid side effects
                 # printers.submit_printer_form()
+
+                # Close modal with Escape
+                app_page.keyboard.press("Escape")
         except TimeoutError:
             # Modal might not be implemented yet
             pass
-        
+
         # Step 5: Navigate to jobs page
         jobs = JobsPage(app_page)
         jobs.navigate(base_url)
-        
+
         # Step 6: Verify jobs page loaded
-        expect(app_page).to_have_url(f"{base_url}/#jobs")
-        
+        expect(app_page).to_have_url(f"{base_url}/#jobs", timeout=E2E_TIMEOUT)
+
         # Step 7: Check for create job button
         create_button = app_page.locator(jobs.create_job_button_selector)
+        create_button.wait_for(state="visible", timeout=E2E_TIMEOUT)
         expect(create_button.first).to_be_visible()
 
 

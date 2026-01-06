@@ -7,54 +7,72 @@ from typing import Optional
 
 class PrintersPage:
     """Page object for the printers management page"""
-    
+
+    # Default timeout for CI environments (longer than local)
+    DEFAULT_TIMEOUT = 30000
+
     def __init__(self, page: Page):
         self.page = page
-        
-        # Selectors
-        self.printers_list_selector = ".printers-list, #printersList"
-        self.printer_row_selector = ".printer-row, tr.printer"
-        self.add_printer_modal_selector = "#addPrinterModal, .add-printer-modal"
-        self.printer_form_selector = "#printerForm, .printer-form"
-        self.printer_name_input_selector = "input[name='name'], #printerName"
-        self.printer_ip_input_selector = "input[name='ip'], #printerIp"
-        self.printer_type_select_selector = "select[name='type'], #printerType"
-        self.save_printer_button_selector = "button[type='submit'], .save-printer-btn"
+
+        # Selectors - use multiple fallbacks for robustness
+        self.printers_list_selector = "#printersList, .printers-list"
+        self.printer_row_selector = ".printer-card, .printer-row, [data-printer-id]"
+        self.add_printer_modal_selector = "#addPrinterModal"
+        self.printer_form_selector = "#addPrinterForm, #printerForm"
+        self.printer_name_input_selector = "#printerName, input[name='name']"
+        self.printer_ip_input_selector = "#printerIp, input[name='ip']"
+        self.printer_type_select_selector = "#printerType, select[name='type']"
+        self.save_printer_button_selector = "#addPrinterForm button[type='submit'], .save-printer-btn"
         self.delete_printer_button_selector = ".delete-printer-btn, button[data-action='delete']"
-        
+        self.add_printer_button_selector = "#addPrinterBtn"
+
     def navigate(self, base_url: str):
-        """Navigate to printers page"""
+        """Navigate to printers page with robust waiting"""
         self.page.goto(f"{base_url}/#printers", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        # Wait for app initialization
-        self.page.wait_for_function("() => window.app && window.app.currentPage")
-        # Wait for the printers page section to be visible
-        self.page.wait_for_selector("#printers.page.active", state="visible", timeout=10000)
-        # Wait for add printer button to be visible
-        self.page.wait_for_selector("#addPrinterBtn", state="visible", timeout=5000)
+
+        # Wait for app initialization with longer timeout for CI
+        try:
+            self.page.wait_for_function(
+                "() => window.app && window.app.currentPage !== undefined",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            # Fallback: just wait for the page element to exist
+            pass
+
+        # Wait for the printers page section to be visible (either ID format)
+        # The page uses #printers and adds .active class when shown
+        self.page.wait_for_selector(
+            "#printers.active, #printers.page.active, #page-printers.active",
+            state="visible",
+            timeout=self.DEFAULT_TIMEOUT
+        )
         
     def open_add_printer_modal(self):
         """Open the add printer modal"""
-        self.page.click("#addPrinterBtn, button:has-text('Drucker hinzufügen')")
-        self.page.wait_for_selector(self.add_printer_modal_selector, state="visible")
-        
+        self.page.click(self.add_printer_button_selector)
+        self.page.wait_for_selector(self.add_printer_modal_selector, state="visible", timeout=self.DEFAULT_TIMEOUT)
+
     def fill_printer_form(self, name: str, ip: str, printer_type: str = "bambu"):
         """Fill out the printer form"""
         self.page.fill(self.printer_name_input_selector, name)
         self.page.fill(self.printer_ip_input_selector, ip)
-        self.page.select_option(self.printer_type_select_selector, printer_type)
-        
+        type_select = self.page.locator(self.printer_type_select_selector)
+        if type_select.is_visible():
+            self.page.select_option(self.printer_type_select_selector, printer_type)
+
     def submit_printer_form(self):
         """Submit the printer form"""
         self.page.click(self.save_printer_button_selector)
-        
+
     def add_printer(self, name: str, ip: str, printer_type: str = "bambu"):
         """Complete flow to add a new printer"""
         self.open_add_printer_modal()
         self.fill_printer_form(name, ip, printer_type)
         self.submit_printer_form()
         # Wait for modal to close
-        self.page.wait_for_selector(self.add_printer_modal_selector, state="hidden", timeout=5000)
+        self.page.wait_for_selector(self.add_printer_modal_selector, state="hidden", timeout=self.DEFAULT_TIMEOUT)
         
     def get_printer_list(self) -> list[str]:
         """Get list of all printer names"""

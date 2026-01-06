@@ -7,36 +7,54 @@ from typing import Optional
 
 class JobsPage:
     """Page object for the jobs page"""
-    
+
+    # Default timeout for CI environments
+    DEFAULT_TIMEOUT = 30000
+
     def __init__(self, page: Page):
         self.page = page
-        
-        # Selectors - matching actual HTML structure
+
+        # Selectors - matching actual HTML structure from index.html
         self.jobs_table_selector = "#jobsTable, .jobs-table"
         self.job_row_selector = "#jobsTableBody tr, .job-row"
-        self.create_job_button_selector = "#createJobBtn, button:has-text('Create Job')"
-        self.job_modal_selector = "#jobModal, .job-modal"
+        self.create_job_button_selector = "#createJobBtn"
+        self.job_modal_selector = "#createJobModal, #jobModal, .job-modal, .modal:has(#createJobForm)"
         self.job_name_input_selector = "#jobName, input[name='job_name']"
         self.file_select_selector = "#fileSelect, select[name='file']"
         self.printer_select_selector = "#printerSelect, select[name='printer']"
-        self.business_checkbox_selector = "#isBusiness, input[name='is_business']"
+        self.business_checkbox_selector = "#isBusiness, input[name='is_business'], input[type='checkbox'][id*='business']"
         self.customer_name_input_selector = "#customerName, input[name='customer_name']"
         self.submit_job_button_selector = ".submit-job-btn, button[type='submit'][form='createJobForm']"
         self.job_status_selector = ".job-status"
-        
+
     def navigate(self, base_url: str):
-        """Navigate to jobs page"""
+        """Navigate to jobs page with robust waiting"""
         self.page.goto(f"{base_url}/#jobs", wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
-        # Wait for app initialization (main.js to execute)
-        self.page.wait_for_function("() => window.app && window.app.currentPage")
-        # Wait for the jobs page section to be visible
-        self.page.wait_for_selector("#page-jobs.active", state="visible", timeout=5000)
-        
+
+        # Wait for app initialization with longer timeout for CI
+        try:
+            self.page.wait_for_function(
+                "() => window.app && window.app.currentPage !== undefined",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            # Fallback: just wait for the page element to exist
+            pass
+
+        # Wait for the jobs page section to be visible (try both ID formats)
+        self.page.wait_for_selector(
+            "#page-jobs.active, #jobs.active, #page-jobs.page.active",
+            state="visible",
+            timeout=self.DEFAULT_TIMEOUT
+        )
+
     def open_create_job_modal(self):
         """Open the create job modal"""
+        # Wait for button to be clickable
+        self.page.wait_for_selector(self.create_job_button_selector, state="visible", timeout=self.DEFAULT_TIMEOUT)
         self.page.click(self.create_job_button_selector)
-        self.page.wait_for_selector(self.job_modal_selector, state="visible")
+        self.page.wait_for_selector(self.job_modal_selector, state="visible", timeout=self.DEFAULT_TIMEOUT)
         
     def fill_job_form(
         self, 
@@ -65,7 +83,7 @@ class JobsPage:
         self.page.click(self.submit_job_button_selector)
         
     def create_job(
-        self, 
+        self,
         job_name: str,
         file_name: Optional[str] = None,
         printer_name: Optional[str] = None,
@@ -77,7 +95,7 @@ class JobsPage:
         self.fill_job_form(job_name, file_name, printer_name, is_business, customer_name)
         self.submit_job_form()
         # Wait for modal to close
-        self.page.wait_for_selector(self.job_modal_selector, state="hidden", timeout=5000)
+        self.page.wait_for_selector(self.job_modal_selector, state="hidden", timeout=self.DEFAULT_TIMEOUT)
         
     def get_job_list(self) -> list[str]:
         """Get list of all job names"""

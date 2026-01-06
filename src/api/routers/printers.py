@@ -382,11 +382,15 @@ async def test_printer_connection(
             test_request.printer_type,
             test_request.connection_config
         )
-        return success_response({
+        response_data = {
             "success": result.get("success", False),
             "message": result.get("message", "Connection test completed"),
             "details": result.get("details", {})
-        })
+        }
+        # Include response_time_ms if provided by the service
+        if "response_time_ms" in result:
+            response_data["response_time_ms"] = result["response_time_ms"]
+        return success_response(response_data)
     except Exception as e:
         logger.error("Connection test failed", error=str(e))
         return success_response({
