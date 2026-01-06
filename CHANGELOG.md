@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.8] - 2026-01-06
+
+### Fixed
+- **Bambu A1 Filament Display**: Fixed filaments not showing in dashboard for Bambu A1 and printers without AMS
+  - Added support for `vt_tray` (external spool) data structure used by A1 printers
+  - Extracts filament type and color from external spool MQTT data
+
 ## [2.15.7] - 2026-01-06
 
 ### Fixed
