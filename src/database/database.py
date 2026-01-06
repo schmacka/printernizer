@@ -544,6 +544,55 @@ class Database:
             return []
 
     # ============================================================================
+    # Public Query Methods (for routers and external use)
+    # ============================================================================
+
+    async def fetch_one(self, sql: str, params: Optional[tuple] = None):
+        """
+        Execute a query and return a single row.
+
+        Args:
+            sql: SQL query string
+            params: Optional tuple of query parameters
+
+        Returns:
+            Single row as dict-like object, or None if no results
+        """
+        # Convert tuple to list for internal method
+        param_list = list(params) if params else None
+        return await self._fetch_one(sql, param_list)
+
+    async def fetch_all(self, sql: str, params: Optional[tuple] = None):
+        """
+        Execute a query and return all rows.
+
+        Args:
+            sql: SQL query string
+            params: Optional tuple of query parameters
+
+        Returns:
+            List of rows as dict-like objects
+        """
+        # Convert tuple to list for internal method
+        param_list = list(params) if params else None
+        return await self._fetch_all(sql, param_list)
+
+    async def execute(self, sql: str, params: Optional[tuple] = None) -> bool:
+        """
+        Execute a write operation (INSERT, UPDATE, DELETE).
+
+        Args:
+            sql: SQL statement
+            params: Optional tuple of parameters
+
+        Returns:
+            True if successful, False otherwise
+        """
+        # Convert tuple to list for internal method
+        param_list = list(params) if params else None
+        return await self._write(sql, param_list)
+
+    # ============================================================================
     # Connection Pool Management
     # ============================================================================
 

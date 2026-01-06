@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dark mode and responsive design support
 
 ### Fixed
+- **Tags API 500 Error**: Fixed tags feature returning HTTP 500 error
+  - Added missing public `fetch_all`, `fetch_one`, and `execute` methods to Database class
+  - These methods were being called by the tags router but only existed as private `_fetch_*` methods
 - **Bambu Lab Connection Stability**: Improved FTP and MQTT connection reliability
   - Added exponential backoff with jitter for FTP retry delays (1.0s base, 2.0x backoff, 30s max)
   - Added MQTT auto-reconnect on unexpected disconnect with configurable delay
