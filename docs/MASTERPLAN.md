@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
-**Last Updated**: 2026-01-05
-**Current Version**: v2.15.0
+**Last Updated**: 2026-01-06
+**Current Version**: v2.15.8
 **Status**: Production Ready
 
 ---
@@ -19,6 +19,8 @@
 | Sprint 2 Phase 3 (Printer Tests) | Complete | 100% |
 | Sprint 3 (Frontend Polish) | Complete | 100% |
 | Sprint 4 (Tags & Printer Modal) | Complete | 100% |
+| Slicer Integration (v2.14.0) | Complete | 100% |
+| Post-Sprint Patches (v2.15.1-2.15.8) | Complete | 100% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
 ---
@@ -76,8 +78,20 @@
   - Delete printer tests: 2/2 ✅
   - Test connection tests: 2/2 ✅
 
-### Recent Features (v2.10.0 - v2.13.1) ✅
+### Recent Features (v2.10.0 - v2.15.8) ✅
 
+- [x] **v2.15.8** - Fixed Bambu A1 external spool (vt_tray) filament display
+- [x] **v2.15.7** - Fixed tag edit button not working in Library
+- [x] **v2.15.6** - Added missing slicing_jobs database table
+- [x] **v2.15.5** - Database table error handling for fresh installs
+- [x] **v2.15.4** - CI/CD pipeline fixes, pydantic-settings v2 compatibility
+- [x] **v2.15.1** - Tag filtering, enhanced printer modal with tabs/controls
+- [x] **v2.15.0** - Custom file tags, enhanced printer details modal
+- [x] **v2.14.3** - Documentation cleanup, archived sprint reports
+- [x] **v2.14.2** - Fixed filament display API bug
+- [x] **v2.14.1** - Legacy exception handler fix, flaky WebSocket test fix
+- [x] **v2.14.0** - Slicer integration (Bambu Studio, Orca Slicer, Prusa Slicer)
+- [x] **v2.13.3** - Duplicate notifications fix, backend offline detection
 - [x] **v2.13.1** - Fixed printer auto-detection duplicates
 - [x] **v2.13.0** - Excel export for materials inventory
 - [x] **v2.12.2** - Fixed Prusa job display from PrusaLink v1 API
@@ -99,6 +113,8 @@
 - [x] **Business Features** - VAT, analytics, German compliance
 - [x] **Auto-Job Creation** - Detect prints automatically
 - [x] **Setup Wizard** - Guided first-run configuration
+- [x] **Slicer Integration** - Auto-detect Bambu Studio, Orca, Prusa Slicer (v2.14.0)
+- [x] **Custom File Tags** - Tag management system with filtering (v2.15.0)
 
 ### Usage Statistics (v2.7.0) ✅
 
@@ -134,6 +150,27 @@
 - [x] Consolidate duplicate plan files
 - [x] Archive completed sprint reports
 - [x] Update README with current features
+
+### Post-Sprint Patches (v2.15.1-2.15.8) ✅ COMPLETE (2026-01-06)
+
+**Slicer Integration (v2.14.0)**:
+- [x] Automatic detection of installed slicers (Bambu Studio, Orca Slicer, Prusa Slicer)
+- [x] Slicer configuration management API
+- [x] Slicing queue system for automated job processing
+- [x] Database migration for slicer configuration
+
+**Enhanced Features (v2.15.1)**:
+- [x] Tag filtering in Library - dropdown filter by tags
+- [x] Enhanced printer modal with tabbed interface (Overview, Status, History, Diagnostics)
+- [x] Printer controls (pause, resume, stop) in details modal
+- [x] Temperature indicators with visual heating/cooling status
+- [x] Connection diagnostics (test, reconnect, refresh files)
+
+**Critical Bug Fixes (v2.15.4-2.15.8)**:
+- [x] **CI/CD Pipeline**: Fixed database access patterns, pydantic-settings v2 compatibility
+- [x] **Database Tables**: Added missing `slicing_jobs` table, graceful handling for missing tables
+- [x] **Tag Edit Button**: Fixed invisible modal overlay in Library file details
+- [x] **Bambu A1 Filament**: Added `vt_tray` support for external spool display
 
 ---
 
@@ -530,6 +567,7 @@ python3 -m pytest --cov=src tests/
 | 2 Phase 3 | 2026-01-04 | Printer Service Tests | ✅ Complete |
 | 3 | 2026-01-04 | Frontend Polish | ✅ Complete |
 | 4 | 2026-01-05 | Tags & Printer Modal | ✅ Complete |
+| Patches | 2026-01-06 | v2.15.1-2.15.8 Bug Fixes | ✅ Complete |
 
 ### Sprint 1 Summary
 
@@ -589,12 +627,28 @@ python3 -m pytest --cov=src tests/
   - `POST /api/v1/tags/file/{checksum}/assign` - Assign tags to files
   - `GET /api/v1/printers/{id}/details` - Comprehensive printer info
 
+### Post-Sprint Patches Summary (v2.15.1-2.15.8)
+
+- **Date**: 2026-01-05 to 2026-01-06
+- **Focus**: Bug fixes, CI/CD stability, slicer integration polish
+- **Key Accomplishments**:
+  - Slicer integration fully operational (v2.14.0)
+  - Enhanced printer modal with tabs and controls (v2.15.1)
+  - Tag filtering in Library (v2.15.1)
+  - Fixed CI/CD pipeline issues (v2.15.4)
+  - Fixed database schema issues for fresh installs (v2.15.5-2.15.6)
+  - Fixed tag edit button in Library (v2.15.7)
+  - Fixed Bambu A1 filament display (v2.15.8)
+- **Commits**: 18 commits (v2.14.1 to v2.15.8)
+- **Status**: All critical bugs resolved
+
 ---
 
 ## Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 9.0 | 2026-01-06 | Post-Sprint patches (v2.15.1-2.15.8), slicer integration |
 | 8.0 | 2026-01-05 | Sprint 4 completion (tags, printer modal) |
 | 7.0 | 2026-01-05 | Sprint 3 completion, doc cleanup, README update |
 | 6.0 | 2026-01-04 | Sprint 2 Phase 3 completion (479 total Sprint 2 tests) |
