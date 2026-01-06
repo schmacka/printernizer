@@ -78,7 +78,9 @@ jobs:
           import json
           with open('pip-audit-main.json') as f:
               data = json.load(f)
-              print(len(data.get('dependencies', [])))
+              # Count actual vulnerabilities, not total dependencies
+              vulns = sum(len(dep.get('vulns', [])) for dep in data.get('dependencies', []))
+              print(vulns)
           " 2>/dev/null || echo "0")
 
             echo "vulnerability_count=$VULN_COUNT" >> $GITHUB_OUTPUT

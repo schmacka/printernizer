@@ -6,6 +6,9 @@ require('@testing-library/jest-dom');
 const { TextEncoder, TextDecoder } = require('util');
 const fetchMock = require('fetch-mock');
 
+// Export fetchMock globally for test files
+global.fetchMock = fetchMock;
+
 // Polyfills for Node.js environment
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
@@ -213,7 +216,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   fetchMock.reset();
-  
+
   // Reset DOM
   document.body.innerHTML = '';
   document.head.innerHTML = '';

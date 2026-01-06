@@ -340,7 +340,7 @@ describe('API Service', () => {
     
     test('should handle network errors', async () => {
       fetchMock.get(`${API_BASE_URL}/printers`, Promise.reject(new Error('Network error')));
-      
+
       await expect(ApiService.get('/printers'))
         .rejects.toThrow('Network error');
     });
