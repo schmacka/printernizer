@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.3] - 2026-01-06
+
+### Fixed
+- **Bambu Lab FTP Connection Timeouts**: Improved connection reliability
+  - Added socket pre-warming to detect connectivity issues early
+  - Enabled TCP keepalive to detect dead connections faster
+  - Improved error logging with error type information
+
+- **Bambu Lab MQTT Connection Instability**: Reduced reconnect storms
+  - Added 10-second reconnection cooldown to prevent rapid reconnection attempts
+  - Configured 60-second MQTT keepalive for stale connection detection
+  - Added connection state tracking for better debugging
+  - Added human-readable error messages for MQTT RC codes
+
 ## [2.17.2] - 2026-01-06
 
 ### Fixed

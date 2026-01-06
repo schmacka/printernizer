@@ -485,13 +485,13 @@
   - Issue: Threading compatibility, using PollingObserver fallback
   - Priority: LOW (workaround in place)
 
-- [x] **Bambu FTP Connection Timeouts** (v2.18.0)
+- [x] **Bambu FTP Connection Timeouts** (v2.17.3)
   - Issue: Initial attempts fail, retry works
   - Location: `src/services/bambu_ftp_service.py`
   - Fix: Added socket pre-warming, TCP keepalive, improved error logging
   - Priority: MEDIUM → RESOLVED
 
-- [x] **Bambu MQTT Connection Instability** (v2.18.0)
+- [x] **Bambu MQTT Connection Instability** (v2.17.3)
   - Issue: Multiple timeout/reconnect cycles
   - Location: `src/printers/bambu_lab.py`
   - Fix: Added reconnection cooldown, MQTT keepalive, connection state tracking
