@@ -88,12 +88,18 @@ class SlicingQueue(BaseService):
         # Load settings (database settings override config/env vars)
         self._enabled = await self._get_setting("slicing.enabled", True)
         self._max_concurrent = await self._get_setting("slicing.max_concurrent", 2)
-        # Use env var as fallback, then settings default
-        default_dir = os.environ.get(
-            "SLICING_OUTPUT_DIR",
-            getattr(self.settings, 'slicing_output_dir', '/data/printernizer/sliced')
-        )
-        output_dir = await self._get_setting("slicing.output_dir", default_dir)
+
+        # For slicing output dir, ALWAYS prefer env var if set
+        env_slicing_dir = os.environ.get("SLICING_OUTPUT_DIR")
+        if env_slicing_dir:
+            output_dir = env_slicing_dir
+            logger.info("Using SLICING_OUTPUT_DIR from environment", output_dir=output_dir)
+        else:
+            # Fall back to database setting or config default
+            settings_default = getattr(self.settings, 'slicing_output_dir', '/data/printernizer/sliced')
+            output_dir = await self._get_setting("slicing.output_dir", settings_default)
+            logger.info("Using slicing output dir from settings/default", output_dir=output_dir)
+
         self._output_dir = Path(output_dir)
         
         # Create output directory

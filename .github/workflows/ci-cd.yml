@@ -345,6 +345,13 @@ jobs:
 
     - name: Start test server
       run: |
+        # Create required directories for E2E tests
+        mkdir -p /tmp/printernizer-e2e-downloads
+        mkdir -p /tmp/printernizer-e2e-library
+        mkdir -p /tmp/printernizer-e2e-timelapse
+        mkdir -p /tmp/printernizer-e2e-output
+        mkdir -p /tmp/printernizer-e2e-sliced
+
         python -m src.main &
         SERVER_PID=$!
         echo $SERVER_PID > server.pid
