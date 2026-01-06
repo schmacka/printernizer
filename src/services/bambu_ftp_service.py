@@ -125,6 +125,29 @@ class BambuFTPService:
         ssl_context.verify_mode = ssl.CERT_NONE
         return ssl_context
 
+    async def _test_socket_connectivity(self) -> bool:
+        """Quick socket connectivity test before full FTP connection.
+
+        Returns:
+            True if socket connection succeeds, False otherwise
+        """
+        def _sync_test():
+            test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            test_socket.settimeout(5.0)  # Quick 5-second test
+            try:
+                test_socket.connect((self.ip_address, self.port))
+                return True
+            except (socket.timeout, ConnectionRefusedError, OSError):
+                return False
+            finally:
+                try:
+                    test_socket.close()
+                except:
+                    pass
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _sync_test)
+
     async def _connect_ftp(self) -> ftplib.FTP_TLS:
         """
         Create and return a connected FTP_TLS instance using implicit TLS.
@@ -147,6 +170,9 @@ class BambuFTPService:
             # For implicit TLS, we need to wrap the socket with SSL before FTP
             raw_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             raw_socket.settimeout(self.timeout)
+
+            # Enable TCP keepalive to detect dead connections
+            raw_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
             try:
                 # Connect raw socket first
@@ -243,6 +269,8 @@ class BambuFTPService:
         Uses exponential backoff with jitter for retry attempts to improve
         connection stability and prevent thundering herd problems.
 
+        Includes socket pre-warming to detect connectivity issues early.
+
         Usage:
             async with service.ftp_connection() as ftp:
                 files = await service.list_files(ftp)
@@ -252,6 +280,17 @@ class BambuFTPService:
 
         for attempt in range(self.retry_count):
             try:
+                # Pre-warm: Quick socket test before full FTP connection
+                # This helps detect connectivity issues early and reduces
+                # the likelihood of slow timeout failures
+                if attempt == 0:
+                    socket_ok = await self._test_socket_connectivity()
+                    if not socket_ok:
+                        logger.warning("FTP socket pre-test failed, printer may be unavailable",
+                                     ip=self.ip_address)
+                        # Still try the full connection - printer might need a moment
+                        await asyncio.sleep(0.5)
+
                 ftp = await self._connect_ftp()
                 logger.debug("FTP connection established",
                            ip=self.ip_address, attempt=attempt + 1)
@@ -267,13 +306,15 @@ class BambuFTPService:
                              attempt=attempt + 1,
                              max_attempts=self.retry_count,
                              retry_delay_seconds=round(retry_delay, 2),
-                             error=str(e))
+                             error=str(e),
+                             error_type=type(e).__name__)
 
                 if attempt == self.retry_count - 1:
                     logger.error("FTP connection failed after all retries",
                                ip=self.ip_address,
                                total_attempts=self.retry_count,
-                               error=str(e))
+                               error=str(e),
+                               error_type=type(e).__name__)
                     raise
 
                 # Wait with exponential backoff before retry

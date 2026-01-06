@@ -98,8 +98,12 @@ class BambuLabPrinter(BasePrinter):
         self.mqtt_retry_backoff = NetworkConstants.MQTT_RETRY_BACKOFF_MULTIPLIER
         self.mqtt_retry_max_delay = NetworkConstants.MQTT_RETRY_MAX_DELAY_SECONDS
         self.mqtt_auto_reconnect_delay = NetworkConstants.MQTT_AUTO_RECONNECT_DELAY_SECONDS
+        self.mqtt_keepalive_seconds = 60  # MQTT keepalive interval
+        self.mqtt_reconnect_cooldown_seconds = 10.0  # Minimum time between reconnect attempts
         self._reconnect_task: Optional[asyncio.Task] = None
         self._should_reconnect = True  # Flag to control auto-reconnect behavior
+        self._last_reconnect_attempt: Optional[float] = None  # Timestamp of last reconnect attempt
+        self._connection_state = "disconnected"  # Track connection state for debugging
         
     def _on_connect(self, client, userdata, flags, rc):
         """Handle MQTT connection event.
@@ -114,13 +118,30 @@ class BambuLabPrinter(BasePrinter):
             rc: Connection result code (0 = success).
         """
         if rc == 0:
-            logger.info("MQTT connected successfully", printer_id=self.printer_id)
+            self._connection_state = "connected"
+            logger.info("MQTT connected successfully",
+                       printer_id=self.printer_id,
+                       connection_state=self._connection_state)
             # Subscribe to printer status topic
             topic = f"device/{self.serial_number}/report"
             client.subscribe(topic)
             logger.debug("Subscribed to topic", topic=topic)
         else:
-            logger.error("MQTT connection failed", printer_id=self.printer_id, rc=rc)
+            self._connection_state = "connection_failed"
+            # Map RC codes to human-readable messages
+            rc_messages = {
+                1: "incorrect protocol version",
+                2: "invalid client identifier",
+                3: "server unavailable",
+                4: "bad username or password",
+                5: "not authorized"
+            }
+            rc_msg = rc_messages.get(rc, f"unknown error code {rc}")
+            logger.error("MQTT connection failed",
+                        printer_id=self.printer_id,
+                        rc=rc,
+                        reason=rc_msg,
+                        connection_state=self._connection_state)
 
     def _on_message(self, client, userdata, msg):
         """Handle incoming MQTT messages from printer.
@@ -142,20 +163,44 @@ class BambuLabPrinter(BasePrinter):
     def _on_disconnect(self, client, userdata, rc):
         """Handle MQTT disconnection event with automatic reconnection.
 
+        Implements cooldown to prevent reconnection storms.
+
         Args:
             client: MQTT client instance.
             userdata: User-defined data passed to callbacks.
             rc: Disconnection result code (0 = clean disconnect).
         """
         self.is_connected = False
+        self._connection_state = "disconnected"
 
         if rc == 0:
-            logger.info("MQTT disconnected cleanly", printer_id=self.printer_id)
+            logger.info("MQTT disconnected cleanly",
+                       printer_id=self.printer_id,
+                       connection_state=self._connection_state)
         else:
+            # Map disconnect RC codes to human-readable messages
+            disconnect_reasons = {
+                1: "connection lost",
+                7: "keepalive timeout"
+            }
+            reason = disconnect_reasons.get(rc, f"unexpected disconnect (rc={rc})")
+
             logger.warning("MQTT disconnected unexpectedly",
                          printer_id=self.printer_id,
                          rc=rc,
-                         will_reconnect=self._should_reconnect)
+                         reason=reason,
+                         will_reconnect=self._should_reconnect,
+                         connection_state=self._connection_state)
+
+            # Check cooldown before scheduling reconnection
+            now = time.time()
+            if self._last_reconnect_attempt is not None:
+                time_since_last = now - self._last_reconnect_attempt
+                if time_since_last < self.mqtt_reconnect_cooldown_seconds:
+                    logger.debug("Reconnect cooldown active, skipping auto-reconnect",
+                               printer_id=self.printer_id,
+                               cooldown_remaining=round(self.mqtt_reconnect_cooldown_seconds - time_since_last, 1))
+                    return
 
             # Schedule automatic reconnection if enabled and not already reconnecting
             if self._should_reconnect and self._reconnect_task is None:
@@ -171,31 +216,43 @@ class BambuLabPrinter(BasePrinter):
                                printer_id=self.printer_id)
 
     async def _auto_reconnect(self):
-        """Automatically reconnect to MQTT broker after unexpected disconnect."""
+        """Automatically reconnect to MQTT broker after unexpected disconnect.
+
+        Implements cooldown tracking to prevent reconnection storms.
+        """
         try:
+            self._connection_state = "reconnecting"
             logger.info("Starting auto-reconnect sequence",
                        printer_id=self.printer_id,
-                       initial_delay=self.mqtt_auto_reconnect_delay)
+                       initial_delay=self.mqtt_auto_reconnect_delay,
+                       connection_state=self._connection_state)
 
             await asyncio.sleep(self.mqtt_auto_reconnect_delay)
 
             for attempt in range(self.mqtt_retry_count):
                 if not self._should_reconnect:
+                    self._connection_state = "disconnected"
                     logger.info("Auto-reconnect cancelled",
-                              printer_id=self.printer_id)
+                              printer_id=self.printer_id,
+                              connection_state=self._connection_state)
                     return
 
                 try:
+                    # Track reconnect attempt time for cooldown
+                    self._last_reconnect_attempt = time.time()
+
                     logger.info("Auto-reconnect attempt",
                               printer_id=self.printer_id,
                               attempt=attempt + 1,
-                              max_attempts=self.mqtt_retry_count)
+                              max_attempts=self.mqtt_retry_count,
+                              connection_state=self._connection_state)
 
                     success = await self.connect()
                     if success:
                         logger.info("Auto-reconnect successful",
                                   printer_id=self.printer_id,
-                                  attempt=attempt + 1)
+                                  attempt=attempt + 1,
+                                  connection_state=self._connection_state)
                         return
 
                 except Exception as e:
@@ -205,14 +262,18 @@ class BambuLabPrinter(BasePrinter):
                                  attempt=attempt + 1,
                                  max_attempts=self.mqtt_retry_count,
                                  retry_delay_seconds=round(retry_delay, 2),
-                                 error=str(e))
+                                 error=str(e),
+                                 error_type=type(e).__name__,
+                                 connection_state=self._connection_state)
 
                     if attempt < self.mqtt_retry_count - 1:
                         await asyncio.sleep(retry_delay)
 
+            self._connection_state = "failed"
             logger.error("Auto-reconnect failed after all attempts",
                         printer_id=self.printer_id,
-                        total_attempts=self.mqtt_retry_count)
+                        total_attempts=self.mqtt_retry_count,
+                        connection_state=self._connection_state)
 
         finally:
             self._reconnect_task = None
@@ -284,8 +345,11 @@ class BambuLabPrinter(BasePrinter):
     async def _connect_bambu_api(self) -> bool:
         """Connect using bambulabs_api library."""
         start_time = time.time()
+        self._connection_state = "connecting"
         logger.info("Connecting to Bambu Lab printer via bambulabs_api",
-                   printer_id=self.printer_id, ip=self.ip_address)
+                   printer_id=self.printer_id,
+                   ip=self.ip_address,
+                   connection_state=self._connection_state)
 
         try:
             # Create bambulabs_api client
@@ -348,28 +412,36 @@ class BambuLabPrinter(BasePrinter):
                     self.ftp_service = None
 
             self.is_connected = True
+            self._connection_state = "connected"
 
             total_duration = time.time() - start_time
             logger.info("[TIMING] Bambu API connection successful",
                        printer_id=self.printer_id,
                        total_duration_seconds=round(total_duration, 2),
-                       status="success")
+                       status="success",
+                       connection_state=self._connection_state)
             return True
 
         except Exception as e:
             duration = time.time() - start_time
+            self._connection_state = "failed"
             logger.error("[TIMING] Bambu API connection failed",
                         printer_id=self.printer_id,
                         duration_seconds=round(duration, 2),
                         status="failure",
-                        error=str(e))
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        connection_state=self._connection_state)
             raise
 
     async def _connect_mqtt(self) -> bool:
         """Connect using direct MQTT (fallback)."""
         start_time = time.time()
+        self._connection_state = "connecting"
         logger.info("Connecting to Bambu Lab printer via direct MQTT",
-                   printer_id=self.printer_id, ip=self.ip_address)
+                   printer_id=self.printer_id,
+                   ip=self.ip_address,
+                   connection_state=self._connection_state)
 
         try:
             # Create MQTT client
@@ -392,7 +464,12 @@ class BambuLabPrinter(BasePrinter):
             loop = asyncio.get_event_loop()
 
             def _mqtt_connect():
-                result = self.client.connect(self.ip_address, self.mqtt_port, NetworkConstants.MQTT_CONNECT_TIMEOUT_SECONDS)
+                # Use keepalive parameter for connection health monitoring
+                result = self.client.connect(
+                    self.ip_address,
+                    self.mqtt_port,
+                    keepalive=self.mqtt_keepalive_seconds
+                )
                 if result != 0:
                     raise ConnectionError(f"MQTT connect failed with code {result}")
                 return result
@@ -401,7 +478,8 @@ class BambuLabPrinter(BasePrinter):
             connect_duration = time.time() - connect_start
             logger.info("[TIMING] MQTT broker connect completed",
                        printer_id=self.printer_id,
-                       duration_seconds=round(connect_duration, 2))
+                       duration_seconds=round(connect_duration, 2),
+                       keepalive_seconds=self.mqtt_keepalive_seconds)
 
             # Start MQTT loop in background
             self.client.loop_start()
@@ -415,21 +493,26 @@ class BambuLabPrinter(BasePrinter):
                         duration_seconds=round(sleep_duration, 2))
 
             self.is_connected = True
+            self._connection_state = "connected"
 
             total_duration = time.time() - start_time
             logger.info("[TIMING] MQTT connection successful",
                        printer_id=self.printer_id,
                        total_duration_seconds=round(total_duration, 2),
-                       status="success")
+                       status="success",
+                       connection_state=self._connection_state)
             return True
 
         except Exception as e:
             duration = time.time() - start_time
+            self._connection_state = "failed"
             logger.error("[TIMING] MQTT connection failed",
                         printer_id=self.printer_id,
                         duration_seconds=round(duration, 2),
                         status="failure",
-                        error=str(e))
+                        error=str(e),
+                        error_type=type(e).__name__,
+                        connection_state=self._connection_state)
             raise
 
     # Callback methods for bambulabs_api events
@@ -519,6 +602,7 @@ class BambuLabPrinter(BasePrinter):
         """Disconnect from Bambu Lab printer."""
         # Disable auto-reconnect during intentional disconnect
         self._should_reconnect = False
+        self._connection_state = "disconnecting"
 
         # Cancel any pending reconnection task
         if self._reconnect_task is not None:
@@ -530,6 +614,7 @@ class BambuLabPrinter(BasePrinter):
             self._reconnect_task = None
 
         if not self.is_connected:
+            self._connection_state = "disconnected"
             return
 
         try:
@@ -544,11 +629,17 @@ class BambuLabPrinter(BasePrinter):
                 self.latest_data = {}
 
             self.is_connected = False
-            logger.info("Disconnected from Bambu Lab printer", printer_id=self.printer_id)
+            self._connection_state = "disconnected"
+            logger.info("Disconnected from Bambu Lab printer",
+                       printer_id=self.printer_id,
+                       connection_state=self._connection_state)
 
         except Exception as e:
+            self._connection_state = "disconnected"
             logger.error("Error disconnecting from Bambu Lab printer",
-                        printer_id=self.printer_id, error=str(e))
+                        printer_id=self.printer_id,
+                        error=str(e),
+                        connection_state=self._connection_state)
 
         # Clean up FTP service
         self.ftp_service = None
