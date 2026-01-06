@@ -288,80 +288,148 @@ class TestPrinterAPI:
             # Either FastAPI's 'detail' or custom error format
             assert 'detail' in error_data or 'status' in error_data
     
-    @pytest.mark.skip(reason="Requires printer instance mocking and printer_service.printer_instances integration")
-    def test_get_printer_status_bambu_lab(self, client, populated_database, mock_bambu_api):
+    def test_get_printer_status_bambu_lab(self, client, test_app):
         """Test GET /api/v1/printers/{id}/status for Bambu Lab printer"""
+        from unittest.mock import AsyncMock, MagicMock, PropertyMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus, PrinterStatusUpdate
+
         printer_id = 'bambu_a1_001'
-        
-        with patch('src.printers.bambu_lab.BambuLabPrinter') as mock_api_class:
-            mock_api_class.return_value = mock_bambu_api
-            
-            response = client.get(
-                "/api/v1/printers/{printer_id}/status"
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            
-            # Verify status structure
-            assert 'printer_id' in data
-            assert 'status' in data
-            assert 'current_job' in data
-            assert 'temperatures' in data
-            assert 'system_info' in data
-            
-            # Verify job information
-            assert data['current_job']['status'] == 'printing'
-            assert data['current_job']['progress'] == 45
-            assert data['current_job']['estimated_remaining'] == 3600
-            
-            # Verify temperatures
-            temps = data['temperatures']
-            assert temps['nozzle']['current'] == 210.5
-            assert temps['bed']['current'] == 60.2
-            assert temps['chamber']['current'] == 28.5
-    
-    @pytest.mark.skip(reason="Requires printer instance mocking and printer_service.printer_instances integration")
-    def test_get_printer_status_prusa(self, client, populated_database, mock_prusa_api):
-        """Test GET /api/v1/printers/{id}/status for Prusa printer"""
+
+        # Create a mock printer object
+        mock_printer = Printer(
+            id=printer_id,
+            name="Test Bambu A1",
+            type=PrinterType.BAMBU_LAB,
+            ip_address="192.168.1.100",
+            status=PrinterStatus.PRINTING
+        )
+
+        # Create a mock status update (last_status)
+        mock_last_status = PrinterStatusUpdate(
+            printer_id=printer_id,
+            status=PrinterStatus.PRINTING,
+            message="Printing",
+            temperature_bed=60.2,
+            temperature_nozzle=210.5,
+            progress=45,
+            current_job="test_print.3mf",
+            remaining_time_minutes=60,
+            timestamp=datetime.now()
+        )
+
+        # Create mock printer instance with last_status
+        mock_instance = MagicMock()
+        mock_instance.last_status = mock_last_status
+
+        # Mock the service methods
+        test_app.state.printer_service.get_printer = AsyncMock(return_value=mock_printer)
+        # Mock printer_instances as a property that returns a dict
+        type(test_app.state.printer_service).printer_instances = PropertyMock(
+            return_value={printer_id: mock_instance}
+        )
+
+        response = client.get(f"/api/v1/printers/{printer_id}/status")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify status structure
+        assert data['id'] == printer_id
+        assert data['name'] == "Test Bambu A1"
+        assert data['status'] == 'printing'
+        assert data['current_job'] is not None
+        assert data['current_job']['name'] == 'test_print.3mf'
+        assert data['current_job']['progress'] == 45
+        assert data['temperatures'] is not None
+        assert data['temperatures']['nozzle']['current'] == 210.5
+        assert data['temperatures']['bed']['current'] == 60.2
+
+    def test_get_printer_status_prusa(self, client, test_app):
+        """Test GET /api/v1/printers/{id}/status for Prusa printer (idle)"""
+        from unittest.mock import AsyncMock, MagicMock, PropertyMock
+        from datetime import datetime
+        from src.models.printer import Printer, PrinterType, PrinterStatus, PrinterStatusUpdate
+
         printer_id = 'prusa_core_001'
-        
-        with patch('src.printers.prusa.PrusaPrinter') as mock_api_class:
-            mock_api_class.return_value = mock_prusa_api
-            
-            response = client.get(
-                "/api/v1/printers/{printer_id}/status"
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            
-            # Verify status structure
-            assert data['printer_id'] == printer_id
-            assert data['status'] == 'operational'
-            assert 'temperatures' in data
-            
-            # Verify temperatures
-            temps = data['temperatures']
-            assert temps['nozzle']['current'] == 25.0
-            assert temps['bed']['current'] == 25.0
-    
-    @pytest.mark.skip(reason="Requires printer instance mocking and error handling integration")
-    def test_get_printer_status_offline(self, client):
-        """Test GET /api/v1/printers/{id}/status for offline printer"""
+
+        # Create a mock printer object
+        mock_printer = Printer(
+            id=printer_id,
+            name="Test Prusa Core",
+            type=PrinterType.PRUSA_CORE,
+            ip_address="192.168.1.101",
+            status=PrinterStatus.ONLINE
+        )
+
+        # Create a mock status update (idle printer - no current job)
+        mock_last_status = PrinterStatusUpdate(
+            printer_id=printer_id,
+            status=PrinterStatus.ONLINE,
+            message="Idle",
+            temperature_bed=25.0,
+            temperature_nozzle=25.0,
+            progress=0,
+            current_job=None,
+            timestamp=datetime.now()
+        )
+
+        # Create mock printer instance with last_status
+        mock_instance = MagicMock()
+        mock_instance.last_status = mock_last_status
+
+        # Mock the service methods
+        test_app.state.printer_service.get_printer = AsyncMock(return_value=mock_printer)
+        type(test_app.state.printer_service).printer_instances = PropertyMock(
+            return_value={printer_id: mock_instance}
+        )
+
+        response = client.get(f"/api/v1/printers/{printer_id}/status")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify status structure
+        assert data['id'] == printer_id
+        assert data['name'] == "Test Prusa Core"
+        assert data['status'] == 'online'
+        assert data['current_job'] is None  # No current job for idle printer
+        assert data['temperatures'] is not None
+        assert data['temperatures']['nozzle']['current'] == 25.0
+        assert data['temperatures']['bed']['current'] == 25.0
+
+    def test_get_printer_status_offline(self, client, test_app):
+        """Test GET /api/v1/printers/{id}/status for offline printer (no instance)"""
+        from unittest.mock import AsyncMock, PropertyMock
+        from src.models.printer import Printer, PrinterType, PrinterStatus
+
         printer_id = 'offline_printer'
-        
-        with patch('src.printers.get_printer_api') as mock_get_api:
-            mock_get_api.side_effect = ConnectionError("Printer not reachable")
-            
-            response = client.get(
-                "/api/v1/printers/{printer_id}/status"
-            )
-            
-            assert response.status_code == 200
-            data = response.json()
-            assert data['status'] == 'offline'
-            assert data['error'] == 'Printer not reachable'
+
+        # Create a mock printer object marked as offline
+        mock_printer = Printer(
+            id=printer_id,
+            name="Offline Printer",
+            type=PrinterType.BAMBU_LAB,
+            ip_address="192.168.1.200",
+            status=PrinterStatus.OFFLINE
+        )
+
+        # Mock the service methods - no printer instance available
+        test_app.state.printer_service.get_printer = AsyncMock(return_value=mock_printer)
+        type(test_app.state.printer_service).printer_instances = PropertyMock(
+            return_value={}  # No active instances
+        )
+
+        response = client.get(f"/api/v1/printers/{printer_id}/status")
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify status structure - should show offline status, no temperatures
+        assert data['id'] == printer_id
+        assert data['status'] == 'offline'
+        assert data['current_job'] is None
+        assert data['temperatures'] is None  # No instance means no temperature data
     
     def test_get_printer_status_not_found(self, client, test_app):
         """Test GET /api/v1/printers/{id}/status for non-existent printer"""

@@ -837,17 +837,27 @@ class TestJobAPIPerformance:
 class TestJobAPIErrorHandling:
     """Test error handling and edge cases for job API"""
     
-    @pytest.mark.skip(reason="Mock not correctly intercepting service layer - needs refactoring")
-    def test_job_api_database_connection_error(self, client):
+    @pytest.mark.skip(reason="TestClient lifecycle reinitializes services - requires test architecture refactoring")
+    def test_job_api_database_connection_error(self, test_app):
         """Test job API behavior when database is unavailable"""
-        with patch('src.database.database.Database.get_connection') as mock_db:
-            mock_db.side_effect = sqlite3.OperationalError("database is locked")
-            
+        from unittest.mock import AsyncMock
+        from starlette.testclient import TestClient
+
+        # Mock the service to raise an exception simulating database error
+        # The endpoint uses list_jobs_with_count method
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(
+            side_effect=Exception("Database connection failed")
+        )
+
+        # Create client with raise_server_exceptions=False to test error response
+        with TestClient(test_app, raise_server_exceptions=False) as client:
             response = client.get("/api/v1/jobs")
-            
+
+            # The global exception handler should catch this and return 500
             assert response.status_code == 500
             error_data = response.json()
-            assert 'Database error' in error_data['error']['message']
+            assert error_data['status'] == 'error'
+            assert 'Database connection failed' in error_data['message']
     
     @pytest.mark.skip(reason="Endpoint validation logic needs implementation")
     def test_job_creation_with_invalid_printer(self, client):

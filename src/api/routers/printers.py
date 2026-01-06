@@ -526,16 +526,16 @@ async def get_printer_status(
                 "remaining_time": status.remaining_time_minutes
             }
 
-        # Get temperatures
-        if status.bed_temperature is not None or status.nozzle_temperature is not None:
+        # Get temperatures (model uses temperature_bed/temperature_nozzle)
+        if status.temperature_bed is not None or status.temperature_nozzle is not None:
             response["temperatures"] = {
                 "bed": {
-                    "current": status.bed_temperature,
-                    "target": status.bed_target_temperature
+                    "current": status.temperature_bed,
+                    "target": getattr(status, 'bed_target_temperature', None)
                 },
                 "nozzle": {
-                    "current": status.nozzle_temperature,
-                    "target": status.nozzle_target_temperature
+                    "current": status.temperature_nozzle,
+                    "target": getattr(status, 'nozzle_target_temperature', None)
                 }
             }
 
