@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.0] - 2026-01-06
+
+### Added
+- **Comprehensive E2E Test Suite**: Added extensive Playwright tests covering all 10 application pages
+  - New page objects: BasePage, TimelapsesPage, FilesPage, LibraryPage, IdeasPage, DebugPage
+  - 241 passing tests covering navigation, filters, modals, and page interactions
+  - Test fixtures for SPA navigation, modal helpers, and API response waiting
+  - Tests for sidebar navigation, hash routing, navbar elements, and nav link highlighting
+
+### Fixed
+- **E2E Test Strict Mode Violations**: Fixed Playwright selector issues across all test files
+  - Scoped h1 selectors to active pages to avoid matching all 11 page headers
+  - Made button selectors specific using onclick attributes where needed
+  - Fixed modal input selectors to avoid conflicts between add/edit/import modals
+
 ## [2.16.0] - 2026-01-06
 
 ### Added
