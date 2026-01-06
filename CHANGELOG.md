@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.2] - 2026-01-06
+
+### Fixed
+- **Mobile Portrait Layout**: Printers now display in single column on mobile portrait view
+  - Added portrait-specific media query for tablets (769-900px width)
+  - Prevents cramped side-by-side layout on narrow portrait screens
+  - Affects both dashboard printer grid and printers page tile layout
+
 ## [2.17.1] - 2026-01-06
 
 ### Added

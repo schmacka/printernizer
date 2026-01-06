@@ -1602,6 +1602,18 @@ p {
     }
 }
 
+/* Force single column in portrait orientation on tablets */
+@media (min-width: 769px) and (max-width: 900px) and (orientation: portrait) {
+    .printers-list {
+        grid-template-columns: 1fr;
+        padding: var(--spacing-2);
+    }
+
+    .printer-tile-card {
+        max-width: 100%;
+    }
+}
+
 /* Mobile optimization */
 @media (max-width: 480px) {
     .printers-list {

@@ -493,6 +493,23 @@
     }
 }
 
+/* Force single column in portrait orientation on tablets */
+@media (min-width: 769px) and (max-width: 900px) and (orientation: portrait) {
+    .overview-cards {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-4);
+    }
+
+    .printer-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-4);
+    }
+
+    .printer-card {
+        max-width: 100%;
+    }
+}
+
 /* Mobile optimization */
 @media (max-width: 480px) {
     .stat-number {
