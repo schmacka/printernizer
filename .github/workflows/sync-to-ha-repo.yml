@@ -1,11 +1,11 @@
 name: Sync to HA Add-on Repository
 
 # This workflow automatically synchronizes code from the main printernizer repository
-# to the separate printernizer-ha repository for Home Assistant add-on distribution.
+# to the homeassistant-addons repository for Home Assistant add-on distribution.
 #
 # Sync Strategy:
-# - master branch → printernizer-ha/master (production releases)
-# - development branch → printernizer-ha/development (testing)
+# - master branch → homeassistant-addons/main (production releases)
+# - development branch → homeassistant-addons/main (with -dev version suffix)
 # - Versions tied to main repo (src/main.py)
 # - Auto-sync on every commit to monitored files
 
@@ -35,13 +35,13 @@ jobs:
         with:
           fetch-depth: 0  # Full history for version info
 
-      - name: Checkout printernizer-ha repository
+      - name: Checkout homeassistant-addons repository
         uses: actions/checkout@v4
         with:
-          repository: schmacka/printernizer-ha
+          repository: schmacka/homeassistant-addons
           token: ${{ secrets.HA_REPO_TOKEN }}
           path: ha-repo
-          ref: ${{ github.ref_name }}  # Match branch name (master/development)
+          ref: main  # homeassistant-addons uses main branch
           fetch-depth: 0
 
       - name: Configure Git for HA repo
@@ -50,42 +50,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Check if HA repo branch exists
-        id: check_branch
-        run: |
-          cd ha-repo
-          if git ls-remote --heads origin ${{ github.ref_name }} | grep -q ${{ github.ref_name }}; then
-            echo "branch_exists=true" >> $GITHUB_OUTPUT
-            echo "Branch ${{ github.ref_name }} exists in HA repo"
-          else
-            echo "branch_exists=false" >> $GITHUB_OUTPUT
-            echo "Branch ${{ github.ref_name }} does not exist in HA repo, will create it"
-          fi
-
-      - name: Create branch if needed
-        if: steps.check_branch.outputs.branch_exists == 'false'
-        run: |
-          cd ha-repo
-          git checkout -b ${{ github.ref_name }}
-          echo "Created new branch: ${{ github.ref_name }}"
-
       - name: Sync files to HA repository
         run: |
-          echo "Syncing files from printernizer to printernizer-ha..."
+          echo "Syncing files from printernizer to homeassistant-addons..."
 
           # Ensure add-on subdirectory exists
-          mkdir -p ha-repo/printernizer
+          mkdir -p ha-repo/printernizer-ha
 
           # Remove old synced content (but keep HA-specific files)
-          rm -rf ha-repo/printernizer/src ha-repo/printernizer/frontend ha-repo/printernizer/migrations
-          rm -f ha-repo/printernizer/requirements.txt
+          rm -rf ha-repo/printernizer-ha/src ha-repo/printernizer-ha/frontend ha-repo/printernizer-ha/migrations
+          rm -f ha-repo/printernizer-ha/requirements.txt
 
           # Copy fresh content from main repo to add-on subdirectory
-          cp -r src/ ha-repo/printernizer/src/
-          cp -r frontend/ ha-repo/printernizer/frontend/
-          cp -r migrations/ ha-repo/printernizer/migrations/
-          cp requirements.txt ha-repo/printernizer/
-          cp CHANGELOG.md ha-repo/printernizer/
+          cp -r src/ ha-repo/printernizer-ha/src/
+          cp -r frontend/ ha-repo/printernizer-ha/frontend/
+          cp -r migrations/ ha-repo/printernizer-ha/migrations/
+          cp requirements.txt ha-repo/printernizer-ha/
+          cp CHANGELOG.md ha-repo/printernizer-ha/
 
           echo "✅ Files synchronized successfully"
 
@@ -109,7 +90,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
 
           # Update version in config.yaml (in add-on subdirectory)
-          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/printernizer/config.yaml
+          sed -i "s/^version: .*/version: \"$VERSION\"/" ha-repo/printernizer-ha/config.yaml
 
           echo "✅ Updated config.yaml version to: $VERSION"
 
@@ -120,7 +101,7 @@ jobs:
           DEV_VERSION="${VERSION}-dev"
 
           # Update version in config.yaml with -dev suffix (in add-on subdirectory)
-          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/printernizer/config.yaml
+          sed -i "s/^version: .*/version: \"$DEV_VERSION\"/" ha-repo/printernizer-ha/config.yaml
 
           echo "✅ Updated config.yaml version to: $DEV_VERSION"
 
@@ -178,10 +159,10 @@ jobs:
           Automated sync via GitHub Actions"
           git commit -m "$COMMIT_MSG"
 
-          # Push to HA repo
-          git push origin ${{ github.ref_name }}
+          # Push to HA repo (always to main branch)
+          git push origin main
 
-          echo "✅ Changes committed and pushed to printernizer-ha/${{ github.ref_name }}"
+          echo "✅ Changes committed and pushed to homeassistant-addons/main"
 
       - name: Create sync summary
         if: steps.check_changes.outputs.changes == 'true'
@@ -190,8 +171,8 @@ jobs:
 
           echo "## ✅ Home Assistant Add-on Sync Completed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Target Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Repository**: schmacka/homeassistant-addons" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: main" >> $GITHUB_STEP_SUMMARY
           echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Source Commit**: \`${GITHUB_SHA:0:7}\`" >> $GITHUB_STEP_SUMMARY
@@ -214,7 +195,7 @@ jobs:
         run: |
           echo "## ℹ️ No Sync Required" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Repository**: schmacka/printernizer-ha" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository**: schmacka/homeassistant-addons" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: main" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "The Home Assistant add-on code is already up to date." >> $GITHUB_STEP_SUMMARY
