@@ -5,6 +5,7 @@ Handles communication with Bambu Lab A1 printers using bambulabs_api library.
 import asyncio
 import json
 import time
+import random
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from io import BytesIO
@@ -90,6 +91,15 @@ class BambuLabPrinter(BasePrinter):
             self.client = None  # MQTT client will be initialized in connect
             self.latest_data: Dict[str, Any] = {}
             self.mqtt_port = PortConstants.BAMBU_MQTT_PORT
+
+        # MQTT retry and reconnection settings
+        self.mqtt_retry_count = NetworkConstants.MQTT_RETRY_COUNT
+        self.mqtt_retry_delay = NetworkConstants.MQTT_RETRY_DELAY_SECONDS
+        self.mqtt_retry_backoff = NetworkConstants.MQTT_RETRY_BACKOFF_MULTIPLIER
+        self.mqtt_retry_max_delay = NetworkConstants.MQTT_RETRY_MAX_DELAY_SECONDS
+        self.mqtt_auto_reconnect_delay = NetworkConstants.MQTT_AUTO_RECONNECT_DELAY_SECONDS
+        self._reconnect_task: Optional[asyncio.Task] = None
+        self._should_reconnect = True  # Flag to control auto-reconnect behavior
         
     def _on_connect(self, client, userdata, flags, rc):
         """Handle MQTT connection event.
@@ -130,20 +140,112 @@ class BambuLabPrinter(BasePrinter):
             logger.warning("Failed to parse MQTT message", printer_id=self.printer_id, error=str(e))
 
     def _on_disconnect(self, client, userdata, rc):
-        """Handle MQTT disconnection event.
+        """Handle MQTT disconnection event with automatic reconnection.
 
         Args:
             client: MQTT client instance.
             userdata: User-defined data passed to callbacks.
-            rc: Disconnection result code.
+            rc: Disconnection result code (0 = clean disconnect).
         """
-        logger.info("MQTT disconnected", printer_id=self.printer_id, rc=rc)
+        self.is_connected = False
+
+        if rc == 0:
+            logger.info("MQTT disconnected cleanly", printer_id=self.printer_id)
+        else:
+            logger.warning("MQTT disconnected unexpectedly",
+                         printer_id=self.printer_id,
+                         rc=rc,
+                         will_reconnect=self._should_reconnect)
+
+            # Schedule automatic reconnection if enabled and not already reconnecting
+            if self._should_reconnect and self._reconnect_task is None:
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        self._reconnect_task = loop.create_task(
+                            self._auto_reconnect()
+                        )
+                except RuntimeError:
+                    # No event loop available - reconnection will happen on next connect() call
+                    logger.debug("No event loop available for auto-reconnect",
+                               printer_id=self.printer_id)
+
+    async def _auto_reconnect(self):
+        """Automatically reconnect to MQTT broker after unexpected disconnect."""
+        try:
+            logger.info("Starting auto-reconnect sequence",
+                       printer_id=self.printer_id,
+                       initial_delay=self.mqtt_auto_reconnect_delay)
+
+            await asyncio.sleep(self.mqtt_auto_reconnect_delay)
+
+            for attempt in range(self.mqtt_retry_count):
+                if not self._should_reconnect:
+                    logger.info("Auto-reconnect cancelled",
+                              printer_id=self.printer_id)
+                    return
+
+                try:
+                    logger.info("Auto-reconnect attempt",
+                              printer_id=self.printer_id,
+                              attempt=attempt + 1,
+                              max_attempts=self.mqtt_retry_count)
+
+                    success = await self.connect()
+                    if success:
+                        logger.info("Auto-reconnect successful",
+                                  printer_id=self.printer_id,
+                                  attempt=attempt + 1)
+                        return
+
+                except Exception as e:
+                    retry_delay = self._calculate_mqtt_retry_delay(attempt)
+                    logger.warning("Auto-reconnect attempt failed",
+                                 printer_id=self.printer_id,
+                                 attempt=attempt + 1,
+                                 max_attempts=self.mqtt_retry_count,
+                                 retry_delay_seconds=round(retry_delay, 2),
+                                 error=str(e))
+
+                    if attempt < self.mqtt_retry_count - 1:
+                        await asyncio.sleep(retry_delay)
+
+            logger.error("Auto-reconnect failed after all attempts",
+                        printer_id=self.printer_id,
+                        total_attempts=self.mqtt_retry_count)
+
+        finally:
+            self._reconnect_task = None
+
+    def _calculate_mqtt_retry_delay(self, attempt: int) -> float:
+        """Calculate delay for MQTT retry attempt using exponential backoff with jitter.
+
+        Args:
+            attempt: Current attempt number (0-indexed)
+
+        Returns:
+            Delay in seconds with jitter applied
+        """
+        # Exponential backoff: base_delay * (multiplier ^ attempt)
+        delay = self.mqtt_retry_delay * (self.mqtt_retry_backoff ** attempt)
+
+        # Cap at maximum delay
+        delay = min(delay, self.mqtt_retry_max_delay)
+
+        # Add jitter (±10%)
+        jitter = delay * 0.1 * (2 * random.random() - 1)
+        delay = max(0.5, delay + jitter)  # Ensure minimum 500ms delay
+
+        return delay
 
     async def connect(self) -> bool:
-        """Establish connection to Bambu Lab printer."""
+        """Establish connection to Bambu Lab printer with retry support."""
         if self.is_connected:
             logger.info("Already connected to Bambu Lab printer", printer_id=self.printer_id)
             return True
+
+        # Re-enable auto-reconnect when connecting
+        self._should_reconnect = True
 
         try:
             # Initialize direct FTP service if enabled (lazy initialization - test on first use)
@@ -415,6 +517,18 @@ class BambuLabPrinter(BasePrinter):
 
     async def disconnect(self) -> None:
         """Disconnect from Bambu Lab printer."""
+        # Disable auto-reconnect during intentional disconnect
+        self._should_reconnect = False
+
+        # Cancel any pending reconnection task
+        if self._reconnect_task is not None:
+            self._reconnect_task.cancel()
+            try:
+                await self._reconnect_task
+            except asyncio.CancelledError:
+                pass
+            self._reconnect_task = None
+
         if not self.is_connected:
             return
 

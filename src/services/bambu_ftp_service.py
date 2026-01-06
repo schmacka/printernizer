@@ -18,6 +18,7 @@ import ssl
 import socket
 import asyncio
 import time
+import random
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple, Any, AsyncGenerator
 from datetime import datetime
@@ -102,6 +103,9 @@ class BambuFTPService:
         self.timeout = NetworkConstants.CONNECTION_TIMEOUT_SECONDS
         self.retry_count = NetworkConstants.FTP_RETRY_COUNT
         self.retry_delay = NetworkConstants.FTP_RETRY_DELAY_SECONDS
+        self.retry_backoff = NetworkConstants.FTP_RETRY_BACKOFF_MULTIPLIER
+        self.retry_max_delay = NetworkConstants.FTP_RETRY_MAX_DELAY_SECONDS
+        self.retry_jitter = NetworkConstants.FTP_RETRY_JITTER_FACTOR
 
         logger.info("Initialized Bambu FTP service",
                    ip=ip_address, port=port, username=self.username)
@@ -210,16 +214,42 @@ class BambuFTPService:
                           error=str(e))
             raise
 
+    def _calculate_retry_delay(self, attempt: int) -> float:
+        """Calculate delay for retry attempt using exponential backoff with jitter.
+
+        Args:
+            attempt: Current attempt number (0-indexed)
+
+        Returns:
+            Delay in seconds with jitter applied
+        """
+        # Exponential backoff: base_delay * (multiplier ^ attempt)
+        delay = self.retry_delay * (self.retry_backoff ** attempt)
+
+        # Cap at maximum delay
+        delay = min(delay, self.retry_max_delay)
+
+        # Add jitter (±jitter_factor)
+        jitter = delay * self.retry_jitter * (2 * random.random() - 1)
+        delay = max(0.1, delay + jitter)  # Ensure minimum 100ms delay
+
+        return delay
+
     @asynccontextmanager
     async def ftp_connection(self) -> AsyncGenerator[ftplib.FTP_TLS, None]:
         """
         Async context manager for FTP connections with automatic cleanup.
+
+        Uses exponential backoff with jitter for retry attempts to improve
+        connection stability and prevent thundering herd problems.
 
         Usage:
             async with service.ftp_connection() as ftp:
                 files = await service.list_files(ftp)
         """
         ftp = None
+        last_error = None
+
         for attempt in range(self.retry_count):
             try:
                 ftp = await self._connect_ftp()
@@ -229,17 +259,25 @@ class BambuFTPService:
                 return
 
             except (ConnectionError, PermissionError) as e:
+                last_error = e
+                retry_delay = self._calculate_retry_delay(attempt)
+
                 logger.warning("FTP connection attempt failed",
                              ip=self.ip_address,
                              attempt=attempt + 1,
                              max_attempts=self.retry_count,
+                             retry_delay_seconds=round(retry_delay, 2),
                              error=str(e))
 
                 if attempt == self.retry_count - 1:
+                    logger.error("FTP connection failed after all retries",
+                               ip=self.ip_address,
+                               total_attempts=self.retry_count,
+                               error=str(e))
                     raise
 
-                # Wait before retry
-                await asyncio.sleep(self.retry_delay)
+                # Wait with exponential backoff before retry
+                await asyncio.sleep(retry_delay)
 
             finally:
                 if ftp:

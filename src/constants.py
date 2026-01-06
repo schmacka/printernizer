@@ -51,8 +51,32 @@ class NetworkConstants:
     FTP_RETRY_COUNT: int = 3
     """Number of FTP connection retry attempts"""
 
-    FTP_RETRY_DELAY_SECONDS: int = 2
-    """Delay between FTP retry attempts"""
+    FTP_RETRY_DELAY_SECONDS: float = 1.0
+    """Initial delay between FTP retry attempts (base for exponential backoff)"""
+
+    FTP_RETRY_BACKOFF_MULTIPLIER: float = 2.0
+    """Exponential backoff multiplier for FTP retries"""
+
+    FTP_RETRY_MAX_DELAY_SECONDS: float = 30.0
+    """Maximum delay between FTP retry attempts"""
+
+    FTP_RETRY_JITTER_FACTOR: float = 0.1
+    """Random jitter factor (±10%) to prevent thundering herd"""
+
+    MQTT_RETRY_COUNT: int = 3
+    """Number of MQTT connection retry attempts"""
+
+    MQTT_RETRY_DELAY_SECONDS: float = 2.0
+    """Initial delay between MQTT retry attempts"""
+
+    MQTT_RETRY_BACKOFF_MULTIPLIER: float = 2.0
+    """Exponential backoff multiplier for MQTT retries"""
+
+    MQTT_RETRY_MAX_DELAY_SECONDS: float = 60.0
+    """Maximum delay between MQTT retry attempts"""
+
+    MQTT_AUTO_RECONNECT_DELAY_SECONDS: float = 5.0
+    """Delay before automatic MQTT reconnection on disconnect"""
 
     PRUSA_MAX_RETRIES: int = 2
     """Maximum connection retry attempts for Prusa"""
