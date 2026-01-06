@@ -15,6 +15,7 @@ import aiofiles.os
 from src.models.snapshot import Snapshot, SnapshotCreate, SnapshotResponse, CameraStatus, CameraTrigger
 from src.services.printer_service import PrinterService
 from src.services.camera_snapshot_service import CameraSnapshotService
+from src.services.external_camera_service import mask_url_credentials, detect_url_type
 from src.database.database import Database
 from src.database.repositories import SnapshotRepository
 from src.utils.dependencies import get_printer_service, get_camera_snapshot_service, get_database, get_snapshot_repository
@@ -175,7 +176,7 @@ async def get_camera_status(
     printer_id: UUID,
     printer_service: PrinterService = Depends(get_printer_service)
 ):
-    """Get camera status and availability for a printer."""
+    """Get camera status and availability for a printer, including external webcam info."""
     printer_id_str = str(printer_id)
     printer_driver = await printer_service.get_printer_driver(printer_id_str)
 
@@ -187,6 +188,25 @@ async def get_camera_status(
     stream_url = None
     error_message = None
     printer_type = type(printer_driver).__name__
+
+    # Check for external webcam
+    has_external_webcam = False
+    external_webcam_url = None
+    external_webcam_type = None
+
+    try:
+        # Get printer info for webcam_url
+        printer = await printer_service.get_printer(printer_id_str)
+        if printer and getattr(printer, 'webcam_url', None):
+            has_external_webcam = True
+            external_webcam_url = mask_url_credentials(printer.webcam_url)
+            external_webcam_type = detect_url_type(printer.webcam_url)
+    except Exception as e:
+        logger.debug(
+            "Failed to check external webcam",
+            printer_id=printer_id_str,
+            error=str(e)
+        )
 
     try:
         has_camera = await printer_driver.has_camera()
@@ -215,24 +235,29 @@ async def get_camera_status(
                 # Still provide preview endpoint
                 stream_url = f"/api/v1/printers/{printer_id}/camera/preview"
         else:
-            is_available = False
-            # Provide helpful error message based on printer type
-            if printer_type == "PrusaPrinter":
-                error_message = (
-                    "No camera detected by PrusaLink. "
-                    "Please ensure a camera is connected and configured in PrusaLink settings. "
-                    "Access PrusaLink at http://<printer-ip> to configure the camera."
-                )
-            elif printer_type == "BambuLabPrinter":
-                error_message = "Camera not available. Bambu Lab printers have built-in cameras that should be automatically detected."
+            # No built-in camera, but external webcam may still be available
+            if has_external_webcam:
+                is_available = True
             else:
-                error_message = f"Camera not supported or not detected for {printer_type}"
+                is_available = False
+                # Provide helpful error message based on printer type
+                if printer_type == "PrusaPrinter":
+                    error_message = (
+                        "No camera detected by PrusaLink. "
+                        "Please ensure a camera is connected and configured in PrusaLink settings. "
+                        "Access PrusaLink at http://<printer-ip> to configure the camera."
+                    )
+                elif printer_type == "BambuLabPrinter":
+                    error_message = "Camera not available. Bambu Lab printers have built-in cameras that should be automatically detected."
+                else:
+                    error_message = f"Camera not supported or not detected for {printer_type}"
 
             logger.info(
                 "Camera not detected",
                 printer_id=printer_id_str,
                 printer_type=printer_type,
-                has_camera=has_camera
+                has_camera=has_camera,
+                has_external_webcam=has_external_webcam
             )
     except Exception as e:
         logger.error(
@@ -242,13 +267,17 @@ async def get_camera_status(
             exc_info=True
         )
         has_camera = False
-        is_available = False
-        error_message = f"Failed to check camera status: {str(e)}"
+        # External webcam may still work even if built-in camera check fails
+        is_available = has_external_webcam
+        error_message = f"Failed to check built-in camera status: {str(e)}"
 
     return CameraStatus(
         has_camera=has_camera,
-        is_available=is_available,
+        has_external_webcam=has_external_webcam,
+        is_available=is_available or has_external_webcam,
         stream_url=stream_url,
+        external_webcam_url=external_webcam_url,
+        external_webcam_type=external_webcam_type,
         error_message=error_message
     )
 
@@ -327,6 +356,50 @@ async def get_camera_preview(
         media_type=content_type,
         headers={
             "Cache-Control": "public, max-age=5",  # Match cache TTL
+            "Content-Disposition": "inline"
+        }
+    )
+
+
+@router.get("/{printer_id}/camera/external-preview")
+async def get_external_camera_preview(
+    printer_id: UUID,
+    printer_service: PrinterService = Depends(get_printer_service),
+    camera_service: CameraSnapshotService = Depends(get_camera_snapshot_service)
+):
+    """
+    Get preview from external webcam URL only.
+
+    Returns a snapshot from the configured external webcam URL (HTTP or RTSP).
+    Uses 5-second cache to reduce load on external camera.
+
+    Returns 400 error if no external webcam URL is configured.
+    """
+    printer_id_str = str(printer_id)
+
+    # Get snapshot from external webcam using camera service
+    try:
+        image_data, content_type = await camera_service.get_snapshot_by_id(
+            printer_id=printer_id_str,
+            force_refresh=False,
+            source='external'
+        )
+    except ValueError as e:
+        error_msg = str(e)
+        logger.warning("External webcam preview failed", printer_id=printer_id_str, error=error_msg)
+        if "No external webcam URL configured" in error_msg:
+            raise PrinternizerValidationError(
+                field="webcam_url",
+                error="No external webcam URL configured for this printer"
+            )
+        raise ServiceUnavailableError("external_camera", f"Failed to get external preview: {error_msg}")
+
+    # Return image with appropriate content type and caching headers
+    return Response(
+        content=image_data,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=5",
             "Content-Disposition": "inline"
         }
     )

@@ -228,6 +228,14 @@ class PrinterFormHandler {
                     errorMessage = 'API Key muss zwischen 8 und 128 Zeichen lang sein';
                 }
                 break;
+
+            case 'webcam-url':
+                // Optional field - only validate if not empty
+                if (value && !isValidWebcamUrl(value)) {
+                    isValid = false;
+                    errorMessage = 'URL must start with http://, https://, or rtsp://';
+                }
+                break;
         }
 
         if (isValid) {
@@ -416,6 +424,12 @@ class PrinterFormHandler {
             connectionConfig.serial_number = document.getElementById('serialNumber').value;
         } else if (printerType === 'prusa_core') {
             connectionConfig.api_key = document.getElementById('ipaKey').value;
+        }
+
+        // Add optional webcam URL
+        const webcamUrl = document.getElementById('printerWebcamUrl')?.value?.trim();
+        if (webcamUrl) {
+            connectionConfig.webcam_url = webcamUrl;
         }
 
         // Format data according to backend API expectations
@@ -628,6 +642,12 @@ class PrinterFormHandler {
             connectionConfig.api_key = document.getElementById('editIpaKey').value;
         }
 
+        // Add optional webcam URL
+        const webcamUrl = document.getElementById('editPrinterWebcamUrl')?.value?.trim();
+        if (webcamUrl) {
+            connectionConfig.webcam_url = webcamUrl;
+        }
+
         // Format data according to backend API expectations
         const data = {
             name: name,
@@ -702,6 +722,12 @@ class PrinterFormHandler {
             document.getElementById('editSerialNumber').value = printer.connection_config.serial_number || '';
         } else if (printer.printer_type === 'prusa_core' && printer.connection_config) {
             document.getElementById('editIpaKey').value = printer.connection_config.api_key || '';
+        }
+
+        // Set webcam URL if available
+        const webcamUrlField = document.getElementById('editPrinterWebcamUrl');
+        if (webcamUrlField) {
+            webcamUrlField.value = printer.connection_config?.webcam_url || '';
         }
 
         // Clear any existing validation states

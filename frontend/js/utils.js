@@ -211,6 +211,19 @@ function isValidApiKey(key) {
 }
 
 /**
+ * Validate webcam URL format (HTTP, HTTPS, or RTSP)
+ */
+function isValidWebcamUrl(url) {
+    if (!url) return true; // Optional field
+    try {
+        const parsed = new URL(url);
+        return ['http:', 'https:', 'rtsp:', 'rtsps:'].includes(parsed.protocol);
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Validate required fields in form
  */
 function validateForm(form) {

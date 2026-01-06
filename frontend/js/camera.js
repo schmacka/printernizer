@@ -114,8 +114,12 @@ class CameraManager {
             `;
         }
 
-        // No camera available
-        if (!cameraStatus.has_camera) {
+        // Check for external webcam
+        const hasExternalWebcam = cameraStatus.has_external_webcam;
+        const hasBuiltinCamera = cameraStatus.has_camera;
+
+        // No camera and no external webcam
+        if (!hasBuiltinCamera && !hasExternalWebcam) {
             return `
                 <div class="info-section camera-section">
                     <h4>📷 Kamera</h4>
@@ -139,71 +143,111 @@ class CameraManager {
             `;
         }
 
-        // Check for valid stream URL
-        const hasValidUrl = cameraStatus.stream_url &&
-                           cameraStatus.stream_url !== 'null' &&
-                           cameraStatus.stream_url !== 'undefined';
+        let html = '<div class="info-section camera-section"><h4>📷 Kamera</h4>';
 
-        if (!hasValidUrl) {
-            return `
-                <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
-                    <div class="info-item">
-                        <span class="text-muted">Stream nicht verfügbar</span>
+        // Render external webcam if configured
+        if (hasExternalWebcam) {
+            const externalPreviewUrl = `/api/v1/printers/${printer.id}/camera/external-preview?t=${Date.now()}`;
+            html += `
+                <div class="camera-controls" style="margin-bottom: 12px;">
+                    <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 4px;">📹 External Webcam</div>
+                    <div class="camera-preview-container">
+                        <img id="external-camera-${printer.id}"
+                             class="camera-stream"
+                             src="${externalPreviewUrl}"
+                             alt="External Webcam"
+                             onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
+                             onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
+                             style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
+                        <div class="stream-error" style="display: none;">
+                            <span class="text-muted">External webcam not available</span>
+                        </div>
+                        <div class="camera-timestamp" id="external-timestamp-${printer.id}" style="font-size: 0.85em; color: #6c757d; text-align: center; margin-top: 4px;">
+                            Updated: ${new Date().toLocaleTimeString('de-DE')}
+                        </div>
+                    </div>
+                    <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+                        <button class="btn btn-sm btn-secondary"
+                                onclick="cameraManager.refreshExternalPreview('${printer.id}')"
+                                title="Refresh external webcam">
+                            🔄 Refresh
+                        </button>
                     </div>
                 </div>
             `;
         }
 
-        // Detect preview mode vs live stream
-        const isPreview = cameraStatus.stream_url.includes('/camera/preview');
-        const imageUrl = isPreview
-            ? `${cameraStatus.stream_url}?t=${Date.now()}`  // Cache-busting for preview
-            : cameraStatus.stream_url;
+        // Render built-in camera if available
+        if (hasBuiltinCamera && cameraStatus.stream_url) {
+            const hasValidUrl = cameraStatus.stream_url !== 'null' && cameraStatus.stream_url !== 'undefined';
 
-        return `
-            <div class="info-section camera-section">
-                <h4>📷 Kamera</h4>
-                <div class="camera-controls">
-                    <div class="camera-preview-container">
-                        <img id="camera-stream-${printer.id}"
-                             class="camera-stream"
-                             src="${imageUrl}"
-                             alt="Kamera Vorschau"
-                             onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
-                             onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
-                             style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
-                        <div class="stream-error" style="display: none;">
-                            <span class="text-muted">Bild nicht verfügbar</span>
-                        </div>
-                        ${isPreview ? `
-                            <div class="camera-timestamp" id="camera-timestamp-${printer.id}" style="font-size: 0.85em; color: #6c757d; text-align: center; margin-top: 4px;">
-                                Aktualisiert: ${new Date().toLocaleTimeString('de-DE')}
+            if (hasValidUrl) {
+                const isPreview = cameraStatus.stream_url.includes('/camera/preview');
+                const imageUrl = isPreview
+                    ? `${cameraStatus.stream_url}?t=${Date.now()}`
+                    : cameraStatus.stream_url;
+
+                html += `
+                    <div class="camera-controls">
+                        ${hasExternalWebcam ? '<div style="font-size: 0.9em; color: #6c757d; margin-bottom: 4px;">🖨️ Printer Camera</div>' : ''}
+                        <div class="camera-preview-container">
+                            <img id="camera-stream-${printer.id}"
+                                 class="camera-stream"
+                                 src="${imageUrl}"
+                                 alt="Kamera Vorschau"
+                                 onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
+                                 onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
+                                 style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
+                            <div class="stream-error" style="display: none;">
+                                <span class="text-muted">Bild nicht verfügbar</span>
                             </div>
-                        ` : ''}
-                    </div>
-                    <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
-                        <button class="btn btn-sm btn-primary"
-                                onclick="cameraManager.takeSnapshotFromCard('${printer.id}')"
-                                title="Snapshot aufnehmen">
-                            📸 Snapshot
-                        </button>
-                        ${isPreview ? `
-                            <button class="btn btn-sm btn-secondary"
-                                    onclick="cameraManager.refreshPreview('${printer.id}', true)"
-                                    title="Vorschau aktualisieren">
-                                🔄 Aktualisieren
+                            ${isPreview ? `
+                                <div class="camera-timestamp" id="camera-timestamp-${printer.id}" style="font-size: 0.85em; color: #6c757d; text-align: center; margin-top: 4px;">
+                                    Aktualisiert: ${new Date().toLocaleTimeString('de-DE')}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button class="btn btn-sm btn-primary"
+                                    onclick="cameraManager.takeSnapshotFromCard('${printer.id}')"
+                                    title="Snapshot aufnehmen">
+                                📸 Snapshot
                             </button>
-                        ` : ''}
-                        <button class="btn btn-sm btn-secondary"
-                                onclick="cameraManager.showCameraModal('${printer.id}')"
-                                title="Vollbild anzeigen">
-                            🔍 Vollbild
-                        </button>
+                            ${isPreview ? `
+                                <button class="btn btn-sm btn-secondary"
+                                        onclick="cameraManager.refreshPreview('${printer.id}', true)"
+                                        title="Vorschau aktualisieren">
+                                    🔄 Aktualisieren
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-sm btn-secondary"
+                                    onclick="cameraManager.showCameraModal('${printer.id}')"
+                                    title="Vollbild anzeigen">
+                                🔍 Vollbild
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </div>
-        `;
+                `;
+            }
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Refresh external webcam preview
+     */
+    refreshExternalPreview(printerId) {
+        const imageElement = document.getElementById(`external-camera-${printerId}`);
+        const timestampElement = document.getElementById(`external-timestamp-${printerId}`);
+
+        if (imageElement) {
+            imageElement.src = `/api/v1/printers/${printerId}/camera/external-preview?t=${Date.now()}`;
+            if (timestampElement) {
+                timestampElement.textContent = `Updated: ${new Date().toLocaleTimeString('de-DE')}`;
+            }
+        }
     }
 
     /**

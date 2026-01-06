@@ -91,7 +91,10 @@ class SnapshotResponse(BaseModel):
 class CameraStatus(BaseModel):
     """Camera status response model."""
     has_camera: bool
+    has_external_webcam: bool = False
     is_available: bool
     stream_url: Optional[str] = None
+    external_webcam_url: Optional[str] = None  # Masked URL for display (credentials hidden)
+    external_webcam_type: Optional[str] = None  # 'http_snapshot' or 'rtsp'
     error_message: Optional[str] = None
     last_snapshot_at: Optional[datetime] = None

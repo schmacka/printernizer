@@ -1927,7 +1927,16 @@
                 <div id="prusaFields" class="printer-specific-fields" style="display: none;">
                     <!-- Prusa-specific fields would go here if needed -->
                 </div>
-                
+
+                <div class="form-group">
+                    <label for="printerWebcamUrl">External Webcam URL (Optional)</label>
+                    <input type="text" id="printerWebcamUrl" name="printerWebcamUrl" class="form-control"
+                           data-validate="webcam-url"
+                           placeholder="http://user:pass@camera-ip/snap.jpg or rtsp://camera-ip/stream"
+                           maxlength="500">
+                    <small class="form-text text-muted">HTTP snapshot URL or RTSP stream. Credentials can be embedded in URL.</small>
+                </div>
+
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="printerActive" name="printerActive" checked>
@@ -2019,7 +2028,16 @@
                 <div id="editPrusaFields" class="printer-specific-fields" style="display: none;">
                     <!-- Prusa-specific fields would go here if needed -->
                 </div>
-                
+
+                <div class="form-group">
+                    <label for="editPrinterWebcamUrl">External Webcam URL (Optional)</label>
+                    <input type="text" id="editPrinterWebcamUrl" name="printerWebcamUrl" class="form-control"
+                           data-validate="webcam-url"
+                           placeholder="http://user:pass@camera-ip/snap.jpg or rtsp://camera-ip/stream"
+                           maxlength="500">
+                    <small class="form-text text-muted">HTTP snapshot URL or RTSP stream. Credentials can be embedded in URL.</small>
+                </div>
+
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="editPrinterActive" name="printerActive" checked>

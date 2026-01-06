@@ -2259,6 +2259,26 @@ class Database:
                     )
                     logger.info("Migration 007 completed")
 
+                # Migration 008: Add webcam_url column to printers table
+                if '008' not in applied_migrations:
+                    logger.info("Migration 008: Adding webcam_url column to printers table")
+
+                    # Check current columns
+                    await cursor.execute("PRAGMA table_info(printers)")
+                    columns = await cursor.fetchall()
+                    column_names = [col['name'] for col in columns] if columns else []
+
+                    # Add webcam_url column if it doesn't exist
+                    if 'webcam_url' not in column_names:
+                        logger.info("Migration 008: Adding webcam_url column")
+                        await cursor.execute("ALTER TABLE printers ADD COLUMN webcam_url TEXT")
+
+                    await cursor.execute(
+                        "INSERT INTO migrations (version, description) VALUES (?, ?)",
+                        ('008', 'Add webcam_url column to printers table')
+                    )
+                    logger.info("Migration 008 completed")
+
                 await self._connection.commit()
                 logger.info("All database migrations completed successfully")
 

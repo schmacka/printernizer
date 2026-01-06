@@ -13,6 +13,7 @@ Database Schema:
     - api_key (TEXT): API authentication key (encrypted)
     - access_code (TEXT): Printer access code
     - serial_number (TEXT): Hardware serial number
+    - webcam_url (TEXT): External webcam URL (HTTP snapshot or RTSP stream)
     - is_active (BOOLEAN): Whether printer is enabled
     - status (TEXT): Current status (online, offline, printing, etc.)
     - last_seen (DATETIME): Last communication timestamp
@@ -87,15 +88,15 @@ class PrinterRepository(BaseRepository):
         Args:
             printer_data: Dictionary containing printer information
                 Required: id, name, type
-                Optional: ip_address, api_key, access_code, serial_number, is_active
+                Optional: ip_address, api_key, access_code, serial_number, webcam_url, is_active
 
         Returns:
             True if printer was created successfully, False otherwise
         """
         try:
             await self._execute_write(
-                """INSERT INTO printers (id, name, type, ip_address, api_key, access_code, serial_number, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO printers (id, name, type, ip_address, api_key, access_code, serial_number, webcam_url, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     printer_data['id'],
                     printer_data['name'],
@@ -104,6 +105,7 @@ class PrinterRepository(BaseRepository):
                     printer_data.get('api_key'),
                     printer_data.get('access_code'),
                     printer_data.get('serial_number'),
+                    printer_data.get('webcam_url'),
                     printer_data.get('is_active', True)
                 )
             )
