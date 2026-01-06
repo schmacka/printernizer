@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.1] - 2026-01-06
+
+### Added
+- **External Webcam URL Support**: Configure external IP cameras per printer
+  - Support for HTTP snapshot URLs (e.g., `http://camera/snap.jpg`)
+  - Support for RTSP streams with server-side frame extraction via ffmpeg
+  - URL-embedded credentials supported (e.g., `http://user:pass@camera/snap`)
+  - New "External Webcam URL" field in Add/Edit printer forms
+  - External webcam preview displayed alongside built-in printer camera
+  - New `/api/v1/printers/{id}/camera/external-preview` endpoint
+  - Camera status endpoint now includes external webcam info
+
 ## [2.17.0] - 2026-01-06
 
 ### Added
