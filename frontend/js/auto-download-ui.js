@@ -583,11 +583,218 @@ class AutoDownloadUI {
     }
 
     /**
-     * Show logs modal
+     * Show logs modal with detailed log viewer
      */
     showLogs() {
-        // Implementation for detailed log viewing
-        showToast('info', 'Feature Coming Soon', 'Detailed log viewer will be available in the next update');
+        const logger = this.autoDownloadManager.logger;
+        const stats = logger.getStats();
+
+        // Create log viewer modal
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.id = 'log-viewer-modal';
+        modal.innerHTML = `
+            <div class="modal-content log-viewer-modal">
+                <div class="modal-header">
+                    <h3>Download Logs</h3>
+                    <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                </div>
+                <div class="modal-body log-viewer-body">
+                    <div class="log-viewer-stats">
+                        <div class="stat-item"><span class="stat-label">Total:</span> <span class="stat-value">${stats.total.toLocaleString()}</span></div>
+                        <div class="stat-item"><span class="stat-label">Last 24h:</span> <span class="stat-value">${stats.recent.toLocaleString()}</span></div>
+                        <div class="stat-item"><span class="stat-label">Errors:</span> <span class="stat-value stat-error">${stats.errors}</span></div>
+                        <div class="stat-item"><span class="stat-label">Warnings:</span> <span class="stat-value stat-warning">${stats.warnings}</span></div>
+                    </div>
+                    <div class="log-viewer-filters">
+                        <select id="log-level-filter" class="form-control">
+                            <option value="">All Levels</option>
+                            <option value="debug">DEBUG</option>
+                            <option value="info">INFO</option>
+                            <option value="warn">WARNING</option>
+                            <option value="error">ERROR</option>
+                            <option value="critical">CRITICAL</option>
+                        </select>
+                        <select id="log-category-filter" class="form-control">
+                            <option value="">All Categories</option>
+                            <option value="download">Download</option>
+                            <option value="thumbnail">Thumbnail</option>
+                            <option value="printer">Printer</option>
+                            <option value="api">API</option>
+                            <option value="system">System</option>
+                        </select>
+                        <input type="text" id="log-search" class="form-control" placeholder="Search logs...">
+                        <button class="btn btn-sm btn-primary" onclick="autoDownloadUI.applyLogFilters()">Filter</button>
+                        <button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.resetLogFilters()">Reset</button>
+                    </div>
+                    <div class="log-viewer-table-container">
+                        <table class="log-viewer-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Level</th>
+                                    <th>Category</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-viewer-tbody">
+                                ${this.renderLogRows(logger.logs)}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="log-viewer-pagination" id="log-viewer-pagination">
+                        ${this.renderLogPagination(logger.logs.length)}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="autoDownloadUI.clearAllLogs()">Clear Logs</button>
+                    <button class="btn btn-secondary" onclick="autoDownloadUI.exportLogsCSV()">Export CSV</button>
+                    <button class="btn btn-primary" onclick="autoDownloadUI.exportLogs()">Export JSON</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Initialize state
+        this.logViewerState = { levelFilter: '', categoryFilter: '', searchText: '', currentPage: 1, logsPerPage: 50 };
+        this.filteredLogs = null;
+
+        // Close on backdrop click
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+
+    /**
+     * Render log table rows
+     */
+    renderLogRows(logs, page = 1, perPage = 50) {
+        if (!logs || logs.length === 0) {
+            return '<tr><td colspan="4" class="empty-logs">No log entries found</td></tr>';
+        }
+
+        const sorted = [...logs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const start = (page - 1) * perPage;
+        const paginated = sorted.slice(start, start + perPage);
+
+        return paginated.map(log => {
+            const time = (log.timestamp instanceof Date ? log.timestamp : new Date(log.timestamp)).toLocaleString('de-DE');
+            const levelClass = `log-level-${log.level.toLowerCase()}`;
+            const msg = this.escapeHtml(log.message);
+            return `<tr class="log-entry ${levelClass}">
+                <td class="log-timestamp">${time}</td>
+                <td class="log-level"><span class="level-badge ${levelClass}">${log.level.toUpperCase()}</span></td>
+                <td class="log-category">${this.escapeHtml(log.category)}</td>
+                <td class="log-message">${msg}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    /**
+     * Render pagination
+     */
+    renderLogPagination(total, page = 1, perPage = 50) {
+        const pages = Math.ceil(total / perPage);
+        if (pages <= 1) return `<span class="pagination-info">Showing ${total} entries</span>`;
+
+        let html = `<span class="pagination-info">Page ${page} of ${pages} (${total} entries)</span><div class="pagination-buttons">`;
+        if (page > 1) html += `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.goToLogPage(${page - 1})">Prev</button>`;
+        for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
+            html += `<button class="btn btn-sm btn-secondary ${i === page ? 'active' : ''}" onclick="autoDownloadUI.goToLogPage(${i})">${i}</button>`;
+        }
+        if (page < pages) html += `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.goToLogPage(${page + 1})">Next</button>`;
+        return html + '</div>';
+    }
+
+    /**
+     * Apply log filters
+     */
+    applyLogFilters() {
+        const logger = this.autoDownloadManager.logger;
+        let filtered = [...logger.logs];
+
+        const level = document.getElementById('log-level-filter')?.value;
+        const category = document.getElementById('log-category-filter')?.value;
+        const search = document.getElementById('log-search')?.value?.toLowerCase();
+
+        if (level) {
+            const priority = { debug: 0, info: 1, warn: 2, error: 3, critical: 4 };
+            filtered = filtered.filter(l => priority[l.level.toLowerCase()] >= priority[level]);
+        }
+        if (category) filtered = filtered.filter(l => l.category === category);
+        if (search) filtered = filtered.filter(l => l.message.toLowerCase().includes(search) || l.category.toLowerCase().includes(search));
+
+        this.filteredLogs = filtered;
+        this.logViewerState.currentPage = 1;
+        this.updateLogViewerTable();
+    }
+
+    /**
+     * Reset log filters
+     */
+    resetLogFilters() {
+        document.getElementById('log-level-filter').value = '';
+        document.getElementById('log-category-filter').value = '';
+        document.getElementById('log-search').value = '';
+        this.filteredLogs = null;
+        this.logViewerState.currentPage = 1;
+        this.updateLogViewerTable();
+    }
+
+    /**
+     * Go to log page
+     */
+    goToLogPage(page) {
+        this.logViewerState.currentPage = page;
+        this.updateLogViewerTable();
+    }
+
+    /**
+     * Update log viewer table
+     */
+    updateLogViewerTable() {
+        const logs = this.filteredLogs || this.autoDownloadManager.logger.logs;
+        const tbody = document.getElementById('log-viewer-tbody');
+        const pagination = document.getElementById('log-viewer-pagination');
+        if (tbody) tbody.innerHTML = this.renderLogRows(logs, this.logViewerState.currentPage, this.logViewerState.logsPerPage);
+        if (pagination) pagination.innerHTML = this.renderLogPagination(logs.length, this.logViewerState.currentPage, this.logViewerState.logsPerPage);
+    }
+
+    /**
+     * Clear all logs
+     */
+    clearAllLogs() {
+        if (confirm('Clear all logs? This cannot be undone.')) {
+            this.autoDownloadManager.logger.clearLogs();
+            showToast('success', 'Logs Cleared', 'All log entries removed');
+            const modal = document.getElementById('log-viewer-modal');
+            if (modal) { modal.remove(); this.showLogs(); }
+        }
+    }
+
+    /**
+     * Export logs as CSV
+     */
+    exportLogsCSV() {
+        const logs = this.filteredLogs || this.autoDownloadManager.logger.logs;
+        const rows = [['Timestamp', 'Level', 'Category', 'Message', 'Session ID'].join(',')];
+        logs.forEach(l => {
+            const ts = (l.timestamp instanceof Date ? l.timestamp : new Date(l.timestamp)).toISOString();
+            rows.push([`"${ts}"`, `"${l.level}"`, `"${l.category}"`, `"${l.message.replace(/"/g, '""')}"`, `"${l.sessionId}"`].join(','));
+        });
+        const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `printernizer_logs_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        showToast('success', 'Logs Exported', 'Logs exported as CSV');
+    }
+
+    /**
+     * Escape HTML
+     */
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     /**
