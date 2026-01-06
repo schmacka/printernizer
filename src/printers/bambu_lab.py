@@ -453,8 +453,17 @@ class BambuLabPrinter(BasePrinter):
         try:
             # Bambu Lab AMS (Automatic Material System) structure:
             # mqtt_data['ams']['ams'][ams_index]['tray'][tray_index]
+            # For A1 and printers without AMS, external spool is in 'vt_tray' at root level
             if not isinstance(mqtt_data, dict):
+                logger.debug("mqtt_data is not a dict", printer_id=self.printer_id)
                 return filaments
+
+            # Log available keys for debugging
+            logger.debug("MQTT data keys for filament extraction",
+                       printer_id=self.printer_id,
+                       keys=list(mqtt_data.keys()),
+                       has_ams='ams' in mqtt_data,
+                       has_vt_tray='vt_tray' in mqtt_data)
 
             ams_data = mqtt_data.get('ams', {})
             if not isinstance(ams_data, dict):
@@ -508,9 +517,39 @@ class BambuLabPrinter(BasePrinter):
                                            color=filament_color,
                                            active=is_active)
 
-            # Handle external spool (slot 254)
-            if active_tray_id == "254":
-                # External spool is active, but we may not have detailed info
+            # Handle external spool (vt_tray) - used by A1 and other printers without AMS
+            # The vt_tray data is at the root level of MQTT data, not inside 'ams'
+            vt_tray = mqtt_data.get('vt_tray', {})
+            if isinstance(vt_tray, dict) and vt_tray:
+                # Extract filament info from virtual tray (external spool)
+                vt_filament_type = vt_tray.get('tray_type', '').upper() or None
+                vt_filament_color = vt_tray.get('tray_color', '') or None
+
+                # Convert color from RRGGBBAA hex to #RRGGBB format
+                if vt_filament_color and len(vt_filament_color) >= 6:
+                    # Skip if color is all zeros (no filament configured)
+                    if vt_filament_color[:6] != '000000':
+                        vt_filament_color = f"#{vt_filament_color[:6]}"
+                    else:
+                        vt_filament_color = None
+
+                is_vt_active = (active_tray_id == "254")
+
+                # Add external spool if it has filament info
+                if vt_filament_type or vt_filament_color:
+                    filaments.append(Filament(
+                        slot=254,
+                        color=vt_filament_color,
+                        type=vt_filament_type,
+                        is_active=is_vt_active
+                    ))
+                    logger.debug("Extracted external spool filament from vt_tray",
+                               printer_id=self.printer_id,
+                               type=vt_filament_type,
+                               color=vt_filament_color,
+                               active=is_vt_active)
+            elif active_tray_id == "254":
+                # External spool is active, but no vt_tray data available
                 # Add it as a generic filament
                 filaments.append(Filament(
                     slot=254,
@@ -518,7 +557,7 @@ class BambuLabPrinter(BasePrinter):
                     type="External",
                     is_active=True
                 ))
-                logger.debug("External spool active", printer_id=self.printer_id)
+                logger.debug("External spool active (no vt_tray data)", printer_id=self.printer_id)
 
         except Exception as e:
             logger.warning("Failed to extract filament data from MQTT",
