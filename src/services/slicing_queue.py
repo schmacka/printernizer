@@ -615,18 +615,25 @@ class SlicingQueue(BaseService):
 
     async def _get_setting(self, key: str, default: Any) -> Any:
         """Get setting from database or return default."""
-        async with self.db.connection() as conn:
-            cursor = await conn.execute(
-                "SELECT value, value_type FROM configuration WHERE key = ?",
-                (key,)
-            )
-            row = await cursor.fetchone()
+        try:
+            async with self.db.connection() as conn:
+                cursor = await conn.execute(
+                    "SELECT value, value_type FROM configuration WHERE key = ?",
+                    (key,)
+                )
+                row = await cursor.fetchone()
+        except Exception as e:
+            if "no such table" in str(e).lower():
+                logger.debug(f"Configuration table not found, using default for {key}")
+                return default
+            logger.warning(f"Error reading setting {key}: {e}, using default")
+            return default
 
         if not row:
             return default
 
         value, value_type = row
-        
+
         if value_type == "boolean":
             return value.lower() in ("true", "1", "yes")
         elif value_type == "integer":

@@ -472,11 +472,13 @@ class SlicerService(BaseService):
                     (key,)
                 )
                 row = await cursor.fetchone()
-        except sqlite3.OperationalError as e:
+        except (sqlite3.OperationalError, Exception) as e:
             if "no such table" in str(e).lower():
                 logger.debug(f"Configuration table not found, using default for {key}")
                 return default
-            raise
+            # Log unexpected errors but don't crash - use default
+            logger.warning(f"Error reading setting {key}: {e}, using default")
+            return default
 
         if not row:
             return default

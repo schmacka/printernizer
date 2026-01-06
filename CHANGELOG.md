@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.5] - 2026-01-06
+
+### Fixed
+- **Database Table Error Handling**: Fixed startup crash when configuration table doesn't exist
+  - Added robust error handling in `slicer_service.py` and `slicing_queue.py` for missing database tables
+  - Services now gracefully fall back to defaults instead of crashing on fresh installs
+
 ## [2.15.4] - 2026-01-06
 
 ### Fixed
