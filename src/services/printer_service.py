@@ -718,6 +718,7 @@ class PrinterService:
                     "api_key": connection_config.get("api_key"),
                     "access_code": connection_config.get("access_code"),
                     "serial_number": connection_config.get("serial_number"),
+                    "webcam_url": connection_config.get("webcam_url"),
                     "is_active": True
                 })
 
@@ -729,6 +730,7 @@ class PrinterService:
             api_key=connection_config.get("api_key"),
             access_code=connection_config.get("access_code"),
             serial_number=connection_config.get("serial_number"),
+            webcam_url=connection_config.get("webcam_url"),
             is_active=True,
             status=PrinterStatus.UNKNOWN
         )
@@ -773,6 +775,28 @@ class PrinterService:
         if not self.config_service.add_printer(printer_id_str, config_dict):
             return None
 
+        # Update database with the changed fields
+        db_updates = {}
+        if "name" in updates:
+            db_updates["name"] = updates["name"]
+        if "connection_config" in updates:
+            conn_config = updates["connection_config"]
+            if "ip_address" in conn_config:
+                db_updates["ip_address"] = conn_config["ip_address"]
+            if "api_key" in conn_config:
+                db_updates["api_key"] = conn_config["api_key"]
+            if "access_code" in conn_config:
+                db_updates["access_code"] = conn_config["access_code"]
+            if "serial_number" in conn_config:
+                db_updates["serial_number"] = conn_config["serial_number"]
+            if "webcam_url" in conn_config:
+                db_updates["webcam_url"] = conn_config["webcam_url"]
+        if "is_enabled" in updates:
+            db_updates["is_active"] = updates["is_enabled"]
+
+        if db_updates:
+            await self.database.update_printer(printer_id_str, db_updates)
+
         # Recreate printer instance if it exists
         if printer_id_str in self.connection.printer_instances:
             old_instance = self.connection.printer_instances[printer_id_str]
@@ -797,6 +821,7 @@ class PrinterService:
                 api_key=updated_config.api_key,
                 access_code=updated_config.access_code,
                 serial_number=updated_config.serial_number,
+                webcam_url=getattr(updated_config, 'webcam_url', None),
                 is_active=updated_config.is_active,
                 status=PrinterStatus.UNKNOWN
             )

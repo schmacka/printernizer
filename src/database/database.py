@@ -729,8 +729,8 @@ class Database:
         """Create a new printer record."""
         try:
             return await self._execute_write(
-                """INSERT INTO printers (id, name, type, ip_address, api_key, access_code, serial_number, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                """INSERT INTO printers (id, name, type, ip_address, api_key, access_code, serial_number, webcam_url, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     printer_data['id'],
                     printer_data['name'],
@@ -739,6 +739,7 @@ class Database:
                     printer_data.get('api_key'),
                     printer_data.get('access_code'),
                     printer_data.get('serial_number'),
+                    printer_data.get('webcam_url'),
                     printer_data.get('is_active', True)
                 )
             )
@@ -780,7 +781,53 @@ class Database:
         except Exception as e:  # pragma: no cover
             logger.error("Failed to update printer status", printer_id=printer_id, error=str(e))
             return False
-    
+
+    async def update_printer(self, printer_id: str, updates: Dict[str, Any]) -> bool:
+        """Update printer fields.
+
+        Args:
+            printer_id: Unique printer identifier
+            updates: Dictionary of fields to update (name, ip_address, api_key, access_code, serial_number, webcam_url, is_active)
+
+        Returns:
+            True if update was successful, False otherwise
+        """
+        try:
+            if not updates:
+                return True
+
+            # Map of allowed fields to their database column names
+            allowed_fields = {
+                'name': 'name',
+                'ip_address': 'ip_address',
+                'api_key': 'api_key',
+                'access_code': 'access_code',
+                'serial_number': 'serial_number',
+                'webcam_url': 'webcam_url',
+                'is_active': 'is_active',
+            }
+
+            # Build SET clause dynamically
+            set_clauses = []
+            values = []
+
+            for key, value in updates.items():
+                if key in allowed_fields:
+                    set_clauses.append(f"{allowed_fields[key]} = ?")
+                    values.append(value)
+
+            if not set_clauses:
+                return True  # No valid fields to update
+
+            values.append(printer_id)
+            query = f"UPDATE printers SET {', '.join(set_clauses)} WHERE id = ?"
+
+            return await self._execute_write(query, tuple(values))
+
+        except Exception as e:  # pragma: no cover
+            logger.error("Failed to update printer", printer_id=printer_id, error=str(e))
+            return False
+
     # Job CRUD Operations  
     async def create_job(self, job_data: Dict[str, Any]) -> bool:
         """Create a new job record."""

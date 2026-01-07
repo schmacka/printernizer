@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.21.0] - 2026-01-07
+
+### Added
+- **Webcam URL Support**: Printers can now have a custom webcam URL configured
+  - New `webcam_url` field in printer configuration
+  - Persisted to database and returned in API responses
+- **Printer Update Persistence**: Printer configuration updates now properly save to database
+  - New `update_printer` method in database layer
+  - Updates to name, IP, API key, access code, serial number, webcam URL, and active status are now persisted
+
+### Fixed
+- Printer edits were not being saved to the database (only to in-memory config)
+
 ## [2.20.0] - 2026-01-07
 
 ### Added

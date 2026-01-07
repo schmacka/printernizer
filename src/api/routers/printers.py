@@ -158,6 +158,7 @@ def _printer_to_response(printer: Printer, printer_service: PrinterService = Non
             "api_key": getattr(printer, "api_key", None),
             "access_code": getattr(printer, "access_code", None),
             "serial_number": getattr(printer, "serial_number", None),
+            "webcam_url": getattr(printer, "webcam_url", None),
         },
         location=getattr(printer, 'location', None),
         description=getattr(printer, 'description', None),
