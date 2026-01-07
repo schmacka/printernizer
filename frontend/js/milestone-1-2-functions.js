@@ -421,11 +421,19 @@ function selectAvailable() {
 }
 
 /**
- * Preview file (placeholder for future 3D preview implementation)
+ * Preview file in fullscreen 3D preview modal
+ * Shows animated GIF for STL/3MF, static preview for GCODE/BGCODE
+ * @param {string|Object} fileData - File ID, checksum, or file object
  */
-function previewFile(fileId) {
-    // TODO: Implement 3D file preview
-    showToast('3D-Vorschau wird in einer späteren Version verfügbar sein', 'info');
+function previewFile(fileData) {
+    // Use the 3D preview manager if available
+    if (window.preview3DManager) {
+        window.preview3DManager.open(fileData, 'auto');
+    } else {
+        // Fallback if preview manager not initialized
+        Logger.warn('Preview3D manager not available');
+        showToast('Preview not available', 'info');
+    }
 }
 
 /**

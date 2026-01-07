@@ -738,10 +738,11 @@ class LibraryManager {
                     </div>
                 </div>
 
-                <!-- Thumbnail -->
+                <!-- Thumbnail (clickable for fullscreen preview) -->
                 ${thumbnailUrl ? `
-                    <div class="file-detail-thumbnail">
+                    <div class="file-detail-thumbnail" id="fileDetailThumbnailWrapper" style="cursor: pointer;" title="Click for fullscreen preview">
                         <img src="${thumbnailUrl}" alt="${file.filename}">
+                        <div class="thumbnail-click-hint">👁️ Click to enlarge</div>
                     </div>
                 ` : ''}
 
@@ -772,6 +773,11 @@ class LibraryManager {
 
                 <!-- Actions -->
                 <div class="file-detail-actions">
+                    ${file.has_thumbnail ? `
+                    <button class="btn btn-secondary" id="fullscreenPreviewBtn" title="Fullscreen Preview">
+                        👁️ Preview
+                    </button>
+                    ` : ''}
                     <button class="btn btn-primary" id="reprocessFileBtn">
                         🔄 Neu analysieren
                     </button>
@@ -941,6 +947,26 @@ class LibraryManager {
         document.getElementById('deleteFileBtn')?.addEventListener('click', async () => {
             if (confirm('Möchten Sie diese Datei wirklich aus der Bibliothek löschen?')) {
                 await this.deleteFile(file.checksum);
+            }
+        });
+
+        // Fullscreen preview button
+        document.getElementById('fullscreenPreviewBtn')?.addEventListener('click', () => {
+            // Close the detail modal first
+            this.closeFileDetailModal();
+            // Open fullscreen preview with library source
+            if (window.preview3DManager) {
+                window.preview3DManager.open(file, 'library');
+            }
+        });
+
+        // Clickable thumbnail for fullscreen preview
+        document.getElementById('fileDetailThumbnailWrapper')?.addEventListener('click', () => {
+            // Close the detail modal first
+            this.closeFileDetailModal();
+            // Open fullscreen preview with library source
+            if (window.preview3DManager) {
+                window.preview3DManager.open(file, 'library');
             }
         });
 

@@ -423,12 +423,36 @@
     border-radius: 8px;
     overflow: hidden;
     background: #f9fafb;
+    position: relative;
+    transition: transform 0.2s ease;
+}
+
+.file-detail-thumbnail:hover {
+    transform: scale(1.02);
 }
 
 .file-detail-thumbnail img {
     width: 100%;
     height: auto;
     display: block;
+}
+
+.thumbnail-click-hint {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+    color: white;
+    padding: 1.5rem 1rem 0.75rem;
+    font-size: 0.8rem;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.file-detail-thumbnail:hover .thumbnail-click-hint {
+    opacity: 1;
 }
 
 /* Tabs */
