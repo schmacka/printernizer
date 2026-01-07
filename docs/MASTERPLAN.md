@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
-**Last Updated**: 2026-01-06
-**Current Version**: v2.15.8
+**Last Updated**: 2026-01-07
+**Current Version**: v2.18.0
 **Status**: Production Ready
 
 ---
@@ -21,6 +21,7 @@
 | Sprint 4 (Tags & Printer Modal) | Complete | 100% |
 | Slicer Integration (v2.14.0) | Complete | 100% |
 | Post-Sprint Patches (v2.15.1-2.15.8) | Complete | 100% |
+| Unified Log Viewer (v2.18.0) | Complete | 100% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
 ---
@@ -398,11 +399,11 @@
 **Completed**: Sprint 4 - Full modal with specs, statistics, recent jobs
 **Effort**: 6-8 hours
 
-### Detailed Log Viewer
+### Detailed Log Viewer ✅ COMPLETE (v2.18.0)
 
-**Status**: Placeholder
-**Location**: `frontend/js/auto-download-ui.js:590`
-**Enhancement**: Rich viewer with filtering, search, export
+**Status**: Complete - Unified Log Viewer implemented
+**Location**: `frontend/js/unified-log-viewer.js`, `src/api/routers/logs.py`
+**Features**: Source tabs, filtering, search, pagination, CSV/JSON export, dark mode
 **Effort**: 4-6 hours
 
 ---
@@ -650,6 +651,7 @@ python3 -m pytest --cov=src tests/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 10.0 | 2026-01-07 | Unified Log Viewer complete (v2.18.0) |
 | 9.0 | 2026-01-06 | Post-Sprint patches (v2.15.1-2.15.8), slicer integration |
 | 8.0 | 2026-01-05 | Sprint 4 completion (tags, printer modal) |
 | 7.0 | 2026-01-05 | Sprint 3 completion, doc cleanup, README update |
