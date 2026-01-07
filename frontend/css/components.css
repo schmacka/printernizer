@@ -1933,6 +1933,214 @@
     word-break: break-word;
 }
 
+/* ==========================================================================
+   Fullscreen 3D Preview Modal
+   ========================================================================== */
+
+.preview-3d-fullscreen {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.92);
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+}
+
+.preview-3d-fullscreen.show {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.preview-3d-close {
+    position: absolute;
+    top: var(--spacing-4);
+    right: var(--spacing-4);
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+    z-index: 10;
+}
+
+.preview-3d-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.preview-3d-close:active {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.preview-3d-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: var(--spacing-4);
+    box-sizing: border-box;
+}
+
+.preview-3d-image-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-height: calc(100vh - 120px);
+    position: relative;
+}
+
+.preview-3d-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.preview-3d-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-4);
+    color: white;
+}
+
+.preview-3d-loading .spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.preview-3d-loading p {
+    font-size: var(--text-base);
+    opacity: 0.8;
+}
+
+.preview-3d-info {
+    padding: var(--spacing-4);
+    text-align: center;
+    color: white;
+}
+
+.preview-3d-filename {
+    font-size: var(--text-lg);
+    font-weight: var(--font-medium);
+    margin: 0 0 var(--spacing-1) 0;
+    word-break: break-word;
+    max-width: 80vw;
+}
+
+.preview-3d-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-3);
+    font-size: var(--text-sm);
+    opacity: 0.7;
+}
+
+.preview-3d-badge {
+    background: rgba(255, 255, 255, 0.15);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.preview-3d-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-4);
+    color: white;
+    text-align: center;
+    padding: var(--spacing-8);
+}
+
+.preview-3d-error-icon {
+    font-size: 4rem;
+    opacity: 0.5;
+}
+
+.preview-3d-error p {
+    font-size: var(--text-base);
+    opacity: 0.8;
+    max-width: 400px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .preview-3d-close {
+        top: var(--spacing-2);
+        right: var(--spacing-2);
+        width: 40px;
+        height: 40px;
+    }
+
+    .preview-3d-container {
+        padding: var(--spacing-2);
+    }
+
+    .preview-3d-image-wrapper {
+        max-height: calc(100vh - 100px);
+    }
+
+    .preview-3d-filename {
+        font-size: var(--text-base);
+    }
+
+    .preview-3d-info {
+        padding: var(--spacing-2);
+    }
+}
+
+/* Touch-friendly tap hint for mobile */
+@media (hover: none) and (pointer: coarse) {
+    .preview-3d-fullscreen::after {
+        content: 'Tap anywhere to close';
+        position: absolute;
+        bottom: var(--spacing-2);
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255, 255, 255, 0.4);
+        font-size: var(--text-xs);
+        pointer-events: none;
+        animation: fadeInUp 0.5s ease 1s both;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
 .no-metadata {
     color: var(--color-gray-500);
     font-style: italic;
