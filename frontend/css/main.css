@@ -902,17 +902,53 @@ p {
     .nav-container {
         padding: 0 var(--spacing-2);
     }
-    
+
     .nav-status {
-        gap: var(--spacing-2);
+        gap: var(--spacing-1);
     }
-    
+
     .system-time {
         display: none;
     }
-    
+
     .main-content {
         padding: var(--spacing-2);
+    }
+
+    /* Make support button icon-only on small screens */
+    .btn-support .support-text {
+        display: none;
+    }
+
+    .btn-support {
+        padding: var(--spacing-2);
+    }
+
+    /* Compact connection status */
+    .connection-status .status-text {
+        display: none;
+    }
+
+    /* Compact theme toggle */
+    .theme-toggle .theme-text {
+        display: none;
+    }
+
+    .theme-toggle {
+        padding: var(--spacing-2);
+        min-width: auto;
+    }
+}
+
+/* Extra small screens (portrait phones) */
+@media (max-width: 375px) {
+    .nav-status {
+        gap: 4px;
+    }
+
+    .btn-support,
+    .theme-toggle {
+        padding: 6px;
     }
 }
 

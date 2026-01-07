@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.1] - 2026-01-07
+
+### Fixed
+- **Mobile UI Improvements**: Enhanced mobile portrait layout for better usability
+  - Fixed printer cards displaying horizontally instead of vertically on mobile
+  - Root cause: generic `.loading` class in library.css was overriding grid display
+  - Added explicit grid preservation rules for printer-grid with loading state
+  - Compact header on small screens: icons only for status, support, and theme toggle
+  - Improved printer card spacing and reduced minimum height on mobile
+  - Added extra-small screen (≤375px) optimizations
+
+### Changed
+- Updated documentation screenshots with current UI
+
 ## [2.18.0] - 2026-01-07
 
 ### Added

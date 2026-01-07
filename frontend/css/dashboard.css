@@ -51,6 +51,12 @@
     gap: var(--spacing-6);
 }
 
+/* Ensure grid layout is preserved even with loading class */
+#printerGrid.loading,
+.printer-grid.loading {
+    display: grid;
+}
+
 /* Container query support with fallback */
 @supports (container-type: inline-size) {
     .printer-grid {
@@ -518,10 +524,20 @@
 
     .printer-grid {
         gap: var(--spacing-3);
+        grid-template-columns: 1fr;
+    }
+
+    .printer-card {
+        min-height: auto;
+        max-width: 100%;
     }
 
     .printer-body {
-        padding: var(--spacing-4);
+        padding: var(--spacing-3);
+    }
+
+    .printer-header {
+        padding: var(--spacing-3);
     }
 
     .current-job {
@@ -529,7 +545,7 @@
     }
 
     .temperatures {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         gap: var(--spacing-2);
     }
 
@@ -541,6 +557,12 @@
         padding: var(--spacing-2);
         background: var(--white);
         border-radius: var(--radius-sm);
+    }
+
+    /* Compact job name display */
+    .job-name {
+        font-size: var(--font-size-sm);
+        word-break: break-word;
     }
 }
 

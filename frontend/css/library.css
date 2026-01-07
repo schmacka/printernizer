@@ -664,7 +664,8 @@
     color: #9ca3af;
 }
 
-.loading {
+.library-files-grid.loading,
+.library-page .loading {
     display: flex;
     align-items: center;
     justify-content: center;
