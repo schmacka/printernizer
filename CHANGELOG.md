@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.22.1] - 2026-01-07
+
+### Fixed
+- **Migration Service Reliability**: Fixed duplicate migration system conflicts
+  - MigrationService now handles "duplicate column" and "already exists" errors gracefully
+  - SQL parser correctly handles CREATE TRIGGER blocks with BEGIN/END
+  - Both database.py and MigrationService can now coexist without conflicts
+
+### Changed
+- Temporarily disabled trending services to reduce external API dependencies
+
 ## [2.22.0] - 2026-01-07
 
 ### Fixed
