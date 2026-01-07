@@ -117,6 +117,8 @@ class CameraManager {
         // Check for external webcam
         const hasExternalWebcam = cameraStatus.has_external_webcam;
         const hasBuiltinCamera = cameraStatus.has_camera;
+        const ffmpegRequired = cameraStatus.ffmpeg_required;
+        const ffmpegAvailable = cameraStatus.ffmpeg_available;
 
         // No camera and no external webcam
         if (!hasBuiltinCamera && !hasExternalWebcam) {
@@ -132,12 +134,15 @@ class CameraManager {
 
         // Camera not available (error state)
         if (!cameraStatus.is_available) {
+            // Special handling for ffmpeg missing with RTSP
+            const isFfmpegIssue = ffmpegRequired && !ffmpegAvailable;
             return `
                 <div class="info-section camera-section">
                     <h4>📷 Kamera</h4>
                     <div class="info-item">
-                        <span class="text-warning">Kamera nicht verfügbar</span>
+                        <span class="text-warning">${isFfmpegIssue ? '⚠️ RTSP Stream nicht verfügbar' : 'Kamera nicht verfügbar'}</span>
                         ${cameraStatus.error_message ? `<br><small class="text-muted">${escapeHtml(cameraStatus.error_message)}</small>` : ''}
+                        ${isFfmpegIssue ? `<br><code style="font-size: 0.8em; background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">apt-get install ffmpeg</code>` : ''}
                     </div>
                 </div>
             `;

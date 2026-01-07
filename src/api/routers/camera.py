@@ -15,7 +15,7 @@ import aiofiles.os
 from src.models.snapshot import Snapshot, SnapshotCreate, SnapshotResponse, CameraStatus, CameraTrigger
 from src.services.printer_service import PrinterService
 from src.services.camera_snapshot_service import CameraSnapshotService
-from src.services.external_camera_service import mask_url_credentials, detect_url_type
+from src.services.external_camera_service import mask_url_credentials, detect_url_type, is_ffmpeg_available
 from src.database.database import Database
 from src.database.repositories import SnapshotRepository
 from src.utils.dependencies import get_printer_service, get_camera_snapshot_service, get_database, get_snapshot_repository
@@ -193,6 +193,8 @@ async def get_camera_status(
     has_external_webcam = False
     external_webcam_url = None
     external_webcam_type = None
+    ffmpeg_available = True
+    ffmpeg_required = False
 
     try:
         # Get printer info for webcam_url
@@ -201,6 +203,11 @@ async def get_camera_status(
             has_external_webcam = True
             external_webcam_url = mask_url_credentials(printer.webcam_url)
             external_webcam_type = detect_url_type(printer.webcam_url)
+
+            # Check if ffmpeg is required and available for RTSP streams
+            if external_webcam_type == 'rtsp':
+                ffmpeg_required = True
+                ffmpeg_available = is_ffmpeg_available()
     except Exception as e:
         logger.debug(
             "Failed to check external webcam",
@@ -271,13 +278,26 @@ async def get_camera_status(
         is_available = has_external_webcam
         error_message = f"Failed to check built-in camera status: {str(e)}"
 
+    # Add ffmpeg warning to error message if RTSP is configured but ffmpeg is missing
+    if ffmpeg_required and not ffmpeg_available:
+        ffmpeg_error = "RTSP stream requires ffmpeg. Install with: apt-get install ffmpeg"
+        if error_message:
+            error_message = f"{error_message}. {ffmpeg_error}"
+        else:
+            error_message = ffmpeg_error
+
+    # External webcam is only truly available if it doesn't require ffmpeg OR ffmpeg is installed
+    external_webcam_available = has_external_webcam and (not ffmpeg_required or ffmpeg_available)
+
     return CameraStatus(
         has_camera=has_camera,
         has_external_webcam=has_external_webcam,
-        is_available=is_available or has_external_webcam,
+        is_available=is_available or external_webcam_available,
         stream_url=stream_url,
         external_webcam_url=external_webcam_url,
         external_webcam_type=external_webcam_type,
+        ffmpeg_available=ffmpeg_available,
+        ffmpeg_required=ffmpeg_required,
         error_message=error_message
     )
 

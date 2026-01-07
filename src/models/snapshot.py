@@ -96,5 +96,7 @@ class CameraStatus(BaseModel):
     stream_url: Optional[str] = None
     external_webcam_url: Optional[str] = None  # Masked URL for display (credentials hidden)
     external_webcam_type: Optional[str] = None  # 'http_snapshot' or 'rtsp'
+    ffmpeg_available: bool = True  # Whether ffmpeg is installed (required for RTSP)
+    ffmpeg_required: bool = False  # Whether ffmpeg is needed for this webcam (RTSP)
     error_message: Optional[str] = None
     last_snapshot_at: Optional[datetime] = None

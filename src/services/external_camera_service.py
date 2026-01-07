@@ -13,6 +13,7 @@ Features:
 
 import asyncio
 import os
+import shutil
 import tempfile
 import subprocess
 from datetime import datetime
@@ -23,6 +24,30 @@ import aiohttp
 import structlog
 
 logger = structlog.get_logger(__name__)
+
+
+# Cache ffmpeg availability check result
+_ffmpeg_available: Optional[bool] = None
+
+
+def is_ffmpeg_available() -> bool:
+    """
+    Check if ffmpeg is installed and accessible.
+
+    Result is cached after first check for performance.
+
+    Returns:
+        True if ffmpeg is available, False otherwise
+    """
+    global _ffmpeg_available
+    if _ffmpeg_available is None:
+        _ffmpeg_available = shutil.which('ffmpeg') is not None
+        if not _ffmpeg_available:
+            logger.warning(
+                "ffmpeg not found - RTSP stream support disabled. "
+                "Install with: apt-get install ffmpeg"
+            )
+    return _ffmpeg_available
 
 
 def mask_url_credentials(url: str) -> str:
@@ -259,6 +284,17 @@ class ExternalCameraService:
             Frame extraction is done in a thread executor to avoid blocking.
         """
         masked_url = mask_url_credentials(url)
+
+        # Check ffmpeg availability first
+        if not is_ffmpeg_available():
+            self._logger.error(
+                "RTSP stream configured but ffmpeg is not installed",
+                printer_id=printer_id,
+                url=masked_url,
+                hint="Install ffmpeg with: apt-get install ffmpeg"
+            )
+            return None, ''
+
         tmp_path = None
 
         try:
