@@ -609,7 +609,7 @@ class TestPrinterValidation:
     @pytest.mark.asyncio
     async def test_get_printer_status_not_found(self, printer_service):
         """Test getting status of non-existent printer."""
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         with pytest.raises(NotFoundError):
             await printer_service.get_printer_status('nonexistent_id')

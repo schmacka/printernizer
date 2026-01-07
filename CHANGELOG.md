@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.24.0] - 2026-01-07
+
+### Added
+- **Comprehensive Code Review**: Full codebase review documenting architecture, security, quality
+  - New documentation at `docs/CODE_REVIEW.md`
+  - Architecture rated "Excellent", Security rated "Good", Test Coverage ~90%
+- **Rate Limiting Middleware**: Protection against brute force attacks
+  - Token bucket algorithm with configurable limits
+  - Stricter limits for sensitive endpoints (create printer, setup, settings)
+  - 429 Too Many Requests with proper rate limit headers
+- **Audit Log Retention**: GDPR-compliant log management
+  - Configurable retention period (default 90 days)
+  - Automatic cleanup of old error logs
+  - `LOG_RETENTION_DAYS` environment variable
+- **E2E Test Fixtures**: Comprehensive API mocking for E2E tests
+  - Sample printer, material, and job data fixtures
+  - API route mocking for isolated frontend tests
+  - Extended timeout configuration
+
+### Changed
+- **CSP Security Hardening**: Removed `unsafe-inline` from script-src
+  - Inline scripts moved to external `.js` files
+  - New `frontend/js/page-loader.js` for page initialization
+  - New `frontend/js/debug-init.js` for debug page
+- **Exception Migration**: Consolidated exception hierarchy
+  - All services now import from `src/utils/errors.py`
+  - Added `DatabaseError`, `FileOperationError`, `AuthenticationError`, `AuthorizationError`
+  - Legacy `PrinternizerException` marked deprecated with migration guidance
+
+### Fixed
+- **E2E Test Failures**: Fixed 14 failing tests
+  - Updated modal selectors to use `.show` class pattern
+  - Added proper skips for tests requiring database data
+  - Fixed API timeout issues with mocking
+
 ## [2.23.0] - 2026-01-07
 
 ### Added

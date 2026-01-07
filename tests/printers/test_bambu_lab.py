@@ -186,7 +186,7 @@ class TestBambuLabPrinterConnection:
     async def test_connect_bambu_api_failure(self, mock_client_class):
         """Test connection failure with bambulabs_api."""
         from src.printers.bambu_lab import BambuLabPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup mock to fail connection
         mock_client = MagicMock()
@@ -312,7 +312,7 @@ class TestBambuLabPrinterStatus:
     async def test_get_status_not_connected(self, mock_client_class):
         """Test get_status when printer not connected."""
         from src.printers.bambu_lab import BambuLabPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = BambuLabPrinter(
             printer_id='bambu_001',
@@ -462,7 +462,7 @@ class TestBambuLabPrinterFileOperations:
     async def test_list_files_not_connected(self, mock_client_class):
         """Test list_files when printer not connected."""
         from src.printers.bambu_lab import BambuLabPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = BambuLabPrinter(
             printer_id='bambu_001',
@@ -510,7 +510,7 @@ class TestBambuLabPrinterFileOperations:
     async def test_download_file_not_connected(self, mock_client_class):
         """Test download_file when printer not connected."""
         from src.printers.bambu_lab import BambuLabPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = BambuLabPrinter(
             printer_id='bambu_001',
@@ -606,7 +606,7 @@ class TestBambuLabPrinterPrintControl:
     async def test_pause_print_not_connected(self, mock_client_class):
         """Test pause_print when not connected raises error."""
         from src.printers.bambu_lab import BambuLabPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = BambuLabPrinter(
             printer_id='bambu_001',

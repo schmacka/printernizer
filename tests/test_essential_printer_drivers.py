@@ -16,7 +16,7 @@ import json
 from src.printers.bambu_lab import BambuLabPrinter
 from src.printers.prusa import PrusaPrinter
 from src.models.printer import PrinterStatus
-from src.utils.exceptions import PrinterConnectionError
+from src.utils.errors import PrinterConnectionError
 
 
 class TestEssentialBambuLabDriverIntegration:

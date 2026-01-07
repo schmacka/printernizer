@@ -24,7 +24,7 @@ from src.services.printer_monitoring_service import PrinterMonitoringService
 from src.services.printer_control_service import PrinterControlService
 from src.models.printer import PrinterType, PrinterStatus, Printer
 from src.printers import BasePrinter
-from src.utils.exceptions import PrinterConnectionError, NotFoundError
+from src.utils.errors import PrinterConnectionError, NotFoundError
 
 logger = structlog.get_logger()
 

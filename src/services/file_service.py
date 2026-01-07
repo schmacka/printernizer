@@ -26,7 +26,7 @@ from src.services.file_download_service import FileDownloadService
 from src.services.file_thumbnail_service import FileThumbnailService
 from src.services.file_metadata_service import FileMetadataService
 from src.services.file_upload_service import FileUploadService
-from src.utils.exceptions import NotFoundError
+from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
 
 logger = structlog.get_logger()

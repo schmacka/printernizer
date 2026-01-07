@@ -24,8 +24,9 @@
 | Post-Sprint Patches (v2.15.1-2.15.8) | Complete | 100% |
 | Unified Log Viewer (v2.18.0) | Complete | 100% |
 | 3D File Preview (v2.19.0) | Complete | 100% |
-| E2E Test Suite (v2.17.0) | Mostly Complete | 94% |
+| E2E Test Suite (v2.17.0) | **Priority 2** | 94% |
 | Usage Statistics | Phase 2 Complete | 66% |
+| Code Review (2026-01-07) | Complete | 100% |
 
 ---
 
@@ -329,6 +330,38 @@
 
 **Total Phase 3: 124 tests passing**
 
+### E2E Test Suite Fixes (14 Remaining Failures)
+
+> **Current**: 241/258 passing (94%) | **Target**: 100%
+
+**test_printers.py** (4 failures):
+- [ ] `test_search_printer` - Selector timeout (no printers configured)
+- [ ] `test_search_clear` - Depends on printer data
+- [ ] `test_printer_card_actions` - No printer cards available
+- [ ] `test_refresh_updates_data` - Response timeout waiting for API
+
+**test_materials.py** (1 failure):
+- [ ] `test_refresh_updates_data` - API response timeout
+
+**test_modals.py** (7 failures):
+- [ ] `test_add_printer_modal_opens` - Button onclick not triggering
+- [ ] `test_add_material_modal_opens` - Modal selector mismatch
+- [ ] `test_add_job_modal_opens` - Modal not found
+- [ ] `test_printer_details_modal` - Missing trigger elements
+- [ ] `test_material_details_modal` - Missing trigger elements
+- [ ] `test_job_details_modal` - Missing trigger elements
+- [ ] `test_modal_escape_closes` - Depends on modal state
+
+**Root Causes**:
+- Tests require printers/data to be configured in the database
+- Some modals have non-standard open/close patterns
+- API response timeouts on slower systems
+
+**Recommended Fixes**:
+- Add test fixtures that create sample printers/materials
+- Fix modal selectors and trigger patterns
+- Increase API timeouts for slower environments
+
 ---
 
 ## Priority 3 - Frontend Polish
@@ -456,6 +489,25 @@
 
 ## Technical Debt
 
+### Code Review (2026-01-07) ✅ COMPLETE
+
+> **See**: [`docs/CODE_REVIEW.md`](CODE_REVIEW.md) for comprehensive code review
+
+**Summary**: A thorough code review was conducted covering architecture, security, code quality, error handling, database patterns, API design, frontend code, and testing.
+
+| Category | Rating | Notes |
+|----------|--------|-------|
+| **Architecture** | Excellent | Clean service-based architecture with proper separation |
+| **Security** | Good | Strong foundations, minor CSP improvements suggested |
+| **Code Quality** | Very Good | Consistent patterns, well-documented |
+| **Error Handling** | Excellent | Standardized error responses, comprehensive logging |
+| **Testing** | Very Good | ~90% service coverage, E2E test suite |
+
+**Key Recommendations**:
+1. Remove `unsafe-inline` from CSP when possible
+2. Complete migration from `PrinternizerException` to `PrinternizerError`
+3. Fix remaining 14 E2E test failures (add test data fixtures)
+
 ### Data Flow Issues (Frontend → Backend) ✅ RESOLVED (2026-01-07)
 
 > **See**: [`docs/DATA_FLOW_AUDIT.md`](DATA_FLOW_AUDIT.md) for complete audit report
@@ -555,6 +607,7 @@
 | `CONTRIBUTING.md` | Contribution guidelines |
 | `RELEASE.md` | Release process |
 | `docs/DATA_FLOW_AUDIT.md` | Frontend→Backend data flow audit |
+| `docs/CODE_REVIEW.md` | Comprehensive code review (2026-01-07) |
 
 ### Test Commands
 

@@ -22,7 +22,7 @@ from src.models.slicer import (
     SlicingJobStatus,
     SlicingJobRequest,
 )
-from src.utils.exceptions import NotFoundError
+from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
 
 logger = structlog.get_logger()

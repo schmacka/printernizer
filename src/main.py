@@ -82,7 +82,9 @@ from src.utils.errors import (
 from src.utils.middleware import (
     RequestTimingMiddleware,
     GermanComplianceMiddleware,
-    SecurityHeadersMiddleware
+    SecurityHeadersMiddleware,
+    RateLimitMiddleware,
+    RateLimitConfig
 )
 from src.utils.version import get_version
 from src.utils.timing import StartupTimer
@@ -95,7 +97,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.23.0")
+APP_VERSION = get_version(fallback="2.24.0")
 
 
 # Prometheus metrics - initialized once
@@ -700,6 +702,16 @@ def create_application() -> FastAPI:
         app.add_middleware(SecurityHeadersMiddleware)
         app.add_middleware(GermanComplianceMiddleware)
         app.add_middleware(RequestTimingMiddleware)
+        # Rate limiting middleware - protects against brute force and DoS
+        # Default: 100 requests/minute, with stricter limits on sensitive endpoints
+        app.add_middleware(
+            RateLimitMiddleware,
+            config=RateLimitConfig(
+                requests_per_minute=100,
+                burst_size=20,
+                cleanup_interval=300
+            )
+        )
     
     # API Routes
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
@@ -771,14 +783,15 @@ def create_application() -> FastAPI:
     app.add_exception_handler(PrinternizerError, new_printernizer_exception_handler)
 
     # Legacy PrinternizerException handler (backwards compatibility)
-    # NOTE: Still needed - many exceptions inherit from PrinternizerException
-    # (PrinterConnectionError, NotFoundError, etc. in src/utils/exceptions.py)
-    # TODO: Migrate all exceptions to inherit from PrinternizerError (src/utils/errors.py)
+    # NOTE: This handler is kept for backward compatibility during the migration
+    # from PrinternizerException (src/utils/exceptions.py) to PrinternizerError
+    # (src/utils/errors.py). Most code has been migrated to use errors.py classes.
+    # The legacy exceptions.py module is now deprecated.
     @app.exception_handler(PrinternizerException)
     async def legacy_printernizer_exception_handler(request: Request, exc: PrinternizerException):
         logger = structlog.get_logger()
-        logger.error(
-            "Legacy Printernizer exception",
+        logger.warning(
+            "Legacy PrinternizerException caught (deprecated - use PrinternizerError instead)",
             error_code=exc.error_code,
             status_code=exc.status_code,
             message=exc.message,
@@ -786,15 +799,10 @@ def create_application() -> FastAPI:
             method=request.method
         )
 
+        # Use to_dict() for consistent error format
         return JSONResponse(
             status_code=exc.status_code,
-            content={
-                "status": "error",
-                "error_code": exc.error_code,  # Fixed: was "error" (inconsistent with new format)
-                "message": exc.message,
-                "details": exc.details,
-                "timestamp": exc.timestamp.isoformat()
-            }
+            content=exc.to_dict()
         )
 
     # HTTPException handler (converts FastAPI HTTPExceptions to standard format)

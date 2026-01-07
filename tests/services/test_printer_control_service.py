@@ -136,7 +136,7 @@ class TestPrinterControlServicePauseOperations:
     async def test_pause_printer_not_found(self, event_service):
         """Test pause when printer not found raises error."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         # Connection service with no printers
         empty_connection_service = MagicMock()
@@ -153,7 +153,7 @@ class TestPrinterControlServicePauseOperations:
     async def test_pause_printer_command_fails(self, event_service, connection_service, mock_printer_instance):
         """Test pause when printer command fails."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup pause to fail
         mock_printer_instance.pause_print = AsyncMock(side_effect=Exception("Pause failed"))
@@ -232,7 +232,7 @@ class TestPrinterControlServiceResumeOperations:
     async def test_resume_printer_not_found(self, event_service):
         """Test resume when printer not found raises error."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         empty_connection_service = MagicMock()
         empty_connection_service.printer_instances = {}
@@ -248,7 +248,7 @@ class TestPrinterControlServiceResumeOperations:
     async def test_resume_printer_command_fails(self, event_service, connection_service, mock_printer_instance):
         """Test resume when printer command fails."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup resume to fail
         mock_printer_instance.resume_print = AsyncMock(side_effect=Exception("Resume failed"))
@@ -308,7 +308,7 @@ class TestPrinterControlServiceStopOperations:
     async def test_stop_printer_not_found(self, event_service):
         """Test stop when printer not found raises error."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         empty_connection_service = MagicMock()
         empty_connection_service.printer_instances = {}
@@ -324,7 +324,7 @@ class TestPrinterControlServiceStopOperations:
     async def test_stop_printer_command_fails(self, event_service, connection_service, mock_printer_instance):
         """Test stop when printer command fails."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup stop to fail
         mock_printer_instance.stop_print = AsyncMock(side_effect=Exception("Stop failed"))
@@ -365,7 +365,7 @@ class TestPrinterControlServiceMonitoringOperations:
     async def test_start_printer_monitoring_not_found(self, event_service):
         """Test start monitoring when printer not found."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         empty_connection_service = MagicMock()
         empty_connection_service.printer_instances = {}
@@ -381,7 +381,7 @@ class TestPrinterControlServiceMonitoringOperations:
     async def test_start_printer_monitoring_fails(self, event_service, connection_service):
         """Test start monitoring when operation fails."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup monitoring start to fail
         connection_service.start_monitoring_for_printer = AsyncMock(
@@ -416,7 +416,7 @@ class TestPrinterControlServiceMonitoringOperations:
     async def test_stop_printer_monitoring_not_found(self, event_service):
         """Test stop monitoring when printer not found."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         empty_connection_service = MagicMock()
         empty_connection_service.printer_instances = {}
@@ -432,7 +432,7 @@ class TestPrinterControlServiceMonitoringOperations:
     async def test_stop_printer_monitoring_fails(self, event_service, connection_service):
         """Test stop monitoring when operation fails."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup monitoring stop to fail
         connection_service.stop_monitoring_for_printer = AsyncMock(
@@ -468,7 +468,7 @@ class TestPrinterControlServiceHelpers:
     def test_get_printer_instance_not_found(self, event_service, connection_service):
         """Test printer instance retrieval when printer not found."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         service = PrinterControlService(
             event_service=event_service,
@@ -481,7 +481,7 @@ class TestPrinterControlServiceHelpers:
     def test_get_printer_instance_no_connection_service(self, event_service):
         """Test printer instance retrieval when no connection service."""
         from src.services.printer_control_service import PrinterControlService
-        from src.utils.exceptions import NotFoundError
+        from src.utils.errors import NotFoundError
 
         service = PrinterControlService(
             event_service=event_service,

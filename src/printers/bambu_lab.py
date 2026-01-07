@@ -13,7 +13,7 @@ import structlog
 
 from src.config.constants import file_url
 from src.models.printer import PrinterStatus, PrinterStatusUpdate, Filament
-from src.utils.exceptions import PrinterConnectionError
+from src.utils.errors import PrinterConnectionError
 from .base import BasePrinter, JobInfo, JobStatus, PrinterFile
 from .download_strategies import (
     DownloadHandler,

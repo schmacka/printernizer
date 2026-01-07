@@ -18,7 +18,7 @@ from src.models.slicer import (
     SlicerType,
     ProfileType
 )
-from src.utils.exceptions import NotFoundError
+from src.utils.errors import NotFoundError
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ import uuid
 from src.services.slicer_service import SlicerService
 from src.services.event_service import EventService
 from src.models.slicer import SlicerType, ProfileType, SlicerConfig, SlicerProfile
-from src.utils.exceptions import NotFoundError
+from src.utils.errors import NotFoundError
 
 
 @pytest.fixture

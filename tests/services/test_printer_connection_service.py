@@ -222,7 +222,7 @@ async def test_connect_printer_not_found(async_database, event_service):
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..', 'src'))
 
     from services.printer_connection_service import PrinterConnectionService
-    from src.utils.exceptions import NotFoundError
+    from src.utils.errors import NotFoundError
 
     # Mock config service
     mock_config_service = MagicMock()
@@ -252,7 +252,7 @@ async def test_connect_printer_connection_fails(async_database, event_service):
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..', 'src'))
 
     from services.printer_connection_service import PrinterConnectionService
-    from src.utils.exceptions import PrinterConnectionError
+    from src.utils.errors import PrinterConnectionError
 
     # Mock config service
     mock_config_service = MagicMock()
@@ -336,7 +336,7 @@ async def test_disconnect_printer_not_found(async_database, event_service):
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..', 'src'))
 
     from services.printer_connection_service import PrinterConnectionService
-    from src.utils.exceptions import NotFoundError
+    from src.utils.errors import NotFoundError
 
     # Mock config service
     mock_config_service = MagicMock()

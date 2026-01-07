@@ -171,7 +171,7 @@ class TestPrusaPrinterConnection:
     async def test_connect_auth_failure(self, mock_session_class):
         """Test connection failure due to authentication."""
         from src.printers.prusa import PrusaPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup mock response with 401
         mock_response = AsyncMock()
@@ -200,7 +200,7 @@ class TestPrusaPrinterConnection:
     async def test_connect_forbidden(self, mock_session_class):
         """Test connection failure due to forbidden access."""
         from src.printers.prusa import PrusaPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         # Setup mock response with 403
         mock_response = AsyncMock()
@@ -345,7 +345,7 @@ class TestPrusaPrinterStatus:
     async def test_get_status_not_connected(self):
         """Test get_status when not connected."""
         from src.printers.prusa import PrusaPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = PrusaPrinter(
             printer_id='prusa_001',
@@ -513,7 +513,7 @@ class TestPrusaPrinterFileOperations:
     async def test_list_files_not_connected(self):
         """Test list_files when not connected."""
         from src.printers.prusa import PrusaPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = PrusaPrinter(
             printer_id='prusa_001',
@@ -597,7 +597,7 @@ class TestPrusaPrinterPrintControl:
     async def test_pause_print_not_connected(self):
         """Test pause_print when not connected."""
         from src.printers.prusa import PrusaPrinter
-        from src.utils.exceptions import PrinterConnectionError
+        from src.utils.errors import PrinterConnectionError
 
         printer = PrusaPrinter(
             printer_id='prusa_001',

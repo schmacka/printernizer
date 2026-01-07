@@ -12,7 +12,7 @@ import aiohttp
 from pathlib import Path
 
 from src.printers.prusa import PrusaPrinter
-from src.utils.exceptions import PrinterConnectionError
+from src.utils.errors import PrinterConnectionError
 
 
 class TestPrusaFileDownload:

@@ -136,19 +136,7 @@
     <script src="js/utils.js"></script>
     <script src="js/unified-log-viewer.js"></script>
     <script src="js/debug.js"></script>
-
-    <script>
-        // Initialize debug page when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set dashboard link with ingress path support
-            const dashboardLink = document.getElementById('dashboardLink');
-            if (dashboardLink && typeof CONFIG !== 'undefined') {
-                dashboardLink.href = CONFIG.BASE_PATH ? `${CONFIG.BASE_PATH}/` : '/';
-            }
-
-            debugManager.init();
-        });
-    </script>
+    <script src="js/debug-init.js"></script>
 
     <style>
         .debug-page {
