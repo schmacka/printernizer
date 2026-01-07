@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.0] - 2026-01-07
+
+### Added
+- **Unified Log Viewer**: New system diagnostics tool combining all log sources
+  - Backend API endpoints at `/api/v1/logs` for querying, filtering, and exporting logs
+  - Source tabs: All, Frontend, Backend, Errors
+  - Filter controls: Level, Category, Date range, Full-text search
+  - Pagination with 50 items per page
+  - Export to CSV and JSON formats
+  - German UI labels throughout
+  - Dark mode support
+  - Responsive mobile layout
+  - Access via "System Logs" button on Debug page
+  - 30 API tests covering all endpoints
+
 ## [2.17.3] - 2026-01-06
 
 ### Fixed
