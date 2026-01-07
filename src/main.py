@@ -55,6 +55,7 @@ from src.api.routers.usage_statistics import router as usage_statistics_router
 from src.api.routers.setup import router as setup_router
 from src.api.routers.slicing import router as slicing_router
 from src.api.routers.tags import router as tags_router
+from src.api.routers.logs import router as logs_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -723,7 +724,8 @@ def create_application() -> FastAPI:
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     # Temporary debug endpoints (remove before production if not needed)
     app.include_router(debug_router, prefix="/api/v1/debug", tags=["Debug"])
-    
+    app.include_router(logs_router, prefix="/api/v1/logs", tags=["Logs"])  # Unified log viewer
+
     # Static files and frontend
     frontend_path = Path(__file__).parent.parent / "frontend"
     if frontend_path.exists():

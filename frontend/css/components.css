@@ -5130,3 +5130,170 @@ label .required {
         max-width: 200px;
     }
 }
+
+/* =============================================================================
+   UNIFIED LOG VIEWER EXTENSIONS
+   ============================================================================= */
+
+/* Source Tabs */
+.unified-log-viewer .log-source-tabs {
+    display: flex;
+    gap: var(--spacing-2, 8px);
+    margin-bottom: var(--spacing-3, 12px);
+    border-bottom: 1px solid var(--gray-200, #e5e7eb);
+    padding-bottom: var(--spacing-2, 8px);
+}
+
+.unified-log-viewer .source-tab {
+    padding: var(--spacing-2, 8px) var(--spacing-4, 16px);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--text-sm, 14px);
+    font-weight: 500;
+    color: var(--gray-600, #4b5563);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.unified-log-viewer .source-tab:hover {
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-800, #1f2937);
+}
+
+.unified-log-viewer .source-tab.active {
+    background: var(--blue-500, #3b82f6);
+    color: white;
+}
+
+/* Source Badge in Table */
+.log-source-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--text-xs, 12px);
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.log-source-badge.frontend {
+    background: var(--green-100, #dcfce7);
+    color: var(--green-700, #15803d);
+}
+
+.log-source-badge.backend {
+    background: var(--blue-100, #dbeafe);
+    color: var(--blue-700, #1d4ed8);
+}
+
+.log-source-badge.errors {
+    background: var(--red-100, #fee2e2);
+    color: var(--red-700, #b91c1c);
+}
+
+/* Source Column */
+.log-source {
+    white-space: nowrap;
+}
+
+/* Date Range Filters */
+.unified-log-viewer .log-viewer-filters input[type="date"] {
+    padding: var(--spacing-2, 8px);
+    border: 1px solid var(--gray-300, #d1d5db);
+    border-radius: var(--radius-sm, 4px);
+    font-size: var(--text-sm, 14px);
+    background: var(--white, #ffffff);
+    color: var(--gray-700, #374151);
+    min-width: 130px;
+}
+
+/* Loading State */
+.log-loading {
+    text-align: center;
+    padding: var(--spacing-8, 32px) !important;
+    color: var(--gray-500, #6b7280);
+    font-style: italic;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-3, 12px);
+}
+
+.pagination-info {
+    font-size: var(--text-sm, 14px);
+    color: var(--gray-600, #4b5563);
+}
+
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Dark Mode Support for Unified Log Viewer */
+[data-theme="dark"] .unified-log-viewer .log-source-tabs {
+    border-bottom-color: var(--gray-700, #374151);
+}
+
+[data-theme="dark"] .unified-log-viewer .source-tab {
+    color: var(--gray-400, #9ca3af);
+}
+
+[data-theme="dark"] .unified-log-viewer .source-tab:hover {
+    background: var(--gray-700, #374151);
+    color: var(--gray-200, #e5e7eb);
+}
+
+[data-theme="dark"] .unified-log-viewer .source-tab.active {
+    background: var(--blue-600, #2563eb);
+    color: white;
+}
+
+[data-theme="dark"] .log-source-badge.frontend {
+    background: var(--green-900, #14532d);
+    color: var(--green-200, #bbf7d0);
+}
+
+[data-theme="dark"] .log-source-badge.backend {
+    background: var(--blue-900, #1e3a8a);
+    color: var(--blue-200, #bfdbfe);
+}
+
+[data-theme="dark"] .log-source-badge.errors {
+    background: var(--red-900, #7f1d1d);
+    color: var(--red-200, #fecaca);
+}
+
+[data-theme="dark"] .unified-log-viewer .log-viewer-filters input[type="date"] {
+    background: var(--gray-700, #374151);
+    border-color: var(--gray-600, #4b5563);
+    color: var(--gray-100, #f3f4f6);
+}
+
+[data-theme="dark"] .pagination-info {
+    color: var(--gray-400, #9ca3af);
+}
+
+/* Responsive adjustments for unified log viewer */
+@media (max-width: 768px) {
+    .unified-log-viewer .log-source-tabs {
+        flex-wrap: wrap;
+    }
+
+    .unified-log-viewer .source-tab {
+        padding: var(--spacing-1, 4px) var(--spacing-3, 12px);
+        font-size: var(--text-xs, 12px);
+    }
+
+    .unified-log-viewer .log-viewer-filters input[type="date"] {
+        min-width: 100%;
+    }
+
+    .log-source-badge {
+        font-size: 10px;
+        padding: 1px 4px;
+    }
+}
