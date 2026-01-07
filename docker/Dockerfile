@@ -56,7 +56,8 @@ RUN apk add --no-cache --no-scripts \
     sqlite \
     curl \
     bash \
-    tzdata
+    tzdata \
+    ffmpeg
 
 # Create app user for security
 RUN addgroup -g 1000 appuser && \
