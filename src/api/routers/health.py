@@ -63,7 +63,7 @@ async def health_check(
         # Get services from app state
         printer_service = getattr(request.app.state, "printer_service", None)
         file_service = getattr(request.app.state, "file_service", None)
-        trending_service = getattr(request.app.state, "trending_service", None)
+        # trending_service = getattr(request.app.state, "trending_service", None)  # DISABLED
         event_service = getattr(request.app.state, "event_service", None)
 
         # Check critical services with detailed status
@@ -104,21 +104,8 @@ async def health_check(
         else:
             services_status["file_service"] = {"status": "unhealthy", "details": {"error": "not initialized"}}
 
-        # Trending service status
-        if trending_service:
-            try:
-                has_session = trending_service.session is not None and not trending_service.session.closed
-                services_status["trending_service"] = {
-                    "status": "healthy" if has_session else "degraded",
-                    "details": {"http_session_active": has_session}
-                }
-            except Exception as e:
-                services_status["trending_service"] = {
-                    "status": "degraded",
-                    "details": {"error": str(e)}
-                }
-        else:
-            services_status["trending_service"] = {"status": "degraded", "details": {"error": "not initialized"}}
+        # Trending service status - DISABLED
+        services_status["trending_service"] = {"status": "disabled", "details": {"reason": "temporarily disabled"}}
 
         # Event service status
         if event_service:
@@ -129,8 +116,8 @@ async def health_check(
         else:
             services_status["event_service"] = {"status": "unhealthy", "details": {"error": "not initialized"}}
 
-        # Calculate overall status
-        statuses = [s["status"] for s in services_status.values()]
+        # Calculate overall status (ignore disabled services)
+        statuses = [s["status"] for s in services_status.values() if s["status"] != "disabled"]
         if all(s == "healthy" for s in statuses):
             overall_status = "healthy"
         elif any(s == "unhealthy" for s in statuses):

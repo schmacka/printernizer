@@ -45,7 +45,7 @@ from src.api.routers import (
 from src.api.routers.websocket import broadcast_printer_status
 from src.api.routers.ideas import router as ideas_router
 from src.api.routers.idea_url import router as idea_url_router
-from src.api.routers.trending import router as trending_router
+# from src.api.routers.trending import router as trending_router  # DISABLED
 from src.api.routers.debug import router as debug_router
 from src.api.routers.library import router as library_router
 from src.api.routers.materials import router as materials_router
@@ -67,7 +67,7 @@ from src.services.usage_statistics_service import UsageStatisticsService
 from src.services.usage_statistics_scheduler import UsageStatisticsScheduler
 from src.services.migration_service import MigrationService
 from src.services.monitoring_service import monitoring_service
-from src.services.trending_service import TrendingService
+# from src.services.trending_service import TrendingService  # DISABLED
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.services.timelapse_service import TimelapseService
@@ -278,13 +278,14 @@ async def lifespan(app: FastAPI):
     printer_service.monitoring.set_job_service(job_service)
     printer_service.monitoring.set_config_service(config_service)
 
-    # Initialize TrendingService (re-enabled in master)
-    timer.start("Trending service initialization")
-    logger.info("Initializing trending service...")
-    trending_service = TrendingService(database, event_service)
-    await trending_service.initialize()
-    timer.end("Trending service initialization")
-    logger.info("[OK] Trending service initialized")
+    # Initialize TrendingService - DISABLED
+    # timer.start("Trending service initialization")
+    # logger.info("Initializing trending service...")
+    # trending_service = TrendingService(database, event_service)
+    # await trending_service.initialize()
+    # timer.end("Trending service initialization")
+    # logger.info("[OK] Trending service initialized")
+    trending_service = None  # Placeholder for app.state
 
     # Initialize slicer services
     timer.start("Slicer services initialization")
@@ -493,15 +494,15 @@ async def lifespan(app: FastAPI):
             )
         )
 
-    # Trending service
-    if hasattr(app.state, 'trending_service') and app.state.trending_service:
-        shutdown_tasks.append(
-            shutdown_with_timeout(
-                app.state.trending_service.cleanup(),
-                "Trending service",
-                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
-            )
-        )
+    # Trending service - DISABLED
+    # if hasattr(app.state, 'trending_service') and app.state.trending_service:
+    #     shutdown_tasks.append(
+    #         shutdown_with_timeout(
+    #             app.state.trending_service.cleanup(),
+    #             "Trending service",
+    #             timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
+    #         )
+    #     )
 
     # Thumbnail service
     if hasattr(app.state, 'thumbnail_service') and app.state.thumbnail_service:
@@ -712,7 +713,7 @@ def create_application() -> FastAPI:
     app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(ideas_router, prefix="/api/v1", tags=["Ideas"])
     app.include_router(idea_url_router, prefix="/api/v1", tags=["Ideas-URL"])
-    app.include_router(trending_router, prefix="/api/v1", tags=["Trending"])
+    # app.include_router(trending_router, prefix="/api/v1", tags=["Trending"])  # DISABLED
     app.include_router(search_router, prefix="/api/v1/search", tags=["Search"])
     app.include_router(system_router, prefix="/api/v1/system", tags=["System"])
     app.include_router(settings_router, prefix="/api/v1/settings", tags=["Settings"])

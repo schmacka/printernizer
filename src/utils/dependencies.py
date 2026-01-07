@@ -19,7 +19,7 @@ from src.services.analytics_service import AnalyticsService
 from src.services.event_service import EventService
 from src.services.file_watcher_service import FileWatcherService
 from src.services.idea_service import IdeaService
-from src.services.trending_service import TrendingService
+# from src.services.trending_service import TrendingService  # DISABLED
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.services.material_service import MaterialService
@@ -116,9 +116,10 @@ async def get_idea_service(
     return IdeaService(database)
 
 
-async def get_trending_service(request: Request) -> TrendingService:
-    """Get trending service instance from app state."""
-    return request.app.state.trending_service
+# DISABLED - Trending service disabled
+# async def get_trending_service(request: Request) -> TrendingService:
+#     """Get trending service instance from app state."""
+#     return request.app.state.trending_service
 
 
 async def get_thumbnail_service(request: Request) -> ThumbnailService:
