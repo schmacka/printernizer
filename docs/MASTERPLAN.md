@@ -2,6 +2,7 @@
 
 **Last Updated**: 2026-01-07
 **Current Version**: v2.18.0
+**E2E Test Suite**: v2.17.0 (241/258 passing)
 **Status**: Production Ready
 
 ---
@@ -22,6 +23,7 @@
 | Slicer Integration (v2.14.0) | Complete | 100% |
 | Post-Sprint Patches (v2.15.1-2.15.8) | Complete | 100% |
 | Unified Log Viewer (v2.18.0) | Complete | 100% |
+| E2E Test Suite (v2.17.0) | Mostly Complete | 94% |
 | Usage Statistics | Phase 2 Complete | 66% |
 
 ---
@@ -571,6 +573,7 @@ python3 -m pytest --cov=src tests/
 | 3 | 2026-01-04 | Frontend Polish | ✅ Complete |
 | 4 | 2026-01-05 | Tags & Printer Modal | ✅ Complete |
 | Patches | 2026-01-06 | v2.15.1-2.15.8 Bug Fixes | ✅ Complete |
+| E2E Tests | 2026-01-07 | Playwright E2E Suite | ⚠️ 94% (14 failures) |
 
 ### Sprint 1 Summary
 
@@ -603,6 +606,80 @@ python3 -m pytest --cov=src tests/
 - **Components Covered**: 2 printer integrations + 1 control service
 - **Test Coverage Improvement**: ~85% → ~90% service coverage
 - **Combined Sprint 2 Total**: 479 new tests (181 + 174 + 124)
+
+### E2E Test Suite (v2.17.0) ✅ MOSTLY COMPLETE
+
+**Playwright E2E Test Coverage**
+
+Created comprehensive Playwright E2E test suite covering all 10 pages using Page Object Model pattern.
+
+**Test Results**: 241 passed, 14 failed, 3 skipped
+
+| Test File | Tests | Status |
+|-----------|-------|--------|
+| test_dashboard.py | 6 | ✅ All pass |
+| test_printers.py | 10 | ⚠️ 4 failures |
+| test_jobs.py | 8 | ✅ All pass |
+| test_settings.py | 13 | ✅ All pass |
+| test_materials.py | 8 | ⚠️ 1 failure |
+| test_statistics.py | 11 | ✅ All pass |
+| test_timelapses.py | 14 | ✅ All pass |
+| test_files.py | 35 | ✅ All pass |
+| test_library.py | 37 | ✅ All pass |
+| test_ideas.py | 54 | ✅ All pass |
+| test_debug.py | 14 | ✅ All pass |
+| test_navigation.py | 12 | ✅ All pass |
+| test_modals.py | 19 | ⚠️ 7 failures |
+
+**Remaining Failures (14 tests)**:
+
+1. **test_printers.py** (4 failures):
+   - `test_search_printer` - Selector timeout (no printers configured)
+   - `test_search_clear` - Depends on printer data
+   - `test_printer_card_actions` - No printer cards available
+   - `test_refresh_updates_data` - Response timeout waiting for API
+
+2. **test_materials.py** (1 failure):
+   - `test_refresh_updates_data` - API response timeout
+
+3. **test_modals.py** (7 failures):
+   - Multiple modal tests fail due to missing trigger elements
+   - `test_add_printer_modal_opens` - Button onclick not triggering
+   - `test_add_material_modal_opens` - Modal selector mismatch
+   - `test_add_job_modal_opens` - Modal not found
+   - Other modal-related tests rely on data or specific button handlers
+
+**Root Causes**:
+- Tests require printers/data to be configured in the database
+- Some modals have non-standard open/close patterns
+- API response timeouts on slower systems
+
+**Files Created**:
+- `tests/e2e/pages/base_page.py` - Base page object class
+- `tests/e2e/pages/timelapses_page.py` - Timelapses POM
+- `tests/e2e/pages/files_page.py` - Files POM
+- `tests/e2e/pages/library_page.py` - Library POM
+- `tests/e2e/pages/ideas_page.py` - Ideas POM
+- `tests/e2e/pages/debug_page.py` - Debug POM
+- `tests/e2e/test_timelapses.py` - 14 tests
+- `tests/e2e/test_files.py` - 35 tests
+- `tests/e2e/test_library.py` - 37 tests
+- `tests/e2e/test_ideas.py` - 54 tests
+- `tests/e2e/test_debug.py` - 14 tests
+- `tests/e2e/test_navigation.py` - 12 tests
+- `tests/e2e/test_modals.py` - 19 tests
+
+**Fixes Applied**:
+- Scoped h1 selectors to active pages (`#debug.page.active h1`)
+- Used `onclick` attributes for button specificity
+- Fixed modal input selectors to avoid conflicts
+- Added missing fixtures to conftest.py
+
+**Recommendations for Remaining Failures**:
+- Add test fixtures that create sample printers/materials
+- Add `@pytest.mark.skip` for tests requiring external setup
+- Increase API timeouts for slower environments
+- Consider mocking API responses for pure UI tests
 
 ### Sprint 3 Summary
 
@@ -651,6 +728,7 @@ python3 -m pytest --cov=src tests/
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 11.0 | 2026-01-07 | E2E test suite documentation (v2.17.0 - 241/258 tests passing) |
 | 10.0 | 2026-01-07 | Unified Log Viewer complete (v2.18.0) |
 | 9.0 | 2026-01-06 | Post-Sprint patches (v2.15.1-2.15.8), slicer integration |
 | 8.0 | 2026-01-05 | Sprint 4 completion (tags, printer modal) |

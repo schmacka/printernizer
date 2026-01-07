@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.2] - 2026-01-07
+
+### Fixed
+- **Bambu Lab Filament Display**: Fixed filaments not showing for Bambu Lab printers
+  - Root cause: MQTT data structure had `ams` and `vt_tray` inside `print` key, not at root level
+  - AMS filaments (slots 0-3) and external spool (slot 254) now display correctly
+  - Affects all Bambu Lab printers with AMS or external spool holder
+
 ## [2.18.1] - 2026-01-07
 
 ### Fixed

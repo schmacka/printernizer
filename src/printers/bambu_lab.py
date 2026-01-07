@@ -657,22 +657,29 @@ class BambuLabPrinter(BasePrinter):
 
         try:
             # Bambu Lab AMS (Automatic Material System) structure:
-            # mqtt_data['ams']['ams'][ams_index]['tray'][tray_index]
-            # For A1 and printers without AMS, external spool is in 'vt_tray' at root level
+            # mqtt_data['print']['ams']['ams'][ams_index]['tray'][tray_index]
+            # For A1 and printers without AMS, external spool is in mqtt_data['print']['vt_tray']
             if not isinstance(mqtt_data, dict):
                 logger.debug("mqtt_data is not a dict", printer_id=self.printer_id)
+                return filaments
+
+            # MQTT data structure: ams and vt_tray are inside the 'print' key
+            print_data = mqtt_data.get('print', {})
+            if not isinstance(print_data, dict):
+                logger.debug("print_data is not a dict", printer_id=self.printer_id)
                 return filaments
 
             # Log available keys for debugging
             logger.debug("MQTT data keys for filament extraction",
                        printer_id=self.printer_id,
-                       keys=list(mqtt_data.keys()),
-                       has_ams='ams' in mqtt_data,
-                       has_vt_tray='vt_tray' in mqtt_data)
+                       print_keys=list(print_data.keys()) if print_data else [],
+                       has_ams='ams' in print_data,
+                       has_vt_tray='vt_tray' in print_data)
 
-            ams_data = mqtt_data.get('ams', {})
+            # Get AMS data from inside print_data (not mqtt_data root)
+            ams_data = print_data.get('ams', {})
             if not isinstance(ams_data, dict):
-                return filaments
+                ams_data = {}
 
             # Get current active tray info
             active_tray_id = ams_data.get('tray_now', '')  # Format: "0" or "254" (external spool)
@@ -723,8 +730,8 @@ class BambuLabPrinter(BasePrinter):
                                            active=is_active)
 
             # Handle external spool (vt_tray) - used by A1 and other printers without AMS
-            # The vt_tray data is at the root level of MQTT data, not inside 'ams'
-            vt_tray = mqtt_data.get('vt_tray', {})
+            # The vt_tray data is inside mqtt_data['print'], not at root level
+            vt_tray = print_data.get('vt_tray', {})
             if isinstance(vt_tray, dict) and vt_tray:
                 # Extract filament info from virtual tray (external spool)
                 vt_filament_type = vt_tray.get('tray_type', '').upper() or None
