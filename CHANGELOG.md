@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.18.2] - 2026-01-07
+## [2.19.0] - 2026-01-07
+
+### Added
+- **Fullscreen 3D File Preview**: New immersive preview modal for 3D model files
+  - Animated rotating GIF preview for STL and 3MF files
+  - Static preview for GCODE and BGCODE files
+  - Fullscreen dark backdrop with large centered image
+  - Mobile responsive with touch support
+  - Clickable thumbnails in library file detail view
+  - Preview button in library file actions
+  - Keyboard support (Escape to close)
+  - Loading states and graceful error handling
 
 ### Fixed
 - **Bambu Lab Filament Display**: Fixed filaments not showing for Bambu Lab printers
