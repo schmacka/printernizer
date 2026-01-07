@@ -18,12 +18,34 @@ env:
   NODE_VERSION: '18'
 
 jobs:
-  # Backend Testing Job
+  # Backend Testing Job - Matrix for parallel category execution
   test-backend:
-    name: Backend Tests
+    name: Backend Tests (${{ matrix.category }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Prevent job from hanging indefinitely
-    
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false  # Run all categories even if one fails
+      matrix:
+        category:
+          - name: backend
+            path: tests/backend
+            label: "API & Backend"
+          - name: services
+            path: tests/services
+            label: "Services"
+          - name: database
+            path: tests/database
+            label: "Database"
+          - name: integration
+            path: tests/integration
+            label: "Integration"
+          - name: printers
+            path: tests/printers
+            label: "Printers"
+          - name: core
+            path: tests/test_*.py
+            label: "Core Tests"
+
     services:
       redis:
         image: redis:7-alpine
@@ -55,7 +77,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-test.txt
-        # Install additional test dependencies for printer integration
         pip install pytest-mock pytest-timeout
 
     - name: Set up database
@@ -64,38 +85,36 @@ jobs:
       env:
         DATABASE_PATH: test.db
 
-    - name: Run backend tests with coverage
+    - name: Run ${{ matrix.category.label }} tests
+      id: run_tests
       continue-on-error: true
       timeout-minutes: 10
       run: |
-        timeout 480 python -m pytest tests/ \
+        mkdir -p test-reports
+        python -m pytest ${{ matrix.category.path }} \
           --ignore=tests/e2e \
           --ignore=tests/frontend \
           --cov=src \
-          --cov-report=xml \
-          --cov-report=html \
-          --junit-xml=test-results.xml \
+          --cov-report=xml:coverage-${{ matrix.category.name }}.xml \
+          --cov-report=html:htmlcov-${{ matrix.category.name }} \
+          --junit-xml=test-results-${{ matrix.category.name }}.xml \
           --timeout=60 \
-          --maxfail=20 \
           --tb=short \
-          -v \
-          -x || true
+          -v
+        echo "exit_code=$?" >> $GITHUB_OUTPUT
       env:
         ENVIRONMENT: testing
         DATABASE_PATH: test.db
         DATABASE_URL: sqlite:///test.db
         REDIS_URL: redis://localhost:6379
         PYTHONPATH: .
-        # Mock printer credentials for testing
         MOCK_PRINTERS: "true"
         BAMBU_A1_IP: "192.168.1.100"
         BAMBU_A1_ACCESS_CODE: "test_code"
         PRUSA_CORE_ONE_IP: "192.168.1.101"
         PRUSA_CORE_ONE_API_KEY: "test_key"
-        # File service directories
         DOWNLOAD_DIRECTORY: /tmp/printernizer-test-downloads
         PRINTER_FILES_DIRECTORY: /tmp/printernizer-test-files
-        # Logging configuration
         LOG_LEVEL: INFO
 
     - name: Generate test summary
@@ -104,36 +123,45 @@ jobs:
         cat > parse_results.py << 'PYTHON_SCRIPT'
         import xml.etree.ElementTree as ET
         import sys
+        import os
+
+        category = os.environ.get('CATEGORY_NAME', 'unknown')
+        category_label = os.environ.get('CATEGORY_LABEL', 'Unknown')
+        results_file = f'test-results-{category}.xml'
+
         try:
-            tree = ET.parse('test-results.xml')
+            tree = ET.parse(results_file)
             root = tree.getroot()
-            # Sum up tests from all testsuites
             tests = sum(int(ts.get('tests', 0)) for ts in root.findall('.//testsuite'))
             failures = sum(int(ts.get('failures', 0)) for ts in root.findall('.//testsuite'))
             errors = sum(int(ts.get('errors', 0)) for ts in root.findall('.//testsuite'))
             skipped = sum(int(ts.get('skipped', 0)) for ts in root.findall('.//testsuite'))
             passed = tests - failures - errors - skipped
             pass_rate = (passed * 100 // tests) if tests > 0 else 0
-            print(f"**Total Tests**: {tests}")
-            print(f"**Passed**: {passed} ({pass_rate}%)")
-            print(f"**Failed**: {failures}")
-            print(f"**Errors**: {errors}")
-            print(f"**Skipped**: {skipped}")
+
+            status_icon = "✅" if failures == 0 and errors == 0 else "❌"
+            print(f"### {status_icon} {category_label}")
+            print(f"| Metric | Count |")
+            print(f"|--------|-------|")
+            print(f"| Total | {tests} |")
+            print(f"| Passed | {passed} |")
+            print(f"| Failed | {failures} |")
+            print(f"| Errors | {errors} |")
+            print(f"| Skipped | {skipped} |")
+            print(f"| **Pass Rate** | **{pass_rate}%** |")
             print()
-            print(f"**Pass Rate**: {pass_rate}%")
+        except FileNotFoundError:
+            print(f"### ⚠️ {category_label}")
+            print(f"No test results file found: {results_file}")
         except Exception as e:
+            print(f"### ⚠️ {category_label}")
             print(f"Could not parse test results: {e}")
         PYTHON_SCRIPT
 
-        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## ${{ matrix.category.label }} Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        if [ -f test-results.xml ]; then
-          python3 parse_results.py >> $GITHUB_STEP_SUMMARY
-        else
-          echo "⚠️  No test results file found" >> $GITHUB_STEP_SUMMARY
-        fi
+        CATEGORY_NAME="${{ matrix.category.name }}" CATEGORY_LABEL="${{ matrix.category.label }}" python3 parse_results.py >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "📦 Test artifacts uploaded for detailed review" >> $GITHUB_STEP_SUMMARY
         rm -f parse_results.py
 
     - name: Check test pass rate
@@ -142,52 +170,58 @@ jobs:
         cat > check_pass_rate.py << 'PYTHON_SCRIPT'
         import xml.etree.ElementTree as ET
         import sys
-        tree = ET.parse('test-results.xml')
-        root = tree.getroot()
-        # Sum up tests from all testsuites
-        tests = sum(int(ts.get('tests', 0)) for ts in root.findall('.//testsuite'))
-        failures = sum(int(ts.get('failures', 0)) for ts in root.findall('.//testsuite'))
-        errors = sum(int(ts.get('errors', 0)) for ts in root.findall('.//testsuite'))
-        skipped = sum(int(ts.get('skipped', 0)) for ts in root.findall('.//testsuite'))
-        passed = tests - failures - errors - skipped
-        pass_rate = (passed * 100 / tests) if tests > 0 else 0
-        print(f"Pass rate: {pass_rate:.1f}%")
-        # Baseline threshold: 45% (current baseline: 51.4%)
-        if pass_rate < 45:
-            print(f"FAIL: Pass rate {pass_rate:.1f}% is below minimum 45%")
+        import os
+
+        category = os.environ.get('CATEGORY_NAME', 'unknown')
+        results_file = f'test-results-{category}.xml'
+
+        try:
+            tree = ET.parse(results_file)
+            root = tree.getroot()
+            tests = sum(int(ts.get('tests', 0)) for ts in root.findall('.//testsuite'))
+            failures = sum(int(ts.get('failures', 0)) for ts in root.findall('.//testsuite'))
+            errors = sum(int(ts.get('errors', 0)) for ts in root.findall('.//testsuite'))
+            skipped = sum(int(ts.get('skipped', 0)) for ts in root.findall('.//testsuite'))
+            passed = tests - failures - errors - skipped
+            pass_rate = (passed * 100 / tests) if tests > 0 else 0
+            print(f"Pass rate for {category}: {pass_rate:.1f}%")
+            # Baseline threshold: 45%
+            if pass_rate < 45:
+                print(f"FAIL: Pass rate {pass_rate:.1f}% is below minimum 45%")
+                sys.exit(1)
+            else:
+                print(f"PASS: Pass rate {pass_rate:.1f}% meets minimum threshold")
+                sys.exit(0)
+        except FileNotFoundError:
+            print(f"⚠️  No test results found for {category}, failing build")
             sys.exit(1)
-        else:
-            print(f"PASS: Pass rate {pass_rate:.1f}% meets minimum threshold")
-            sys.exit(0)
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
         PYTHON_SCRIPT
 
-        if [ -f test-results.xml ]; then
-          python3 check_pass_rate.py
-          exit_code=$?
-          rm -f check_pass_rate.py
-          exit $exit_code
-        else
-          echo "⚠️  No test results found, failing build"
-          exit 1
-        fi
+        CATEGORY_NAME="${{ matrix.category.name }}" python3 check_pass_rate.py
+        exit_code=$?
+        rm -f check_pass_rate.py
+        exit $exit_code
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: backend-test-results
+        name: test-results-${{ matrix.category.name }}
         path: |
-          test-results.xml
-          htmlcov/
-          coverage.xml
-          .pytest_cache/
+          test-results-${{ matrix.category.name }}.xml
+          htmlcov-${{ matrix.category.name }}/
+          coverage-${{ matrix.category.name }}.xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
+      if: always()
       with:
-        file: ./coverage.xml
-        flags: backend
-        name: backend-coverage
+        file: ./coverage-${{ matrix.category.name }}.xml
+        flags: ${{ matrix.category.name }}
+        name: ${{ matrix.category.name }}-coverage
 
   # Frontend Testing Job
   test-frontend:
@@ -385,14 +419,13 @@ jobs:
       continue-on-error: true
       timeout-minutes: 10
       run: |
-        timeout 480 pytest tests/e2e/ \
+        pytest tests/e2e/ \
           --base-url=http://localhost:8000 \
           --browser=chromium \
           --junit-xml=e2e-test-results.xml \
           --tb=short \
-          --maxfail=10 \
           --timeout=60 \
-          -v || true
+          -v
       env:
         PLAYWRIGHT_HEADLESS: true
         CI: true
@@ -454,6 +487,133 @@ jobs:
           playwright-report/
           screenshots/
           videos/
+
+  # Aggregate Test Results Summary
+  test-summary:
+    name: Test Summary Report
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend, test-e2e, printer-integration-test]
+    if: always()
+
+    steps:
+    - name: Download all backend test artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: all-test-results
+        pattern: test-results-*
+        merge-multiple: true
+
+    - name: Download frontend test results
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+      with:
+        name: frontend-test-results
+        path: all-test-results/frontend
+
+    - name: Download E2E test results
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+      with:
+        name: e2e-test-results
+        path: all-test-results/e2e
+
+    - name: Download printer integration test results
+      uses: actions/download-artifact@v4
+      continue-on-error: true
+      with:
+        name: printer-integration-results
+        path: all-test-results/printer-integration
+
+    - name: Generate comprehensive test summary
+      run: |
+        cat > aggregate_results.py << 'PYTHON_SCRIPT'
+        import xml.etree.ElementTree as ET
+        import os
+        import glob
+
+        categories = []
+        total_tests = 0
+        total_passed = 0
+        total_failed = 0
+        total_errors = 0
+        total_skipped = 0
+
+        # Find all JUnit XML files
+        for xml_file in glob.glob('all-test-results/**/*.xml', recursive=True):
+            try:
+                tree = ET.parse(xml_file)
+                root = tree.getroot()
+
+                # Handle both testsuite and testsuites root elements
+                if root.tag == 'testsuites':
+                    testsuites = root.findall('.//testsuite')
+                else:
+                    testsuites = [root] if root.tag == 'testsuite' else root.findall('.//testsuite')
+
+                tests = sum(int(ts.get('tests', 0)) for ts in testsuites)
+                failures = sum(int(ts.get('failures', 0)) for ts in testsuites)
+                errors = sum(int(ts.get('errors', 0)) for ts in testsuites)
+                skipped = sum(int(ts.get('skipped', 0)) for ts in testsuites)
+                passed = tests - failures - errors - skipped
+
+                category_name = os.path.basename(os.path.dirname(xml_file))
+                if category_name == 'all-test-results':
+                    category_name = os.path.basename(xml_file).replace('test-results-', '').replace('.xml', '')
+
+                categories.append({
+                    'name': category_name,
+                    'tests': tests,
+                    'passed': passed,
+                    'failed': failures,
+                    'errors': errors,
+                    'skipped': skipped,
+                    'pass_rate': (passed * 100 // tests) if tests > 0 else 0
+                })
+
+                total_tests += tests
+                total_passed += passed
+                total_failed += failures
+                total_errors += errors
+                total_skipped += skipped
+
+            except Exception as e:
+                print(f"Warning: Could not parse {xml_file}: {e}")
+
+        # Print summary
+        print("## Complete Test Results Summary")
+        print()
+        print("### Results by Category")
+        print()
+        print("| Category | Tests | Passed | Failed | Errors | Skipped | Pass Rate |")
+        print("|----------|-------|--------|--------|--------|---------|-----------|")
+
+        for cat in sorted(categories, key=lambda x: x['name']):
+            status = "✅" if cat['failed'] == 0 and cat['errors'] == 0 else "❌"
+            print(f"| {status} {cat['name']} | {cat['tests']} | {cat['passed']} | {cat['failed']} | {cat['errors']} | {cat['skipped']} | {cat['pass_rate']}% |")
+
+        print()
+        print("### Overall Summary")
+        print()
+        overall_pass_rate = (total_passed * 100 // total_tests) if total_tests > 0 else 0
+        overall_status = "✅" if total_failed == 0 and total_errors == 0 else "❌"
+        print(f"| Metric | Value |")
+        print(f"|--------|-------|")
+        print(f"| {overall_status} **Total Tests** | **{total_tests}** |")
+        print(f"| Passed | {total_passed} |")
+        print(f"| Failed | {total_failed} |")
+        print(f"| Errors | {total_errors} |")
+        print(f"| Skipped | {total_skipped} |")
+        print(f"| **Overall Pass Rate** | **{overall_pass_rate}%** |")
+        print()
+
+        if total_failed > 0 or total_errors > 0:
+            print("### Failed Tests Summary")
+            print()
+            print("Check individual category artifacts for detailed failure information.")
+        PYTHON_SCRIPT
+
+        python3 aggregate_results.py >> $GITHUB_STEP_SUMMARY
+        rm -f aggregate_results.py
 
   # Security Scanning Job
   security-scan:
@@ -768,16 +928,18 @@ jobs:
         pip install -r requirements-test.txt
 
     - name: Run printer integration tests
+      continue-on-error: true
       timeout-minutes: 5
       run: |
         # Run printer-specific tests (already covered in main backend tests)
         # This job is kept for backwards compatibility but tests are now redundant
         echo "⚠️  Note: Printer tests are now included in main backend test job"
         echo "This job runs the same tests again for extra validation on non-PR builds"
-        timeout 240 python -m pytest tests/test_essential_printer_drivers.py tests/test_essential_printer_api.py tests/backend/test_api_printers.py \
+        python -m pytest tests/test_essential_printer_drivers.py tests/test_essential_printer_api.py tests/backend/test_api_printers.py tests/printers/ \
           --junit-xml=printer-test-results.xml \
-          -v \
-          --timeout=30 || true
+          --tb=short \
+          --timeout=30 \
+          -v
       env:
         ENVIRONMENT: testing
         # Mock printer endpoints for testing
