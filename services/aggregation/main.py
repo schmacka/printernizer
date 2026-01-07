@@ -21,9 +21,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from .config import settings
-from .database import init_db, get_db_dependency
-from .models import Submission, RateLimit
+from config import settings
+from database import init_db, get_db_dependency
+from models import Submission, RateLimit
 
 # Configure logging
 logging.basicConfig(
@@ -64,17 +64,22 @@ def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     return api_key
 
 
-# Request/Response models (matching Printernizer models)
+# Request/Response models (matching Printernizer client models)
+from typing import Optional, List
+
 class TimePeriodModel(BaseModel):
     """Time period for aggregated statistics."""
     start: datetime
     end: datetime
+    duration_days: int = Field(default=0, ge=0)
 
 
 class InstallationInfoModel(BaseModel):
     """Anonymous installation information."""
     installation_id: str
+    first_seen: Optional[datetime] = None
     app_version: str
+    python_version: Optional[str] = None
     platform: str
     deployment_mode: str
     country_code: str
@@ -82,30 +87,29 @@ class InstallationInfoModel(BaseModel):
 
 class PrinterFleetStatsModel(BaseModel):
     """Aggregated printer fleet statistics (no PII)."""
-    printer_count: int
-    printer_types: list[str]
-    printer_type_counts: Dict[str, int]
+    printer_count: int = Field(default=0, ge=0)
+    printer_types: List[str] = Field(default_factory=list)
+    printer_type_counts: Dict[str, int] = Field(default_factory=dict)
 
 
 class UsageStatsModel(BaseModel):
     """Aggregated usage statistics."""
-    total_jobs_created: int
-    total_jobs_completed: int
-    total_jobs_failed: int
-    total_files_downloaded: int
-    total_files_uploaded: int
-    uptime_hours: int
-    feature_usage: Dict[str, bool]
-    event_counts: Dict[str, int]
+    job_count: int = Field(default=0, ge=0)
+    file_count: int = Field(default=0, ge=0)
+    upload_count: int = Field(default=0, ge=0)
+    uptime_hours: int = Field(default=0, ge=0)
+    feature_usage: Dict[str, bool] = Field(default_factory=dict)
 
 
 class AggregatedStatsModel(BaseModel):
     """Complete aggregated statistics payload."""
-    schema_version: str = Field(default="1.0.0")
+    schema_version: str = Field(default="1.0")
+    submission_timestamp: Optional[datetime] = None
     period: TimePeriodModel
     installation: InstallationInfoModel
     printer_fleet: PrinterFleetStatsModel
-    usage: UsageStatsModel
+    usage_stats: UsageStatsModel
+    error_summary: Dict[str, int] = Field(default_factory=dict)
 
 
 class SubmissionResponse(BaseModel):
@@ -240,14 +244,15 @@ async def submit_statistics(
             printer_count=stats.printer_fleet.printer_count,
             printer_types=stats.printer_fleet.printer_types,
             printer_type_counts=stats.printer_fleet.printer_type_counts,
-            total_jobs_created=stats.usage.total_jobs_created,
-            total_jobs_completed=stats.usage.total_jobs_completed,
-            total_jobs_failed=stats.usage.total_jobs_failed,
-            total_files_downloaded=stats.usage.total_files_downloaded,
-            total_files_uploaded=stats.usage.total_files_uploaded,
-            uptime_hours=stats.usage.uptime_hours,
-            feature_usage=stats.usage.feature_usage,
-            event_counts=stats.usage.event_counts
+            # Map from client field names to database columns
+            total_jobs_created=stats.usage_stats.job_count,
+            total_jobs_completed=stats.usage_stats.job_count,  # Client only tracks total
+            total_jobs_failed=0,  # Not tracked separately by client
+            total_files_downloaded=stats.usage_stats.file_count,
+            total_files_uploaded=stats.usage_stats.upload_count,
+            uptime_hours=stats.usage_stats.uptime_hours,
+            feature_usage=stats.usage_stats.feature_usage,
+            event_counts=stats.error_summary  # Map error_summary to event_counts
         )
 
         db.add(submission)

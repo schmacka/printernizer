@@ -360,14 +360,14 @@ class PrinternizerSettings(BaseSettings):
     # =====================================================================
 
     usage_stats_endpoint: str = Field(
-        default="https://stats.printernizer.com/submit",
+        default="http://80.240.28.236:8080/submit",
         env="USAGE_STATS_ENDPOINT",
         description="Endpoint URL for submitting aggregated usage statistics."
     )
     usage_stats_api_key: str = Field(
-        default="printernizer-stats-api-key",
+        default="",
         env="USAGE_STATS_API_KEY",
-        description="API key for authenticating with usage statistics aggregation service."
+        description="API key for authenticating with usage statistics aggregation service. Contact the server admin for the key."
     )
     usage_stats_timeout: int = Field(
         default=10,
