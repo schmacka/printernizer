@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.22.0] - 2026-01-07
+
+### Fixed
+- **Data Flow Audit Resolution**: Fixed 8 frontend fields that were not persisting through backend
+  - Printer `location` and `description` now stored in database
+  - Job `file_id` links to library file checksums
+  - Job `customer_name` works on create (not just update)
+  - Job `material_cost` accepted in API and persisted
+  - Material `color_hex`, `location`, and `is_active` fully supported
+
+### Added
+- Database migrations for new fields:
+  - `024_add_printer_metadata.sql` - printer location/description columns
+  - `025_add_job_file_id.sql` - job file_id column
+  - `026_add_material_fields.sql` - material color_hex/location/is_active columns
+- Data Flow Audit documentation (`docs/DATA_FLOW_AUDIT.md`)
+
 ## [2.21.0] - 2026-01-07
 
 ### Added
