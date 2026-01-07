@@ -126,7 +126,7 @@ class JobRepository(BaseRepository):
         try:
             # Build dynamic INSERT query based on which fields are provided
             # This allows database DEFAULT values to be used for created_at/updated_at
-            columns = ['id', 'printer_id', 'printer_type', 'job_name', 'filename', 'status',
+            columns = ['id', 'printer_id', 'printer_type', 'job_name', 'filename', 'file_id', 'status',
                       'start_time', 'end_time', 'estimated_duration', 'actual_duration', 'progress',
                       'material_used', 'material_cost', 'power_cost', 'is_business', 'customer_info']
             values = [
@@ -135,6 +135,7 @@ class JobRepository(BaseRepository):
                 job_data['printer_type'],
                 job_data['job_name'],
                 job_data.get('filename'),
+                job_data.get('file_id'),
                 job_data.get('status', 'pending'),
                 job_data.get('start_time'),
                 job_data.get('end_time'),

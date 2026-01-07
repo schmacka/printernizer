@@ -456,6 +456,30 @@
 
 ## Technical Debt
 
+### Data Flow Issues (Frontend → Backend) ✅ RESOLVED (2026-01-07)
+
+> **See**: [`docs/DATA_FLOW_AUDIT.md`](DATA_FLOW_AUDIT.md) for complete audit report
+
+**Summary**: All 8 frontend fields that were not properly persisted have been fixed.
+
+| Priority | Form | Field | Issue | Status |
+|----------|------|-------|-------|--------|
+| High | Job | `material_cost` | Frontend sends but API doesn't accept | **FIXED** |
+| High | Job | `file_id` | Frontend sends but backend doesn't handle | **FIXED** |
+| Medium | Job | `customer_name` | Only works on update, not create | **FIXED** |
+| Medium | Printer | `location` | Accepted by API but not stored | **FIXED** |
+| Medium | Printer | `description` | Accepted by API but not stored | **FIXED** |
+| Medium | Material | `location` | Frontend sends but not stored | **FIXED** |
+| Medium | Material | `is_active` | Frontend sends but not stored | **FIXED** |
+| Low | Material | `color_hex` | Frontend sends but not stored | **FIXED** |
+
+**Migrations Applied**:
+- `024_add_printer_metadata.sql` - Added printer location, description columns
+- `025_add_job_file_id.sql` - Added job file_id column
+- `026_add_material_fields.sql` - Added material color_hex, location, is_active columns
+
+**Prevention**: See audit document for field addition checklist and verification steps.
+
 ### Code Cleanup
 
 - [x] **Remove Deprecated Method** (v2.14.1)
@@ -530,6 +554,7 @@
 | `CHANGELOG.md` | Version history |
 | `CONTRIBUTING.md` | Contribution guidelines |
 | `RELEASE.md` | Release process |
+| `docs/DATA_FLOW_AUDIT.md` | Frontend→Backend data flow audit |
 
 ### Test Commands
 
@@ -726,6 +751,8 @@ Created comprehensive Playwright E2E test suite covering all 10 pages using Page
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 14.0 | 2026-01-07 | Data Flow Audit issues resolved (8/8 fields fixed) |
+| 13.0 | 2026-01-07 | Added Data Flow Audit (8 broken fields identified) |
 | 12.0 | 2026-01-07 | 3D File Preview complete (v2.19.0) |
 | 11.0 | 2026-01-07 | E2E test suite documentation (v2.17.0 - 241/258 tests passing) |
 | 10.0 | 2026-01-07 | Unified Log Viewer complete (v2.18.0) |

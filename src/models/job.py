@@ -60,8 +60,11 @@ class JobCreate(BaseModel):
     printer_id: str
     job_name: str
     filename: Optional[str] = None
+    file_id: Optional[str] = None  # Library file checksum (SHA256)
     estimated_duration: Optional[int] = None
+    material_cost: Optional[float] = None  # Material cost in EUR
     is_business: bool = False
+    customer_name: Optional[str] = None  # Customer name for business jobs
     customer_info: Optional[Dict[str, Any]] = None
 
 
@@ -82,6 +85,8 @@ class JobUpdateRequest(BaseModel):
     customer_name: Optional[str] = None
     notes: Optional[str] = None
     file_name: Optional[str] = None
+    file_id: Optional[str] = None  # Library file checksum (SHA256)
+    material_cost: Optional[float] = None  # Material cost in EUR
     printer_id: Optional[str] = None
 
     @field_validator('job_name')

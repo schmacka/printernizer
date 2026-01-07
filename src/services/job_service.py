@@ -320,6 +320,11 @@ class JobService:
                 if not job_id or job_id == '':
                     raise ValueError("Generated job ID is empty")
 
+                # Build customer_info with customer_name if provided
+                customer_info = job_create.customer_info or {}
+                if job_create.customer_name:
+                    customer_info['customer_name'] = job_create.customer_name
+
                 # Prepare job data for database
                 db_job_data = {
                     'id': job_id,
@@ -327,10 +332,12 @@ class JobService:
                     'printer_type': 'unknown',  # This should be determined from printer service
                     'job_name': job_create.job_name,
                     'filename': job_create.filename,
+                    'file_id': job_create.file_id,
                     'status': JobStatus.PENDING,
                     'estimated_duration': job_create.estimated_duration,
+                    'material_cost': job_create.material_cost,
                     'is_business': job_create.is_business,
-                    'customer_info': json.dumps(job_create.customer_info) if job_create.customer_info else None
+                    'customer_info': json.dumps(customer_info) if customer_info else None
                 }
             else:
                 # Auto-created job - already has all fields
@@ -345,6 +352,7 @@ class JobService:
                     'printer_type': job_data.get('printer_type', 'unknown'),
                     'job_name': job_data['job_name'],
                     'filename': job_data.get('filename'),
+                    'file_id': job_data.get('file_id'),
                     'status': job_data.get('status', JobStatus.PENDING),
                     'start_time': job_data.get('start_time'),  # From printer
                     'end_time': job_data.get('end_time'),

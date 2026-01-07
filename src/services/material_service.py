@@ -74,6 +74,9 @@ class MaterialService:
                     batch_number TEXT,
                     notes TEXT,
                     printer_id TEXT,
+                    color_hex TEXT,
+                    location TEXT,
+                    is_active BOOLEAN DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (printer_id) REFERENCES printers(id) ON DELETE SET NULL
@@ -134,6 +137,9 @@ class MaterialService:
             batch_number=row['batch_number'],
             notes=row['notes'],
             printer_id=row['printer_id'],
+            color_hex=row['color_hex'] if 'color_hex' in row.keys() else None,
+            location=row['location'] if 'location' in row.keys() else None,
+            is_active=bool(row['is_active']) if 'is_active' in row.keys() and row['is_active'] is not None else True,
             created_at=datetime.fromisoformat(row['created_at']),
             updated_at=datetime.fromisoformat(row['updated_at'])
         )
@@ -157,6 +163,9 @@ class MaterialService:
             batch_number=material_data.batch_number,
             notes=material_data.notes,
             printer_id=material_data.printer_id,
+            color_hex=material_data.color_hex,
+            location=material_data.location,
+            is_active=material_data.is_active,
             created_at=now,
             updated_at=now
         )
@@ -166,14 +175,16 @@ class MaterialService:
                 INSERT INTO materials (
                     id, material_type, brand, color, diameter, weight,
                     remaining_weight, cost_per_kg, purchase_date, vendor,
-                    batch_number, notes, printer_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    batch_number, notes, printer_id, color_hex, location,
+                    is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 material.id, material.material_type.value, material.brand.value,
                 material.color.value, material.diameter, material.weight,
                 material.remaining_weight, str(material.cost_per_kg),
                 material.purchase_date.isoformat(), material.vendor,
                 material.batch_number, material.notes, material.printer_id,
+                material.color_hex, material.location, material.is_active,
                 material.created_at.isoformat(), material.updated_at.isoformat()
             ))
             await conn.commit()

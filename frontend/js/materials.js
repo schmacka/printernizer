@@ -481,12 +481,19 @@ class MaterialsManager {
 
         // Build request data based on operation
         let data;
+        const colorHexInput = document.getElementById('materialColorHex');
+        const locationInput = document.getElementById('materialLocation');
+        const isActiveInput = document.getElementById('materialIsActive');
+
         if (materialId) {
             // PATCH: Only send MaterialUpdate fields
             data = {
                 remaining_weight: remainingWeightG / 1000,  // Convert g to kg
                 cost_per_kg: pricePerKg !== null ? pricePerKg : 0,
-                notes: document.getElementById('materialNotes').value || null
+                notes: document.getElementById('materialNotes').value || null,
+                color_hex: colorHexInput ? colorHexInput.value || null : null,
+                location: locationInput ? locationInput.value || null : null,
+                is_active: isActiveInput ? isActiveInput.checked : true
             };
         } else {
             // POST: Send full MaterialCreate
@@ -499,7 +506,10 @@ class MaterialsManager {
                 remaining_weight: remainingWeightG / 1000,  // Convert g to kg
                 cost_per_kg: pricePerKg !== null ? pricePerKg : 0,
                 vendor: document.getElementById('materialBrand').value || 'Unknown',
-                notes: document.getElementById('materialNotes').value || null
+                notes: document.getElementById('materialNotes').value || null,
+                color_hex: colorHexInput ? colorHexInput.value || null : null,
+                location: locationInput ? locationInput.value || null : null,
+                is_active: isActiveInput ? isActiveInput.checked : true
             };
         }
 

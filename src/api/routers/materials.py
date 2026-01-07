@@ -53,6 +53,9 @@ class MaterialResponse(BaseModel):
     batch_number: Optional[str]
     notes: Optional[str]
     printer_id: Optional[str]
+    color_hex: Optional[str]  # Hex color code (e.g., #FF5733)
+    location: Optional[str]  # Storage location
+    is_active: bool  # Whether the material is active/available
     created_at: datetime
     updated_at: datetime
 
@@ -107,6 +110,9 @@ async def get_materials(
             batch_number=m.batch_number,
             notes=m.notes,
             printer_id=m.printer_id,
+            color_hex=m.color_hex,
+            location=m.location,
+            is_active=m.is_active,
             created_at=m.created_at,
             updated_at=m.updated_at
         )
@@ -204,6 +210,9 @@ async def get_material(
         batch_number=material.batch_number,
         notes=material.notes,
         printer_id=material.printer_id,
+        color_hex=material.color_hex,
+        location=material.location,
+        is_active=material.is_active,
         created_at=material.created_at,
         updated_at=material.updated_at
     )
@@ -233,6 +242,9 @@ async def create_material(
             batch_number=material.batch_number,
             notes=material.notes,
             printer_id=material.printer_id,
+            color_hex=material.color_hex,
+            location=material.location,
+            is_active=material.is_active,
             created_at=material.created_at,
             updated_at=material.updated_at
         )
@@ -266,6 +278,9 @@ async def update_material(
         batch_number=material.batch_number,
         notes=material.notes,
         printer_id=material.printer_id,
+        color_hex=material.color_hex,
+        location=material.location,
+        is_active=material.is_active,
         created_at=material.created_at,
         updated_at=material.updated_at
     )

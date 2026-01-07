@@ -692,6 +692,8 @@ class PrinterService:
         config_dict = {
             "name": name,
             "type": type_str,
+            "location": location,
+            "description": description,
             **connection_config
         }
 
@@ -719,6 +721,8 @@ class PrinterService:
                     "access_code": connection_config.get("access_code"),
                     "serial_number": connection_config.get("serial_number"),
                     "webcam_url": connection_config.get("webcam_url"),
+                    "location": location,
+                    "description": description,
                     "is_active": True
                 })
 
@@ -731,6 +735,8 @@ class PrinterService:
             access_code=connection_config.get("access_code"),
             serial_number=connection_config.get("serial_number"),
             webcam_url=connection_config.get("webcam_url"),
+            location=location,
+            description=description,
             is_active=True,
             status=PrinterStatus.UNKNOWN
         )
@@ -766,6 +772,10 @@ class PrinterService:
         # Map API fields to config fields
         if "name" in updates:
             config_dict["name"] = updates["name"]
+        if "location" in updates:
+            config_dict["location"] = updates["location"]
+        if "description" in updates:
+            config_dict["description"] = updates["description"]
         if "connection_config" in updates:
             config_dict.update(updates["connection_config"])
         if "is_enabled" in updates:
@@ -779,6 +789,10 @@ class PrinterService:
         db_updates = {}
         if "name" in updates:
             db_updates["name"] = updates["name"]
+        if "location" in updates:
+            db_updates["location"] = updates["location"]
+        if "description" in updates:
+            db_updates["description"] = updates["description"]
         if "connection_config" in updates:
             conn_config = updates["connection_config"]
             if "ip_address" in conn_config:
@@ -821,7 +835,9 @@ class PrinterService:
                 api_key=updated_config.api_key,
                 access_code=updated_config.access_code,
                 serial_number=updated_config.serial_number,
-                webcam_url=getattr(updated_config, 'webcam_url', None),
+                webcam_url=updated_config.webcam_url,
+                location=updated_config.location,
+                description=updated_config.description,
                 is_active=updated_config.is_active,
                 status=PrinterStatus.UNKNOWN
             )

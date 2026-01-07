@@ -70,6 +70,9 @@ class MaterialSpool:
     batch_number: Optional[str] = None
     notes: Optional[str] = None
     printer_id: Optional[str] = None  # Currently loaded in printer
+    color_hex: Optional[str] = None  # Hex color code (e.g., #FF5733)
+    location: Optional[str] = None  # Storage location
+    is_active: bool = True  # Whether the material is active/available
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -111,6 +114,9 @@ class MaterialCreate(BaseModel):
     batch_number: Optional[str] = Field(None, max_length=50)
     notes: Optional[str] = Field(None, max_length=500)
     printer_id: Optional[str] = None
+    color_hex: Optional[str] = Field(None, max_length=7, pattern=r'^#[0-9A-Fa-f]{6}$', description="Hex color code (e.g., #FF5733)")
+    location: Optional[str] = Field(None, max_length=100, description="Storage location")
+    is_active: bool = Field(True, description="Whether the material is active/available")
 
     @field_validator('remaining_weight')
     def validate_remaining(cls, v, values):
@@ -128,6 +134,9 @@ class MaterialUpdate(BaseModel):
     cost_per_kg: Optional[Decimal] = Field(None, ge=0, le=1000)
     printer_id: Optional[str] = None
     notes: Optional[str] = Field(None, max_length=500)
+    color_hex: Optional[str] = Field(None, max_length=7, description="Hex color code (e.g., #FF5733)")
+    location: Optional[str] = Field(None, max_length=100, description="Storage location")
+    is_active: Optional[bool] = Field(None, description="Whether the material is active/available")
 
 
 class MaterialConsumption(BaseModel):

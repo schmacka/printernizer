@@ -49,6 +49,8 @@ class Printer(BaseModel):
     access_code: Optional[str] = Field(None, description="Access code for Bambu Lab")
     serial_number: Optional[str] = Field(None, description="Printer serial number", min_length=8, max_length=20)
     webcam_url: Optional[str] = Field(None, description="External webcam URL (HTTP snapshot or RTSP stream)")
+    location: Optional[str] = Field(None, description="Physical location of printer")
+    description: Optional[str] = Field(None, description="Printer description")
     is_active: bool = Field(True, description="Whether printer monitoring is active")
     status: PrinterStatus = Field(PrinterStatus.UNKNOWN, description="Current printer status")
     last_seen: Optional[datetime] = Field(None, description="Last successful communication")
