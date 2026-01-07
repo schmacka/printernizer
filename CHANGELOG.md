@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.23.0] - 2026-01-07
+
+### Added
+- **Explicit ffmpeg Check for RTSP Streams**: Clear messaging when ffmpeg is missing
+  - Camera status API now includes `ffmpeg_available` and `ffmpeg_required` fields
+  - Frontend shows explicit warning: "RTSP stream requires ffmpeg. Install with: apt-get install ffmpeg"
+  - Early ffmpeg detection prevents confusing "camera not available" errors
+
 ## [2.22.1] - 2026-01-07
 
 ### Fixed
