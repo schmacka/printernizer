@@ -120,34 +120,85 @@ class MigrationService:
         try:
             if not self.database:
                 raise RuntimeError("Database not initialized")
-            
+
             logger.info("Running migration", migration_name=migration_name)
-            
+
             # Read migration SQL
             sql_content = migration_file.read_text(encoding='utf-8')
-            
+
             # Execute migration
             conn = self.database.get_connection()
-            
-            # Execute the entire SQL content as one script
-            await conn.executescript(sql_content)
-            
+
+            # Parse and execute statements individually to handle errors gracefully
+            # (Similar to database.py approach for duplicate column tolerance)
+            statements = self._parse_sql_statements(sql_content)
+
+            for statement in statements:
+                try:
+                    await conn.execute(statement)
+                except sqlite3.OperationalError as e:
+                    error_msg = str(e).lower()
+                    # Ignore "duplicate column" and "already exists" errors
+                    # These can happen when database.py already applied the migration
+                    if 'duplicate column' in error_msg or 'already exists' in error_msg:
+                        logger.debug("Skipping statement (already applied)",
+                                    migration_name=migration_name,
+                                    reason=str(e))
+                        continue
+                    # Ignore "no such table" errors for optional operations
+                    elif 'no such table' in error_msg:
+                        logger.debug("Skipping statement (table not found)",
+                                    migration_name=migration_name,
+                                    reason=str(e))
+                        continue
+                    else:
+                        raise
+
             # Record migration as completed
             async with conn.execute("""
-                INSERT INTO schema_migrations (migration_name) 
+                INSERT INTO schema_migrations (migration_name)
                 VALUES (?)
             """, (migration_name,)):
                 pass
-            
+
             await conn.commit()
-            
+
             logger.info("Migration completed successfully", migration_name=migration_name)
-            
+
         except Exception as e:
-            logger.error("Failed to run migration", 
-                        migration_name=migration_name, 
+            logger.error("Failed to run migration",
+                        migration_name=migration_name,
                         error=str(e))
             raise
+
+    def _parse_sql_statements(self, sql_content: str) -> List[str]:
+        """Parse SQL content into individual statements."""
+        statements = []
+        current = []
+
+        for line in sql_content.split('\n'):
+            # Remove comments
+            if '--' in line:
+                line = line[:line.index('--')]
+            line = line.strip()
+            if not line:
+                continue
+
+            current.append(line)
+
+            if line.endswith(';'):
+                stmt = ' '.join(current).strip()
+                if stmt and stmt != ';':
+                    statements.append(stmt)
+                current = []
+
+        # Add any remaining statement
+        if current:
+            stmt = ' '.join(current).strip()
+            if stmt and stmt != ';':
+                statements.append(stmt)
+
+        return statements
     
     async def get_migration_status(self) -> Dict[str, Any]:
         """Get migration status information."""
