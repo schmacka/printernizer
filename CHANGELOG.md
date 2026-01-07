@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.0] - 2026-01-07
+
+### Added
+- **Usage Statistics Collection Server**: Deploy and configure telemetry aggregation service
+  - Server endpoint at `http://80.240.28.236:8080`
+  - SQLite database for storing anonymous statistics
+  - Systemd service for automatic startup
+  - Rate limiting and API key authentication
+
+### Changed
+- Updated default usage statistics endpoint to production server
+- Fixed aggregation service models to match client payload format
+- Added usage statistics settings documentation to `.env.example`
+
 ## [2.19.0] - 2026-01-07
 
 ### Added
