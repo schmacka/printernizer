@@ -172,12 +172,19 @@ class MigrationService:
             raise
 
     def _parse_sql_statements(self, sql_content: str) -> List[str]:
-        """Parse SQL content into individual statements."""
+        """Parse SQL content into individual statements.
+
+        Handles:
+        - Multi-line statements
+        - CREATE TRIGGER blocks with BEGIN/END
+        - Inline comments
+        """
         statements = []
         current = []
+        in_trigger_block = False
 
         for line in sql_content.split('\n'):
-            # Remove comments
+            # Remove inline comments (but preserve -- in strings would need more complex parsing)
             if '--' in line:
                 line = line[:line.index('--')]
             line = line.strip()
@@ -185,8 +192,23 @@ class MigrationService:
                 continue
 
             current.append(line)
+            line_upper = line.upper()
 
-            if line.endswith(';'):
+            # Track if we're entering a CREATE TRIGGER block
+            if 'CREATE TRIGGER' in line_upper:
+                in_trigger_block = True
+
+            # In trigger blocks, look for END; to close the block
+            if in_trigger_block:
+                if line_upper.startswith('END') and line.endswith(';'):
+                    # End of trigger block
+                    in_trigger_block = False
+                    stmt = ' '.join(current).strip()
+                    if stmt and stmt != ';':
+                        statements.append(stmt)
+                    current = []
+            elif line.endswith(';'):
+                # Normal statement end (not in trigger block)
                 stmt = ' '.join(current).strip()
                 if stmt and stmt != ';':
                     statements.append(stmt)
