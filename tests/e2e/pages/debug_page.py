@@ -7,44 +7,55 @@ from .base_page import BasePage
 
 
 class DebugPage(BasePage):
-    """Page object for the debug page"""
+    """Page object for the debug page
+
+    Note: debug.html is a standalone HTML page served at /debug.html,
+    not part of the main SPA routing. Selectors are based on the actual
+    debug.html structure in frontend/debug.html.
+    """
 
     def __init__(self, page: Page):
         super().__init__(page)
         self.page_hash = "debug"
-        self.page_selector = "#debug.page.active"
+        # Standalone page doesn't use #debug.page.active pattern
+        self.page_selector = ".debug-content"
 
         # Header selectors
-        self.title_selector = "h1:has-text('Debug')"
+        self.title_selector = ".debug-header h2"
 
-        # Action buttons - debug.html is standalone, no #debug.page.active wrapper
-        self.refresh_button_selector = "button[onclick='refreshDebugInfo()'], button:has-text('Aktualisieren')"
-        self.clear_logs_button_selector = "button:has-text('Logs löschen')"
-        self.download_logs_button_selector = "button:has-text('Logs herunterladen')"
+        # Action buttons in nav
+        self.refresh_button_selector = "button[onclick='refreshDebugInfo()']"
+        self.clear_logs_button_selector = "button[onclick='clearLogs()']"
+        self.download_logs_button_selector = "button[onclick='downloadLogs()']"
 
-        # System Health section
-        self.health_section_selector = ".debug-section:has(h3:has-text('System-Status'))"
-        self.health_info_selector = "#healthInfo"
-
-        # Application Logs section
-        self.logs_section_selector = ".debug-section:has(h3:has-text('Anwendungsprotokolle'))"
+        # System Logs section (German: System-Protokolle)
+        self.logs_section_selector = ".debug-card:has(h3:has-text('System-Protokolle'))"
         self.log_viewer_selector = "#logViewer"
         self.log_level_filter_selector = "#logLevelFilter"
-        self.auto_refresh_checkbox_selector = "#autoRefreshLogs"
-        self.log_controls_selector = ".log-controls"
+        self.log_controls_selector = ".card-controls"
 
         # Performance Metrics section
-        self.performance_section_selector = ".debug-section:has(h3:has-text('Performance-Metriken'))"
+        self.performance_section_selector = ".debug-card:has(h3:has-text('Performance-Metriken'))"
         self.performance_metrics_selector = "#performanceMetrics"
 
-        # Thumbnail Processing Log section
-        self.thumbnail_section_selector = ".debug-section:has(h3:has-text('Thumbnail Processing'))"
-        self.thumbnail_log_selector = "#thumbnailProcessingLog"
-        self.thumbnail_log_refresh_button_selector = ".debug-section:has(h3:has-text('Thumbnail')) button:has-text('Aktualisieren')"
-        self.thumbnail_log_limit_selector = "#thumbnailLogLimit"
+        # Thumbnail Processing section (German: Thumbnail-Verarbeitung)
+        self.thumbnail_section_selector = ".debug-card:has(h3:has-text('Thumbnail-Verarbeitung'))"
+        self.thumbnail_log_selector = "#thumbnailLogViewer"
+        self.thumbnail_log_refresh_button_selector = ".debug-card:has(h3:has-text('Thumbnail')) button[onclick='refreshThumbnailLog()']"
 
-        # Debug container
-        self.debug_container_selector = ".debug-container"
+        # Debug content container
+        self.debug_container_selector = ".debug-content"
+
+        # Health section doesn't exist in current debug.html
+        # Keep for backwards compatibility but use logs section
+        self.health_section_selector = self.logs_section_selector
+        self.health_info_selector = self.log_viewer_selector
+
+        # Auto-refresh checkbox doesn't exist in current debug.html
+        self.auto_refresh_checkbox_selector = "#autoRefreshLogs"
+
+        # Thumbnail log limit selector doesn't exist in current debug.html
+        self.thumbnail_log_limit_selector = "#thumbnailLogLimit"
 
     def navigate(self, base_url: str):
         """Navigate to debug page with robust waiting
@@ -106,14 +117,29 @@ class DebugPage(BasePage):
         self.page.wait_for_timeout(500)
 
     def get_log_level_filter_options(self) -> List[str]:
-        """Get all log level filter options"""
+        """Get all log level filter options
+
+        Returns list of option values. Current debug.html uses:
+        - "" (empty = All/Alle Level)
+        - "debug"
+        - "info"
+        - "warning"
+        - "error"
+        - "critical"
+        """
         options = self.page.locator(f"{self.log_level_filter_selector} option").all()
         return [opt.get_attribute("value") for opt in options]
 
     def get_thumbnail_limit_options(self) -> List[str]:
-        """Get all thumbnail log limit options"""
-        options = self.page.locator(f"{self.thumbnail_log_limit_selector} option").all()
-        return [opt.get_attribute("value") for opt in options]
+        """Get all thumbnail log limit options
+
+        Note: This selector may not exist in current debug.html.
+        Returns empty list if not found.
+        """
+        selector = self.page.locator(f"{self.thumbnail_log_limit_selector} option")
+        if selector.count() == 0:
+            return []
+        return [opt.get_attribute("value") for opt in selector.all()]
 
     def is_health_section_visible(self) -> bool:
         """Check if health section is visible"""

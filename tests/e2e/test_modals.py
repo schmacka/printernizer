@@ -361,9 +361,12 @@ class TestSettingsModal:
 class TestDetailModals:
     """Test suite for detail modals (printer, material, job details)"""
 
-    @pytest.mark.skip(reason="Requires printers to be configured in database")
-    def test_printer_details_modal(self, app_page: Page, base_url: str):
+    def test_printer_details_modal(self, app_page: Page, base_url: str, seeded_printers):
         """Test that printer details modal opens"""
+        # Skip if no printers were seeded (API not available)
+        if not seeded_printers:
+            pytest.skip("Could not seed printers via API - backend may not be running")
+
         wait_for_page_ready(app_page, base_url, "printers")
         app_page.wait_for_timeout(1000)
 
@@ -376,11 +379,14 @@ class TestDetailModals:
             modal = app_page.locator("#printerDetailModal.show, .modal.show:has-text('Details')")
             expect(modal.first).to_be_visible(timeout=E2E_TIMEOUT)
         else:
-            pytest.skip("No printers available")
+            pytest.skip("No printers available despite seeding")
 
-    @pytest.mark.skip(reason="Requires materials to be configured in database")
-    def test_material_details_modal(self, app_page: Page, base_url: str):
+    def test_material_details_modal(self, app_page: Page, base_url: str, seeded_materials):
         """Test that material details modal opens"""
+        # Skip if no materials were seeded (API not available)
+        if not seeded_materials:
+            pytest.skip("Could not seed materials via API - backend may not be running")
+
         wait_for_page_ready(app_page, base_url, "materials")
         app_page.wait_for_timeout(1000)
 
@@ -393,11 +399,14 @@ class TestDetailModals:
             modal = app_page.locator("#materialDetailModal.show, .modal.show:has-text('Details')")
             expect(modal.first).to_be_visible(timeout=E2E_TIMEOUT)
         else:
-            pytest.skip("No materials available")
+            pytest.skip("No materials available despite seeding")
 
-    @pytest.mark.skip(reason="Requires jobs to be configured in database")
-    def test_job_details_modal(self, app_page: Page, base_url: str):
+    def test_job_details_modal(self, app_page: Page, base_url: str, seeded_jobs):
         """Test that job details modal opens"""
+        # Skip if no jobs were seeded (API not available)
+        if not seeded_jobs:
+            pytest.skip("Could not seed jobs via API - backend may not be running")
+
         wait_for_page_ready(app_page, base_url, "jobs")
         app_page.wait_for_timeout(1000)
 
@@ -410,4 +419,4 @@ class TestDetailModals:
             modal = app_page.locator("#jobDetailModal.show, .modal.show:has-text('Details')")
             expect(modal.first).to_be_visible(timeout=E2E_TIMEOUT)
         else:
-            pytest.skip("No jobs available")
+            pytest.skip("No jobs available despite seeding")

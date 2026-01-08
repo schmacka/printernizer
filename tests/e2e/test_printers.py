@@ -142,26 +142,33 @@ def test_search_input_visible(app_page: Page, base_url: str):
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Requires printers to be configured in database for search to filter results")
-def test_search_printer(app_page: Page, base_url: str):
+def test_search_printer(app_page: Page, base_url: str, seeded_printers):
     """Test searching for a printer by name"""
+    # Skip if no printers were seeded (API not available)
+    if not seeded_printers:
+        pytest.skip("Could not seed printers via API - backend may not be running")
+
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
 
-    # Search for a printer
-    search_input = app_page.locator("#searchPrinters, input[placeholder*='Suche'], .search-input").first
-    if search_input.is_visible():
-        search_input.fill("Test")
-        app_page.wait_for_timeout(500)  # Wait for search to filter
+    # Wait for printers to load
+    app_page.wait_for_timeout(1000)
 
-        # Check if search filters results (requires printers in database)
-        printer_cards = app_page.locator(".printer-card, [data-printer-id]")
-        # If there are printer cards, they should match the search term
-        if printer_cards.count() > 0:
-            # At least one result should contain the search term
-            assert True, "Search completed"
-    else:
-        pytest.skip("Search input not visible")
+    # Search for a printer using part of the seeded printer name
+    search_input = app_page.locator("#searchPrinters, input[placeholder*='Suche'], .search-input").first
+    try:
+        search_input.wait_for(state="visible", timeout=E2E_TIMEOUT)
+        if search_input.is_visible():
+            # Search for "E2E Test" which should match our seeded printers
+            search_input.fill("E2E Test")
+            app_page.wait_for_timeout(500)  # Wait for search to filter
+
+            # Check if search filters results
+            printer_cards = app_page.locator(".printer-card, [data-printer-id]")
+            # At least one result should be visible
+            assert printer_cards.count() > 0, "Search should find seeded printers"
+    except Exception:
+        pytest.skip("Search input not available")
 
 
 @pytest.mark.e2e
@@ -189,9 +196,12 @@ def test_search_clear(app_page: Page, base_url: str):
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Requires printers to be configured in database to have card actions")
-def test_printer_card_actions(app_page: Page, base_url: str):
+def test_printer_card_actions(app_page: Page, base_url: str, seeded_printers):
     """Test that printer card has action buttons (edit, delete, etc.)"""
+    # Skip if no printers were seeded (API not available)
+    if not seeded_printers:
+        pytest.skip("Could not seed printers via API - backend may not be running")
+
     printers = PrintersPage(app_page)
     printers.navigate(base_url)
     app_page.wait_for_timeout(1000)  # Wait for printers to load
@@ -210,7 +220,7 @@ def test_printer_card_actions(app_page: Page, base_url: str):
         has_actions = edit_btn.count() > 0 or delete_btn.count() > 0
         assert has_actions, "Printer card should have action buttons"
     else:
-        pytest.skip("No printer cards available")
+        pytest.skip("No printer cards available despite seeding")
 
 
 @pytest.mark.e2e

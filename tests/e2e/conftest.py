@@ -523,3 +523,223 @@ def click_and_wait_for_modal(page: Page):
             timeout=timeout
         )
     return _click
+
+
+# ============================================================================
+# API Seeding Fixtures for E2E Tests
+# ============================================================================
+
+import requests
+import uuid
+
+
+@pytest.fixture
+def seeded_printers(base_url: str):
+    """
+    Create test printers via API before E2E tests.
+    Cleans up created printers after the test.
+
+    Yields:
+        List of created printer data dictionaries
+    """
+    created_printers = []
+    api_base = base_url.rstrip('/')
+
+    # Create test printers
+    test_printers = [
+        {
+            "name": f"E2E Test Bambu {uuid.uuid4().hex[:6]}",
+            "printer_type": "bambu_lab",
+            "ip_address": "192.168.1.200",
+            "connection_config": {"access_code": "12345678", "serial_number": "E2ETEST1"},
+            "location": "E2E Test Lab",
+            "description": "E2E test printer - auto-created",
+            "is_enabled": True
+        },
+        {
+            "name": f"E2E Test Prusa {uuid.uuid4().hex[:6]}",
+            "printer_type": "prusa_core",
+            "ip_address": "192.168.1.201",
+            "connection_config": {"api_key": "e2e-test-key"},
+            "location": "E2E Test Lab",
+            "description": "E2E test printer - auto-created",
+            "is_enabled": True
+        }
+    ]
+
+    for printer_data in test_printers:
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/printers",
+                json=printer_data,
+                timeout=10
+            )
+            if response.status_code in [200, 201]:
+                created_printer = response.json()
+                created_printers.append(created_printer)
+        except requests.RequestException:
+            pass  # Silently continue if API not available
+
+    yield created_printers
+
+    # Cleanup: delete created printers
+    for printer in created_printers:
+        try:
+            requests.delete(
+                f"{api_base}/api/v1/printers/{printer['id']}",
+                timeout=10
+            )
+        except requests.RequestException:
+            pass  # Silently continue if cleanup fails
+
+
+@pytest.fixture
+def seeded_materials(base_url: str):
+    """
+    Create test materials via API before E2E tests.
+    Cleans up created materials after the test.
+
+    Yields:
+        List of created material data dictionaries
+    """
+    created_materials = []
+    api_base = base_url.rstrip('/')
+
+    test_materials = [
+        {
+            "material_type": "PLA",
+            "brand": "E2E Test Brand",
+            "color": "Blue",
+            "diameter": 1.75,
+            "weight": 1000,
+            "remaining_weight": 800,
+            "cost_per_kg": "20.00",
+            "vendor": "E2E Test Vendor",
+            "notes": "E2E test material - auto-created",
+            "color_hex": "#0000FF",
+            "location": "E2E Test Shelf",
+            "is_active": True
+        },
+        {
+            "material_type": "PETG",
+            "brand": "E2E Test Brand",
+            "color": "Orange",
+            "diameter": 1.75,
+            "weight": 1000,
+            "remaining_weight": 500,
+            "cost_per_kg": "25.00",
+            "vendor": "E2E Test Vendor",
+            "notes": "E2E test material - auto-created",
+            "color_hex": "#FF8000",
+            "location": "E2E Test Shelf",
+            "is_active": True
+        }
+    ]
+
+    for material_data in test_materials:
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/materials",
+                json=material_data,
+                timeout=10
+            )
+            if response.status_code in [200, 201]:
+                created_material = response.json()
+                created_materials.append(created_material)
+        except requests.RequestException:
+            pass  # Silently continue if API not available
+
+    yield created_materials
+
+    # Cleanup: delete created materials
+    for material in created_materials:
+        try:
+            requests.delete(
+                f"{api_base}/api/v1/materials/{material['id']}",
+                timeout=10
+            )
+        except requests.RequestException:
+            pass  # Silently continue if cleanup fails
+
+
+@pytest.fixture
+def seeded_jobs(base_url: str, seeded_printers):
+    """
+    Create test jobs via API before E2E tests.
+    Requires seeded_printers fixture to get valid printer IDs.
+    Cleans up created jobs after the test.
+
+    Yields:
+        List of created job data dictionaries
+    """
+    created_jobs = []
+    api_base = base_url.rstrip('/')
+
+    # Skip if no printers were created
+    if not seeded_printers:
+        yield []
+        return
+
+    printer_id = seeded_printers[0].get('id')
+    if not printer_id:
+        yield []
+        return
+
+    test_jobs = [
+        {
+            "printer_id": printer_id,
+            "job_name": f"E2E Test Job {uuid.uuid4().hex[:6]}",
+            "filename": "e2e_test_model.gcode",
+            "material_type": "PLA",
+            "is_business": False
+        },
+        {
+            "printer_id": printer_id,
+            "job_name": f"E2E Business Job {uuid.uuid4().hex[:6]}",
+            "filename": "e2e_business_model.gcode",
+            "material_type": "PETG",
+            "is_business": True,
+            "customer_name": "E2E Test Customer"
+        }
+    ]
+
+    for job_data in test_jobs:
+        try:
+            response = requests.post(
+                f"{api_base}/api/v1/jobs",
+                json=job_data,
+                timeout=10
+            )
+            if response.status_code in [200, 201]:
+                created_job = response.json()
+                created_jobs.append(created_job)
+        except requests.RequestException:
+            pass  # Silently continue if API not available
+
+    yield created_jobs
+
+    # Cleanup: delete created jobs
+    for job in created_jobs:
+        try:
+            requests.delete(
+                f"{api_base}/api/v1/jobs/{job['id']}",
+                timeout=10
+            )
+        except requests.RequestException:
+            pass  # Silently continue if cleanup fails
+
+
+@pytest.fixture
+def seeded_all_data(seeded_printers, seeded_materials, seeded_jobs):
+    """
+    Convenience fixture that creates printers, materials, and jobs.
+    Use this when a test needs all types of data.
+
+    Yields:
+        Dictionary with 'printers', 'materials', and 'jobs' keys
+    """
+    yield {
+        'printers': seeded_printers,
+        'materials': seeded_materials,
+        'jobs': seeded_jobs
+    }

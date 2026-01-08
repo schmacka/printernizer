@@ -236,6 +236,68 @@ def populated_database(db_connection, sample_printer_data, sample_job_data, samp
     return db_connection
 
 
+@pytest.fixture
+def seeded_database_for_performance(db_connection, sample_printer_data):
+    """
+    Database seeded with 500+ records for performance testing.
+
+    Creates test printer and 500+ jobs with varied statuses and dates.
+    Use with `@pytest.mark.integration` tests.
+
+    Usage:
+        @pytest.mark.integration
+        def test_large_job_list_performance(client, seeded_database_for_performance):
+            # Test with 500+ jobs in database
+            pass
+    """
+    import random
+    from datetime import datetime, timedelta
+
+    cursor = db_connection.cursor()
+
+    # Insert test printer first
+    test_printer = sample_printer_data[0]
+    columns = ', '.join(test_printer.keys())
+    placeholders = ', '.join(['?' for _ in test_printer])
+    cursor.execute(
+        f"INSERT INTO printers ({columns}) VALUES ({placeholders})",
+        list(test_printer.values())
+    )
+
+    # Generate 550 jobs with varied data
+    statuses = ['completed', 'completed', 'completed', 'completed', 'failed', 'queued']
+    materials = ['PLA', 'PETG', 'ABS', 'TPU']
+    base_date = datetime(2025, 1, 1)
+
+    for i in range(550):
+        job_data = {
+            'id': f'perf_test_job_{i:05d}',
+            'printer_id': test_printer['id'],
+            'job_name': f'performance_test_job_{i:03d}.3mf',
+            'filename': f'perf_model_{i:03d}.3mf',
+            'status': random.choice(statuses),
+            'progress': 100 if random.choice(statuses) == 'completed' else random.randint(0, 99),
+            'material_type': random.choice(materials),
+            'material_brand': 'TestBrand',
+            'material_color': 'Blue',
+            'material_estimated_usage': round(random.uniform(10.0, 100.0), 2),
+            'is_business': i % 3 == 0,  # Every third job is business
+            'customer_name': f'Test Customer {i}' if i % 3 == 0 else None,
+            'created_at': (base_date + timedelta(days=i // 10)).isoformat(),
+            'updated_at': (base_date + timedelta(days=i // 10, hours=random.randint(1, 23))).isoformat()
+        }
+
+        columns = ', '.join(job_data.keys())
+        placeholders = ', '.join(['?' for _ in job_data])
+        cursor.execute(
+            f"INSERT INTO jobs ({columns}) VALUES ({placeholders})",
+            list(job_data.values())
+        )
+
+    db_connection.commit()
+    return db_connection
+
+
 # =====================================================
 # API MOCK FIXTURES
 # =====================================================

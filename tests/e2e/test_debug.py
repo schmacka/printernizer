@@ -8,9 +8,12 @@ from tests.e2e.pages.debug_page import DebugPage
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Debug page is standalone HTML (/debug.html) not served by test server")
 class TestDebugPage:
-    """Test suite for the Debug page"""
+    """Test suite for the Debug page
+
+    Note: debug.html is a standalone HTML file served at /debug.html,
+    not part of the main SPA routing.
+    """
 
     def test_debug_page_loads(self, app_page: Page, base_url: str):
         """Test that the debug page loads successfully"""
@@ -18,7 +21,8 @@ class TestDebugPage:
         debug.navigate(base_url)
 
         assert debug.is_loaded(), "Debug page should load successfully"
-        expect(app_page.locator("#debug.page.active h1")).to_contain_text("Debug")
+        # Standalone page has h2 in .debug-header, not h1 in #debug.page.active
+        expect(app_page.locator(".debug-header h2")).to_contain_text("Debug")
 
     def test_refresh_button_visible(self, app_page: Page, base_url: str):
         """Test that refresh button is visible"""
@@ -62,19 +66,22 @@ class TestDebugPage:
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Debug page is standalone HTML (/debug.html) not served by test server")
 class TestDebugHealthSection:
-    """Test suite for Debug Health section"""
+    """Test suite for Debug Health section
+
+    Note: In current debug.html, health section maps to the logs section
+    (System-Protokolle) as there's no dedicated health section.
+    """
 
     def test_health_section_visible(self, app_page: Page, base_url: str):
-        """Test that health section is visible"""
+        """Test that health section is visible (maps to logs section)"""
         debug = DebugPage(app_page)
         debug.navigate(base_url)
 
         debug.expect_health_section_visible()
 
     def test_health_info_visible(self, app_page: Page, base_url: str):
-        """Test that health info container is visible"""
+        """Test that health info container is visible (maps to log viewer)"""
         debug = DebugPage(app_page)
         debug.navigate(base_url)
         debug.wait_for_loading_complete()
@@ -84,9 +91,8 @@ class TestDebugHealthSection:
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Debug page is standalone HTML (/debug.html) not served by test server")
 class TestDebugLogsSection:
-    """Test suite for Debug Logs section"""
+    """Test suite for Debug Logs section (System-Protokolle)"""
 
     def test_logs_section_visible(self, app_page: Page, base_url: str):
         """Test that logs section is visible"""
@@ -116,11 +122,12 @@ class TestDebugLogsSection:
         debug.navigate(base_url)
 
         options = debug.get_log_level_filter_options()
-        assert "" in options  # All option
-        assert "ERROR" in options
-        assert "WARNING" in options
-        assert "INFO" in options
-        assert "DEBUG" in options
+        # Current debug.html uses lowercase values
+        assert "" in options  # All option (Alle Level)
+        assert "error" in options
+        assert "warning" in options
+        assert "info" in options
+        assert "debug" in options
 
     def test_log_level_filter_change(self, app_page: Page, base_url: str):
         """Test that log level filter can be changed"""
@@ -128,9 +135,11 @@ class TestDebugLogsSection:
         debug.navigate(base_url)
         debug.wait_for_loading_complete()
 
-        debug.filter_log_level("ERROR")
-        assert app_page.locator(debug.log_level_filter_selector).input_value() == "ERROR"
+        # Use lowercase value as per current debug.html
+        debug.filter_log_level("error")
+        assert app_page.locator(debug.log_level_filter_selector).input_value() == "error"
 
+    @pytest.mark.skip(reason="Auto-refresh checkbox not present in current debug.html")
     def test_auto_refresh_checkbox_visible(self, app_page: Page, base_url: str):
         """Test that auto-refresh checkbox is visible"""
         debug = DebugPage(app_page)
@@ -138,6 +147,7 @@ class TestDebugLogsSection:
 
         expect(app_page.locator(debug.auto_refresh_checkbox_selector)).to_be_visible()
 
+    @pytest.mark.skip(reason="Auto-refresh checkbox not present in current debug.html")
     def test_auto_refresh_toggle(self, app_page: Page, base_url: str):
         """Test that auto-refresh can be toggled"""
         debug = DebugPage(app_page)
@@ -152,9 +162,8 @@ class TestDebugLogsSection:
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Debug page is standalone HTML (/debug.html) not served by test server")
 class TestDebugPerformanceSection:
-    """Test suite for Debug Performance section"""
+    """Test suite for Debug Performance section (Performance-Metriken)"""
 
     def test_performance_section_visible(self, app_page: Page, base_url: str):
         """Test that performance section is visible"""
@@ -174,9 +183,8 @@ class TestDebugPerformanceSection:
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Debug page is standalone HTML (/debug.html) not served by test server")
 class TestDebugThumbnailSection:
-    """Test suite for Debug Thumbnail Processing section"""
+    """Test suite for Debug Thumbnail Processing section (Thumbnail-Verarbeitung)"""
 
     def test_thumbnail_section_visible(self, app_page: Page, base_url: str):
         """Test that thumbnail section is visible"""
@@ -193,6 +201,7 @@ class TestDebugThumbnailSection:
 
         expect(app_page.locator(debug.thumbnail_log_selector)).to_be_visible()
 
+    @pytest.mark.skip(reason="Thumbnail log limit selector not present in current debug.html")
     def test_thumbnail_log_limit_visible(self, app_page: Page, base_url: str):
         """Test that thumbnail log limit selector is visible"""
         debug = DebugPage(app_page)
@@ -200,6 +209,7 @@ class TestDebugThumbnailSection:
 
         expect(app_page.locator(debug.thumbnail_log_limit_selector)).to_be_visible()
 
+    @pytest.mark.skip(reason="Thumbnail log limit selector not present in current debug.html")
     def test_thumbnail_log_limit_options(self, app_page: Page, base_url: str):
         """Test that thumbnail log limit has expected options"""
         debug = DebugPage(app_page)
@@ -210,6 +220,7 @@ class TestDebugThumbnailSection:
         assert "20" in options
         assert "50" in options
 
+    @pytest.mark.skip(reason="Thumbnail log limit selector not present in current debug.html")
     def test_thumbnail_log_limit_change(self, app_page: Page, base_url: str):
         """Test that thumbnail log limit can be changed"""
         debug = DebugPage(app_page)
@@ -222,7 +233,6 @@ class TestDebugThumbnailSection:
 
 @pytest.mark.e2e
 @pytest.mark.playwright
-@pytest.mark.skip(reason="Debug page is standalone HTML (/debug.html) not served by test server")
 class TestDebugAllSections:
     """Test suite for all Debug sections together"""
 
