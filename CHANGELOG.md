@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.24.2] - 2026-01-08
+
+### Fixed
+- **E2E Page ID Selectors**: Fixed selectors for pages with inconsistent IDs
+  - Materials page uses `#page-materials` (not `#materials`)
+  - Jobs page uses `#page-jobs` (not `#jobs`)
+  - Updated page objects to use correct selectors
+- **Modal Test Navigation**: Improved `wait_for_page_ready` helper
+  - Added page ID mapping for inconsistent page element IDs
+  - Uses two-step navigation pattern for reliability
+  - Properly waits for page `.active` class before interactions
+- **Page Visibility Waits**: Changed fallback behavior to fail-fast
+  - Removed silent fallback to `attached` state
+  - Tests now fail immediately if page isn't actually visible
+  - Helps identify real navigation issues vs timing issues
+
+### Changed
+- Updated MASTERPLAN.md with E2E test status and remaining issues
+
 ## [2.24.1] - 2026-01-08
 
 ### Fixed

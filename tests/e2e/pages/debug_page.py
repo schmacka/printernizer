@@ -17,10 +17,10 @@ class DebugPage(BasePage):
         # Header selectors
         self.title_selector = "h1:has-text('Debug')"
 
-        # Action buttons - use onclick attribute for specificity
-        self.refresh_button_selector = "#debug.page.active button[onclick='refreshDebugInfo()']"
-        self.clear_logs_button_selector = "#debug.page.active button:has-text('Logs löschen')"
-        self.download_logs_button_selector = "#debug.page.active button:has-text('Logs herunterladen')"
+        # Action buttons - debug.html is standalone, no #debug.page.active wrapper
+        self.refresh_button_selector = "button[onclick='refreshDebugInfo()'], button:has-text('Aktualisieren')"
+        self.clear_logs_button_selector = "button:has-text('Logs löschen')"
+        self.download_logs_button_selector = "button:has-text('Logs herunterladen')"
 
         # System Health section
         self.health_section_selector = ".debug-section:has(h3:has-text('System-Status'))"

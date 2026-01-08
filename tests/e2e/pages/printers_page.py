@@ -55,15 +55,12 @@ class PrintersPage:
             self.page.wait_for_timeout(500)
 
         # Wait for the printers page section to be visible
-        try:
-            self.page.wait_for_selector(
-                "#printers.active, #printers.page.active",
-                state="visible",
-                timeout=5000
-            )
-        except Exception:
-            # If selector doesn't match, just verify #printers exists
-            self.page.wait_for_selector("#printers", state="attached", timeout=5000)
+        # Use longer timeout and ensure page is actually visible (not just attached)
+        self.page.wait_for_selector(
+            "#printers.page.active, #printers.active",
+            state="visible",
+            timeout=self.DEFAULT_TIMEOUT
+        )
         
     def open_add_printer_modal(self):
         """Open the add printer modal"""

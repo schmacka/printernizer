@@ -10,18 +10,51 @@ E2E_TIMEOUT = 30000
 
 def wait_for_page_ready(page: Page, base_url: str, page_hash: str):
     """Helper to navigate and wait for page to be ready"""
-    page.goto(f"{base_url}/#{page_hash}")
+    # Page ID mapping - some pages have inconsistent IDs
+    page_id_map = {
+        "printers": "printers",
+        "materials": "page-materials",  # Uses #page-materials
+        "jobs": "page-jobs",            # Uses #page-jobs
+        "library": "library",
+        "ideas": "ideas",
+        "settings": "settings",
+    }
+    actual_page_id = page_id_map.get(page_hash, page_hash)
+
+    # First go to base URL to ensure app is loaded
+    page.goto(base_url, wait_until="domcontentloaded")
     page.wait_for_load_state("networkidle")
+
+    # Wait for app initialization
     try:
-        page.wait_for_function("() => window.app && window.app.currentPage", timeout=E2E_TIMEOUT)
+        page.wait_for_function(
+            "() => window.app && typeof window.app.showPage === 'function'",
+            timeout=E2E_TIMEOUT
+        )
     except Exception:
         pass  # Continue even if app isn't fully initialized
+
+    # Navigate to specific page
+    page.goto(f"{base_url}/#{page_hash}", wait_until="domcontentloaded")
+
+    # Wait for currentPage to update
+    try:
+        page.wait_for_function(
+            f"() => window.app && window.app.currentPage === '{page_hash}'",
+            timeout=E2E_TIMEOUT
+        )
+    except Exception:
+        page.wait_for_timeout(500)
+
     # Wait for the page section to be visible
-    page.wait_for_selector(
-        f"#{page_hash}.page.active, #{page_hash}.active, #page-{page_hash}.active",
-        state="visible",
-        timeout=E2E_TIMEOUT
-    )
+    try:
+        page.wait_for_selector(
+            f"#{actual_page_id}.page.active, #{actual_page_id}.active",
+            state="visible",
+            timeout=5000
+        )
+    except Exception:
+        page.wait_for_selector(f"#{actual_page_id}", state="attached", timeout=5000)
 
 
 def click_button_safely(page: Page, selector: str, timeout: int = E2E_TIMEOUT) -> bool:

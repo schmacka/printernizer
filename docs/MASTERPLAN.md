@@ -1,8 +1,8 @@
 # Printernizer Development Masterplan
 
 **Last Updated**: 2026-01-08
-**Current Version**: v2.24.0
-**E2E Test Suite**: v2.17.0 (241/258 passing)
+**Current Version**: v2.24.2
+**E2E Test Suite**: v2.24.2 (~90% passing, debug tests excluded)
 **Status**: Production Ready
 
 ---
@@ -24,7 +24,7 @@
 | Post-Sprint Patches (v2.15.1-2.15.8) | Complete | 100% |
 | Unified Log Viewer (v2.18.0) | Complete | 100% |
 | 3D File Preview (v2.19.0) | Complete | 100% |
-| E2E Test Suite (v2.17.0) | **Priority 2** | 94% |
+| E2E Test Suite (v2.24.2) | **Priority 2** | ~90% |
 | Usage Statistics | Phase 2 Complete | 66% |
 | Code Review (2026-01-07) | Complete | 100% |
 
@@ -330,37 +330,33 @@
 
 **Total Phase 3: 124 tests passing**
 
-### E2E Test Suite Fixes (14 Remaining Failures)
+### E2E Test Suite Fixes (v2.24.2)
 
-> **Current**: 241/258 passing (94%) | **Target**: 100%
+> **Current**: ~90% passing after v2.24.2 fixes
 
-**test_printers.py** (4 failures):
-- [ ] `test_search_printer` - Selector timeout (no printers configured)
-- [ ] `test_search_clear` - Depends on printer data
-- [ ] `test_printer_card_actions` - No printer cards available
-- [ ] `test_refresh_updates_data` - Response timeout waiting for API
+**Fixed in v2.24.1-v2.24.2**:
+- [x] Fixed duplicate `#addPrinterBtn` ID causing Playwright strict mode violations
+- [x] Fixed page selectors for inconsistent page IDs (`#page-materials`, `#page-jobs`)
+- [x] Improved navigation timing with two-step navigation pattern
+- [x] Updated `wait_for_page_ready` helper with page ID mapping
+- [x] Increased timeouts for page activation waits
 
-**test_materials.py** (1 failure):
-- [ ] `test_refresh_updates_data` - API response timeout
+**Remaining Issues - Debug Tests**:
+The debug page (`/debug.html`) tests consistently fail because:
+- Debug page is a standalone HTML file served at `/debug.html`
+- Test infrastructure serves only the main app at the base URL
+- Selectors reference `#debug.page.active` but debug.html has different structure
 
-**test_modals.py** (7 failures):
-- [ ] `test_add_printer_modal_opens` - Button onclick not triggering
-- [ ] `test_add_material_modal_opens` - Modal selector mismatch
-- [ ] `test_add_job_modal_opens` - Modal not found
-- [ ] `test_printer_details_modal` - Missing trigger elements
-- [ ] `test_material_details_modal` - Missing trigger elements
-- [ ] `test_job_details_modal` - Missing trigger elements
-- [ ] `test_modal_escape_closes` - Depends on modal state
+**Action Items**:
+- [ ] Configure test server to also serve `/debug.html`
+- [ ] Update debug_page.py selectors to match standalone page structure
+- [ ] Or skip debug tests in CI and test manually
 
-**Root Causes**:
-- Tests require printers/data to be configured in the database
-- Some modals have non-standard open/close patterns
-- API response timeouts on slower systems
-
-**Recommended Fixes**:
-- Add test fixtures that create sample printers/materials
-- Fix modal selectors and trigger patterns
-- Increase API timeouts for slower environments
+**Remaining Data-Dependent Tests** (skipped):
+- `test_search_printer` - Requires printers in database
+- `test_printer_card_actions` - Requires printer cards
+- `test_*_details_modal` tests - Require data to be present
+- `test_refresh_updates_data` - Requires API mock setup
 
 ---
 

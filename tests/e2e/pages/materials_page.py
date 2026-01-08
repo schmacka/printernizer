@@ -54,15 +54,13 @@ class MaterialsPage:
             self.page.wait_for_timeout(500)
 
         # Wait for the materials page section to be visible
-        try:
-            self.page.wait_for_selector(
-                "#materials.active, #page-materials.active",
-                state="visible",
-                timeout=5000
-            )
-        except Exception:
-            # If selector doesn't match, just verify #materials exists
-            self.page.wait_for_selector("#materials", state="attached", timeout=5000)
+        # Note: Materials page uses #page-materials ID in the HTML
+        # Use longer timeout and ensure page is actually visible (not just attached)
+        self.page.wait_for_selector(
+            "#page-materials.page.active, #page-materials.active",
+            state="visible",
+            timeout=self.DEFAULT_TIMEOUT
+        )
 
     def open_add_material_modal(self):
         """Open the add material modal"""

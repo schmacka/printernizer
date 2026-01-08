@@ -55,15 +55,13 @@ class JobsPage:
             self.page.wait_for_timeout(500)
 
         # Wait for the page section to be visible
-        try:
-            self.page.wait_for_selector(
-                "#jobs.active, #page-jobs.active",
-                state="visible",
-                timeout=5000
-            )
-        except Exception:
-            # If selector doesn't match, just verify element exists
-            self.page.wait_for_selector("#jobs", state="attached", timeout=5000)
+        # Note: Jobs page uses #page-jobs ID in the HTML
+        # Use longer timeout and ensure page is actually visible (not just attached)
+        self.page.wait_for_selector(
+            "#page-jobs.page.active, #page-jobs.active",
+            state="visible",
+            timeout=self.DEFAULT_TIMEOUT
+        )
 
     def open_create_job_modal(self):
         """Open the create job modal"""
