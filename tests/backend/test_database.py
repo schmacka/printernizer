@@ -11,9 +11,9 @@ from decimal import Decimal
 class TestDatabaseSchema:
     """Test database schema integrity and constraints"""
     
-    def test_database_creation(self, temp_database):
+    def test_database_creation(self, temp_database_with_schema):
         """Test database creation with schema"""
-        conn = sqlite3.connect(temp_database)
+        conn = sqlite3.connect(temp_database_with_schema)
         cursor = conn.cursor()
         
         # Verify tables exist
@@ -132,9 +132,9 @@ class TestDatabaseSchema:
         
         db_connection.commit()
     
-    def test_database_indexes(self, temp_database):
+    def test_database_indexes(self, temp_database_with_schema):
         """Test that all required indexes exist"""
-        conn = sqlite3.connect(temp_database)
+        conn = sqlite3.connect(temp_database_with_schema)
         cursor = conn.cursor()
         
         # Get all indexes

@@ -30,8 +30,8 @@ class TestConnectionPoolInitialization:
         await db.initialize()
 
         # Verify pool exists and has correct size
-        assert db._pool is not None
-        assert db._pool.maxsize == 3
+        assert db._connection_pool is not None
+        assert db._connection_pool.maxsize == 3
         assert db._pool_semaphore is not None
         assert db._pool_semaphore._value == 3
 
@@ -43,7 +43,7 @@ class TestConnectionPoolInitialization:
         db = Database(temp_database)
         await db.initialize()
 
-        assert db._pool.maxsize == 5
+        assert db._connection_pool.maxsize == 5
 
         await db.close()
 
@@ -109,19 +109,19 @@ class TestConnectionAcquisition:
         await db.initialize()
 
         # Pool should have 2 connections available
-        assert db._pool.qsize() == 2
+        assert db._connection_pool.qsize() == 2
 
         # Acquire a connection
         conn = await db.acquire_connection()
 
         # Pool should have 1 connection available
-        assert db._pool.qsize() == 1
+        assert db._connection_pool.qsize() == 1
 
         # Release it back
         await db.release_connection(conn)
 
         # Pool should have 2 connections available again
-        assert db._pool.qsize() == 2
+        assert db._connection_pool.qsize() == 2
 
         await db.close()
 
@@ -140,14 +140,14 @@ class TestConnectionAcquisition:
             assert conn is not None
 
         # Pool should be empty now
-        assert db._pool.qsize() == 0
+        assert db._connection_pool.qsize() == 0
 
         # Release all connections
         for conn in connections:
             await db.release_connection(conn)
 
         # Pool should have all 3 back
-        assert db._pool.qsize() == 3
+        assert db._connection_pool.qsize() == 3
 
         await db.close()
 
@@ -162,7 +162,7 @@ class TestConnectionAcquisition:
         conn2 = await db.acquire_connection()
 
         # Pool is now exhausted
-        assert db._pool.qsize() == 0
+        assert db._connection_pool.qsize() == 0
 
         # Try to acquire another connection with timeout
         # This should block and timeout
@@ -211,7 +211,7 @@ class TestPooledConnectionContextManager:
             assert row[0] == 1
 
         # Connection should be released back to pool
-        assert db._pool.qsize() == 5  # default pool size
+        assert db._connection_pool.qsize() == 5  # default pool size
 
         await db.close()
 
@@ -221,15 +221,15 @@ class TestPooledConnectionContextManager:
         db = Database(temp_database, pool_size=1)
         await db.initialize()
 
-        initial_size = db._pool.qsize()
+        initial_size = db._connection_pool.qsize()
         assert initial_size == 1
 
         async with db.pooled_connection() as conn:
             # Connection is acquired
-            assert db._pool.qsize() == 0
+            assert db._connection_pool.qsize() == 0
 
         # Connection should be released automatically
-        assert db._pool.qsize() == 1
+        assert db._connection_pool.qsize() == 1
 
         await db.close()
 
@@ -247,7 +247,7 @@ class TestPooledConnectionContextManager:
             pass  # Expected
 
         # Connection should still be released
-        assert db._pool.qsize() == 1
+        assert db._connection_pool.qsize() == 1
 
         await db.close()
 
@@ -258,10 +258,10 @@ class TestPooledConnectionContextManager:
         await db.initialize()
 
         async with db.pooled_connection() as conn1:
-            assert db._pool.qsize() == 2
+            assert db._connection_pool.qsize() == 2
 
             async with db.pooled_connection() as conn2:
-                assert db._pool.qsize() == 1
+                assert db._connection_pool.qsize() == 1
 
                 # Both connections should be different
                 assert conn1 is not conn2
@@ -277,10 +277,10 @@ class TestPooledConnectionContextManager:
                 assert row2[0] == 2
 
             # conn2 released
-            assert db._pool.qsize() == 2
+            assert db._connection_pool.qsize() == 2
 
         # conn1 released
-        assert db._pool.qsize() == 3
+        assert db._connection_pool.qsize() == 3
 
         await db.close()
 
@@ -390,13 +390,13 @@ class TestPoolCleanup:
         await db.initialize()
 
         # Pool should have 3 connections
-        assert db._pool.qsize() == 3
+        assert db._connection_pool.qsize() == 3
 
         # Close database
         await db.close()
 
         # Pool should be empty
-        assert db._pool.qsize() == 0
+        assert db._connection_pool.qsize() == 0
 
     @pytest.mark.asyncio
     async def test_close_with_active_connections(self, temp_database):
@@ -411,7 +411,7 @@ class TestPoolCleanup:
         await db.close()
 
         # Pool should be cleaned up
-        assert db._pool.qsize() == 0
+        assert db._connection_pool.qsize() == 0
 
         # The active connection should still be open for cleanup
         # but we won't return it to the pool

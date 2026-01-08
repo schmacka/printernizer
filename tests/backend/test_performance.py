@@ -114,9 +114,9 @@ class PerformanceTestBase:
 class TestDatabasePerformance(PerformanceTestBase):
     """Test database performance under various loads"""
     
-    def test_large_dataset_queries(self, temp_database, performance_test_data):
+    def test_large_dataset_queries(self, temp_database_with_schema, performance_test_data):
         """Test database performance with large datasets"""
-        conn = sqlite3.connect(temp_database)
+        conn = sqlite3.connect(temp_database_with_schema)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
@@ -192,11 +192,11 @@ class TestDatabasePerformance(PerformanceTestBase):
 
         conn.close()
     
-    def test_concurrent_database_access(self, temp_database):
+    def test_concurrent_database_access(self, temp_database_with_schema):
         """Test database performance under concurrent access"""
         def database_worker(worker_id: int, operations: int):
             """Simulate concurrent database operations"""
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             cursor = conn.cursor()
             results = []
             
@@ -265,9 +265,9 @@ class TestDatabasePerformance(PerformanceTestBase):
         assert ops_per_second > 10  # At least 10 operations per second
     
     @pytest.mark.benchmark
-    def test_database_indexing_performance(self, temp_database):
+    def test_database_indexing_performance(self, temp_database_with_schema):
         """Test impact of database indexing on query performance"""
-        conn = sqlite3.connect(temp_database)
+        conn = sqlite3.connect(temp_database_with_schema)
         cursor = conn.cursor()
 
         # First insert printers to satisfy foreign key constraints
@@ -686,15 +686,15 @@ class TestMemoryAndResourceUsage(PerformanceTestBase):
         assert memory_increase < 500  # Don't use more than 500MB additional
         assert memory_recovered > memory_increase * 0.7  # Recover at least 70% of memory
     
-    def test_database_connection_pooling_performance(self, temp_database):
+    def test_database_connection_pooling_performance(self, temp_database_with_schema):
         """Test database connection pooling efficiency"""
-        
+
         class DatabaseConnectionPool:
             def __init__(self, max_connections=10):
                 self.max_connections = max_connections
                 self.available_connections = []
                 self.active_connections = []
-                self.db_path = temp_database
+                self.db_path = temp_database_with_schema
                 
                 # Initialize pool
                 for _ in range(max_connections):
@@ -756,7 +756,7 @@ class TestMemoryAndResourceUsage(PerformanceTestBase):
         
         individual_results = []
         for _ in range(100):
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             cursor = conn.cursor()
             
             cursor.execute("SELECT COUNT(*) FROM jobs")

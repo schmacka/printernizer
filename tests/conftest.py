@@ -18,7 +18,46 @@ from contextlib import asynccontextmanager
 
 @pytest.fixture
 def temp_database():
-    """Create temporary SQLite database for testing"""
+    """
+    Create temporary SQLite database for testing.
+
+    Creates an empty database file. Tests should either:
+    - Use Database.initialize() for async tests (creates proper schema)
+    - Use temp_database_with_schema for tests needing the legacy schema.sql
+    """
+    temp_db = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
+    temp_db.close()
+
+    # Create empty database with basic pragmas
+    conn = sqlite3.connect(temp_db.name)
+    conn.execute("PRAGMA foreign_keys = ON")
+    conn.close()
+
+    yield temp_db.name
+
+    # Cleanup with retry for Windows file locking
+    import time
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            os.unlink(temp_db.name)
+            break
+        except PermissionError:
+            if attempt < max_retries - 1:
+                time.sleep(0.1)  # Wait 100ms before retry
+            else:
+                # If all retries fail, just pass - temp files will be cleaned by OS
+                pass
+
+
+@pytest.fixture
+def temp_database_with_schema():
+    """
+    Create temporary SQLite database with legacy schema.sql.
+
+    Use this fixture for tests that require the Phase 1 schema.sql file.
+    For async Database class tests, use temp_database instead.
+    """
     temp_db = tempfile.NamedTemporaryFile(suffix='.db', delete=False)
     temp_db.close()
 
@@ -49,9 +88,9 @@ def temp_database():
 
 
 @pytest.fixture
-def db_connection(temp_database):
-    """Database connection fixture"""
-    conn = sqlite3.connect(temp_database)
+def db_connection(temp_database_with_schema):
+    """Database connection fixture with schema.sql tables for backend tests."""
+    conn = sqlite3.connect(temp_database_with_schema)
     conn.row_factory = sqlite3.Row
     # Enable foreign key constraints
     conn.execute("PRAGMA foreign_keys = ON")

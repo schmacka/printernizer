@@ -22,10 +22,10 @@ class TestE2EPrinterSetupWorkflow:
     """End-to-end tests for printer setup workflow"""
     
     @pytest.mark.asyncio
-    async def test_complete_bambu_lab_setup(self, api_client, temp_database, test_config, mock_bambu_api):
+    async def test_complete_bambu_lab_setup(self, api_client, temp_database_with_schema, test_config, mock_bambu_api):
         """Test complete Bambu Lab printer setup workflow"""
         with patch('src.database.database.Database.get_connection') as mock_db:
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
             
@@ -113,10 +113,10 @@ class TestE2EPrinterSetupWorkflow:
             assert updated_printer['location'] == 'Workshop A'
     
     @pytest.mark.asyncio
-    async def test_complete_prusa_setup(self, api_client, temp_database, test_config, mock_prusa_api):
+    async def test_complete_prusa_setup(self, api_client, temp_database_with_schema, test_config, mock_prusa_api):
         """Test complete Prusa Core One printer setup workflow"""
         with patch('src.database.database.Database.get_connection') as mock_db:
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
             
@@ -683,11 +683,11 @@ class TestE2EGermanBusinessCompliance:
     """End-to-end tests for German business compliance and tax reporting"""
     
     @pytest.mark.asyncio
-    async def test_complete_vat_compliance_workflow(self, api_client, temp_database, test_config, 
+    async def test_complete_vat_compliance_workflow(self, api_client, temp_database_with_schema, test_config,
                                                   german_business_config):
         """Test complete German VAT compliance workflow"""
         with patch('src.database.database.Database.get_connection') as mock_db:
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
             

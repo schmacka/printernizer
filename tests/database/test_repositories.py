@@ -20,12 +20,23 @@ from src.database.repositories.library_repository import LibraryRepository
 
 @pytest.fixture
 async def async_db_connection(temp_database):
-    """Async database connection fixture for repository tests"""
+    """Async database connection fixture for repository tests.
+
+    Initializes database with proper schema from Database class.
+    """
+    from src.database.database import Database
+
+    # Initialize database with proper schema
+    db = Database(temp_database)
+    await db.initialize()
+
+    # Return a connection for repository tests
     conn = await aiosqlite.connect(temp_database)
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA foreign_keys = ON")
     yield conn
     await conn.close()
+    await db.close()
 
 
 # =====================================================

@@ -18,10 +18,10 @@ from decimal import Decimal
 class TestAPIIntegration:
     """Integration tests for API endpoints with database operations"""
     
-    def test_complete_printer_lifecycle(self, api_client, temp_database, test_config):
+    def test_complete_printer_lifecycle(self, api_client, temp_database_with_schema, test_config):
         """Test complete printer lifecycle: add -> configure -> monitor -> remove"""
         with patch('src.database.database.Database.get_connection') as mock_db:
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             conn.row_factory = sqlite3.Row
             mock_db.return_value = conn
             
@@ -478,10 +478,10 @@ class TestErrorHandlingIntegration:
             error_data = response.json()
             assert 'connection_error' in error_data['error_type']
     
-    def test_database_transaction_rollback(self, api_client, temp_database, test_config):
+    def test_database_transaction_rollback(self, api_client, temp_database_with_schema, test_config):
         """Test database transaction rollback on errors"""
         with patch('src.database.database.Database.get_connection') as mock_db:
-            conn = sqlite3.connect(temp_database)
+            conn = sqlite3.connect(temp_database_with_schema)
             mock_db.return_value = conn
             
             base_url = test_config['api_base_url']
