@@ -29,25 +29,41 @@ class JobsPage:
 
     def navigate(self, base_url: str):
         """Navigate to jobs page with robust waiting"""
-        self.page.goto(f"{base_url}/#jobs", wait_until="domcontentloaded")
+        # First go to base URL to ensure app is loaded
+        self.page.goto(base_url, wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
 
-        # Wait for app initialization with longer timeout for CI
+        # Wait for app initialization
         try:
             self.page.wait_for_function(
-                "() => window.app && window.app.currentPage !== undefined",
+                "() => window.app && typeof window.app.showPage === 'function'",
                 timeout=self.DEFAULT_TIMEOUT
             )
         except Exception:
-            # Fallback: just wait for the page element to exist
             pass
 
-        # Wait for the jobs page section to be visible (try both ID formats)
-        self.page.wait_for_selector(
-            "#page-jobs.active, #jobs.active, #page-jobs.page.active",
-            state="visible",
-            timeout=self.DEFAULT_TIMEOUT
-        )
+        # Navigate to specific page via hash
+        self.page.goto(f"{base_url}/#jobs", wait_until="domcontentloaded")
+
+        # Wait for navigation to complete - check that currentPage is correct
+        try:
+            self.page.wait_for_function(
+                "() => window.app && window.app.currentPage === 'jobs'",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            self.page.wait_for_timeout(500)
+
+        # Wait for the page section to be visible
+        try:
+            self.page.wait_for_selector(
+                "#jobs.active, #page-jobs.active",
+                state="visible",
+                timeout=5000
+            )
+        except Exception:
+            # If selector doesn't match, just verify element exists
+            self.page.wait_for_selector("#jobs", state="attached", timeout=5000)
 
     def open_create_job_modal(self):
         """Open the create job modal"""

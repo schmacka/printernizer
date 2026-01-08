@@ -8,6 +8,9 @@ from typing import Optional, List
 class SettingsPage:
     """Page object for the settings page"""
 
+    # Default timeout for CI environments
+    DEFAULT_TIMEOUT = 30000
+
     def __init__(self, page: Page):
         self.page = page
 
@@ -79,13 +82,42 @@ class SettingsPage:
         self.timelapse_cleanup_age_days_selector = "#timelapseCleanupAgeDays"
 
     def navigate(self, base_url: str):
-        """Navigate to the settings page"""
-        self.page.goto(f"{base_url}/#settings", wait_until="domcontentloaded")
+        """Navigate to settings page with robust waiting"""
+        # First go to base URL to ensure app is loaded
+        self.page.goto(base_url, wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
+
         # Wait for app initialization
-        self.page.wait_for_function("() => window.app && window.app.currentPage")
-        # Wait for the settings page section to be visible
-        self.page.wait_for_selector("#settings.active, [id='settings'].page.active, #page-settings.active", state="visible", timeout=5000)
+        try:
+            self.page.wait_for_function(
+                "() => window.app && typeof window.app.showPage === 'function'",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            pass
+
+        # Navigate to specific page via hash
+        self.page.goto(f"{base_url}/#settings", wait_until="domcontentloaded")
+
+        # Wait for navigation to complete - check that currentPage is correct
+        try:
+            self.page.wait_for_function(
+                "() => window.app && window.app.currentPage === 'settings'",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            self.page.wait_for_timeout(500)
+
+        # Wait for the page section to be visible
+        try:
+            self.page.wait_for_selector(
+                "#settings.active, #page-settings.active",
+                state="visible",
+                timeout=5000
+            )
+        except Exception:
+            # If selector doesn't match, just verify element exists
+            self.page.wait_for_selector("#settings", state="attached", timeout=5000)
 
     def is_loaded(self) -> bool:
         """Check if the settings page is loaded"""

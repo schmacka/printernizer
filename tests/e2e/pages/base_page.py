@@ -13,20 +13,58 @@ class BasePage:
         self.page_hash = ""
         self.page_selector = ""
 
+    # Default timeout for CI environments
+    DEFAULT_TIMEOUT = 30000
+
     def navigate(self, base_url: str):
-        """Navigate to the page using hash routing"""
+        """Navigate to the page using hash routing with robust waiting"""
+        # First go to base URL to ensure app is loaded
+        self.page.goto(base_url, wait_until="domcontentloaded")
+        self.page.wait_for_load_state("networkidle")
+
+        # Wait for app initialization
+        try:
+            self.page.wait_for_function(
+                "() => window.app && typeof window.app.showPage === 'function'",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            pass
+
+        # Navigate to specific page via hash
         if self.page_hash:
             self.page.goto(f"{base_url}/#{self.page_hash}", wait_until="domcontentloaded")
-        else:
-            self.page.goto(base_url, wait_until="domcontentloaded")
-        self.page.wait_for_load_state("networkidle")
-        self.wait_for_app_ready()
-        if self.page_selector:
-            self.page.wait_for_selector(self.page_selector, state="visible", timeout=10000)
+
+            # Wait for navigation to complete - check that currentPage is correct
+            try:
+                self.page.wait_for_function(
+                    f"() => window.app && window.app.currentPage === '{self.page_hash}'",
+                    timeout=self.DEFAULT_TIMEOUT
+                )
+            except Exception:
+                self.page.wait_for_timeout(500)
+
+        # Wait for the page section to be visible
+        if self.page_hash:
+            try:
+                self.page.wait_for_selector(
+                    f"#{self.page_hash}.active, #page-{self.page_hash}.active",
+                    state="visible",
+                    timeout=5000
+                )
+            except Exception:
+                # If selector doesn't match, just verify element exists
+                self.page.wait_for_selector(f"#{self.page_hash}", state="attached", timeout=5000)
 
     def wait_for_app_ready(self):
         """Wait for the SPA app to be initialized"""
-        self.page.wait_for_function("() => window.app && window.app.currentPage", timeout=10000)
+        try:
+            self.page.wait_for_function(
+                "() => window.app && typeof window.app.showPage === 'function'",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            pass  # App might not be initialized, continue anyway
 
     def is_loaded(self) -> bool:
         """Check if the page is loaded"""

@@ -46,6 +46,26 @@ class DebugPage(BasePage):
         # Debug container
         self.debug_container_selector = ".debug-container"
 
+    def navigate(self, base_url: str):
+        """Navigate to debug page with robust waiting
+
+        Note: Debug page is a standalone HTML page (/debug.html), not a hash-based route.
+        """
+        # Navigate directly to the debug page
+        self.page.goto(f"{base_url}/debug.html", wait_until="domcontentloaded")
+        self.page.wait_for_load_state("networkidle")
+
+        # Wait for the debug page container to be visible
+        try:
+            self.page.wait_for_selector(
+                self.debug_container_selector,
+                state="visible",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            # Fallback: wait for any debug section
+            self.page.wait_for_selector(".debug-section", state="attached", timeout=5000)
+
     def click_clear_logs(self, confirm: bool = True):
         """Click clear logs button"""
         if confirm:

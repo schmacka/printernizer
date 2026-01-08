@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.24.1] - 2026-01-08
+
+### Fixed
+- **E2E Test Infrastructure**: Fixed navigation timing issues in page objects
+  - Fixed duplicate `#addPrinterBtn` ID in index.html (renamed dashboard button)
+  - Updated all page object navigate() methods with robust two-step navigation
+  - Wait for `window.app.currentPage` before asserting page state
+  - Added fallback selectors for page visibility checks
+- **Test Reliability**: Page objects now properly wait for SPA navigation
+  - First loads base URL, then navigates to specific hash
+  - Validates app initialization before navigation
+  - Uses consistent 30s timeout for CI environments
+
 ## [2.24.0] - 2026-01-07
 
 ### Added

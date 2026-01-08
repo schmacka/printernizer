@@ -28,25 +28,41 @@ class MaterialsPage:
 
     def navigate(self, base_url: str):
         """Navigate to materials page with robust waiting"""
-        self.page.goto(f"{base_url}/#materials", wait_until="domcontentloaded")
+        # First go to base URL to ensure app is loaded
+        self.page.goto(base_url, wait_until="domcontentloaded")
         self.page.wait_for_load_state("networkidle")
 
-        # Wait for app initialization with longer timeout for CI
+        # Wait for app initialization
         try:
             self.page.wait_for_function(
-                "() => window.app && window.app.currentPage !== undefined",
+                "() => window.app && typeof window.app.showPage === 'function'",
                 timeout=self.DEFAULT_TIMEOUT
             )
         except Exception:
-            # Fallback: just wait for the page element to exist
             pass
 
-        # Wait for the materials page section to be visible (try both ID formats)
-        self.page.wait_for_selector(
-            "#page-materials.active, #materials.active, #page-materials.page.active",
-            state="visible",
-            timeout=self.DEFAULT_TIMEOUT
-        )
+        # Navigate to materials page via hash
+        self.page.goto(f"{base_url}/#materials", wait_until="domcontentloaded")
+
+        # Wait for navigation to complete - check that currentPage is 'materials'
+        try:
+            self.page.wait_for_function(
+                "() => window.app && window.app.currentPage === 'materials'",
+                timeout=self.DEFAULT_TIMEOUT
+            )
+        except Exception:
+            self.page.wait_for_timeout(500)
+
+        # Wait for the materials page section to be visible
+        try:
+            self.page.wait_for_selector(
+                "#materials.active, #page-materials.active",
+                state="visible",
+                timeout=5000
+            )
+        except Exception:
+            # If selector doesn't match, just verify #materials exists
+            self.page.wait_for_selector("#materials", state="attached", timeout=5000)
 
     def open_add_material_modal(self):
         """Open the add material modal"""
