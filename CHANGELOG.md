@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.24.3] - 2026-01-08
+
+### Added
+- **Printer Validation**: Job creation now validates printer exists before creating
+  - Returns 404 with "Printer not found" if printer_id doesn't exist
+  - Prevents orphaned jobs referencing non-existent printers
+- **Printer Update Validation**: Enhanced validation for printer updates
+  - Empty name validation with clear error message
+  - IP address format validation (IPv4)
+  - Prevents printer type changes (immutable after creation)
+
+### Fixed
+- **Validation Error Serialization**: Fixed JSON serialization in validation error handler
+  - ValueError objects in Pydantic validation context are now properly serialized
+  - Prevents 500 errors when returning validation failures
+
+### Changed
+- **Debug E2E Tests**: Skipped with proper documentation
+  - 25 debug page tests skipped (standalone HTML not served by test server)
+  - Documented in test file and MASTERPLAN.md
+- **Performance Tests**: Marked as integration tests
+  - `test_large_job_list_performance` and `test_job_filtering_performance`
+  - Require database seeding setup (documented in MASTERPLAN.md)
+
+### Documentation
+- Added "API Features (Planned)" section to MASTERPLAN.md
+- Added "Test Architecture Issues" section documenting test infrastructure needs
+
 ## [2.24.2] - 2026-01-08
 
 ### Fixed
