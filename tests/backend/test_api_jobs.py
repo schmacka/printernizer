@@ -775,72 +775,129 @@ class TestJobBusinessLogic:
 class TestJobAPIPerformance:
     """Test job API performance and scalability.
 
-    Note: These tests require actual database integration and are marked as integration tests.
-    Run with: pytest -m integration --timeout=60
+    These tests verify that the API layer can handle large datasets efficiently.
+    They use mocked services returning large datasets to test serialization
+    and response handling performance.
     """
 
-    @pytest.mark.skip(reason="Integration test - requires database seeding setup. Track in MASTERPLAN.md")
-    @pytest.mark.integration
-    def test_large_job_list_performance(self, client, db_connection):
-        """Test API performance with large number of jobs"""
-        cursor = db_connection.cursor()
-        
-        # Insert many jobs for performance testing
-        for i in range(500):
-            cursor.execute("""
-                INSERT INTO jobs (printer_id, job_name, status, material_type, is_business)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                'test_printer_001',
-                f'test_job_{i:03d}.3mf',
-                'completed' if i % 2 else 'queued',
-                'PLA',
-                i % 3 == 0  # Every third job is business
-            ))
-        
-        db_connection.commit()
-        
+    @pytest.fixture
+    def large_job_dataset(self):
+        """Generate a large dataset of 500+ jobs for performance testing."""
+        import random
+        from datetime import datetime, timedelta
+
+        jobs = []
+        statuses = ['completed', 'completed', 'completed', 'failed', 'queued', 'printing']
+        materials = ['PLA', 'PETG', 'ABS', 'TPU']
+        base_date = datetime(2025, 1, 1)
+
+        for i in range(550):
+            job = {
+                'id': f'perf_job_{i:05d}',
+                'printer_id': 'bambu_a1_001',
+                'printer_type': 'bambu_lab',
+                'job_name': f'performance_test_job_{i:03d}.3mf',
+                'filename': f'perf_model_{i:03d}.3mf',
+                'status': random.choice(statuses),
+                'progress': 100.0 if random.choice(statuses) == 'completed' else float(random.randint(0, 99)),
+                'material_type': random.choice(materials),
+                'is_business': i % 3 == 0,
+                'created_at': base_date + timedelta(days=i // 10),
+                'updated_at': base_date + timedelta(days=i // 10, hours=random.randint(1, 23))
+            }
+            jobs.append(job)
+
+        return jobs
+
+    @pytest.mark.performance
+    def test_large_job_list_performance(self, client, test_app, large_job_dataset):
+        """Test API performance with large number of jobs (500+)"""
+        from unittest.mock import AsyncMock
+
+        # Configure mock to return large dataset
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(
+            return_value=(large_job_dataset, len(large_job_dataset))
+        )
+
         # Time the API request
-        import time
         start_time = time.time()
-        
-        with patch('src.database.database.Database.get_connection') as mock_db:
-            mock_db.return_value = db_connection
-            response = client.get("/api/v1/jobs")
-        
+        response = client.get("/api/v1/jobs")
         end_time = time.time()
+
         request_time = end_time - start_time
-        
-        # Request should complete within reasonable time
+
+        # Verify response
         assert response.status_code == 200
-        assert request_time < 2.0  # Should complete within 2 seconds
-        
         data = response.json()
-        assert data['total_count'] >= 500
-    
-    @pytest.mark.skip(reason="Integration test - requires database seeding setup. Track in MASTERPLAN.md")
-    @pytest.mark.integration
-    def test_job_filtering_performance(self, client, db_connection):
+
+        # Should return all jobs
+        assert data['total_count'] == 550
+        assert len(data['jobs']) == 550
+
+        # Request should complete within reasonable time (2 seconds)
+        # This tests JSON serialization and response handling
+        assert request_time < 2.0, f"Request took {request_time:.2f}s, expected < 2.0s"
+
+    @pytest.mark.performance
+    def test_job_filtering_performance(self, client, test_app, large_job_dataset):
         """Test performance of job filtering operations"""
-        # Test various filter combinations that should use database indexes
+        from unittest.mock import AsyncMock
+
+        # Filter test cases with expected subsets
         filter_tests = [
-            '?status=printing',
-            '?is_business=true',
-            '?printer_id=bambu_a1_001',
-            '?status=completed&is_business=true',
-            '?material_type=PLA',
+            ('?status=printing', [j for j in large_job_dataset if j['status'] == 'printing']),
+            ('?is_business=true', [j for j in large_job_dataset if j['is_business']]),
+            ('?printer_id=bambu_a1_001', large_job_dataset),  # All jobs have this printer_id
+            ('?status=completed&is_business=true', [j for j in large_job_dataset if j['status'] == 'completed' and j['is_business']]),
+            ('?material_type=PLA', [j for j in large_job_dataset if j['material_type'] == 'PLA']),
         ]
-        
-        for filter_query in filter_tests:
+
+        for filter_query, expected_subset in filter_tests:
+            # Configure mock to return filtered subset
+            test_app.state.job_service.list_jobs_with_count = AsyncMock(
+                return_value=(expected_subset, len(expected_subset))
+            )
+
             start_time = time.time()
-            
             response = client.get(f"/api/v1/jobs{filter_query}")
-            
             end_time = time.time()
+
             request_time = end_time - start_time
-            
+
+            assert response.status_code == 200, f"Failed for filter: {filter_query}"
+            # Each filtered query should complete quickly (< 1 second)
+            assert request_time < 1.0, f"Filter {filter_query} took {request_time:.2f}s, expected < 1.0s"
+
+    @pytest.mark.performance
+    def test_pagination_performance(self, client, test_app, large_job_dataset):
+        """Test that paginated requests are efficient"""
+        from unittest.mock import AsyncMock
+
+        # Test pagination with different page sizes
+        page_sizes = [10, 50, 100]
+
+        for page_size in page_sizes:
+            # Return only the requested page
+            page_data = large_job_dataset[:page_size]
+            test_app.state.job_service.list_jobs_with_count = AsyncMock(
+                return_value=(page_data, len(large_job_dataset))
+            )
+
+            start_time = time.time()
+            response = client.get(f"/api/v1/jobs?page=1&limit={page_size}")
+            end_time = time.time()
+
+            request_time = end_time - start_time
+
             assert response.status_code == 200
-            assert request_time < 1.0  # Each filtered query should be fast
+            data = response.json()
+
+            # Verify pagination
+            assert len(data['jobs']) == page_size
+            assert data['total_count'] == 550
+
+            # Paginated requests should be very fast (< 0.5 seconds)
+            assert request_time < 0.5, f"Page size {page_size} took {request_time:.2f}s, expected < 0.5s"
     
 
 class TestJobAPIErrorHandling:

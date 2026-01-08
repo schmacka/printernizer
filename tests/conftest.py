@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch, MagicMock
 import asyncio
 from contextlib import asynccontextmanager
+import aiosqlite
 
 
 # =====================================================
@@ -96,6 +97,41 @@ def db_connection(temp_database_with_schema):
     conn.execute("PRAGMA foreign_keys = ON")
     yield conn
     conn.close()
+
+
+@pytest.fixture
+async def async_db_connection(temp_database):
+    """
+    Async database connection fixture for repository and service tests.
+
+    Initializes database with proper schema from Database class and provides
+    an aiosqlite connection for async tests.
+
+    Usage:
+        @pytest.mark.asyncio
+        async def test_something(async_db_connection):
+            repo = SomeRepository(async_db_connection)
+            await repo.some_method()
+    """
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+    from src.database.database import Database
+
+    # Initialize database with proper schema
+    db = Database(temp_database)
+    await db.initialize()
+
+    # Return a connection for repository tests
+    conn = await aiosqlite.connect(temp_database)
+    conn.row_factory = aiosqlite.Row
+    await conn.execute("PRAGMA foreign_keys = ON")
+
+    yield conn
+
+    # Cleanup
+    await conn.close()
+    await db.close()
 
 
 @pytest.fixture
