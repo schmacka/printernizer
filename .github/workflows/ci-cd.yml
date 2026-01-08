@@ -6,7 +6,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ master, main, development ]
-    tags: [ 'v*' ]
+    # Note: Tags handled by release.yml workflow - removed to prevent duplicate runs
   pull_request:
     branches: [ master, main, development ]
   workflow_dispatch:
