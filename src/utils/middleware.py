@@ -274,27 +274,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
             # Content Security Policy
-            # Security-hardened CSP with minimal inline permissions
+            # Allow images from local network (printer cameras)
+            # Using http://*:* to allow HTTP images from any host (primarily for printer cameras)
+            # Allow cdn.jsdelivr.net for Swagger UI/ReDoc documentation
+            # Allow fonts.googleapis.com and fonts.gstatic.com for ReDoc fonts
+            # Allow fastapi.tiangolo.com for documentation favicons
             #
-            # script-src:
-            #   - 'self': Allow scripts from same origin
-            #   - 'unsafe-eval': Required for Swagger UI/ReDoc (JSON Schema validation)
-            #   - cdn.jsdelivr.net: Swagger UI assets
-            #   NOTE: 'unsafe-inline' removed - all inline scripts moved to external files
-            #
-            # style-src:
-            #   - 'unsafe-inline': Required for dynamically generated styles (component libraries)
-            #   - Fonts and CDN for documentation UI
-            #
-            # img-src:
-            #   - http://*:*: Allow printer camera images from local network (HTTP cameras)
-            #   - data/blob: For dynamically generated images
-            #
-            # connect-src:
-            #   - ws/wss: WebSocket connections for real-time updates
+            # NOTE: 'unsafe-inline' is required for inline event handlers (onclick, etc.)
+            # The frontend uses 100+ inline handlers. Future refactoring could move
+            # these to addEventListener to allow removing unsafe-inline.
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
                 "img-src 'self' data: blob: http://*:* https://cdn.jsdelivr.net https://fastapi.tiangolo.com; "
                 "connect-src 'self' ws: wss:; "

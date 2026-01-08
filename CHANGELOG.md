@@ -27,8 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Extended timeout configuration
 
 ### Changed
-- **CSP Security Hardening**: Removed `unsafe-inline` from script-src
-  - Inline scripts moved to external `.js` files
+- **CSP Documentation**: Documented CSP configuration and requirements
+  - `unsafe-inline` required for 100+ inline event handlers in frontend
+  - Future refactoring could move to addEventListener pattern
   - New `frontend/js/page-loader.js` for page initialization
   - New `frontend/js/debug-init.js` for debug page
 - **Exception Migration**: Consolidated exception hierarchy

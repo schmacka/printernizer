@@ -20,7 +20,7 @@ env:
 jobs:
   # Backend Testing Job - Matrix for parallel category execution
   test-backend:
-    name: Backend Tests (${{ matrix.category }})
+    name: Backend Tests (${{ matrix.category.label }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
