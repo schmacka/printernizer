@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
-**Last Updated**: 2026-01-07
-**Current Version**: v2.19.0
+**Last Updated**: 2026-01-08
+**Current Version**: v2.24.0
 **E2E Test Suite**: v2.17.0 (241/258 passing)
 **Status**: Production Ready
 
@@ -574,12 +574,36 @@
   - Fix: Added reconnection cooldown, MQTT keepalive, connection state tracking
   - Priority: MEDIUM → RESOLVED
 
+### Database Schema Divergence ⚠️
+
+> **Status**: Partially mitigated (2026-01-08)
+
+**Problem**: The test `schema.sql` file has diverged from the runtime schema in `database.py`:
+
+| Column | schema.sql (tests) | database.py (runtime) |
+|--------|-------------------|----------------------|
+| files.status | `download_status` | `status` |
+| files.status_icon | Generated column | Not present |
+| jobs.id | `INTEGER PRIMARY KEY` | `TEXT PRIMARY KEY` |
+
+**Mitigation Applied**:
+- Split `temp_database` fixture into `temp_database` (empty) and `temp_database_with_schema`
+- Async `Database` class tests use `temp_database` + `db.initialize()` → correct schema
+- Backend tests use `temp_database_with_schema` → legacy schema.sql
+
+**Future Work**:
+- [ ] Reconcile `assets/database/schema.sql` with `src/database/database.py`
+- [ ] Create single source of truth for database schema
+- [ ] Consider generating schema.sql from database.py programmatically
+- **Effort**: 2-4 hours
+
 ### Database Improvements
 
 - [ ] Database connection pooling optimization
 - [ ] Query performance monitoring
 - [ ] Index usage analysis
 - [ ] Migration system hardening (checksums)
+- [ ] Reconcile schema.sql with database.py (see above)
 
 ---
 
@@ -804,6 +828,7 @@ Created comprehensive Playwright E2E test suite covering all 10 pages using Page
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 15.0 | 2026-01-08 | CI/CD test fixes, database schema divergence documented |
 | 14.0 | 2026-01-07 | Data Flow Audit issues resolved (8/8 fields fixed) |
 | 13.0 | 2026-01-07 | Added Data Flow Audit (8 broken fields identified) |
 | 12.0 | 2026-01-07 | 3D File Preview complete (v2.19.0) |
