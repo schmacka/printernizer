@@ -4,43 +4,24 @@ This document describes the release process for Printernizer, including versioni
 
 ## Branching Strategy
 
-Printernizer uses a **two-branch model** for development and releases:
+Printernizer uses a **feature branch model** where all changes merge directly into `master`.
 
-### Branches
+### Branch
 
-- **`development`** - Testing and integration branch
-  - All feature branches merge here first
-  - Used for Docker testing deployments
-  - Pre-release versions (e.g., `2.7.0-dev`, `2.7.0-beta.1`)
-  - Automated CI/CD builds Docker images tagged `development`
-  - No production deployments
-
-- **`master`** - Production-ready code
-  - Only tested, stable code merges here
-  - Used for Home Assistant add-on production releases
-  - Release versions only (e.g., `2.7.0`)
+- **`master`** - Main branch for all development and releases
+  - All feature branches merge here directly
+  - Used for Home Assistant add-on releases
+  - Release versions (e.g., `2.7.0`)
   - Tagged commits trigger production releases
   - Automated HA add-on version bumping
 
 ### Workflow
 
 ```
-Feature branch → development (test with Docker) → master (tag for release)
-     ↓                ↓                              ↓
-   PR + Review    Docker Testing              Production Release
+Feature branch → master (PR) → Tag for release
+     ↓              ↓              ↓
+  PR + Review    Merge + Test   Production Release
 ```
-
-### Version Conventions
-
-- **Development branch**: Pre-release versions
-  - Format: `X.Y.Z-dev` or `X.Y.Z-beta.N`
-  - Example: `2.7.0-dev`, `2.7.0-beta.1`
-  - Indicates work-in-progress
-
-- **Master branch**: Release versions
-  - Format: `X.Y.Z`
-  - Example: `2.7.0`
-  - Only applied when ready for production
 
 ## Version Numbering
 
@@ -57,17 +38,15 @@ All version numbers must be synchronized across these files:
 
 1. **CHANGELOG.md** - Release notes and version history
 2. **src/main.py** - `APP_VERSION = get_version(fallback="X.Y.Z")`
-3. **printernizer/config.yaml** - Home Assistant add-on `version: "X.Y.Z"`
 
 ## Release Workflow
 
 ### Prerequisites
 
 Before creating a release, ensure:
-- All features are merged to `development` branch
-- Docker deployment testing completed on `development`
-- All tests passing on `development`
-- Ready to merge `development` → `master`
+- All features are merged to `master` branch
+- All tests passing
+- Changes documented in CHANGELOG.md
 
 ### 1. Update CHANGELOG.md
 
@@ -94,33 +73,15 @@ Add a new section under `## [Unreleased]`:
 Update the version number in:
 
 - [src/main.py:90](src/main.py#L90) - `APP_VERSION = get_version(fallback="X.Y.Z")`
-- [printernizer/config.yaml:2](printernizer/config.yaml#L2) - `version: "X.Y.Z"`
 
-### 3. Merge development → master
-
-Create a pull request from `development` to `master`:
+### 3. Commit Version Bump
 
 ```bash
-# Switch to master and merge development
-git checkout master
-git pull origin master
-git merge development --no-ff
-```
-
-Or create a PR on GitHub for review.
-
-### 4. Commit Version Bump
-
-```bash
-git add CHANGELOG.md src/main.py printernizer/config.yaml
+git add CHANGELOG.md src/main.py
 git commit -m "chore: Bump version to X.Y.Z"
 ```
 
-The pre-commit hook will automatically sync files to the `printernizer/` directory.
-
-### 5. Create Git Tag
-
-**IMPORTANT**: Only tag commits on `master` branch.
+### 4. Create Git Tag
 
 ```bash
 git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"
@@ -131,14 +92,13 @@ Example:
 git tag -a v2.5.0 -m "Release v2.5.0 - Enhanced Library and Docker Support"
 ```
 
-### 6. Push to GitHub
+### 5. Push to GitHub
 
 ```bash
-git push origin master
-git push --tags
+git push origin master --tags
 ```
 
-### 7. GitHub Release (Automated)
+### 6. GitHub Release (Automated)
 
 When you push a tag matching `v*.*.*`, the GitHub Actions workflow (`.github/workflows/release.yml`) automatically:
 
@@ -195,14 +155,11 @@ Use this checklist when creating a release:
 
 - [ ] All changes documented in CHANGELOG.md
 - [ ] Version updated in `src/main.py`
-- [ ] Version updated in `printernizer/config.yaml`
 - [ ] Version files committed
 - [ ] Git tag created with descriptive message
 - [ ] Tag pushed to GitHub
 - [ ] GitHub release created (automatic or manual)
 - [ ] Release notes reviewed for accuracy
-- [ ] Home Assistant add-on tested with new version
-- [ ] Docker build tested with new version
 
 ## Troubleshooting
 
@@ -210,7 +167,7 @@ Use this checklist when creating a release:
 
 If versions are out of sync:
 
-1. Check all three files: CHANGELOG.md, src/main.py, printernizer/config.yaml
+1. Check both files: CHANGELOG.md, src/main.py
 2. Update to match the latest version
 3. Commit with message: `fix: Synchronize version numbers to X.Y.Z`
 
@@ -243,79 +200,55 @@ git push --tags
 ### Example: Minor Feature Release (2.5.0 → 2.6.0)
 
 ```bash
-# 1. Ensure all features tested on development branch
-git checkout development
-git pull origin development
-# ... test with Docker ...
-
-# 2. Merge development to master
+# 1. Ensure you're on master with latest changes
 git checkout master
 git pull origin master
-git merge development --no-ff
 
-# 3. Update CHANGELOG.md
+# 2. Update CHANGELOG.md
 vim CHANGELOG.md
 
-# 4. Update version files
+# 3. Update version file
 vim src/main.py          # Change fallback="2.6.0"
-vim printernizer/config.yaml  # Change version: "2.6.0"
 
-# 5. Commit
-git add CHANGELOG.md src/main.py printernizer/config.yaml
+# 4. Commit
+git add CHANGELOG.md src/main.py
 git commit -m "chore: Bump version to 2.6.0"
 
-# 6. Tag
+# 5. Tag
 git tag -a v2.6.0 -m "Release v2.6.0 - New feature description"
 
-# 7. Push
-git push origin master && git push --tags
-
-# 8. Sync master changes back to development
-git checkout development
-git merge master
-git push origin development
+# 6. Push
+git push origin master --tags
 ```
 
 ### Example: Patch/Bugfix Release (2.5.0 → 2.5.1)
 
 ```bash
-# For urgent hotfixes, you may work directly on master
-# Otherwise, follow the same development → master flow
-
-# 1. Merge development to master (or apply hotfix directly)
+# 1. Ensure you're on master
 git checkout master
-git merge development --no-ff  # Or skip if hotfix
+git pull origin master
 
 # 2. Update version files
 vim CHANGELOG.md
 vim src/main.py
-vim printernizer/config.yaml
 
 # 3. Commit and tag
-git add CHANGELOG.md src/main.py printernizer/config.yaml
+git add CHANGELOG.md src/main.py
 git commit -m "chore: Bump version to 2.5.1"
 git tag -a v2.5.1 -m "Release v2.5.1 - Critical bug fixes"
 
 # 4. Push
-git push origin master && git push --tags
-
-# 5. Sync back to development
-git checkout development
-git merge master
-git push origin development
+git push origin master --tags
 ```
 
 ## Best Practices
 
-1. **Always test on development first** - Merge features to `development`, test with Docker, then merge to `master`
-2. **Sync development ↔ master** - Keep branches in sync by merging master back to development after releases
-3. **Only tag on master** - Production releases are only tagged on the `master` branch
-4. **Tag immediately after version bump commit** - Don't let commits accumulate after updating version
-5. **Use descriptive tag messages** - Include brief summary of main changes
-6. **Keep CHANGELOG.md up to date** - Update it with each significant change
-7. **Test before releasing** - Run tests and verify functionality
-8. **Follow semantic versioning** - Be consistent with version number meanings
-9. **Document breaking changes** - Clearly mark any breaking changes in CHANGELOG
+1. **Test before releasing** - Run tests and verify functionality before tagging
+2. **Tag immediately after version bump commit** - Don't let commits accumulate after updating version
+3. **Use descriptive tag messages** - Include brief summary of main changes
+4. **Keep CHANGELOG.md up to date** - Update it with each significant change
+5. **Follow semantic versioning** - Be consistent with version number meanings
+6. **Document breaking changes** - Clearly mark any breaking changes in CHANGELOG
 
 ## Related Documentation
 
@@ -325,5 +258,5 @@ git push origin development
 
 ---
 
-**Last Updated**: 2025-11-11
-**Current Version**: 2.5.0
+**Last Updated**: 2026-01-08
+**Current Version**: 2.24.3

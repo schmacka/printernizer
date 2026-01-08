@@ -27,28 +27,21 @@ For detailed information on specific topics, see the Claude Code Skills in `.cla
 
 ### ⚠️ Branching Strategy - READ THIS FIRST
 
-**Two-Branch Model**:
+**Feature Branch Model**:
 
-- **`development`** - Integration and testing branch
-  - All feature branches merge here first
-  - Used for Docker testing deployments
-  - Pre-release versions (e.g., `2.7.0-dev`)
-  - Docker images tagged `development`
-  - HA add-on sync runs but NO version bump
-
-- **`master`** - Production-ready branch
-  - Only stable, tested code
+- **`master`** - Main branch for all development and releases
+  - All feature branches merge here directly
   - Used for Home Assistant add-on and production deployments
-  - Release versions only (e.g., `2.7.0`)
+  - Release versions (e.g., `2.7.0`)
   - Tagged commits trigger production releases
   - HA add-on auto version bump
 
 **Development Workflow**:
 ```
-Feature branch → development (PR) → Docker test → master (PR) → Tag for release
+Feature branch → master (PR) → Tag for release
 ```
 
-**IMPORTANT**: Always create feature branches from `development`, not `master`. See [RELEASE.md](RELEASE.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for complete workflow.
+**IMPORTANT**: Always create feature branches from `master`. See [RELEASE.md](RELEASE.md) and [CONTRIBUTING.md](CONTRIBUTING.md) for complete workflow.
 
 ### ⚠️ Code Synchronization - READ THIS FIRST
 
@@ -109,13 +102,12 @@ python src/main.py
 
 Used for local development and testing on your machine.
 
-### 2. Docker Standalone (Testing)
+### 2. Docker Standalone
 
-Used for testing on the `development` branch:
+Run Printernizer in a Docker container:
 
 ```bash
-# Use development branch for testing
-docker pull ghcr.io/schmacka/printernizer:development
+docker pull ghcr.io/schmacka/printernizer:latest
 docker-compose up -d
 ```
 
@@ -128,21 +120,17 @@ Used for production deployments from `master` branch:
 
 ### 4. Raspberry Pi Deployment (Production Alternative)
 
-Quick deployment script for Raspberry Pi (uses `master` branch by default):
+Quick deployment script for Raspberry Pi:
 
 ```bash
-# Production (master branch)
 curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/master/scripts/pi-deployment/pi-setup.sh | bash
-
-# Testing (development branch) - for advanced users
-curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/development/scripts/pi-deployment/pi-setup.sh | bash
 ```
 
 **Note**: The Pi deployment script automatically:
 - Installs dependencies
 - Sets up systemd service
 - Configures firewall
-- Pulls code from the specified branch (master by default)
+- Pulls code from `master` branch
 
 See [`scripts/pi-deployment/`](scripts/pi-deployment/) for manual installation instructions.
 

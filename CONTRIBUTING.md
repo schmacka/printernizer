@@ -26,32 +26,28 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Branching Strategy
 
-Printernizer uses a **two-branch model**:
+Printernizer uses a **feature branch model**:
 
-- **`development`** - Integration and testing branch
-  - All feature branches merge here first
-  - Used for Docker testing deployments
-  - Automated CI/CD builds and tests
-
-- **`master`** - Production-ready code
-  - Only stable, tested code
+- **`master`** - Main branch for all development and releases
+  - All feature branches merge here directly
   - Used for Home Assistant add-on releases
   - Tagged for production releases
+  - Automated CI/CD builds and tests
 
 ### Contribution Flow
 
 ```
-Your fork → feature/your-feature → development (PR) → master (after testing)
+Your fork → feature/your-feature → master (PR)
 ```
 
 ### 1. Create a Feature Branch
 
-Create your feature branch from `development`:
+Create your feature branch from `master`:
 
 ```bash
-# Ensure you have the latest development branch
-git checkout development
-git pull upstream development
+# Ensure you have the latest master branch
+git checkout master
+git pull upstream master
 
 # Create your feature branch
 git checkout -b feature/your-feature-name
@@ -104,13 +100,11 @@ Use conventional commit messages:
 git push origin feature/your-feature-name
 ```
 
-Create a pull request on GitHub **targeting the `development` branch** with:
+Create a pull request on GitHub **targeting the `master` branch** with:
 - Clear description of changes
 - Reference to any related issues
 - Screenshots for UI changes
 - Testing notes
-
-**Important**: All PRs should target `development`, not `master`. The `master` branch is only for production-ready releases.
 
 ## Development Guidelines
 

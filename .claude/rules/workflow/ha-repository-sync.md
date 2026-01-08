@@ -10,10 +10,9 @@ Code is automatically synced from this main repository via GitHub Actions.
 
 ### Automatic Sync (sync-to-ha-repo.yml)
 
-On push to `master` or `development`:
+On push to `master`:
 1. Workflow copies `src/`, `frontend/`, `migrations/` to printernizer-ha
-2. **Development branch**: Syncs without version bump
-3. **Master branch**: Syncs with automatic version bump
+2. Syncs with automatic version bump on tagged commits
 
 ### Tag Sync (sync-release-tags.yml)
 
@@ -32,7 +31,7 @@ On version tags (`v*`):
 | Environment | Source |
 |------------|--------|
 | Local development | This repository |
-| Docker testing | This repository (development tag) |
+| Docker | This repository (latest tag) |
 | Home Assistant | printernizer-ha repository |
 
 ## Triggering a Sync Manually

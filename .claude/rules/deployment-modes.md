@@ -13,16 +13,16 @@ python src/main.py
 
 **Use for**: Local development and testing.
 
-## 2. Docker Standalone (Testing)
+## 2. Docker Standalone
 
-Use `development` branch for testing builds:
+Run in a Docker container:
 
 ```bash
-docker pull ghcr.io/schmacka/printernizer:development
+docker pull ghcr.io/schmacka/printernizer:latest
 docker-compose up -d
 ```
 
-**Use for**: Integration testing before production.
+**Use for**: Container-based deployments.
 
 ## 3. Home Assistant Add-on (Production)
 
@@ -39,7 +39,6 @@ Install via Home Assistant Add-on Store.
 Quick deployment script:
 
 ```bash
-# Production (master branch)
 curl -fsSL https://raw.githubusercontent.com/schmacka/printernizer/master/scripts/pi-deployment/pi-setup.sh | bash
 ```
 
@@ -57,9 +56,9 @@ if os.getenv("HA_INGRESS") == "true":
     # Special HA handling
 ```
 
-## Branch → Deployment Mapping
+## Docker Tags
 
-| Branch | Docker Tag | HA Add-on |
-|--------|------------|-----------|
-| `development` | `development` | Testing only |
-| `master` | `latest`, `vX.Y.Z` | Production |
+| Tag | Description |
+|-----|-------------|
+| `latest` | Latest stable release from master |
+| `vX.Y.Z` | Specific version releases |
