@@ -601,6 +601,47 @@ The debug page (`/debug.html`) tests consistently fail because:
 - [ ] Migration system hardening (checksums)
 - [ ] Reconcile schema.sql with database.py (see above)
 
+### API Features (Planned)
+
+> Tests exist but endpoints not yet implemented
+
+- [ ] **File Download Progress** - `GET /api/v1/files/{id}/download-progress`
+  - Track download progress for large files
+  - Test: `tests/backend/test_api_files.py::test_get_file_download_progress`
+
+- [ ] **File Cleanup** - `POST /api/v1/files/cleanup`
+  - Automated cleanup of old downloaded files
+  - Test: `tests/backend/test_api_files.py::test_post_file_cleanup`
+
+### Test Architecture Issues
+
+> Require refactoring to fix properly
+
+- [ ] **TestClient Service Lifecycle**
+  - Issue: `TestClient` reinitializes app services, making mocking difficult
+  - Affected: `test_job_api_database_connection_error`
+  - Solution: Refactor test architecture to properly inject mocked services
+  - **Effort**: 4-8 hours
+
+- [ ] **Integration Test Database Seeding**
+  - Issue: Performance tests require actual database with 500+ records
+  - Affected tests (marked `@pytest.mark.integration`):
+    - `test_large_job_list_performance`
+    - `test_job_filtering_performance`
+  - Solution: Create database seeding fixture or use separate integration test database
+  - **Effort**: 2-4 hours
+
+- [ ] **E2E Database Seeding Fixtures**
+  - Issue: Some E2E tests require existing data (printers, materials, jobs)
+  - Affected tests (5 total):
+    - `test_printer_details_modal` - Requires printers
+    - `test_material_details_modal` - Requires materials
+    - `test_job_details_modal` - Requires jobs
+    - `test_search_printer` - Requires printers
+    - `test_printer_card_actions` - Requires printers
+  - Solution: Create API-based seeding fixtures in `tests/e2e/conftest.py`
+  - **Effort**: 4-6 hours
+
 ---
 
 ## Reference

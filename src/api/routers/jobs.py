@@ -10,9 +10,11 @@ import structlog
 
 from src.models.job import Job, JobStatus, JobCreate, JobUpdateRequest, JobStatusUpdateRequest, JobStatusUpdateResponse
 from src.services.job_service import JobService
-from src.utils.dependencies import get_job_service
+from src.services.printer_service import PrinterService
+from src.utils.dependencies import get_job_service, get_printer_service
 from src.utils.errors import (
     JobNotFoundError,
+    PrinterNotFoundError,
     ValidationError as PrinternizerValidationError,
     success_response
 )
@@ -135,10 +137,17 @@ async def list_jobs(
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     job_data: JobCreate,
-    job_service: JobService = Depends(get_job_service)
+    job_service: JobService = Depends(get_job_service),
+    printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Create a new print job."""
     try:
+        # Validate printer exists before creating job
+        if job_data.printer_id:
+            printer = await printer_service.get_printer(job_data.printer_id)
+            if not printer:
+                raise PrinterNotFoundError(job_data.printer_id)
+
         job_id = await job_service.create_job(job_data.model_dump())
         job = await job_service.get_job(job_id)
         if not job:
@@ -148,6 +157,8 @@ async def create_job(
                 details={"reason": "Job created but could not be retrieved"}
             )
         return JobResponse.model_validate(_transform_job_to_response(job))
+    except PrinterNotFoundError:
+        raise
     except ValueError as e:
         # Convert service ValueError to standardized ValidationError
         raise PrinternizerValidationError(

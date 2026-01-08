@@ -7,7 +7,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Query
 from fastapi.responses import RedirectResponse
 import base64
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+import re
 import structlog
 
 from src.models.printer import Printer, PrinterType, PrinterStatus
@@ -64,6 +65,29 @@ class PrinterUpdateRequest(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     is_enabled: Optional[bool] = None
+
+    @field_validator('name')
+    @classmethod
+    def name_not_empty(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError('Name cannot be empty')
+        return v
+
+    @field_validator('connection_config')
+    @classmethod
+    def validate_connection_config(cls, v):
+        if v is not None and 'ip_address' in v:
+            ip = v['ip_address']
+            # Basic IP address validation (IPv4)
+            ip_pattern = r'^(\d{1,3}\.){3}\d{1,3}$'
+            if not re.match(ip_pattern, ip):
+                raise ValueError('Invalid IP address format')
+            # Validate each octet is 0-255
+            octets = ip.split('.')
+            for octet in octets:
+                if not 0 <= int(octet) <= 255:
+                    raise ValueError('Invalid IP address')
+        return v
 
 
 class PrinterTestConnectionRequest(BaseModel):
@@ -463,6 +487,13 @@ async def update_printer(
     printer_service: PrinterService = Depends(get_printer_service)
 ):
     """Update printer configuration."""
+    # Prevent printer type changes
+    if printer_data.printer_type is not None:
+        raise PrinternizerValidationError(
+            field="printer_type",
+            error="Printer type cannot be changed"
+        )
+
     # ValueError will be caught by global handler and converted to 400
     printer = await printer_service.update_printer(printer_id, **printer_data.model_dump(exclude_unset=True))
     if not printer:

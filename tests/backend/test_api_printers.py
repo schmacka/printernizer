@@ -489,30 +489,42 @@ class TestPrinterAPI:
         assert data['connection_config']['ip_address'] == '192.168.1.150'
         assert data['is_enabled'] is False
     
-    @pytest.mark.skip(reason="Requires printer_service.update_printer implementation with validation")
-    def test_put_printers_invalid_update(self, client):
+    def test_put_printers_invalid_update(self, client, test_app):
         """Test PUT /api/v1/printers/{id} with invalid data"""
+        from unittest.mock import AsyncMock
+
         printer_id = 'bambu_a1_001'
-        
+
+        # Mock printer service - only needed for type change test since others fail at validation
+        test_app.state.printer_service.update_printer = AsyncMock(return_value=None)
+
         test_cases = [
-            # Invalid IP address
-            ({'ip_address': 'invalid_ip'}, 'Invalid IP address'),
-            
+            # Invalid IP address - must be in connection_config
+            ({'connection_config': {'ip_address': 'invalid_ip'}}, 'Invalid IP address'),
+
             # Invalid printer type (should not be changeable)
-            ({'type': 'invalid_type'}, 'Printer type cannot be changed'),
-            
+            ({'printer_type': 'bambu_lab'}, 'Printer type cannot be changed'),
+
             # Empty name
             ({'name': ''}, 'Name cannot be empty'),
         ]
-        
+
         for update_data, expected_error in test_cases:
             response = client.put(
-                "/api/v1/printers/{printer_id}",
+                f"/api/v1/printers/{printer_id}",
                 json=update_data
             )
-            
-            assert response.status_code == 400
-            assert expected_error in response.json()['error']['message']
+
+            assert response.status_code in [400, 422], f"Expected 400/422 for {update_data}, got {response.status_code}"
+            error_data = response.json()
+            # Handle both ValidationError (400) and Pydantic validation error (422)
+            if response.status_code == 400:
+                assert expected_error in error_data.get('message', ''), f"Expected '{expected_error}' in error for {update_data}"
+            else:
+                # 422 errors use our custom format with details.validation_errors
+                validation_errors = error_data.get('details', {}).get('validation_errors', [])
+                error_msgs = str(validation_errors)
+                assert expected_error in error_msgs, f"Expected '{expected_error}' in validation error for {update_data}"
     
     def test_delete_printers(self, client, test_app):
         """Test DELETE /api/v1/printers/{id}"""

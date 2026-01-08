@@ -232,6 +232,7 @@ class TestJobAPI:
         }
 
         # Configure mock - POST endpoint calls create_job then get_job
+        # Also need to mock printer_service.get_printer for validation
         created_job_id = 'new-job-id'
         created_job = {
             'id': created_job_id,
@@ -244,6 +245,8 @@ class TestJobAPI:
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }
+        # Mock printer exists (required for validation)
+        test_app.state.printer_service.get_printer = AsyncMock(return_value={'id': 'bambu_a1_001'})
         test_app.state.job_service.create_job = AsyncMock(return_value=created_job_id)
         test_app.state.job_service.get_job = AsyncMock(return_value=created_job)
 
@@ -770,9 +773,14 @@ class TestJobBusinessLogic:
 
 
 class TestJobAPIPerformance:
-    """Test job API performance and scalability"""
-    
-    @pytest.mark.skip(reason="Test fixture doesn't properly mock database - needs refactoring")
+    """Test job API performance and scalability.
+
+    Note: These tests require actual database integration and are marked as integration tests.
+    Run with: pytest -m integration --timeout=60
+    """
+
+    @pytest.mark.skip(reason="Integration test - requires database seeding setup. Track in MASTERPLAN.md")
+    @pytest.mark.integration
     def test_large_job_list_performance(self, client, db_connection):
         """Test API performance with large number of jobs"""
         cursor = db_connection.cursor()
@@ -810,7 +818,8 @@ class TestJobAPIPerformance:
         data = response.json()
         assert data['total_count'] >= 500
     
-    @pytest.mark.skip(reason="Test fixture doesn't properly mock database - needs refactoring")
+    @pytest.mark.skip(reason="Integration test - requires database seeding setup. Track in MASTERPLAN.md")
+    @pytest.mark.integration
     def test_job_filtering_performance(self, client, db_connection):
         """Test performance of job filtering operations"""
         # Test various filter combinations that should use database indexes
@@ -859,21 +868,27 @@ class TestJobAPIErrorHandling:
             assert error_data['status'] == 'error'
             assert 'Database connection failed' in error_data['message']
     
-    @pytest.mark.skip(reason="Endpoint validation logic needs implementation")
-    def test_job_creation_with_invalid_printer(self, client):
+    def test_job_creation_with_invalid_printer(self, client, test_app):
         """Test job creation with non-existent printer"""
+        from unittest.mock import AsyncMock
+
+        # Mock printer service to return None (printer not found)
+        test_app.state.printer_service.get_printer = AsyncMock(return_value=None)
+
         job_data = {
             'printer_id': 'non_existent_printer_123',
             'job_name': 'test.3mf'
         }
-        
+
         response = client.post(
             "/api/v1/jobs",
             json=job_data
         )
-        
+
         assert response.status_code == 404
-        assert 'Printer not found' in response.json()['error']['message']
+        error_data = response.json()
+        assert error_data['status'] == 'error'
+        assert 'Printer not found' in error_data['message']
     
     def test_job_status_update_idempotency(self, client, test_app):
         """Test handling of idempotent status updates (same status twice)"""

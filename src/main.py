@@ -814,13 +814,24 @@ def create_application() -> FastAPI:
         logger = structlog.get_logger()
         logger.warning("Validation error", errors=exc.errors(), path=request.url.path)
 
+        # Convert errors to JSON-serializable format (ctx may contain non-serializable objects)
+        serializable_errors = []
+        for error in exc.errors():
+            serializable_error = {
+                "type": error.get("type"),
+                "loc": error.get("loc"),
+                "msg": error.get("msg"),
+                "input": error.get("input") if isinstance(error.get("input"), (str, int, float, bool, list, dict, type(None))) else str(error.get("input")),
+            }
+            serializable_errors.append(serializable_error)
+
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
                 "status": "error",
                 "message": "Request validation failed",
                 "error_code": "VALIDATION_ERROR",
-                "details": {"validation_errors": exc.errors()},
+                "details": {"validation_errors": serializable_errors},
                 "timestamp": datetime.now().isoformat()
             }
         )
