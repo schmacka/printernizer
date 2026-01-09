@@ -25,18 +25,43 @@ from src.database.database import Database
 from src.services.event_service import EventService
 
 
+@pytest.fixture
+def mock_printer_repo():
+    """Create mock printer repository."""
+    repo = MagicMock()
+    repo.list = AsyncMock(return_value=[])
+    repo.get = AsyncMock(return_value=None)
+    repo.update = AsyncMock(return_value=True)
+    return repo
+
+
+@pytest.fixture
+def mock_database():
+    """Create mock database with _connection attribute."""
+    mock_db = MagicMock()
+    mock_db._connection = MagicMock()
+    mock_db.list_jobs = AsyncMock(return_value=[])
+    return mock_db
+
+
+@pytest.fixture
+def mock_event_service():
+    """Create mock event service."""
+    return Mock(spec=EventService)
+
+
 class TestJobKeyGeneration:
     """Test job key generation for deduplication."""
 
     @pytest.fixture
-    def monitoring_service(self):
+    def monitoring_service(self, mock_database, mock_event_service, mock_printer_repo):
         """Create monitoring service instance for testing."""
-        mock_db = AsyncMock(spec=Database)
-        mock_event_service = Mock(spec=EventService)
-        return PrinterMonitoringService(
-            database=mock_db,
-            event_service=mock_event_service
-        )
+        with patch('src.services.printer_monitoring_service.PrinterRepository', return_value=mock_printer_repo):
+            service = PrinterMonitoringService(
+                database=mock_database,
+                event_service=mock_event_service
+            )
+            return service
 
     def test_make_job_key_stable(self, monitoring_service):
         """Job key should be stable for same inputs."""
@@ -120,14 +145,14 @@ class TestFilenameClean:
     """Test filename cleaning logic."""
 
     @pytest.fixture
-    def monitoring_service(self):
+    def monitoring_service(self, mock_database, mock_event_service, mock_printer_repo):
         """Create monitoring service instance for testing."""
-        mock_db = AsyncMock(spec=Database)
-        mock_event_service = Mock(spec=EventService)
-        return PrinterMonitoringService(
-            database=mock_db,
-            event_service=mock_event_service
-        )
+        with patch('src.services.printer_monitoring_service.PrinterRepository', return_value=mock_printer_repo):
+            service = PrinterMonitoringService(
+                database=mock_database,
+                event_service=mock_event_service
+            )
+            return service
 
     def test_clean_filename_removes_extensions(self, monitoring_service):
         """Should remove common 3D printing file extensions."""
@@ -170,15 +195,14 @@ class TestFindExistingJob:
     """Test database lookup for existing jobs."""
 
     @pytest.fixture
-    def monitoring_service(self):
+    def monitoring_service(self, mock_database, mock_event_service, mock_printer_repo):
         """Create monitoring service with mocked database."""
-        mock_db = AsyncMock(spec=Database)
-        mock_event_service = Mock(spec=EventService)
-        service = PrinterMonitoringService(
-            database=mock_db,
-            event_service=mock_event_service
-        )
-        return service
+        with patch('src.services.printer_monitoring_service.PrinterRepository', return_value=mock_printer_repo):
+            service = PrinterMonitoringService(
+                database=mock_database,
+                event_service=mock_event_service
+            )
+            return service
 
     @pytest.mark.asyncio
     async def test_find_existing_job_exact_match(self, monitoring_service):
@@ -306,19 +330,19 @@ class TestAutoCreateJobLogic:
     """Test auto-job creation triggering logic."""
 
     @pytest.fixture
-    def monitoring_service(self):
+    def monitoring_service(self, mock_database, mock_printer_repo):
         """Create monitoring service with mocked dependencies."""
-        mock_db = AsyncMock(spec=Database)
         mock_event_service = AsyncMock(spec=EventService)
         mock_job_service = AsyncMock()
         mock_connection_service = Mock()
 
-        service = PrinterMonitoringService(
-            database=mock_db,
-            event_service=mock_event_service,
-            job_service=mock_job_service,
-            connection_service=mock_connection_service
-        )
+        with patch('src.services.printer_monitoring_service.PrinterRepository', return_value=mock_printer_repo):
+            service = PrinterMonitoringService(
+                database=mock_database,
+                event_service=mock_event_service,
+                job_service=mock_job_service,
+                connection_service=mock_connection_service
+            )
 
         # Enable auto-creation
         service.auto_create_jobs = True
@@ -496,14 +520,14 @@ class TestDiscoveryTracking:
     """Test print discovery tracking and cleanup."""
 
     @pytest.fixture
-    def monitoring_service(self):
+    def monitoring_service(self, mock_database, mock_event_service, mock_printer_repo):
         """Create monitoring service instance."""
-        mock_db = AsyncMock(spec=Database)
         mock_event_service = AsyncMock(spec=EventService)
-        return PrinterMonitoringService(
-            database=mock_db,
-            event_service=mock_event_service
-        )
+        with patch('src.services.printer_monitoring_service.PrinterRepository', return_value=mock_printer_repo):
+            return PrinterMonitoringService(
+                database=mock_database,
+                event_service=mock_event_service
+            )
 
     @pytest.mark.asyncio
     async def test_discovery_tracking_first_occurrence(self, monitoring_service):

@@ -294,15 +294,19 @@ Key changes:
 - Updated all test methods to use `mock_job_repo` instead of `mock_database`
 - All 34 tests now pass
 
-### 7.2 Auto Job Creation Tests (~28 errors)
+### ~~7.2 Auto Job Creation Tests~~ COMPLETED
 
 **File:** `tests/services/test_auto_job_creation.py`
 
-**Root Cause:** Mock attribute errors - mocks missing required attributes/methods
-**Priority:** Medium
-**Fix Required:**
-- Review AutoJobCreationService dependencies
-- Update mock fixtures to include all required attributes
+**Status:** FIXED (2026-01-09)
+**Resolution:** The `PrinterMonitoringService` creates `PrinterRepository(database._connection)` in its constructor. The mocks needed:
+1. `mock_database._connection` attribute
+2. Patch `PrinterRepository` to return a mock instead of creating a real one
+
+Key changes:
+- Added global `mock_printer_repo`, `mock_database`, `mock_event_service` fixtures
+- Updated all class fixtures to use `patch('...PrinterRepository', return_value=mock_printer_repo)`
+- All 28 tests now pass
 
 ### 7.3 Integration Tests (~14 failures)
 
@@ -328,8 +332,8 @@ Key changes:
 ## Implementation Priorities
 
 ### High Priority (Should Fix Soon)
-1. ~~JobService test mocks (affects 24 tests)~~ **COMPLETED 2026-01-09**
-2. AutoJobCreation test mocks (affects 28 tests)
+1. ~~JobService test mocks (affects 34 tests)~~ **COMPLETED 2026-01-09**
+2. ~~AutoJobCreation test mocks (affects 28 tests)~~ **COMPLETED 2026-01-09**
 
 ### Medium Priority (Next Sprint)
 1. Download Progress Endpoint (Future Feature)
@@ -344,6 +348,9 @@ Key changes:
 5. Analytics Service test fixes
 
 ### Recently Completed
+- **2026-01-09**: Fixed AutoJobCreation tests - All 28 tests now PASS (was 28 errors):
+  - Root cause: `PrinterMonitoringService` creates `PrinterRepository(database._connection)` but mock lacked `_connection`
+  - Fix: Added `mock_database._connection` and patched `PrinterRepository` in fixtures
 - **2026-01-09**: Fixed JobService tests - All 34 tests now PASS (was 24 failures):
   - Root cause: Tests mocked `Database` methods but service uses `JobRepository`
   - Fix: Added `mock_job_repo` fixture and patched `JobRepository` in fixture
