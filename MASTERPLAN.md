@@ -281,15 +281,18 @@ pytest.skip("bambulabs-api not installed; skipping BambuLabPrinter conformance t
 
 These tests are failing due to mock configuration issues or service implementation mismatches.
 
-### 7.1 JobService Tests (~24 failures)
+### ~~7.1 JobService Tests~~ COMPLETED
 
 **File:** `tests/services/test_job_service.py`
 
-**Root Cause:** Mock database configuration issues - tests mock database but service expects different attribute structure
-**Priority:** Medium
-**Fix Required:**
-- Update mock fixtures to match actual Database class interface
-- Ensure `mock_db.config` returns proper configuration object
+**Status:** FIXED (2026-01-09)
+**Resolution:** Updated test fixtures to mock `JobRepository` instead of `Database` methods. The `JobService` internally creates a `JobRepository`, so mocking the database directly didn't work.
+
+Key changes:
+- Added `mock_job_repo` fixture with proper AsyncMock methods
+- Patched `JobRepository` in the `job_service` fixture
+- Updated all test methods to use `mock_job_repo` instead of `mock_database`
+- All 34 tests now pass
 
 ### 7.2 Auto Job Creation Tests (~28 errors)
 
@@ -325,7 +328,7 @@ These tests are failing due to mock configuration issues or service implementati
 ## Implementation Priorities
 
 ### High Priority (Should Fix Soon)
-1. JobService test mocks (affects 24 tests)
+1. ~~JobService test mocks (affects 24 tests)~~ **COMPLETED 2026-01-09**
 2. AutoJobCreation test mocks (affects 28 tests)
 
 ### Medium Priority (Next Sprint)
@@ -341,6 +344,10 @@ These tests are failing due to mock configuration issues or service implementati
 5. Analytics Service test fixes
 
 ### Recently Completed
+- **2026-01-09**: Fixed JobService tests - All 34 tests now PASS (was 24 failures):
+  - Root cause: Tests mocked `Database` methods but service uses `JobRepository`
+  - Fix: Added `mock_job_repo` fixture and patched `JobRepository` in fixture
+  - Updated all test methods to use repository mock instead of database mock
 - **2026-01-09**: OctoPrint printer integration (v2.25.0):
   - New `OctoPrintPrinter` class implementing full BasePrinter interface
   - SockJS WebSocket client for real-time push updates
