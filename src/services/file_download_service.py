@@ -74,6 +74,8 @@ class FileDownloadService:
         # Download state tracking
         self.download_progress: Dict[str, int] = {}
         self.download_status: Dict[str, str] = {}
+        self.download_bytes: Dict[str, int] = {}
+        self.download_total_bytes: Dict[str, int] = {}
 
     async def download_file(
         self,
@@ -558,7 +560,9 @@ class FileDownloadService:
                 return {
                     "file_id": file_id,
                     "status": self.download_status[file_id],
-                    "progress": self.download_progress.get(file_id, 0)
+                    "progress": self.download_progress.get(file_id, 0),
+                    "bytes_downloaded": self.download_bytes.get(file_id, 0),
+                    "total_bytes": self.download_total_bytes.get(file_id, 0)
                 }
 
             # Check database for historical status
@@ -591,6 +595,33 @@ class FileDownloadService:
                 "error": str(e)
             }
 
+    async def _broadcast_progress(self, file_id: str) -> None:
+        """
+        Broadcast download progress via WebSocket.
+
+        Emits a system_event with type 'download_progress' containing
+        current download state for real-time UI updates.
+
+        Args:
+            file_id: File identifier to broadcast progress for
+        """
+        try:
+            # Lazy import to avoid circular dependency
+            from src.api.routers.websocket import broadcast_system_event
+
+            await broadcast_system_event("download_progress", {
+                "download_id": file_id,
+                "progress": self.download_progress.get(file_id, 0),
+                "status": self.download_status.get(file_id, "unknown"),
+                "bytes_downloaded": self.download_bytes.get(file_id, 0),
+                "total_bytes": self.download_total_bytes.get(file_id, 0)
+            })
+        except Exception as e:
+            # Don't fail the download if broadcast fails
+            logger.warning("Failed to broadcast download progress",
+                          file_id=file_id,
+                          error=str(e))
+
     async def cleanup_download_status(self, max_age_hours: int = 24) -> None:
         """
         Clean up old download status entries.
@@ -616,6 +647,10 @@ class FileDownloadService:
                     del self.download_status[file_id]
                 if file_id in self.download_progress:
                     del self.download_progress[file_id]
+                if file_id in self.download_bytes:
+                    del self.download_bytes[file_id]
+                if file_id in self.download_total_bytes:
+                    del self.download_total_bytes[file_id]
 
             logger.info("Cleaned up download status", removed_entries=len(to_remove))
 

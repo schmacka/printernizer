@@ -624,6 +624,16 @@ class FileService:
         """Access download status from downloader (backward compatibility)."""
         return self.downloader.download_status
 
+    @property
+    def download_bytes(self) -> Dict[str, int]:
+        """Access download bytes from downloader (backward compatibility)."""
+        return self.downloader.download_bytes
+
+    @property
+    def download_total_bytes(self) -> Dict[str, int]:
+        """Access download total bytes from downloader (backward compatibility)."""
+        return self.downloader.download_total_bytes
+
     # ========================================================================
     # DELEGATION TO FileUploadService
     # ========================================================================

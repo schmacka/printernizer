@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 import hashlib
-from unittest.mock import patch, Mock, mock_open
+from unittest.mock import patch, Mock, mock_open, AsyncMock
 from datetime import datetime
 from fastapi.testclient import TestClient
 
@@ -230,11 +230,68 @@ class TestFileAPI:
         data = response.json()
         assert data['status'] == 'success'
     
-    @pytest.mark.skip(reason="Download progress endpoint not yet implemented - future feature")
-    def test_get_file_download_progress(self, client):
+    def test_get_file_download_progress(self, client, test_app):
         """Test GET /api/v1/files/downloads/{download_id}/progress"""
-        # This test is for a future feature - progress tracking endpoint
-        pass
+        download_id = 'bambu_001_test_file.3mf'
+
+        # Configure mock file service to return progress status
+        test_app.state.file_service.get_download_status = AsyncMock(return_value={
+            'file_id': download_id,
+            'status': 'downloading',
+            'progress': 45,
+            'bytes_downloaded': 1024000,
+            'total_bytes': 2048000
+        })
+
+        response = client.get(f"/api/v1/files/downloads/{download_id}/progress")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['download_id'] == download_id
+        assert data['data']['progress'] == 45
+        assert data['data']['status'] == 'downloading'
+        assert data['data']['bytes_downloaded'] == 1024000
+        assert data['data']['total_bytes'] == 2048000
+
+    def test_get_file_download_progress_not_found(self, client, test_app):
+        """Test GET /api/v1/files/downloads/{download_id}/progress - not found"""
+        download_id = 'nonexistent_download_id'
+
+        # Configure mock to return not_found status
+        test_app.state.file_service.get_download_status = AsyncMock(return_value={
+            'file_id': download_id,
+            'status': 'not_found',
+            'progress': 0
+        })
+
+        response = client.get(f"/api/v1/files/downloads/{download_id}/progress")
+
+        assert response.status_code == 404
+        data = response.json()
+        assert data['status'] == 'error'
+
+    def test_get_file_download_progress_completed(self, client, test_app):
+        """Test GET /api/v1/files/downloads/{download_id}/progress - completed download"""
+        download_id = 'bambu_001_completed_file.3mf'
+
+        test_app.state.file_service.get_download_status = AsyncMock(return_value={
+            'file_id': download_id,
+            'status': 'completed',
+            'progress': 100,
+            'bytes_downloaded': 2048000,
+            'total_bytes': 2048000,
+            'downloaded_at': '2025-01-09T10:00:00Z',
+            'local_path': '/downloads/bambu_001/completed_file.3mf'
+        })
+
+        response = client.get(f"/api/v1/files/downloads/{download_id}/progress")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['progress'] == 100
+        assert data['data']['status'] == 'completed'
     
     def test_get_file_download_history(self, client, populated_database):
         """Test GET /api/v1/files - basic list endpoint"""
