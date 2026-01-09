@@ -19,6 +19,7 @@ from src.utils.errors import (
     FileNotFoundError as PrinternizerFileNotFoundError,
     FileDownloadError,
     FileProcessingError,
+    NotFoundError,
     ValidationError as PrinternizerValidationError,
     success_response
 )
@@ -187,6 +188,48 @@ async def get_file_statistics(
     return success_response({
         "statistics": stats,
         "timestamp": "2025-09-26T18:55:00Z"
+    })
+
+
+@router.get("/downloads/{download_id}/progress")
+async def get_download_progress(
+    download_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Get download progress for an active or recent download.
+
+    Args:
+        download_id: The download ID (file_id format: {printer_id}_{filename})
+
+    Returns:
+        Download progress information including:
+        - download_id: The download identifier
+        - progress: Percentage complete (0-100)
+        - status: Current status (starting/downloading/completed/failed)
+        - bytes_downloaded: Bytes transferred so far
+        - total_bytes: Total expected bytes
+
+    Raises:
+        NotFoundError: If download_id is not found in active or recent downloads
+    """
+    logger.info("Getting download progress", download_id=download_id)
+
+    status_info = await file_service.get_download_status(download_id)
+
+    if status_info.get("status") == "not_found":
+        raise NotFoundError(
+            resource_type="download",
+            resource_id=download_id,
+            details={"reason": "Download not found or expired"}
+        )
+
+    return success_response({
+        "download_id": download_id,
+        "progress": status_info.get("progress", 0),
+        "status": status_info.get("status", "unknown"),
+        "bytes_downloaded": status_info.get("bytes_downloaded", 0),
+        "total_bytes": status_info.get("total_bytes", 0)
     })
 
 
