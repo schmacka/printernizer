@@ -588,10 +588,12 @@ async def async_database():
 
     yield db
 
-    # Cleanup
-    if db._connection:
-        await db._connection.close()
-    os.unlink(temp_db.name)
+    # Cleanup - use db.close() to properly close connection pool
+    await db.close()
+    try:
+        os.unlink(temp_db.name)
+    except OSError:
+        pass  # File might already be deleted
 
 
 @pytest.fixture

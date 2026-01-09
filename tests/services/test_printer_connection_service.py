@@ -276,8 +276,10 @@ async def test_connect_printer_connection_fails(async_database, event_service):
     with pytest.raises(PrinterConnectionError) as exc_info:
         await conn_service.connect_printer("test_001")
 
-    assert "test_001" in str(exc_info.value)
+    # Check the error reason is in message
     assert "Network timeout" in str(exc_info.value)
+    # Check printer_id is in error details
+    assert exc_info.value.details["printer_id"] == "test_001"
 
 
 @pytest.mark.unit

@@ -289,6 +289,10 @@ pytest.skip("bambulabs-api not installed; skipping BambuLabPrinter conformance t
   - Fixed `connection_service` fixture to use `get_printer_instance()` method
   - Fixed all "not found" tests to use correct error message format
   - Updated monitoring tests to match actual implementation behavior
+- **2026-01-09**: Fixed PrinterConnectionService tests - 18 tests now PASS (was hanging):
+  - Root cause: `async_database` fixture didn't close connection pool properly
+  - Fix: Changed `db._connection.close()` to `db.close()` to close all pool connections
+  - Fixed `test_connect_printer_connection_fails` assertion to check `details["printer_id"]`
 
 ---
 
@@ -340,3 +344,5 @@ When implementing a feature from this list:
 | `tests/backend/test_api_pagination_optimizations.py` | `test_job_repository_count_method`, `test_file_repository_count_method` | 2026-01-08 |
 | `tests/conftest.py` | Added `async_db_connection` fixture (global) | 2026-01-08 |
 | `tests/services/test_printer_control_service.py` | All 28 tests fixed (mock fixtures, error messages, implementation alignment) | 2026-01-09 |
+| `tests/services/test_printer_connection_service.py` | All 18 tests fixed (async_database fixture cleanup, error assertion) | 2026-01-09 |
+| `tests/conftest.py` | Fixed `async_database` fixture to properly close connection pool | 2026-01-09 |
