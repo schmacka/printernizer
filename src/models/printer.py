@@ -12,6 +12,7 @@ class PrinterType(str, Enum):
     """Supported printer types."""
     BAMBU_LAB = "bambu_lab"
     PRUSA_CORE = "prusa_core"
+    OCTOPRINT = "octoprint"
     UNKNOWN = "unknown"
 
 

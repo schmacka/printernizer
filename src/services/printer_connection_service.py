@@ -16,7 +16,7 @@ from src.database.database import Database
 from src.database.repositories import PrinterRepository
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
-from src.printers import BambuLabPrinter, PrusaPrinter, BasePrinter
+from src.printers import BambuLabPrinter, PrusaPrinter, OctoPrintPrinter, BasePrinter
 from src.utils.errors import PrinterConnectionError, NotFoundError
 
 logger = structlog.get_logger()
@@ -159,6 +159,16 @@ class PrinterConnectionService:
                 name=config.name,
                 ip_address=config.ip_address,
                 api_key=config.api_key,
+                file_service=self.file_service
+            )
+        elif config.type == "octoprint":
+            return OctoPrintPrinter(
+                printer_id=printer_id,
+                name=config.name,
+                ip_address=config.ip_address,
+                api_key=config.api_key,
+                port=getattr(config, 'port', None) or 80,
+                use_https=getattr(config, 'use_https', False),
                 file_service=self.file_service
             )
         else:

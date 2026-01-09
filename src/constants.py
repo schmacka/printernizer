@@ -438,6 +438,83 @@ class CameraConstants:
     """Multipart boundary for MJPEG streaming"""
 
 
+class OctoPrintConstants:
+    """
+    OctoPrint-specific configuration constants.
+
+    Includes API endpoints, SockJS WebSocket settings, and authentication.
+    """
+
+    # Network defaults
+    DEFAULT_PORT: int = 80
+    """Default HTTP port for OctoPrint"""
+
+    DEFAULT_HTTPS_PORT: int = 443
+    """Default HTTPS port for OctoPrint"""
+
+    # Authentication
+    AUTH_HEADER: str = "X-Api-Key"
+    """HTTP header name for API key authentication"""
+
+    # Connection timeouts
+    CONNECT_TIMEOUT_SECONDS: int = 10
+    """Connection timeout for OctoPrint API requests"""
+
+    REQUEST_TIMEOUT_SECONDS: int = 30
+    """Request timeout for OctoPrint API calls"""
+
+    # SockJS WebSocket configuration
+    SOCKJS_HEARTBEAT_MS: int = 25000
+    """SockJS heartbeat interval in milliseconds"""
+
+    SOCKJS_RECONNECT_DELAY_SECONDS: float = 5.0
+    """Initial delay before SockJS reconnection attempt"""
+
+    SOCKJS_MAX_RECONNECT_ATTEMPTS: int = 5
+    """Maximum SockJS reconnection attempts before giving up"""
+
+    SOCKJS_RECONNECT_BACKOFF_MULTIPLIER: float = 1.5
+    """Exponential backoff multiplier for SockJS reconnection"""
+
+    SOCKJS_MAX_RECONNECT_DELAY_SECONDS: float = 60.0
+    """Maximum delay between SockJS reconnection attempts"""
+
+    # API endpoints
+    API_VERSION: str = "/api/version"
+    """Version endpoint for connection testing"""
+
+    API_PRINTER: str = "/api/printer"
+    """Printer state and temperatures"""
+
+    API_JOB: str = "/api/job"
+    """Current job information and control"""
+
+    API_FILES: str = "/api/files"
+    """File listing and management"""
+
+    API_FILES_LOCAL: str = "/api/files/local"
+    """Local storage files"""
+
+    API_FILES_SDCARD: str = "/api/files/sdcard"
+    """SD card files"""
+
+    API_SETTINGS: str = "/api/settings"
+    """OctoPrint settings including webcam"""
+
+    API_CONNECTION: str = "/api/connection"
+    """Printer connection management"""
+
+    # Retry configuration
+    MAX_RETRIES: int = 3
+    """Maximum retry attempts for failed requests"""
+
+    RETRY_DELAY_SECONDS: float = 1.0
+    """Initial delay between retry attempts"""
+
+    RETRY_BACKOFF_MULTIPLIER: float = 2.0
+    """Exponential backoff multiplier for retries"""
+
+
 class FileExtensionConstants:
     """
     Common file extension constants.
@@ -486,5 +563,6 @@ ALL_CONSTANT_CLASSES = [
     MQTTTopicConstants,
     FTPPathConstants,
     CameraConstants,
+    OctoPrintConstants,
     FileExtensionConstants,
 ]
