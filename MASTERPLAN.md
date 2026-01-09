@@ -2,7 +2,19 @@
 
 This document tracks skipped and failing tests in the CI/CD pipeline, categorizing them by root cause and priority for implementation.
 
-**Last Updated:** 2026-01-08
+**Last Updated:** 2026-01-09
+
+## Current Test Status
+
+| Metric | Count | Percentage |
+|--------|-------|------------|
+| **Passed** | 855 | 82.4% |
+| **Failed** | 113 | 10.9% |
+| **Errors** | 39 | 3.8% |
+| **Skipped** | 31 | 3.0% |
+| **Pass Rate** | - | **84.9%** |
+
+**CI/CD Threshold:** 45% (PASSING ✓)
 
 ## Summary
 
@@ -13,7 +25,7 @@ This document tracks skipped and failing tests in the CI/CD pipeline, categorizi
 | Infrastructure/Architecture | 1 | Needs Refactoring |
 | Conditional Skips (E2E) | 20+ | Working as Designed |
 | Example/Template Tests | 1 | N/A |
-| **Recently Completed** | 2 | Done |
+| **Recently Completed** | 6 | Done |
 
 ---
 
@@ -265,20 +277,68 @@ pytest.skip("bambulabs-api not installed; skipping BambuLabPrinter conformance t
 
 ---
 
+## Category 7: Remaining Test Failures (113 failures, 39 errors)
+
+These tests are failing due to mock configuration issues or service implementation mismatches.
+
+### 7.1 JobService Tests (~24 failures)
+
+**File:** `tests/services/test_job_service.py`
+
+**Root Cause:** Mock database configuration issues - tests mock database but service expects different attribute structure
+**Priority:** Medium
+**Fix Required:**
+- Update mock fixtures to match actual Database class interface
+- Ensure `mock_db.config` returns proper configuration object
+
+### 7.2 Auto Job Creation Tests (~28 errors)
+
+**File:** `tests/services/test_auto_job_creation.py`
+
+**Root Cause:** Mock attribute errors - mocks missing required attributes/methods
+**Priority:** Medium
+**Fix Required:**
+- Review AutoJobCreationService dependencies
+- Update mock fixtures to include all required attributes
+
+### 7.3 Integration Tests (~14 failures)
+
+**File:** `tests/integration/test_integration.py`
+
+**Root Cause:** Missing service methods - tests call methods that don't exist or have different signatures
+**Priority:** Low
+**Fix Required:**
+- Review service method signatures
+- Update tests to match current API
+
+### 7.4 Analytics Service Tests (~9 failures)
+
+**File:** `tests/services/test_analytics_service.py`
+
+**Root Cause:** Service method signature mismatches
+**Priority:** Low
+**Fix Required:**
+- Update test mocks to match current service interface
+
+---
+
 ## Implementation Priorities
 
 ### High Priority (Should Fix Soon)
-1. None currently - all skipped tests are either future features or working as designed
+1. JobService test mocks (affects 24 tests)
+2. AutoJobCreation test mocks (affects 28 tests)
 
 ### Medium Priority (Next Sprint)
 1. Download Progress Endpoint (Future Feature)
 2. ~~Integration Test Infrastructure (Database Seeding)~~ **COMPLETED 2026-01-08**
+3. Integration tests service method alignment
 
 ### Low Priority (Backlog)
 1. File Cleanup Endpoint
 2. Auto-Refresh Checkbox in debug.html
 3. Thumbnail Log Limit Selector in debug.html
 4. Database Connection Error Test Architecture
+5. Analytics Service test fixes
 
 ### Recently Completed
 - **2026-01-08**: Performance tests refactored - `test_large_job_list_performance`, `test_job_filtering_performance`, `test_pagination_performance` now working with mocked services
