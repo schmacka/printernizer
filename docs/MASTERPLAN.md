@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
-**Last Updated**: 2026-01-08
-**Current Version**: v2.24.2
+**Last Updated**: 2026-01-09
+**Current Version**: v2.26.0
 **E2E Test Suite**: v2.24.2 (~90% passing, debug tests excluded)
 **Status**: Production Ready
 
@@ -12,7 +12,7 @@
 | Category | Status | Completion |
 |----------|--------|------------|
 | Core Features | Production Ready | 99% |
-| Printer Support | Bambu + Prusa | 100% |
+| Printer Support | Bambu + Prusa + OctoPrint | 100% |
 | Test Coverage | Excellent | ~90% |
 | Sprint 1 (P1 Tasks) | Complete | 100% |
 | Sprint 2 Phase 1 (Service Tests) | Complete | 100% |
@@ -39,8 +39,9 @@
 5. [Priority 3 - Frontend Polish](#priority-3---frontend-polish)
 6. [Priority 4 - Nice to Have](#priority-4---nice-to-have)
 7. [Future Roadmap](#future-roadmap)
-8. [Technical Debt](#technical-debt)
-9. [Reference](#reference)
+8. [Competitive Feature Ideas](#competitive-feature-ideas)
+9. [Technical Debt](#technical-debt)
+10. [Reference](#reference)
 
 ---
 
@@ -83,8 +84,10 @@
   - Delete printer tests: 2/2 ✅
   - Test connection tests: 2/2 ✅
 
-### Recent Features (v2.10.0 - v2.15.8) ✅
+### Recent Features (v2.10.0 - v2.26.0) ✅
 
+- [x] **v2.26.0** - Multi-channel notifications (Discord, Slack, ntfy.sh) with per-event subscriptions
+- [x] **v2.25.0** - OctoPrint printer integration with SockJS WebSocket support
 - [x] **v2.15.8** - Fixed Bambu A1 external spool (vt_tray) filament display
 - [x] **v2.15.7** - Fixed tag edit button not working in Library
 - [x] **v2.15.6** - Added missing slicing_jobs database table
@@ -107,7 +110,7 @@
 
 ### Core Features (Phases 1-5) ✅
 
-- [x] **Printer Integration** - Bambu Lab (MQTT) + Prusa (HTTP API)
+- [x] **Printer Integration** - Bambu Lab (MQTT) + Prusa (HTTP API) + OctoPrint (SockJS)
 - [x] **Real-time Monitoring** - WebSocket live updates
 - [x] **Job Tracking** - Complete job lifecycle management
 - [x] **File Management** - Unified browser, downloads, status tracking
@@ -471,7 +474,7 @@ The debug page (`/debug.html`) tests consistently fail because:
 - [ ] Klipper firmware (via Moonraker API)
 - [ ] Creality (via Cloud API)
 - [ ] Anycubic
-- [ ] Generic OctoPrint
+- [x] **OctoPrint** (v2.25.0) - SockJS WebSocket integration
 - **Effort**: 10-15 hours per manufacturer
 
 ### Usage Statistics Phase 3
@@ -480,6 +483,95 @@ The debug page (`/debug.html`) tests consistently fail because:
 - [ ] Trend analysis
 - [ ] Anomaly detection
 - **Effort**: 2 weeks
+
+---
+
+## Competitive Feature Ideas
+
+> Based on competitive analysis of 3DPrinterOS, SimplyPrint, Obico, AstroPrint, Bambu Farm Manager, and OctoPrint ecosystem.
+> See full analysis: `/root/comp_analysis.md`
+
+### Phase 1: Quick Wins (High Impact, Lower Effort)
+
+#### Multi-channel Notifications ✅ COMPLETE (v2.26.0)
+- [x] Discord webhooks with rich embeds (color-coded, fields, timestamps)
+- [x] Slack webhooks with Block Kit formatting
+- [x] ntfy.sh with priority tags and plain text
+- [x] Per-event subscription configuration (job, printer, material events)
+- [x] Settings UI with channel management and test notifications
+- [x] Notification history tracking with delivery status
+- [ ] Email notifications with configurable triggers (future)
+- **Effort**: 4-6 hours
+
+#### Print Queue System
+- [ ] Basic queue with manual reordering
+- [ ] Priority levels (high/normal/low)
+- [ ] Queue status dashboard
+- **Effort**: 8-12 hours
+
+#### Printer Error Message Handling
+- [ ] Capture and display printer error codes/messages in dashboard
+- [ ] Human-readable explanations with suggested fixes
+- [ ] Error history log per printer for troubleshooting patterns
+- [ ] Notification triggers on critical errors
+- **Effort**: 6-8 hours
+
+#### Timelapse Support
+- [ ] Capture snapshots during prints at layer changes
+- [ ] Generate video from snapshots post-print
+- [ ] Store alongside job data
+- **Effort**: 10-15 hours
+
+### Phase 2: Medium-Term Additions
+
+#### Filament Inventory Tracking (via Spoolman)
+- [ ] Integrate with [Spoolman](https://github.com/Donkie/Spoolman) instead of custom solution
+- [ ] Open-source, self-hosted spool management with REST API
+- [ ] Automatic deduction based on job data
+- [ ] Low-stock alerts, vendor/material tracking
+- [ ] Already integrates with Klipper, OctoPrint, Fluidd, Mainsail
+- **Effort**: 8-12 hours
+
+#### Camera Streaming Integration
+- [ ] Live view in dashboard
+- [ ] Snapshot history per job
+- [ ] RTSP/MJPEG support
+- **Effort**: 10-15 hours
+
+#### Maintenance Tracking
+- [ ] Per-printer maintenance log
+- [ ] Scheduled reminders (nozzle replacement, lubrication)
+- [ ] Print hour tracking
+- **Effort**: 6-8 hours
+
+### Phase 3: Ambitious Features
+
+#### AI Failure Detection
+- [ ] Would require camera + ML model
+- [ ] Obico is open-source (MIT license) and could be integrated
+- [ ] GitHub: github.com/TheSpaghettiDetective/obico-server
+- **Effort**: 20-30 hours
+
+#### Workflow Automation
+- [ ] Webhook support for external integrations
+- [ ] Event-based triggers (job start/complete/fail)
+- [ ] REST API for third-party automation
+- **Effort**: 15-20 hours
+
+#### AutoPrint/Continuous Printing
+- [ ] Requires printer-side automation or detection
+- [ ] Bed clearing confirmation
+- [ ] Queue-based automatic start
+- **Effort**: 20-30 hours
+
+### Competitor Features Not Planned
+
+| Feature | Competitor | Reason Not Planned |
+|---------|-----------|-------------------|
+| Cloud Slicing | SimplyPrint | Users have local slicers; adds complexity |
+| User Balance/Credits | 3DPrinterOS | Overkill for target use case |
+| Billing Integrations | 3DPrinterOS | Enterprise feature, low demand |
+| Mobile App | Most | Web UI is mobile-responsive |
 
 ---
 
@@ -711,6 +803,8 @@ python3 -m pytest --cov=src tests/
 | 4 | 2026-01-05 | Tags & Printer Modal | ✅ Complete |
 | Patches | 2026-01-06 | v2.15.1-2.15.8 Bug Fixes | ✅ Complete |
 | E2E Tests | 2026-01-07 | Playwright E2E Suite | ⚠️ 94% (14 failures) |
+| OctoPrint | 2026-01-08 | OctoPrint Integration (v2.25.0) | ✅ Complete |
+| Notifications | 2026-01-09 | Multi-channel Notifications (v2.26.0) | ✅ Complete |
 
 ### Sprint 1 Summary
 
@@ -865,6 +959,8 @@ Created comprehensive Playwright E2E test suite covering all 10 pages using Page
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 17.0 | 2026-01-09 | Multi-channel Notifications complete (v2.26.0) |
+| 16.0 | 2026-01-09 | OctoPrint integration complete (v2.25.0), Phase 10 progress |
 | 15.0 | 2026-01-08 | CI/CD test fixes, database schema divergence documented |
 | 14.0 | 2026-01-07 | Data Flow Audit issues resolved (8/8 fields fixed) |
 | 13.0 | 2026-01-07 | Added Data Flow Audit (8 broken fields identified) |
