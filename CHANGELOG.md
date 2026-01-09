@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.25.0] - 2026-01-09
+
+### Added
+- **OctoPrint Printer Integration**: Full support for OctoPrint-managed printers
+  - New `OCTOPRINT` printer type alongside Bambu Lab and Prusa
+  - REST API integration for status, job control, and file operations
+  - SockJS WebSocket client for real-time push updates (2x/sec)
+  - Camera support via OctoPrint webcam settings API
+  - Configurable port and HTTPS options
+- **OctoPrintPrinter Class**: Complete BasePrinter implementation
+  - Connection management with retry logic
+  - Status mapping from OctoPrint state flags
+  - Job control: pause, resume, stop operations
+  - File listing and download (local + SD card)
+  - Snapshot and stream URL from webcam settings
+- **OctoPrint SockJS Client**: Real-time WebSocket communication
+  - Automatic reconnection with exponential backoff
+  - Message parsing for `current`, `history`, and `event` types
+  - Cached status data for efficient polling fallback
+- **OctoPrint Constants**: Centralized configuration
+  - API endpoints, timeouts, and retry settings
+  - SockJS heartbeat and reconnection parameters
+
+### Changed
+- **PrinterType Enum**: Added `OCTOPRINT` value
+- **PrinterConfig**: Added `port` and `use_https` fields for OctoPrint
+- **PrinterConnectionService**: Factory pattern extended for OctoPrint
+- **Database Schema**: Updated CHECK constraint to include 'octoprint' type
+
 ## [2.24.3] - 2026-01-08
 
 ### Added
