@@ -285,6 +285,10 @@ pytest.skip("bambulabs-api not installed; skipping BambuLabPrinter conformance t
 - **2026-01-08**: Added `async_db_connection` fixture to global conftest.py - Fixes 11 fixture setup ERRORs:
   - `tests/backend/test_api_pagination_optimizations.py::TestRepositoryCountOptimization` - 2 tests now PASS
   - `tests/services/test_analytics_service.py` - 9 tests now run (fixture works, tests have other issues)
+- **2026-01-09**: Fixed PrinterControlService tests - 28 tests now PASS (was 26 failures):
+  - Fixed `connection_service` fixture to use `get_printer_instance()` method
+  - Fixed all "not found" tests to use correct error message format
+  - Updated monitoring tests to match actual implementation behavior
 
 ---
 
@@ -335,3 +339,4 @@ When implementing a feature from this list:
 | `tests/backend/test_api_jobs.py` | `test_large_job_list_performance`, `test_job_filtering_performance`, `test_pagination_performance` | 2026-01-08 |
 | `tests/backend/test_api_pagination_optimizations.py` | `test_job_repository_count_method`, `test_file_repository_count_method` | 2026-01-08 |
 | `tests/conftest.py` | Added `async_db_connection` fixture (global) | 2026-01-08 |
+| `tests/services/test_printer_control_service.py` | All 28 tests fixed (mock fixtures, error messages, implementation alignment) | 2026-01-09 |
