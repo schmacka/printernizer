@@ -32,11 +32,13 @@ class PrinterConfig:
     location: Optional[str] = None
     description: Optional[str] = None
     is_active: bool = True
+    port: Optional[int] = None
+    use_https: bool = False
 
     def __post_init__(self):
         """Validate printer configuration after initialization."""
         self._validate_config()
-        
+
     def _validate_config(self) -> None:
         """Validate printer configuration based on type."""
         if self.type == "bambu_lab":
@@ -45,7 +47,10 @@ class PrinterConfig:
         elif self.type == "prusa_core":
             if not self.ip_address or not self.api_key:
                 raise ValueError(f"Prusa Core printer {self.printer_id} requires ip_address and api_key")
-        elif self.type not in ["bambu_lab", "prusa_core"]:
+        elif self.type == "octoprint":
+            if not self.ip_address or not self.api_key:
+                raise ValueError(f"OctoPrint printer {self.printer_id} requires ip_address and api_key")
+        elif self.type not in ["bambu_lab", "prusa_core", "octoprint"]:
             logger.warning("Unknown printer type", printer_id=self.printer_id, type=self.type)
     
     @classmethod
@@ -62,7 +67,9 @@ class PrinterConfig:
             webcam_url=config.get('webcam_url'),
             location=config.get('location'),
             description=config.get('description'),
-            is_active=config.get('is_active', True)
+            is_active=config.get('is_active', True),
+            port=config.get('port'),
+            use_https=config.get('use_https', False)
         )
         
     def to_dict(self) -> Dict[str, Any]:
@@ -82,7 +89,9 @@ class PrinterConfig:
             "webcam_url": self.webcam_url,
             "location": self.location,
             "description": self.description,
-            "is_active": self.is_active
+            "is_active": self.is_active,
+            "port": self.port,
+            "use_https": self.use_https
         }
 
     def to_dict_safe(self) -> Dict[str, Any]:

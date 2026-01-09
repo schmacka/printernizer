@@ -14,7 +14,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE printers (
     id TEXT PRIMARY KEY NOT NULL,              -- Unique printer identifier (e.g., 'bambu_a1_001')
     name TEXT NOT NULL,                        -- Human-readable printer name
-    type TEXT NOT NULL CHECK (type IN ('bambu_lab', 'prusa')), -- Printer type
+    type TEXT NOT NULL CHECK (type IN ('bambu_lab', 'prusa', 'octoprint')), -- Printer type
     model TEXT,                                -- Printer model (A1, Core One, etc.)
     
     -- Connection details
