@@ -20,12 +20,12 @@ This document tracks skipped and failing tests in the CI/CD pipeline, categorizi
 
 | Category | Count | Status |
 |----------|-------|--------|
-| Future API Features | 2 | Planned |
+| Future API Features | 1 | Planned |
 | UI Features Missing | 5 | Planned |
 | Infrastructure/Architecture | 1 | Needs Refactoring |
 | Conditional Skips (E2E) | 20+ | Working as Designed |
 | Example/Template Tests | 1 | N/A |
-| **Recently Completed** | 6 | Done |
+| **Recently Completed** | 7 | Done |
 
 ---
 
@@ -33,26 +33,33 @@ This document tracks skipped and failing tests in the CI/CD pipeline, categorizi
 
 These tests are correctly written but test endpoints that haven't been implemented yet.
 
-### 1.1 Download Progress Endpoint
+### ~~1.1 Download Progress Endpoint~~ COMPLETED
 
 **File:** `tests/backend/test_api_files.py:233`
 
-```python
-@pytest.mark.skip(reason="Download progress endpoint not yet implemented - future feature")
-def test_get_file_download_progress(self, client):
-    """Test GET /api/v1/files/downloads/{download_id}/progress"""
-```
+**Status:** IMPLEMENTED (2026-01-09)
+**PR:** [#322](https://github.com/schmacka/printernizer/pull/322)
+**Resolution:** Added `GET /api/v1/files/downloads/{download_id}/progress` endpoint with WebSocket broadcast support.
 
-**Status:** Not Implemented
-**Priority:** Medium
-**Implementation Notes:**
-- Endpoint: `GET /api/v1/files/downloads/{download_id}/progress`
-- Should return: `{ "download_id": "...", "progress": 45.5, "status": "downloading", "bytes_downloaded": 1024000, "total_bytes": 2048000 }`
-- Requires: Background download task tracking, WebSocket or polling support
-- Files to modify:
-  - `src/api/routers/files.py` - Add endpoint
-  - `src/services/file_service.py` - Add progress tracking
-  - Database: Consider `download_progress` table
+Key changes:
+- `src/api/routers/files.py` - Added progress endpoint
+- `src/services/file_download_service.py` - Added byte tracking (`download_bytes`, `download_total_bytes`), WebSocket broadcast via `_broadcast_progress()`
+- `src/services/file_service.py` - Exposed new properties
+- `tests/backend/test_api_files.py` - Added 3 tests (success, not_found, completed)
+
+Response format:
+```json
+{
+  "status": "success",
+  "data": {
+    "download_id": "bambu_001_model.3mf",
+    "progress": 45,
+    "status": "downloading",
+    "bytes_downloaded": 1024000,
+    "total_bytes": 2048000
+  }
+}
+```
 
 ---
 
@@ -336,7 +343,7 @@ Key changes:
 2. ~~AutoJobCreation test mocks (affects 28 tests)~~ **COMPLETED 2026-01-09**
 
 ### Medium Priority (Next Sprint)
-1. Download Progress Endpoint (Future Feature)
+1. ~~Download Progress Endpoint (Future Feature)~~ **COMPLETED 2026-01-09**
 2. ~~Integration Test Infrastructure (Database Seeding)~~ **COMPLETED 2026-01-08**
 3. Integration tests service method alignment
 
@@ -348,6 +355,11 @@ Key changes:
 5. Analytics Service test fixes
 
 ### Recently Completed
+- **2026-01-09**: Download Progress Endpoint implemented ([PR #322](https://github.com/schmacka/printernizer/pull/322)):
+  - Added `GET /api/v1/files/downloads/{download_id}/progress` endpoint
+  - Added WebSocket broadcast for real-time progress updates
+  - Added byte tracking to FileDownloadService
+  - 3 new tests added and passing
 - **2026-01-09**: Fixed AutoJobCreation tests - All 28 tests now PASS (was 28 errors):
   - Root cause: `PrinterMonitoringService` creates `PrinterRepository(database._connection)` but mock lacked `_connection`
   - Fix: Added `mock_database._connection` and patched `PrinterRepository` in fixtures
@@ -405,7 +417,7 @@ When implementing a feature from this list:
 
 | File | Skip Count | Category |
 |------|------------|----------|
-| `tests/backend/test_api_files.py` | 2 | Future Features |
+| `tests/backend/test_api_files.py` | 1 | Future Features |
 | `tests/backend/test_api_jobs.py` | 1 | Infrastructure |
 | `tests/e2e/test_debug.py` | 5 | UI Missing |
 | `tests/e2e/test_modals.py` | 7+ | Conditional (OK) |
@@ -426,9 +438,11 @@ When implementing a feature from this list:
 | `tests/services/test_printer_control_service.py` | All 28 tests fixed (mock fixtures, error messages, implementation alignment) | 2026-01-09 |
 | `tests/services/test_printer_connection_service.py` | All 18 tests fixed (async_database fixture cleanup, error assertion) | 2026-01-09 |
 | `tests/conftest.py` | Fixed `async_database` fixture to properly close connection pool | 2026-01-09 |
+| `tests/backend/test_api_files.py` | `test_get_file_download_progress`, `test_get_file_download_progress_not_found`, `test_get_file_download_progress_completed` | 2026-01-09 |
 
 ### New Features Added
 
 | Feature | Files | Version |
 |---------|-------|---------|
+| Download Progress Endpoint | `src/api/routers/files.py`, `src/services/file_download_service.py` | PR #322 |
 | OctoPrint Integration | `src/printers/octoprint.py`, `src/services/octoprint_sockjs_client.py` | v2.25.0 |
