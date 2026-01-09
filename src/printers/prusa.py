@@ -104,7 +104,7 @@ class PrusaPrinter(BasePrinter):
                 await self.session.close()
                 self.session = None
             raise PrinterConnectionError(self.printer_id, error_msg)
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             error_msg = f"Connection timeout: {str(e)}"
             logger.error("Prusa printer connection timeout - check network and IP address",
                         printer_id=self.printer_id, ip=self.ip_address, error=error_msg)
@@ -277,7 +277,7 @@ class PrusaPrinter(BasePrinter):
             except (aiohttp.ClientConnectorError, aiohttp.ServerConnectionError) as e:
                 logger.warning("Failed to connect to Prusa for job data",
                               printer_id=self.printer_id, error=str(e))
-            except aiohttp.ClientTimeout as e:
+            except asyncio.TimeoutError as e:
                 logger.warning("Timeout getting job data from Prusa",
                               printer_id=self.printer_id, error=str(e))
             except json.JSONDecodeError as e:
@@ -449,7 +449,7 @@ class PrusaPrinter(BasePrinter):
                 message=f"Connection failed: {str(e)}",
                 timestamp=datetime.now()
             )
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.error("Timeout getting Prusa status",
                         printer_id=self.printer_id, error=str(e))
             return PrinterStatusUpdate(
@@ -678,7 +678,7 @@ class PrusaPrinter(BasePrinter):
             logger.warning("Cannot connect to Prusa printer to list files",
                           printer_id=self.printer_id, error=str(e))
             return []
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.warning("Timeout listing files from Prusa",
                           printer_id=self.printer_id, error=str(e))
             return []
@@ -768,7 +768,7 @@ class PrusaPrinter(BasePrinter):
             logger.warning("Cannot connect to Prusa printer to get files",
                           printer_id=self.printer_id, error=str(e))
             return []
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.warning("Timeout getting files from Prusa",
                           printer_id=self.printer_id, error=str(e))
             return []
@@ -931,7 +931,7 @@ class PrusaPrinter(BasePrinter):
             logger.error("Cannot connect to Prusa printer to download file",
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.error("Timeout downloading file from Prusa",
                         printer_id=self.printer_id, filename=filename, error=str(e))
             return False
@@ -1092,7 +1092,7 @@ class PrusaPrinter(BasePrinter):
             logger.error("Cannot connect to Prusa printer to pause print",
                         printer_id=self.printer_id, error=str(e))
             return False
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.error("Timeout pausing print on Prusa",
                         printer_id=self.printer_id, error=str(e))
             return False
@@ -1124,7 +1124,7 @@ class PrusaPrinter(BasePrinter):
             logger.error("Cannot connect to Prusa printer to resume print",
                         printer_id=self.printer_id, error=str(e))
             return False
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.error("Timeout resuming print on Prusa",
                         printer_id=self.printer_id, error=str(e))
             return False
@@ -1156,7 +1156,7 @@ class PrusaPrinter(BasePrinter):
             logger.error("Cannot connect to Prusa printer to stop print",
                         printer_id=self.printer_id, error=str(e))
             return False
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             logger.error("Timeout stopping print on Prusa",
                         printer_id=self.printer_id, error=str(e))
             return False

@@ -156,7 +156,7 @@ class OctoPrintPrinter(BasePrinter):
                         printer_id=self.printer_id, url=self.base_url, error=error_msg)
             await self._cleanup_session()
             raise PrinterConnectionError(self.printer_id, error_msg)
-        except aiohttp.ClientTimeout as e:
+        except asyncio.TimeoutError as e:
             error_msg = f"Connection timeout: {str(e)}"
             logger.error("OctoPrint connection timeout",
                         printer_id=self.printer_id, url=self.base_url, error=error_msg)

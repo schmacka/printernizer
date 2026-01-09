@@ -82,14 +82,16 @@ class BambuLabPrinter(BasePrinter):
         self.download_handler: Optional[DownloadHandler] = None
 
         # Initialize appropriate client
+        # Always initialize client to None to prevent AttributeError in methods that check it
+        self.client = None  # MQTT client (used when not using bambu_api)
+        self.latest_data: Dict[str, Any] = {}
+
         if self.use_bambu_api:
             self.bambu_client: Optional[BambuClient] = None
             self.latest_status: Optional[Dict[str, Any]] = None
             self.cached_files: List[PrinterFile] = []
             self.last_file_update: Optional[datetime] = None
         else:
-            self.client = None  # MQTT client will be initialized in connect
-            self.latest_data: Dict[str, Any] = {}
             self.mqtt_port = PortConstants.BAMBU_MQTT_PORT
 
         # MQTT retry and reconnection settings
@@ -1355,7 +1357,9 @@ class BambuLabPrinter(BasePrinter):
         
     async def get_job_info(self) -> Optional[JobInfo]:
         """Get current job information from Bambu Lab."""
-        if not self.is_connected or not self.client:
+        # Check the appropriate client based on which API is being used
+        has_client = self.bambu_client if self.use_bambu_api else self.client
+        if not self.is_connected or not has_client:
             return None
 
         try:
@@ -2040,68 +2044,74 @@ class BambuLabPrinter(BasePrinter):
 
     async def pause_print(self) -> bool:
         """Pause the current print job on Bambu Lab printer."""
-        if not self.is_connected or not self.client:
+        # Use the appropriate client based on which API is being used
+        active_client = self.bambu_client if self.use_bambu_api else self.client
+        if not self.is_connected or not active_client:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
             logger.info("Pausing print on Bambu Lab printer", printer_id=self.printer_id)
-            
-            # Send pause command using bambulabs-api
-            result = self.client.pause()
-            
+
+            # Send pause command using the active client
+            result = active_client.pause()
+
             if result:
                 logger.info("Successfully paused print", printer_id=self.printer_id)
                 return True
             else:
                 logger.warning("Failed to pause print", printer_id=self.printer_id)
                 return False
-                
+
         except Exception as e:
             logger.error("Error pausing print on Bambu Lab",
                         printer_id=self.printer_id, error=str(e))
             return False
-            
+
     async def resume_print(self) -> bool:
         """Resume the paused print job on Bambu Lab printer."""
-        if not self.is_connected or not self.client:
+        # Use the appropriate client based on which API is being used
+        active_client = self.bambu_client if self.use_bambu_api else self.client
+        if not self.is_connected or not active_client:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
             logger.info("Resuming print on Bambu Lab printer", printer_id=self.printer_id)
-            
-            # Send resume command using bambulabs-api
-            result = self.client.resume()
-            
+
+            # Send resume command using the active client
+            result = active_client.resume()
+
             if result:
                 logger.info("Successfully resumed print", printer_id=self.printer_id)
                 return True
             else:
                 logger.warning("Failed to resume print", printer_id=self.printer_id)
                 return False
-                
+
         except Exception as e:
             logger.error("Error resuming print on Bambu Lab",
                         printer_id=self.printer_id, error=str(e))
             return False
-            
+
     async def stop_print(self) -> bool:
         """Stop/cancel the current print job on Bambu Lab printer."""
-        if not self.is_connected or not self.client:
+        # Use the appropriate client based on which API is being used
+        active_client = self.bambu_client if self.use_bambu_api else self.client
+        if not self.is_connected or not active_client:
             raise PrinterConnectionError(self.printer_id, "Not connected")
-            
+
         try:
             logger.info("Stopping print on Bambu Lab printer", printer_id=self.printer_id)
-            
-            # Send stop command using bambulabs-api
-            result = self.client.stop()
-            
+
+            # Send stop command using the active client
+            result = active_client.stop()
+
             if result:
                 logger.info("Successfully stopped print", printer_id=self.printer_id)
                 return True
             else:
                 logger.warning("Failed to stop print", printer_id=self.printer_id)
                 return False
-                
+
         except Exception as e:
             logger.error("Error stopping print on Bambu Lab",
                         printer_id=self.printer_id, error=str(e))
