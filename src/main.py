@@ -55,6 +55,7 @@ from src.api.routers.usage_statistics import router as usage_statistics_router
 from src.api.routers.setup import router as setup_router
 from src.api.routers.slicing import router as slicing_router
 from src.api.routers.tags import router as tags_router
+from src.api.routers.notifications import router as notifications_router
 from src.api.routers.logs import router as logs_router
 from src.database.database import Database
 from src.services.event_service import EventService
@@ -71,6 +72,7 @@ from src.services.monitoring_service import monitoring_service
 from src.services.thumbnail_service import ThumbnailService
 from src.services.url_parser_service import UrlParserService
 from src.services.timelapse_service import TimelapseService
+from src.services.notification_service import NotificationService
 from src.utils.logging_config import setup_logging
 from src.utils.exceptions import PrinternizerException
 from src.utils.errors import (
@@ -329,6 +331,12 @@ async def lifespan(app: FastAPI):
     app.state.slicer_service = slicer_service
     app.state.slicing_queue = slicing_queue
 
+    # Initialize notification service
+    notification_service = NotificationService(database, event_service)
+    await notification_service.initialize()
+    app.state.notification_service = notification_service
+    logger.info("[OK] Notification service initialized")
+
     # Initialize and start background services in parallel
     timer.start("Background services startup (parallel)")
     logger.info("Starting background services in parallel...")
@@ -566,6 +574,16 @@ async def lifespan(app: FastAPI):
             )
         )
 
+    # Notification service
+    if hasattr(app.state, 'notification_service') and app.state.notification_service:
+        shutdown_tasks.append(
+            shutdown_with_timeout(
+                app.state.notification_service.shutdown(),
+                "Notification service",
+                timeout=TimeoutConstants.SERVICE_SHUTDOWN_TIMEOUT_SECONDS
+            )
+        )
+
     # Execute all service shutdowns in parallel
     if shutdown_tasks:
         await asyncio.gather(*shutdown_tasks, return_exceptions=True)
@@ -734,6 +752,7 @@ def create_application() -> FastAPI:
     app.include_router(usage_statistics_router, prefix="/api/v1/usage-stats", tags=["Usage Statistics"])
     app.include_router(slicing_router, prefix="/api/v1/slicing", tags=["Slicing"])
     app.include_router(tags_router, prefix="/api/v1", tags=["Tags"])  # File tagging system
+    app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["Notifications"])  # Multi-channel notifications
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     # Temporary debug endpoints (remove before production if not needed)
     app.include_router(debug_router, prefix="/api/v1/debug", tags=["Debug"])

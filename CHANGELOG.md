@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.0] - 2026-01-XX
+
+### Added
+- **Multi-channel Notification System**: Comprehensive notification support for print events
+  - Discord webhook integration with rich embeds (color-coded, fields, timestamps)
+  - Slack webhook integration with Block Kit formatting
+  - ntfy.sh integration with priority tags and plain text
+- **Per-event Subscription Configuration**: Fine-grained control over notifications
+  - Job events: started, completed, failed, paused
+  - Printer events: online, offline, error
+  - Material events: low stock alerts
+  - File events: download notifications
+- **Notification Channel Management UI**: Settings page integration
+  - Add/edit/delete notification channels
+  - Dynamic form fields based on channel type
+  - Event subscription checkboxes with select all/none
+  - Test notification button to verify configuration
+- **Notification History Tracking**: Delivery status monitoring
+  - Records sent/failed notifications with timestamps
+  - Error message capture for debugging
+  - API endpoint for history retrieval
+- **Database Schema**: New tables for notification system
+  - `notification_channels`: Channel configuration storage
+  - `notification_subscriptions`: Per-channel event subscriptions
+  - `notification_history`: Delivery tracking with status
+
+### Changed
+- **Settings UI**: Added "Notifications" tab for channel management
+- **Event Service Integration**: NotificationService subscribes to printer/job events
+
 ## [2.25.0] - 2026-01-09
 
 ### Added
