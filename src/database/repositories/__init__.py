@@ -13,6 +13,7 @@ from .library_repository import LibraryRepository
 from .snapshot_repository import SnapshotRepository
 from .trending_repository import TrendingRepository
 from .usage_statistics_repository import UsageStatisticsRepository
+from .notification_repository import NotificationRepository
 
 __all__ = [
     'BaseRepository',
@@ -24,4 +25,5 @@ __all__ = [
     'SnapshotRepository',
     'TrendingRepository',
     'UsageStatisticsRepository',
+    'NotificationRepository',
 ]

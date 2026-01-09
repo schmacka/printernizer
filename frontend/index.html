@@ -1077,6 +1077,10 @@
                         <span class="tab-icon">🔒</span>
                         <span class="tab-label">Datenschutz</span>
                     </button>
+                    <button class="settings-tab" data-tab="notifications" onclick="settingsManager.switchTab('notifications')">
+                        <span class="tab-icon">🔔</span>
+                        <span class="tab-label">Notifications</span>
+                    </button>
                 </div>
 
                 <div class="settings-tab-content">
@@ -1725,9 +1729,96 @@
                         </div>
                     </div>
 
+                    <!-- Notifications Tab -->
+                    <div class="tab-pane" id="notifications-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🔔 Notification Channels</h3>
+                                <button class="btn btn-primary" onclick="notificationManager.showAddChannel()">
+                                    <span class="btn-icon">➕</span>
+                                    Add Channel
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted" style="margin-bottom: 20px;">
+                                    Configure notification channels to receive alerts when print jobs complete, printers go offline, and more.
+                                    Supports Discord, Slack, and ntfy.sh.
+                                </p>
+                                <div id="notificationChannelsList">
+                                    <div class="loading-placeholder">
+                                        <div class="spinner"></div>
+                                        <p>Loading notification channels...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
+        </div>
+
+        <!-- Notification Channel Modal -->
+        <div id="notificationChannelModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="channelModalTitle">Add Notification Channel</h2>
+                    <button class="modal-close" onclick="notificationManager.hideModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="channelForm" onsubmit="event.preventDefault(); notificationManager.saveChannel();">
+                        <div class="form-group">
+                            <label for="channelName">Channel Name</label>
+                            <input type="text" id="channelName" class="form-control" placeholder="e.g., Discord Alerts" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="channelType">Channel Type</label>
+                            <select id="channelType" class="form-control" required>
+                                <option value="discord">Discord</option>
+                                <option value="slack">Slack</option>
+                                <option value="ntfy">ntfy.sh</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="channelWebhookUrl" id="webhookUrlLabel">Webhook URL</label>
+                            <input type="url" id="channelWebhookUrl" class="form-control" placeholder="https://..." required>
+                            <small class="form-text text-muted" id="webhookUrlHelp">Discord webhook URL from channel settings</small>
+                        </div>
+
+                        <div class="form-group" id="topicGroup" style="display: none;">
+                            <label for="channelTopic">Topic</label>
+                            <input type="text" id="channelTopic" class="form-control" placeholder="e.g., printernizer-alerts">
+                            <small class="form-text text-muted">ntfy topic name for receiving notifications</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="channelEnabled" checked>
+                                <span class="checkbox-custom"></span>
+                                Channel Enabled
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Event Subscriptions</label>
+                            <div class="event-subscription-actions">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="notificationManager.toggleAllEvents(true)">Select All</button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="notificationManager.toggleAllEvents(false)">Deselect All</button>
+                            </div>
+                            <div id="eventCheckboxes" class="event-checkboxes">
+                                <!-- Event checkboxes rendered dynamically -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="notificationManager.hideModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="notificationManager.saveChannel()">Save Channel</button>
+                </div>
+            </div>
         </div>
 
         <!-- Debug Page -->
@@ -2622,6 +2713,7 @@
     <script src="js/files.js"></script>
     <script src="js/ideas.js"></script>
     <script src="js/settings.js?v=1.1"></script>
+    <script src="js/notifications.js?v=1.0"></script>
     <script src="js/usage-statistics.js"></script>
     <script src="js/navigation-preferences-ui.js"></script>
     <script src="js/debug.js?v=1.1"></script>
