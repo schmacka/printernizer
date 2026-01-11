@@ -5,6 +5,7 @@ printer configurations, and watch folders.
 """
 import pytest
 from fastapi.testclient import TestClient
+from src.utils.dependencies import get_config_service
 
 
 @pytest.fixture
@@ -61,7 +62,7 @@ class TestSettingsAPI:
             'timelapse_auto_process_timeout': 300,
             'timelapse_cleanup_age_days': 30,
         }
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         response = client.get("/api/v1/settings/application")
 
@@ -93,7 +94,7 @@ class TestSettingsAPI:
 
         mock_config_service = Mock()
         mock_config_service.update_application_settings.return_value = True
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         update_data = {
             'log_level': 'DEBUG',
@@ -108,8 +109,9 @@ class TestSettingsAPI:
         assert response.status_code == 200
         data = response.json()
         assert data['status'] == 'success'
-        assert 'updated_fields' in data
-        assert len(data['updated_fields']) == 5
+        assert 'data' in data
+        assert 'updated_fields' in data['data']
+        assert len(data['data']['updated_fields']) == 5
 
     def test_update_application_settings_no_changes(self, client, test_app):
         """Test PUT /api/v1/settings/application with no changes"""
@@ -117,14 +119,14 @@ class TestSettingsAPI:
 
         mock_config_service = Mock()
         mock_config_service.update_application_settings.return_value = False
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         response = client.put("/api/v1/settings/application", json={})
 
         assert response.status_code == 200
         data = response.json()
         assert data['status'] == 'success'
-        assert data['updated_fields'] == []
+        assert data['data']['updated_fields'] == []
 
     def test_get_watch_folder_settings(self, client, test_app):
         """Test GET /api/v1/settings/watch-folders - Get watch folder settings"""
@@ -137,7 +139,7 @@ class TestSettingsAPI:
             'recursive': False,
             'supported_extensions': ['.stl', '.3mf', '.gcode']
         })
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         response = client.get("/api/v1/settings/watch-folders")
 
@@ -162,7 +164,7 @@ class TestSettingsValidation:
             'valid': True,
             'message': 'Path is valid and writable'
         }
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         response = client.post("/api/v1/settings/downloads-path/validate?folder_path=/data/downloads")
 
@@ -179,7 +181,7 @@ class TestSettingsValidation:
             'valid': True,
             'message': 'Path is valid and writable'
         }
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         response = client.post("/api/v1/settings/library-path/validate?folder_path=/data/library")
 
@@ -235,7 +237,7 @@ class TestSettingsAccessibility:
             'timelapse_auto_process_timeout': 300,
             'timelapse_cleanup_age_days': 30,
         }
-        test_app.dependency_overrides[test_app.state.get_config_service] = lambda: mock_config_service
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
 
         response = client.get("/api/v1/settings/application")
         assert response.status_code == 200
