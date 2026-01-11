@@ -1605,6 +1605,26 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
+                                <h3>📱 iOS App verbinden</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="ios-app-section">
+                                    <p>
+                                        Scanne diesen QR-Code mit der <strong>Printernizer iOS App</strong>, um die App automatisch mit diesem Server zu verbinden.
+                                    </p>
+                                    <div class="qr-code-container" style="text-align: center; margin: 20px 0;">
+                                        <div id="serverQRCode" style="display: inline-block; padding: 16px; background: white; border-radius: 8px;"></div>
+                                        <p id="serverURLDisplay" class="text-muted" style="margin-top: 12px; font-family: monospace;"></p>
+                                    </div>
+                                    <p class="text-muted" style="font-size: 0.9em;">
+                                        Die iOS App ist kostenlos im App Store erhältlich. Nach dem Scannen wird die Server-URL automatisch in der App eingetragen.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-section">
+                            <div class="card-header">
                                 <h3>☕ Entwicklung unterstützen</h3>
                             </div>
                             <div class="card-body">
@@ -2695,6 +2715,8 @@
     </div>
 
     <!-- Scripts -->
+    <!-- QR Code library for iOS app setup -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="js/error-handler.js"></script>
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>

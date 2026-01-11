@@ -28,6 +28,9 @@ class SettingsManager {
         // Load system info
         await this.loadSystemInfo();
 
+        // Generate QR code for iOS app
+        this.generateServerQRCode();
+
         // Load watch folder settings
         await this.loadWatchFolderSettings();
 
@@ -626,6 +629,50 @@ class SettingsManager {
                 `).join('')}
             </div>
         `;
+    }
+
+    /**
+     * Generate QR code for iOS app setup
+     */
+    generateServerQRCode() {
+        const container = document.getElementById('serverQRCode');
+        const urlDisplay = document.getElementById('serverURLDisplay');
+
+        if (!container) {
+            Logger.debug('QR code container not found');
+            return;
+        }
+
+        // Get current server URL from browser
+        const serverURL = window.location.origin;
+
+        try {
+            // Clear any existing QR code
+            container.innerHTML = '';
+
+            // Generate QR code using qrcode-generator library
+            const qr = qrcode(0, 'M');
+            qr.addData(serverURL);
+            qr.make();
+
+            // Create QR code as img element with appropriate size
+            container.innerHTML = qr.createImgTag(5, 0);
+
+            // Display the URL below the QR code
+            if (urlDisplay) {
+                urlDisplay.textContent = serverURL;
+            }
+
+            Logger.debug('QR code generated for URL:', serverURL);
+        } catch (error) {
+            Logger.error('Failed to generate QR code:', error);
+            container.innerHTML = `
+                <div class="error-message">
+                    <span class="error-icon">⚠️</span>
+                    QR-Code konnte nicht generiert werden
+                </div>
+            `;
+        }
     }
 
     /**
