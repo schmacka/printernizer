@@ -140,10 +140,12 @@ class TestFileRetrieval:
         """Test finding a file by filename."""
         filename = 'test.3mf'
         file_data = create_sample_file_data(filename=filename)
-        mock_database.list_files.return_value = [file_data]
-        
+
+        # Mock the discovery service's find_file_by_name method directly
+        file_service.discovery.find_file_by_name = AsyncMock(return_value=file_data)
+
         result = await file_service.find_file_by_name(filename)
-        
+
         assert result is not None
         assert result['filename'] == filename
 

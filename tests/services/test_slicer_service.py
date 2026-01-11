@@ -40,6 +40,7 @@ def mock_event_service():
     """Create mock event service for testing."""
     event_service = MagicMock(spec=EventService)
     event_service.emit = AsyncMock()
+    event_service.emit_event = AsyncMock()  # Service uses emit_event
     return event_service
 
 
@@ -362,7 +363,7 @@ class TestSlicerService:
                 )
                 
                 results = await slicer_service.detect_and_register_slicers()
-                
+
                 assert len(results) == 1
                 assert results[0].name == 'PrusaSlicer'
-                mock_event_service.emit.assert_called()
+                mock_event_service.emit_event.assert_called()

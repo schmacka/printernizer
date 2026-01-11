@@ -22,6 +22,22 @@ def mock_database():
     db.create_printer = AsyncMock()
     db.update_printer = AsyncMock(return_value=True)
     db.delete_printer = AsyncMock(return_value=True)
+
+    # Create a mock connection with proper async context manager support
+    # The service uses self.database.connection() which returns a context manager
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone = AsyncMock(return_value=(0,))  # No active jobs by default
+
+    mock_conn = MagicMock()
+    mock_conn.execute = AsyncMock(return_value=mock_cursor)
+
+    mock_connection_cm = MagicMock()
+    mock_connection_cm.__aenter__ = AsyncMock(return_value=mock_conn)
+    mock_connection_cm.__aexit__ = AsyncMock(return_value=None)
+
+    # The database.connection() method returns the context manager
+    db.connection = MagicMock(return_value=mock_connection_cm)
+    db._connection = mock_connection_cm  # Keep for backward compatibility
     return db
 
 

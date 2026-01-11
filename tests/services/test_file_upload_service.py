@@ -318,8 +318,10 @@ class TestFileSaving:
 
         upload_file = MockUploadFile("test.stl", b"content")
 
-        # Try to save to invalid path
-        result = await service.save_uploaded_file(upload_file, Path("/nonexistent/readonly/path"))
+        # Mock open to raise an error to test error handling
+        with patch('builtins.open', side_effect=PermissionError("Permission denied")):
+            with patch.object(Path, 'mkdir'):  # Mock mkdir to not actually create directories
+                result = await service.save_uploaded_file(upload_file, Path("/nonexistent/readonly/path"))
 
         assert result['success'] is False
         assert result['error'] is not None

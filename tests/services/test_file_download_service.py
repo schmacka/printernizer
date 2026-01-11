@@ -356,11 +356,19 @@ async def test_download_file_library_integration(file_download_service):
     # Mock printer service
     mock_printer_service = AsyncMock()
     mock_printer_service.download_printer_file = AsyncMock(return_value=True)
-    mock_printer_service.get_printer = AsyncMock(return_value={
+    # Return a mock Printer object with proper attributes (not a dict)
+    mock_printer = MagicMock()
+    mock_printer.id = printer_id
+    mock_printer.name = 'Bambu A1'
+    mock_printer.type = 'bambu_lab'
+    mock_printer.dict = MagicMock(return_value={
         'id': printer_id,
         'name': 'Bambu A1',
-        'type': 'bambu_lab'
+        'type': 'bambu_lab',
+        'manufacturer': 'Bambu Lab',
+        'model': 'A1'
     })
+    mock_printer_service.get_printer = AsyncMock(return_value=mock_printer)
     file_download_service.set_printer_service(mock_printer_service)
 
     # Mock library service

@@ -27,12 +27,14 @@ class TestJobsPaginationOptimization:
         """Verify that jobs listing uses the combined list_jobs_with_count method"""
 
         # Mock the job_service to track method calls
-        with patch.object(test_app.job_service, 'list_jobs_with_count', new_callable=AsyncMock) as mock_list_with_count:
-            # Configure mock to return sample data
+        with patch.object(test_app.state.job_service, 'list_jobs_with_count', new_callable=AsyncMock) as mock_list_with_count:
+            # Configure mock to return sample data with all required fields
+            from datetime import datetime
+            now = datetime.now().isoformat()
             mock_list_with_count.return_value = (
                 [
-                    {'id': 'job1', 'job_name': 'test1.3mf', 'status': 'completed'},
-                    {'id': 'job2', 'job_name': 'test2.3mf', 'status': 'printing'}
+                    {'id': 'job1', 'job_name': 'test1.3mf', 'status': 'completed', 'printer_id': 'printer1', 'printer_type': 'bambu_lab', 'created_at': now, 'updated_at': now},
+                    {'id': 'job2', 'job_name': 'test2.3mf', 'status': 'printing', 'printer_id': 'printer1', 'printer_type': 'bambu_lab', 'created_at': now, 'updated_at': now}
                 ],
                 2  # total count
             )
@@ -52,10 +54,12 @@ class TestJobsPaginationOptimization:
     def test_jobs_list_with_filters_optimized(self, client, test_app):
         """Verify pagination with filters uses optimized count"""
 
-        with patch.object(test_app.job_service, 'list_jobs_with_count', new_callable=AsyncMock) as mock_list_with_count:
-            # Mock filtered results
+        with patch.object(test_app.state.job_service, 'list_jobs_with_count', new_callable=AsyncMock) as mock_list_with_count:
+            # Mock filtered results with all required fields
+            from datetime import datetime
+            now = datetime.now().isoformat()
             mock_list_with_count.return_value = (
-                [{'id': 'job1', 'status': 'completed', 'is_business': True}],
+                [{'id': 'job1', 'job_name': 'test1.3mf', 'status': 'completed', 'is_business': True, 'printer_id': 'printer_123', 'printer_type': 'bambu_lab', 'created_at': now, 'updated_at': now}],
                 1
             )
 
@@ -74,10 +78,12 @@ class TestJobsPaginationOptimization:
     def test_jobs_pagination_parameters(self, client, test_app):
         """Verify pagination parameters work with optimized method"""
 
-        with patch.object(test_app.job_service, 'list_jobs_with_count', new_callable=AsyncMock) as mock_list_with_count:
-            # Mock paginated results
+        with patch.object(test_app.state.job_service, 'list_jobs_with_count', new_callable=AsyncMock) as mock_list_with_count:
+            # Mock paginated results with all required fields
+            from datetime import datetime
+            now = datetime.now().isoformat()
             mock_list_with_count.return_value = (
-                [{'id': f'job{i}', 'job_name': f'test{i}.3mf'} for i in range(10)],
+                [{'id': f'job{i}', 'job_name': f'test{i}.3mf', 'status': 'completed', 'printer_id': 'printer1', 'printer_type': 'bambu_lab', 'created_at': now, 'updated_at': now} for i in range(10)],
                 50  # total count
             )
 
@@ -105,12 +111,12 @@ class TestFilesPaginationOptimization:
         """Verify that files listing uses the combined get_files_with_count method"""
 
         # Mock the file_service to track method calls
-        with patch.object(test_app.file_service, 'get_files_with_count', new_callable=AsyncMock) as mock_get_with_count:
-            # Configure mock to return sample data
+        with patch.object(test_app.state.file_service, 'get_files_with_count', new_callable=AsyncMock) as mock_get_with_count:
+            # Configure mock to return sample data with all required fields
             mock_get_with_count.return_value = (
                 [
-                    {'id': 'file1', 'filename': 'model1.3mf', 'source': 'local'},
-                    {'id': 'file2', 'filename': 'model2.gcode', 'source': 'ftp'}
+                    {'id': 'file1', 'filename': 'model1.3mf', 'source': 'local', 'status': 'available', 'file_type': '3mf'},
+                    {'id': 'file2', 'filename': 'model2.gcode', 'source': 'printer', 'status': 'available', 'file_type': 'gcode'}
                 ],
                 2  # total count
             )
@@ -130,10 +136,10 @@ class TestFilesPaginationOptimization:
     def test_files_list_with_filters_optimized(self, client, test_app):
         """Verify files pagination with filters uses optimized count"""
 
-        with patch.object(test_app.file_service, 'get_files_with_count', new_callable=AsyncMock) as mock_get_with_count:
-            # Mock filtered results
+        with patch.object(test_app.state.file_service, 'get_files_with_count', new_callable=AsyncMock) as mock_get_with_count:
+            # Mock filtered results with all required fields
             mock_get_with_count.return_value = (
-                [{'id': 'file1', 'source': 'local'}],
+                [{'id': 'file1', 'filename': 'model1.3mf', 'source': 'local', 'status': 'available', 'file_type': '3mf'}],
                 1
             )
 
@@ -152,10 +158,10 @@ class TestFilesPaginationOptimization:
     def test_files_pagination_parameters(self, client, test_app):
         """Verify files pagination parameters work correctly"""
 
-        with patch.object(test_app.file_service, 'get_files_with_count', new_callable=AsyncMock) as mock_get_with_count:
-            # Mock paginated results
+        with patch.object(test_app.state.file_service, 'get_files_with_count', new_callable=AsyncMock) as mock_get_with_count:
+            # Mock paginated results with all required fields
             mock_get_with_count.return_value = (
-                [{'id': f'file{i}', 'filename': f'model{i}.3mf'} for i in range(25)],
+                [{'id': f'file{i}', 'filename': f'model{i}.3mf', 'source': 'local', 'status': 'available', 'file_type': '3mf'} for i in range(25)],
                 100  # total count
             )
 
@@ -170,9 +176,9 @@ class TestFilesPaginationOptimization:
             assert data['pagination']['limit'] == 25
             assert data['pagination']['total_pages'] == 4  # 100 total / 25 per page
 
-            # Verify offset was calculated correctly (page 3, limit 25 = offset 50)
+            # Verify page was passed correctly (API uses page param not offset)
             call_kwargs = mock_get_with_count.call_args.kwargs
-            assert call_kwargs.get('offset') == 50
+            assert call_kwargs.get('page') == 3
             assert call_kwargs.get('limit') == 25
 
 
@@ -258,11 +264,16 @@ class TestPaginationPerformance:
         """Verify list_jobs_with_count doesn't fetch all records for count"""
         from src.database.database import Database
         from src.services.job_service import JobService
+        from unittest.mock import MagicMock, AsyncMock
 
         db = Database(temp_database)
         await db.initialize()
 
-        service = JobService(db)
+        # Create mock event service
+        mock_event_service = MagicMock()
+        mock_event_service.emit_event = AsyncMock()
+
+        service = JobService(db, mock_event_service)
 
         # Create printer
         await db.create_printer({

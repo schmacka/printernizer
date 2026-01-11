@@ -17,7 +17,12 @@ import pytest
 
 
 class TestCodebaseSyncConsistency:
-    """Test consistency between standalone and Home Assistant codebases."""
+    """Test consistency between standalone and Home Assistant codebases.
+
+    Note: The Home Assistant codebase is in a separate repository (printernizer-ha)
+    and is only synced via GitHub Actions. These tests skip gracefully when the
+    HA codebase is not present locally.
+    """
 
     @pytest.fixture
     def project_root(self):
@@ -34,8 +39,14 @@ class TestCodebaseSyncConsistency:
         """Path to Home Assistant main.py."""
         return project_root / "printernizer" / "src" / "main.py"
 
+    @pytest.fixture
+    def ha_codebase_available(self, project_root):
+        """Check if HA codebase is available (only in CI with full sync)."""
+        ha_dir = project_root / "printernizer" / "src"
+        return ha_dir.exists()
+
     def test_both_main_files_have_redirect_slashes_false(
-        self, standalone_main, ha_main
+        self, standalone_main, ha_main, ha_codebase_available
     ):
         """
         Verify both main.py files have redirect_slashes=False in FastAPI config.
@@ -50,7 +61,10 @@ class TestCodebaseSyncConsistency:
             "This causes 405 errors with trailing slash URLs. See CLAUDE.md API Routing Standards."
         )
 
-        # Check Home Assistant version
+        # Check Home Assistant version (skip if not available)
+        if not ha_codebase_available:
+            pytest.skip("Home Assistant codebase not available (separate repository)")
+
         ha_content = ha_main.read_text(encoding="utf-8")
         assert "redirect_slashes=False" in ha_content, (
             f"Home Assistant {ha_main} missing 'redirect_slashes=False' in FastAPI config. "
@@ -95,7 +109,7 @@ class TestCodebaseSyncConsistency:
             "See CLAUDE.md API Routing Standards.\n\n" + "\n".join(errors)
         )
 
-    def test_version_numbers_are_in_sync(self, project_root):
+    def test_version_numbers_are_in_sync(self, project_root, ha_codebase_available):
         """
         Verify version numbers exist and are properly formatted.
 
@@ -122,7 +136,12 @@ class TestCodebaseSyncConsistency:
             f"Standalone version '{standalone_version}' does not follow semantic versioning (X.Y.Z)"
         )
 
-        # Check Home Assistant version
+        print(f"\n✓ Standalone version: {standalone_version}")
+
+        # Check Home Assistant version (skip if not available)
+        if not ha_codebase_available:
+            pytest.skip("Home Assistant codebase not available (separate repository)")
+
         ha_config_file = project_root / "printernizer" / "config.yaml"
         ha_content = ha_config_file.read_text(encoding="utf-8")
 
@@ -138,21 +157,26 @@ class TestCodebaseSyncConsistency:
             f"Home Assistant version '{ha_version}' does not follow semantic versioning (X.Y.Z)"
         )
 
-        # Log versions for informational purposes (they can differ)
-        print(f"\n✓ Standalone version: {standalone_version}")
         print(f"✓ Home Assistant version: {ha_version}")
 
-    def test_both_codebases_have_required_routers(self, project_root):
+    def test_both_codebases_have_required_routers(self, project_root, ha_codebase_available):
         """
         Verify both codebases have the same set of API routers.
 
         Missing routers indicate incomplete synchronization between deployments.
         """
         standalone_routers = project_root / "src" / "api" / "routers"
-        ha_routers = project_root / "printernizer" / "src" / "api" / "routers"
 
-        # Get router files from both directories
+        # Check standalone routers exist
         standalone_files = set(f.name for f in standalone_routers.glob("*.py") if f.name != "__init__.py")
+        assert standalone_files, "No router files found in standalone codebase"
+        print(f"\n✓ Standalone routers: {len(standalone_files)} files")
+
+        # Check HA routers (skip if not available)
+        if not ha_codebase_available:
+            pytest.skip("Home Assistant codebase not available (separate repository)")
+
+        ha_routers = project_root / "printernizer" / "src" / "api" / "routers"
         ha_files = set(f.name for f in ha_routers.glob("*.py") if f.name != "__init__.py")
 
         # Check for missing routers
