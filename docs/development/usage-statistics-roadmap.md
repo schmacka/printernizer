@@ -359,9 +359,9 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 - [x] Deployment mode distribution (doughnut chart)
 - [x] Version adoption rate (horizontal bar chart, top 5)
 - [x] Printer type distribution (included in /stats/printers endpoint)
-- [ ] Feature usage rates
+- [x] Feature usage rates (stacked bar chart showing enabled/disabled)
 
-**Deliverable:** Core metrics dashboards ✅ MOSTLY COMPLETE
+**Deliverable:** Core metrics dashboards ✅ COMPLETE
 
 **Completed:** 2026-01-14
 
@@ -369,36 +369,38 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 
 #### 3.3 Trend Analysis
 - [x] Week-over-week growth (growth percentage card)
-- [ ] Version migration patterns
+- [x] Version migration patterns (API endpoint `/stats/version-migration`)
 - [ ] Feature adoption trends
 - [ ] Error rate trends
 - [x] Geographic distribution (horizontal bar chart, top 10 countries)
 
-**Deliverable:** Trend analysis dashboards 🚧 PARTIAL
+**Deliverable:** Trend analysis dashboards ✅ MOSTLY COMPLETE
+
+**Completed:** 2026-01-14
 
 ---
 
 #### 3.4 Anomaly Detection
-- [ ] Set up alerts for unusual patterns
-- [ ] Error spike detection
-- [ ] Sudden drop in active users
-- [ ] Abnormal usage patterns
+- [x] Set up alerts for unusual patterns (anomaly alerts section in dashboard)
+- [ ] Error spike detection (placeholder - needs error data in submissions)
+- [x] Sudden drop in active users (week-over-week comparison)
+- [x] Abnormal usage patterns (daily submission volume comparison)
 
-**Deliverable:** Anomaly detection and alerting
+**Deliverable:** Anomaly detection and alerting ✅ MOSTLY COMPLETE
 
-**Estimated Time:** 2 days
+**Completed:** 2026-01-14
 
 ---
 
 #### 3.5 Reporting
 - [ ] Weekly summary email
 - [ ] Monthly report generation
-- [ ] Export capabilities
+- [x] Export capabilities (JSON export via `/stats/export` endpoint)
 - [ ] Share dashboards with team
 
-**Deliverable:** Automated reporting
+**Deliverable:** Automated reporting 🚧 PARTIAL
 
-**Estimated Time:** 2 days
+**Completed:** 2026-01-14 (export only)
 
 ---
 
@@ -422,6 +424,16 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 - `GET /stats/versions` - Version adoption rates
 - `GET /stats/geography` - Geographic distribution
 - `GET /stats/printers` - Printer statistics
+- `GET /stats/features` - Feature usage (enabled/disabled counts)
+- `GET /stats/version-migration` - Version adoption over time
+- `GET /stats/anomalies` - Anomaly detection alerts
+- `GET /stats/export` - Full data export (JSON)
+
+**Dashboard Features:**
+- 4 overview cards (Total, Active 7d, Active 30d, Growth %)
+- 5 charts (Installations, Deployment, Versions, Geography, Features)
+- Anomaly alerts section with severity indicators
+- JSON export functionality
 
 ---
 
@@ -429,9 +441,9 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 
 - ✅ Dashboard accessible to team
 - ✅ Key metrics visualized
-- 🚧 Trends identified (partial)
-- [ ] Anomalies detected automatically
-- [ ] Weekly reports generated
+- ✅ Trends identified
+- ✅ Anomalies detected automatically
+- 🚧 Weekly reports generated (export only, no automated email)
 
 **Phase 3 Total Estimated Time:** ~2 weeks (12 days)
 
