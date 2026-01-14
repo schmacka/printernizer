@@ -1796,6 +1796,14 @@
                                         </div>
                                     </div>
 
+                                    <!-- Anomaly Alerts -->
+                                    <div class="anomaly-alerts-section" id="anomalyAlerts">
+                                        <div class="anomaly-status anomaly-ok">
+                                            <span class="anomaly-icon">&#x2705;</span>
+                                            <span>No anomalies detected</span>
+                                        </div>
+                                    </div>
+
                                     <!-- Charts Grid -->
                                     <div class="stats-charts-grid">
                                         <div class="chart-container">
@@ -1814,11 +1822,19 @@
                                             <h4>Geographic Distribution</h4>
                                             <canvas id="geographyChart"></canvas>
                                         </div>
+                                        <div class="chart-container">
+                                            <h4>Feature Usage</h4>
+                                            <canvas id="featuresChart"></canvas>
+                                        </div>
                                     </div>
 
                                     <!-- Timestamp and Actions -->
                                     <div class="stats-timestamp" id="statsLastUpdated"></div>
                                     <div class="stats-actions">
+                                        <button class="btn btn-secondary" onclick="adminStats.exportData()">
+                                            <span class="btn-icon">📤</span>
+                                            Export JSON
+                                        </button>
                                         <button class="btn btn-secondary" onclick="adminStats.disconnect()">
                                             <span class="btn-icon">🔌</span>
                                             Disconnect

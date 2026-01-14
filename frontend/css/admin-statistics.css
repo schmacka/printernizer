@@ -131,6 +131,75 @@
     border-top: 1px solid var(--gray-200);
 }
 
+/* Anomaly Alerts */
+.anomaly-alerts-section {
+    margin-bottom: var(--spacing-6);
+}
+
+.anomaly-status {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+    font-weight: 500;
+}
+
+.anomaly-status.anomaly-ok {
+    background: var(--success-bg, rgba(16, 185, 129, 0.1));
+    color: var(--success-color, #10b981);
+    border: 1px solid var(--success-border, rgba(16, 185, 129, 0.3));
+}
+
+.anomaly-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-3);
+}
+
+.anomaly-alert:last-child {
+    margin-bottom: 0;
+}
+
+.anomaly-alert.anomaly-high {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.anomaly-alert.anomaly-medium {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.anomaly-alert.anomaly-info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.anomaly-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.anomaly-content {
+    flex: 1;
+}
+
+.anomaly-message {
+    font-weight: 500;
+    color: var(--gray-800);
+    margin-bottom: var(--spacing-1);
+}
+
+.anomaly-type {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    text-transform: capitalize;
+}
+
 /* Loading State */
 .stats-loading {
     display: flex;

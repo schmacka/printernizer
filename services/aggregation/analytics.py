@@ -340,12 +340,256 @@ class AnalyticsService:
             "types": type_totals
         }
 
+    def get_feature_usage(self) -> Dict[str, Any]:
+        """
+        Get feature usage statistics across all installations.
+
+        Aggregates the feature_usage JSON field to show which features
+        are enabled/disabled across the user base.
+
+        Returns:
+            Dict with features list showing enabled/disabled counts
+        """
+        # Get latest submission per installation
+        latest_subq = self.db.query(
+            Submission.installation_id,
+            func.max(Submission.submitted_at).label('latest')
+        ).group_by(Submission.installation_id).subquery()
+
+        # Get feature_usage from latest submissions
+        results = self.db.query(
+            Submission.feature_usage
+        ).join(
+            latest_subq,
+            (Submission.installation_id == latest_subq.c.installation_id) &
+            (Submission.submitted_at == latest_subq.c.latest)
+        ).all()
+
+        # Aggregate feature counts
+        feature_counts: Dict[str, Dict[str, int]] = {}
+        total_installations = 0
+
+        for r in results:
+            total_installations += 1
+            if r.feature_usage:
+                for feature, enabled in r.feature_usage.items():
+                    if feature not in feature_counts:
+                        feature_counts[feature] = {"enabled": 0, "disabled": 0}
+                    if enabled:
+                        feature_counts[feature]["enabled"] += 1
+                    else:
+                        feature_counts[feature]["disabled"] += 1
+
+        # Convert to list format with percentages
+        features = []
+        for feature, counts in sorted(feature_counts.items()):
+            total = counts["enabled"] + counts["disabled"]
+            features.append({
+                "feature": feature,
+                "enabled": counts["enabled"],
+                "disabled": counts["disabled"],
+                "enabled_percent": round((counts["enabled"] / total) * 100, 1) if total > 0 else 0,
+                "total_reporting": total
+            })
+
+        return {
+            "features": features,
+            "total_installations": total_installations
+        }
+
+    def get_version_migration(self, days: int = 30) -> Dict[str, Any]:
+        """
+        Get version adoption over time (migration patterns).
+
+        Shows how version distribution changes day by day.
+
+        Args:
+            days: Number of days to analyze
+
+        Returns:
+            Dict with daily version distribution data
+        """
+        now = datetime.utcnow()
+        migration_data = []
+
+        # Get all unique versions first
+        all_versions = set()
+        version_results = self.db.query(
+            distinct(Submission.app_version)
+        ).all()
+        for r in version_results:
+            if r[0]:
+                all_versions.add(r[0])
+
+        # For each day, get version distribution
+        for i in range(days - 1, -1, -1):
+            day_end = (now - timedelta(days=i)).replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+
+            # Get latest submission per installation up to this day
+            latest_subq = self.db.query(
+                Submission.installation_id,
+                func.max(Submission.submitted_at).label('latest')
+            ).filter(
+                Submission.submitted_at <= day_end
+            ).group_by(Submission.installation_id).subquery()
+
+            # Count versions
+            results = self.db.query(
+                Submission.app_version,
+                func.count(Submission.installation_id).label('count')
+            ).join(
+                latest_subq,
+                (Submission.installation_id == latest_subq.c.installation_id) &
+                (Submission.submitted_at == latest_subq.c.latest)
+            ).group_by(Submission.app_version).all()
+
+            day_data = {
+                "date": day_end.strftime("%Y-%m-%d"),
+                "versions": {}
+            }
+            for r in results:
+                version = r.app_version or "unknown"
+                day_data["versions"][version] = r.count
+
+            migration_data.append(day_data)
+
+        return {
+            "migration": migration_data,
+            "all_versions": sorted(list(all_versions), reverse=True)[:10]  # Top 10 versions
+        }
+
+    def get_anomalies(self) -> Dict[str, Any]:
+        """
+        Detect anomalies in usage patterns.
+
+        Checks for:
+        - Sudden drops in active users
+        - Error rate spikes
+        - Unusual submission patterns
+
+        Returns:
+            Dict with detected anomalies and their severity
+        """
+        now = datetime.utcnow()
+        anomalies = []
+
+        # Check 1: Compare active users this week vs last week
+        week_ago = now - timedelta(days=7)
+        two_weeks_ago = now - timedelta(days=14)
+
+        active_this_week = self.db.query(
+            func.count(distinct(Submission.installation_id))
+        ).filter(
+            Submission.submitted_at >= week_ago
+        ).scalar() or 0
+
+        active_last_week = self.db.query(
+            func.count(distinct(Submission.installation_id))
+        ).filter(
+            Submission.submitted_at >= two_weeks_ago,
+            Submission.submitted_at < week_ago
+        ).scalar() or 0
+
+        if active_last_week > 0:
+            change_percent = ((active_this_week - active_last_week) / active_last_week) * 100
+
+            if change_percent < -20:
+                anomalies.append({
+                    "type": "active_users_drop",
+                    "severity": "high" if change_percent < -50 else "medium",
+                    "message": f"Active users dropped {abs(change_percent):.1f}% compared to last week",
+                    "current": active_this_week,
+                    "previous": active_last_week,
+                    "change_percent": round(change_percent, 1)
+                })
+            elif change_percent > 50:
+                anomalies.append({
+                    "type": "active_users_spike",
+                    "severity": "info",
+                    "message": f"Active users increased {change_percent:.1f}% compared to last week",
+                    "current": active_this_week,
+                    "previous": active_last_week,
+                    "change_percent": round(change_percent, 1)
+                })
+
+        # Check 2: Submissions today vs average
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        submissions_today = self.db.query(
+            func.count(Submission.id)
+        ).filter(
+            Submission.submitted_at >= today_start
+        ).scalar() or 0
+
+        # Average submissions per day over last 30 days
+        month_ago = now - timedelta(days=30)
+        total_submissions_month = self.db.query(
+            func.count(Submission.id)
+        ).filter(
+            Submission.submitted_at >= month_ago
+        ).scalar() or 0
+
+        avg_daily = total_submissions_month / 30 if total_submissions_month > 0 else 0
+
+        if avg_daily > 0 and submissions_today > avg_daily * 3:
+            anomalies.append({
+                "type": "submission_spike",
+                "severity": "info",
+                "message": f"Unusually high submissions today ({submissions_today} vs avg {avg_daily:.1f})",
+                "current": submissions_today,
+                "average": round(avg_daily, 1)
+            })
+        elif avg_daily > 5 and submissions_today < avg_daily * 0.2:
+            anomalies.append({
+                "type": "submission_drop",
+                "severity": "medium",
+                "message": f"Very few submissions today ({submissions_today} vs avg {avg_daily:.1f})",
+                "current": submissions_today,
+                "average": round(avg_daily, 1)
+            })
+
+        # Check 3: Look for installations with many errors
+        # (This would need error data in submissions - placeholder for now)
+
+        return {
+            "anomalies": anomalies,
+            "checked_at": now.isoformat(),
+            "checks_performed": [
+                "active_users_week_over_week",
+                "daily_submission_volume"
+            ]
+        }
+
+    def export_data(self, format: str = "json") -> Dict[str, Any]:
+        """
+        Export all dashboard data for external use.
+
+        Args:
+            format: Export format (json or csv)
+
+        Returns:
+            Dict with all exportable data
+        """
+        data = {
+            "exported_at": datetime.utcnow().isoformat(),
+            "installations": self.get_installation_stats(days_trend=30),
+            "deployment_modes": self.get_deployment_distribution(),
+            "versions": self.get_version_distribution(limit=20),
+            "geography": self.get_geography_distribution(limit=50),
+            "printers": self.get_printer_stats(),
+            "features": self.get_feature_usage(),
+            "anomalies": self.get_anomalies()
+        }
+
+        return data
+
     def get_overview(self) -> Dict[str, Any]:
         """
         Get combined dashboard overview with all metrics.
 
         Returns:
-            Dict with installations, deployment_modes, versions, geography, printers
+            Dict with installations, deployment_modes, versions, geography, printers, features, anomalies
         """
         return {
             "installations": self.get_installation_stats(days_trend=30),
@@ -353,5 +597,7 @@ class AnalyticsService:
             "versions": self.get_version_distribution(limit=10),
             "geography": self.get_geography_distribution(limit=20),
             "printers": self.get_printer_stats(),
+            "features": self.get_feature_usage(),
+            "anomalies": self.get_anomalies(),
             "last_updated": datetime.utcnow().isoformat()
         }

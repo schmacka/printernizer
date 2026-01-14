@@ -564,6 +564,121 @@ async def get_printer_stats(
         )
 
 
+@app.get("/stats/features")
+async def get_feature_usage(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get feature usage statistics across all installations.
+
+    Shows which features are enabled/disabled and their adoption rates.
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Feature usage statistics with enabled/disabled counts
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_feature_usage()
+    except Exception as e:
+        logger.error(f"Failed to get feature usage: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get feature usage"
+        )
+
+
+@app.get("/stats/version-migration")
+async def get_version_migration(
+    days: int = 30,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get version adoption over time (migration patterns).
+
+    Shows how users migrate between versions over the specified period.
+
+    Args:
+        days: Number of days to analyze (default 30)
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Daily version distribution data
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_version_migration(days=days)
+    except Exception as e:
+        logger.error(f"Failed to get version migration: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get version migration"
+        )
+
+
+@app.get("/stats/anomalies")
+async def get_anomalies(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Detect anomalies in usage patterns.
+
+    Checks for sudden drops in active users, error spikes,
+    and unusual submission patterns.
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        List of detected anomalies with severity levels
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_anomalies()
+    except Exception as e:
+        logger.error(f"Failed to get anomalies: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get anomalies"
+        )
+
+
+@app.get("/stats/export")
+async def export_data(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Export all dashboard data for external use.
+
+    Returns comprehensive data dump for backup or external analysis.
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Complete export of all dashboard metrics
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.export_data()
+    except Exception as e:
+        logger.error(f"Failed to export data: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to export data"
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

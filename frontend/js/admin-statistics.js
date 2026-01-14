@@ -175,12 +175,16 @@ class AdminStatisticsManager {
         // Update timestamp
         this.updateTimestamp(data.last_updated);
 
+        // Render anomaly alerts
+        this.renderAnomalyAlerts(data.anomalies);
+
         // Render charts (only if Chart.js is loaded)
         if (typeof Chart !== 'undefined') {
             this.renderInstallationsChart(data.installations?.trend || []);
             this.renderDeploymentChart(data.deployment_modes);
             this.renderVersionsChart(data.versions);
             this.renderGeographyChart(data.geography);
+            this.renderFeatureUsageChart(data.features);
         } else {
             Logger.warn('Chart.js not loaded, skipping chart rendering');
         }
@@ -423,6 +427,144 @@ class AdminStatisticsManager {
     }
 
     /**
+     * Render feature usage horizontal bar chart
+     */
+    renderFeatureUsageChart(featuresData) {
+        const ctx = document.getElementById('featuresChart')?.getContext('2d');
+        if (!ctx || !featuresData?.features) return;
+
+        if (this.charts.features) {
+            this.charts.features.destroy();
+        }
+
+        const features = featuresData.features.slice(0, 10);
+        if (features.length === 0) return;
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+            document.body.classList.contains('dark-theme');
+
+        // Format feature names for display
+        const formatFeatureName = (name) => {
+            return name.replace(/_/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase());
+        };
+
+        this.charts.features = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: features.map(f => formatFeatureName(f.feature)),
+                datasets: [
+                    {
+                        label: 'Enabled',
+                        data: features.map(f => f.enabled),
+                        backgroundColor: '#10b981'
+                    },
+                    {
+                        label: 'Disabled',
+                        data: features.map(f => f.disabled),
+                        backgroundColor: '#ef4444'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: isDark ? '#e5e7eb' : '#374151' }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { color: isDark ? '#9ca3af' : '#6b7280' },
+                        grid: { color: isDark ? '#374151' : '#e5e7eb' }
+                    },
+                    y: {
+                        stacked: true,
+                        ticks: { color: isDark ? '#9ca3af' : '#6b7280' },
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Render anomaly alerts
+     */
+    renderAnomalyAlerts(anomalyData) {
+        const container = document.getElementById('anomalyAlerts');
+        if (!container) return;
+
+        const anomalies = anomalyData?.anomalies || [];
+
+        if (anomalies.length === 0) {
+            container.innerHTML = `
+                <div class="anomaly-status anomaly-ok">
+                    <span class="anomaly-icon">&#x2705;</span>
+                    <span>No anomalies detected</span>
+                </div>
+            `;
+            return;
+        }
+
+        const severityIcons = {
+            'high': '&#x1F534;',    // Red circle
+            'medium': '&#x1F7E0;',  // Orange circle
+            'info': '&#x1F535;'     // Blue circle
+        };
+
+        const severityClasses = {
+            'high': 'anomaly-high',
+            'medium': 'anomaly-medium',
+            'info': 'anomaly-info'
+        };
+
+        container.innerHTML = anomalies.map(a => `
+            <div class="anomaly-alert ${severityClasses[a.severity] || 'anomaly-info'}">
+                <span class="anomaly-icon">${severityIcons[a.severity] || '&#x2139;'}</span>
+                <div class="anomaly-content">
+                    <div class="anomaly-message">${this.escapeHtml(a.message)}</div>
+                    <div class="anomaly-type">${a.type.replace(/_/g, ' ')}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Export dashboard data as JSON
+     */
+    async exportData() {
+        if (!this.aggregationUrl || !this.apiKey) {
+            showToast('error', 'Not Connected', 'Please connect to aggregation service first');
+            return;
+        }
+
+        try {
+            const data = await this.fetchStats('/stats/export');
+
+            // Create and download JSON file
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `printernizer-stats-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('success', 'Exported', 'Statistics exported successfully');
+        } catch (error) {
+            Logger.error('Failed to export data', error);
+            showToast('error', 'Export Failed', error.message);
+        }
+    }
+
+    /**
      * Get common chart options
      */
     getChartOptions(title, isDark) {
@@ -564,6 +706,14 @@ class AdminStatisticsManager {
                 </div>
             </div>
 
+            <!-- Anomaly Alerts -->
+            <div class="anomaly-alerts-section" id="anomalyAlerts">
+                <div class="anomaly-status anomaly-ok">
+                    <span class="anomaly-icon">&#x2705;</span>
+                    <span>No anomalies detected</span>
+                </div>
+            </div>
+
             <!-- Charts Grid -->
             <div class="stats-charts-grid">
                 <div class="chart-container">
@@ -582,11 +732,19 @@ class AdminStatisticsManager {
                     <h4>Geographic Distribution</h4>
                     <canvas id="geographyChart"></canvas>
                 </div>
+                <div class="chart-container">
+                    <h4>Feature Usage</h4>
+                    <canvas id="featuresChart"></canvas>
+                </div>
             </div>
 
             <!-- Timestamp and Actions -->
             <div class="stats-timestamp" id="statsLastUpdated"></div>
             <div class="stats-actions">
+                <button class="btn btn-secondary" onclick="adminStats.exportData()">
+                    <span class="btn-icon">&#x1F4E4;</span>
+                    Export JSON
+                </button>
                 <button class="btn btn-secondary" onclick="adminStats.disconnect()">
                     <span class="btn-icon">&#x1F50C;</span>
                     Disconnect
