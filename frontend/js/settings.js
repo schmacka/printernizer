@@ -103,6 +103,11 @@ class SettingsManager {
             this.currentTab = tabName;
             Logger.debug(`Successfully switched to tab: ${tabName}`);
 
+            // Initialize tab-specific managers
+            if (tabName === 'privacy' && typeof adminStats !== 'undefined') {
+                adminStats.init();
+            }
+
         } catch (error) {
             Logger.error('Error in switchTab:', error);
             showToast('error', 'Fehler', 'Tab konnte nicht gewechselt werden');

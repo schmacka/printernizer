@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/search.css">
     <link rel="stylesheet" href="css/setup-wizard.css">
     <link rel="stylesheet" href="css/dark-theme.css">
+    <link rel="stylesheet" href="css/admin-statistics.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <!-- Logger must be loaded before theme-switcher -->
     <script src="js/logger.js"></script>
@@ -1737,6 +1738,96 @@
                             </div>
                         </div>
 
+                        <!-- Global Installation Statistics Dashboard (Admin) -->
+                        <div class="card settings-section" id="globalStatsCard">
+                            <div class="card-header">
+                                <h3>📈 Global Installation Statistics</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="adminStats.refresh()">
+                                    <span class="btn-icon">🔄</span>
+                                    Refresh
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted" style="margin-bottom: 20px;">
+                                    View aggregated statistics from all Printernizer installations.
+                                    Requires access to the aggregation service.
+                                </p>
+
+                                <!-- Connection Config -->
+                                <div id="aggregationServiceConfig">
+                                    <div class="aggregation-config">
+                                        <div class="form-group">
+                                            <label for="aggregationUrl">Aggregation Service URL</label>
+                                            <input type="url" id="aggregationUrl" class="form-control"
+                                                   placeholder="https://stats.printernizer.io">
+                                            <small class="form-text text-muted">URL of the aggregation service</small>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="aggregationApiKey">API Key</label>
+                                            <input type="password" id="aggregationApiKey" class="form-control"
+                                                   placeholder="Enter API key">
+                                        </div>
+                                        <button class="btn btn-primary" onclick="adminStats.connect()">
+                                            <span class="btn-icon">🔗</span>
+                                            Connect
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Dashboard (hidden until connected) -->
+                                <div id="globalStatsDashboard" style="display: none;">
+                                    <!-- Overview Cards -->
+                                    <div class="stats-overview-grid">
+                                        <div class="stats-card">
+                                            <div class="stats-number" id="totalInstallations">-</div>
+                                            <div class="stats-label">Total Installations</div>
+                                        </div>
+                                        <div class="stats-card">
+                                            <div class="stats-number" id="active7d">-</div>
+                                            <div class="stats-label">Active (7 days)</div>
+                                        </div>
+                                        <div class="stats-card">
+                                            <div class="stats-number" id="active30d">-</div>
+                                            <div class="stats-label">Active (30 days)</div>
+                                        </div>
+                                        <div class="stats-card">
+                                            <div class="stats-number" id="growth7d">-</div>
+                                            <div class="stats-label">Growth (7 days)</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Charts Grid -->
+                                    <div class="stats-charts-grid">
+                                        <div class="chart-container">
+                                            <h4>Installations Over Time</h4>
+                                            <canvas id="installationsChart"></canvas>
+                                        </div>
+                                        <div class="chart-container">
+                                            <h4>Deployment Mode Distribution</h4>
+                                            <canvas id="deploymentChart"></canvas>
+                                        </div>
+                                        <div class="chart-container">
+                                            <h4>Version Adoption</h4>
+                                            <canvas id="versionsChart"></canvas>
+                                        </div>
+                                        <div class="chart-container">
+                                            <h4>Geographic Distribution</h4>
+                                            <canvas id="geographyChart"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- Timestamp and Actions -->
+                                    <div class="stats-timestamp" id="statsLastUpdated"></div>
+                                    <div class="stats-actions">
+                                        <button class="btn btn-secondary" onclick="adminStats.disconnect()">
+                                            <span class="btn-icon">🔌</span>
+                                            Disconnect
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Privacy Policy Link -->
                         <div class="card settings-section">
                             <div class="card-body">
@@ -2737,6 +2828,9 @@
     <script src="js/settings.js?v=1.1"></script>
     <script src="js/notifications.js?v=1.0"></script>
     <script src="js/usage-statistics.js"></script>
+    <!-- Chart.js for statistics visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/admin-statistics.js"></script>
     <script src="js/navigation-preferences-ui.js"></script>
     <script src="js/debug.js?v=1.1"></script>
 

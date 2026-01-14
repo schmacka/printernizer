@@ -383,6 +383,187 @@ async def get_stats_summary(
         )
 
 
+# ============================================================================
+# Dashboard Analytics Endpoints (Phase 3)
+# ============================================================================
+
+from analytics import AnalyticsService
+
+
+@app.get("/stats/overview")
+async def get_dashboard_overview(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get combined dashboard overview with all metrics.
+
+    Returns comprehensive statistics for the admin dashboard including
+    installations, deployment modes, versions, geography, and printer stats.
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Combined overview with all dashboard metrics
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_overview()
+    except Exception as e:
+        logger.error(f"Failed to get dashboard overview: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get dashboard overview"
+        )
+
+
+@app.get("/stats/installations")
+async def get_installation_stats(
+    days: int = 30,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get installation metrics including active users and growth.
+
+    Args:
+        days: Number of days for trend data (default 30)
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Installation statistics with total, active counts, growth, and trend
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_installation_stats(days_trend=days)
+    except Exception as e:
+        logger.error(f"Failed to get installation stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get installation stats"
+        )
+
+
+@app.get("/stats/deployment-modes")
+async def get_deployment_distribution(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get deployment mode distribution across installations.
+
+    Shows how many installations use each deployment type
+    (Home Assistant, Docker, Standalone, Raspberry Pi).
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Deployment mode breakdown with counts and percentages
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_deployment_distribution()
+    except Exception as e:
+        logger.error(f"Failed to get deployment distribution: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get deployment distribution"
+        )
+
+
+@app.get("/stats/versions")
+async def get_version_distribution(
+    limit: int = 10,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get version adoption rates across installations.
+
+    Shows which versions are in use and their adoption percentages.
+
+    Args:
+        limit: Maximum number of versions to return (default 10)
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Version distribution with counts and percentages
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_version_distribution(limit=limit)
+    except Exception as e:
+        logger.error(f"Failed to get version distribution: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get version distribution"
+        )
+
+
+@app.get("/stats/geography")
+async def get_geography_distribution(
+    limit: int = 20,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get geographic distribution of installations by country.
+
+    Based on the country_code derived from timezone settings.
+
+    Args:
+        limit: Maximum number of countries to return (default 20)
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Country distribution with counts and percentages
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_geography_distribution(limit=limit)
+    except Exception as e:
+        logger.error(f"Failed to get geography distribution: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get geography distribution"
+        )
+
+
+@app.get("/stats/printers")
+async def get_printer_stats(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get aggregated printer statistics across all installations.
+
+    Shows total printers, average per installation, and type breakdown.
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Printer statistics with totals and type distribution
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_printer_stats()
+    except Exception as e:
+        logger.error(f"Failed to get printer stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get printer stats"
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

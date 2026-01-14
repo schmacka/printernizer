@@ -1,0 +1,297 @@
+/* Admin Statistics Dashboard Styles */
+/* Phase 3: Usage Statistics Analytics Dashboard */
+
+/* Overview Cards Grid */
+.stats-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
+}
+
+.stats-card {
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-5);
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--gray-200);
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.stats-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+    margin-bottom: var(--spacing-2);
+}
+
+.stats-number.positive {
+    color: var(--success-color);
+}
+
+.stats-number.negative {
+    color: var(--error-color);
+}
+
+.stats-label {
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+/* Charts Grid */
+.stats-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: var(--spacing-6);
+    margin-top: var(--spacing-6);
+}
+
+.chart-container {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-4);
+}
+
+.chart-container h4 {
+    margin: 0 0 var(--spacing-4) 0;
+    font-size: var(--font-size-base);
+    color: var(--gray-800);
+    font-weight: 600;
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: 220px !important;
+}
+
+/* Aggregation Service Config Form */
+.aggregation-config {
+    max-width: 450px;
+    margin: var(--spacing-4) auto;
+    padding: var(--spacing-6);
+    background: var(--gray-50);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+}
+
+.aggregation-config .form-group {
+    margin-bottom: var(--spacing-4);
+}
+
+.aggregation-config .form-group label {
+    display: block;
+    margin-bottom: var(--spacing-2);
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.aggregation-config .form-control {
+    width: 100%;
+    padding: var(--spacing-3);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aggregation-config .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+.aggregation-config .form-text {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    margin-top: var(--spacing-1);
+}
+
+.aggregation-config .btn {
+    width: 100%;
+    margin-top: var(--spacing-2);
+}
+
+/* Stats Actions */
+.stats-actions {
+    display: flex;
+    gap: var(--spacing-3);
+    justify-content: flex-end;
+    margin-top: var(--spacing-6);
+    padding-top: var(--spacing-4);
+    border-top: 1px solid var(--gray-200);
+}
+
+/* Loading State */
+.stats-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-8);
+    color: var(--gray-500);
+}
+
+.stats-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-3);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error State */
+.stats-error {
+    text-align: center;
+    padding: var(--spacing-6);
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: var(--radius-lg);
+    color: var(--error-color);
+}
+
+.stats-error .error-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-2);
+}
+
+.stats-error .error-message {
+    font-weight: 500;
+    margin-bottom: var(--spacing-2);
+}
+
+.stats-error .error-details {
+    font-size: var(--font-size-sm);
+    color: var(--gray-600);
+}
+
+/* Empty State */
+.stats-empty {
+    text-align: center;
+    padding: var(--spacing-8);
+    color: var(--gray-500);
+}
+
+.stats-empty .empty-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-3);
+    opacity: 0.5;
+}
+
+.stats-empty .empty-message {
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+    margin-bottom: var(--spacing-2);
+}
+
+/* Last Updated Timestamp */
+.stats-timestamp {
+    font-size: var(--font-size-xs);
+    color: var(--gray-500);
+    text-align: right;
+    margin-top: var(--spacing-4);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .stats-overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-charts-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container canvas {
+        height: 180px !important;
+    }
+
+    .stats-number {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-card {
+        padding: var(--spacing-4);
+    }
+
+    .aggregation-config {
+        padding: var(--spacing-4);
+    }
+
+    .stats-actions {
+        flex-direction: column;
+    }
+
+    .stats-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Dark Theme Support */
+[data-theme="dark"] .stats-card,
+.dark-theme .stats-card {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .stats-label,
+.dark-theme .stats-label {
+    color: var(--gray-400);
+}
+
+[data-theme="dark"] .chart-container,
+.dark-theme .chart-container {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .chart-container h4,
+.dark-theme .chart-container h4 {
+    color: var(--gray-200);
+}
+
+[data-theme="dark"] .aggregation-config,
+.dark-theme .aggregation-config {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+}
+
+[data-theme="dark"] .aggregation-config .form-group label,
+.dark-theme .aggregation-config .form-group label {
+    color: var(--gray-300);
+}
+
+[data-theme="dark"] .aggregation-config .form-control,
+.dark-theme .aggregation-config .form-control {
+    background: var(--gray-900);
+    border-color: var(--gray-600);
+    color: var(--gray-200);
+}
+
+[data-theme="dark"] .stats-actions,
+.dark-theme .stats-actions {
+    border-top-color: var(--gray-700);
+}
