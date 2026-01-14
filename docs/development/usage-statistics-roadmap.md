@@ -332,6 +332,8 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 
 **Timeline:** 2 weeks (Sprint 5-6)
 
+**Status:** 🚧 IN PROGRESS (Started 2026-01-14)
+
 **Prerequisites:**
 - ✅ Phase 2 complete
 - ✅ Sufficient data collected (at least 1 month)
@@ -339,42 +341,40 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 ### Tasks
 
 #### 3.1 Dashboard Setup
-- [ ] Choose dashboard tool (Grafana, Metabase, or Superset)
-- [ ] Set up dashboard service
-- [ ] Connect to SQL Server
-- [ ] Create basic layout
-- [ ] Set up user authentication
+- [x] Choose dashboard tool ~~(Grafana, Metabase, or Superset)~~ → Built-in dashboard in Printernizer
+- [x] Set up dashboard service (AdminStatisticsManager in frontend)
+- [x] Connect to aggregation service (via API key authentication)
+- [x] Create basic layout (Settings > Privacy tab)
+- [x] Set up user authentication (API key stored in localStorage)
 
-**Deliverable:** Dashboard infrastructure
+**Deliverable:** Dashboard infrastructure ✅ COMPLETE
 
-**Estimated Time:** 2 days
+**Completed:** 2026-01-14
 
 ---
 
 #### 3.2 Key Metrics Visualization
-- [ ] Total installations over time
-- [ ] Active installations (7-day, 30-day)
-- [ ] Deployment mode distribution
-- [ ] Version adoption rate
-- [ ] Printer type distribution
+- [x] Total installations over time (line chart with trend data)
+- [x] Active installations (7-day, 30-day) (overview cards)
+- [x] Deployment mode distribution (doughnut chart)
+- [x] Version adoption rate (horizontal bar chart, top 5)
+- [x] Printer type distribution (included in /stats/printers endpoint)
 - [ ] Feature usage rates
 
-**Deliverable:** Core metrics dashboards
+**Deliverable:** Core metrics dashboards ✅ MOSTLY COMPLETE
 
-**Estimated Time:** 3 days
+**Completed:** 2026-01-14
 
 ---
 
 #### 3.3 Trend Analysis
-- [ ] Week-over-week growth
+- [x] Week-over-week growth (growth percentage card)
 - [ ] Version migration patterns
 - [ ] Feature adoption trends
 - [ ] Error rate trends
-- [ ] Geographic distribution
+- [x] Geographic distribution (horizontal bar chart, top 10 countries)
 
-**Deliverable:** Trend analysis dashboards
-
-**Estimated Time:** 3 days
+**Deliverable:** Trend analysis dashboards 🚧 PARTIAL
 
 ---
 
@@ -402,13 +402,36 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 
 ---
 
+### Phase 3 Implementation Notes (2026-01-14)
+
+**Architecture Decision:** Built-in dashboard instead of external tool (Grafana/Metabase)
+- Simpler deployment - no additional infrastructure required
+- Integrated into existing Settings UI
+- Uses Chart.js for visualization (CDN loaded)
+- API key authentication for aggregation service access
+
+**Files Created:**
+- `services/aggregation/analytics.py` - AnalyticsService with SQL queries
+- `frontend/js/admin-statistics.js` - AdminStatisticsManager class
+- `frontend/css/admin-statistics.css` - Dashboard styling
+
+**API Endpoints Added:**
+- `GET /stats/overview` - Combined dashboard data
+- `GET /stats/installations` - Installation metrics with trend
+- `GET /stats/deployment-modes` - Deployment distribution
+- `GET /stats/versions` - Version adoption rates
+- `GET /stats/geography` - Geographic distribution
+- `GET /stats/printers` - Printer statistics
+
+---
+
 ### Phase 3 Success Criteria
 
 - ✅ Dashboard accessible to team
 - ✅ Key metrics visualized
-- ✅ Trends identified
-- ✅ Anomalies detected automatically
-- ✅ Weekly reports generated
+- 🚧 Trends identified (partial)
+- [ ] Anomalies detected automatically
+- [ ] Weekly reports generated
 
 **Phase 3 Total Estimated Time:** ~2 weeks (12 days)
 
