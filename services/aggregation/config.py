@@ -62,6 +62,68 @@ class Settings(BaseSettings):
         env="ALLOWED_ORIGINS"
     )
 
+    # SMTP Email Configuration
+    smtp_enabled: bool = Field(
+        default=False,
+        description="Enable SMTP email functionality",
+        env="SMTP_ENABLED"
+    )
+
+    smtp_host: str = Field(
+        default="smtp.gmail.com",
+        description="SMTP server hostname",
+        env="SMTP_HOST"
+    )
+
+    smtp_port: int = Field(
+        default=587,
+        description="SMTP server port (587 for TLS, 465 for SSL)",
+        env="SMTP_PORT"
+    )
+
+    smtp_username: str = Field(
+        default="",
+        description="SMTP authentication username",
+        env="SMTP_USERNAME"
+    )
+
+    smtp_password: str = Field(
+        default="",
+        description="SMTP authentication password",
+        env="SMTP_PASSWORD"
+    )
+
+    smtp_from_email: str = Field(
+        default="",
+        description="Email address to send from",
+        env="SMTP_FROM_EMAIL"
+    )
+
+    smtp_from_name: str = Field(
+        default="Printernizer Stats",
+        description="Display name for sent emails",
+        env="SMTP_FROM_NAME"
+    )
+
+    smtp_use_tls: bool = Field(
+        default=True,
+        description="Use TLS encryption (STARTTLS)",
+        env="SMTP_USE_TLS"
+    )
+
+    smtp_use_ssl: bool = Field(
+        default=False,
+        description="Use SSL encryption (direct SSL)",
+        env="SMTP_USE_SSL"
+    )
+
+    # Report Recipients
+    report_recipients: list[str] = Field(
+        default=[],
+        description="Email addresses to receive reports",
+        env="REPORT_RECIPIENTS"
+    )
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

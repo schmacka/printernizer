@@ -460,6 +460,159 @@ class AnalyticsService:
             "all_versions": sorted(list(all_versions), reverse=True)[:10]  # Top 10 versions
         }
 
+    def get_feature_trends(self, days: int = 30) -> Dict[str, Any]:
+        """
+        Get feature adoption trends over time.
+
+        Shows how feature usage changes day by day.
+
+        Args:
+            days: Number of days to analyze
+
+        Returns:
+            Dict with daily feature adoption data
+        """
+        now = datetime.utcnow()
+        trend_data = []
+
+        # Get all unique features first
+        all_features = set()
+        feature_results = self.db.query(Submission.feature_usage).all()
+        for r in feature_results:
+            if r.feature_usage:
+                all_features.update(r.feature_usage.keys())
+
+        # For each day, get feature adoption
+        for i in range(days - 1, -1, -1):
+            day_end = (now - timedelta(days=i)).replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+
+            # Get latest submission per installation up to this day
+            latest_subq = self.db.query(
+                Submission.installation_id,
+                func.max(Submission.submitted_at).label('latest')
+            ).filter(
+                Submission.submitted_at <= day_end
+            ).group_by(Submission.installation_id).subquery()
+
+            # Get feature_usage from latest submissions
+            results = self.db.query(
+                Submission.feature_usage
+            ).join(
+                latest_subq,
+                (Submission.installation_id == latest_subq.c.installation_id) &
+                (Submission.submitted_at == latest_subq.c.latest)
+            ).all()
+
+            # Count enabled features
+            feature_counts = {f: 0 for f in all_features}
+            total = 0
+            for r in results:
+                total += 1
+                if r.feature_usage:
+                    for feature, enabled in r.feature_usage.items():
+                        if enabled and feature in feature_counts:
+                            feature_counts[feature] += 1
+
+            day_data = {
+                "date": day_end.strftime("%Y-%m-%d"),
+                "total_installations": total,
+                "features": {
+                    f: {
+                        "enabled": count,
+                        "percent": round((count / total) * 100, 1) if total > 0 else 0
+                    }
+                    for f, count in feature_counts.items()
+                }
+            }
+            trend_data.append(day_data)
+
+        return {
+            "trends": trend_data,
+            "all_features": sorted(list(all_features))
+        }
+
+    def get_error_stats(self) -> Dict[str, Any]:
+        """
+        Get error statistics from event_counts in submissions.
+
+        Analyzes error patterns across installations.
+
+        Returns:
+            Dict with error statistics and trends
+        """
+        now = datetime.utcnow()
+        week_ago = now - timedelta(days=7)
+        two_weeks_ago = now - timedelta(days=14)
+
+        # Get latest submission per installation
+        latest_subq = self.db.query(
+            Submission.installation_id,
+            func.max(Submission.submitted_at).label('latest')
+        ).group_by(Submission.installation_id).subquery()
+
+        # Get event_counts from latest submissions
+        results = self.db.query(
+            Submission.event_counts,
+            Submission.submitted_at
+        ).join(
+            latest_subq,
+            (Submission.installation_id == latest_subq.c.installation_id) &
+            (Submission.submitted_at == latest_subq.c.latest)
+        ).all()
+
+        # Aggregate error counts
+        error_totals: Dict[str, int] = {}
+        total_errors = 0
+        installations_with_errors = 0
+
+        for r in results:
+            if r.event_counts:
+                has_errors = False
+                for event_type, count in r.event_counts.items():
+                    if 'error' in event_type.lower() or 'fail' in event_type.lower():
+                        error_totals[event_type] = error_totals.get(event_type, 0) + count
+                        total_errors += count
+                        has_errors = True
+                if has_errors:
+                    installations_with_errors += 1
+
+        # Calculate error rates for this week vs last week
+        this_week_errors = 0
+        last_week_errors = 0
+
+        week_results = self.db.query(
+            Submission.event_counts,
+            Submission.submitted_at
+        ).filter(
+            Submission.submitted_at >= two_weeks_ago
+        ).all()
+
+        for r in week_results:
+            if r.event_counts:
+                for event_type, count in r.event_counts.items():
+                    if 'error' in event_type.lower() or 'fail' in event_type.lower():
+                        if r.submitted_at >= week_ago:
+                            this_week_errors += count
+                        else:
+                            last_week_errors += count
+
+        # Calculate change
+        error_change_percent = 0.0
+        if last_week_errors > 0:
+            error_change_percent = ((this_week_errors - last_week_errors) / last_week_errors) * 100
+
+        return {
+            "total_errors": total_errors,
+            "installations_with_errors": installations_with_errors,
+            "error_types": error_totals,
+            "this_week_errors": this_week_errors,
+            "last_week_errors": last_week_errors,
+            "error_change_percent": round(error_change_percent, 1),
+            "has_spike": error_change_percent > 50  # Flag if errors increased by >50%
+        }
+
     def get_anomalies(self) -> Dict[str, Any]:
         """
         Detect anomalies in usage patterns.
@@ -549,15 +702,44 @@ class AnalyticsService:
                 "average": round(avg_daily, 1)
             })
 
-        # Check 3: Look for installations with many errors
-        # (This would need error data in submissions - placeholder for now)
+        # Check 3: Error spike detection
+        error_stats = self.get_error_stats()
+        if error_stats["has_spike"]:
+            anomalies.append({
+                "type": "error_spike",
+                "severity": "high" if error_stats["error_change_percent"] > 100 else "medium",
+                "message": f"Error rate increased {error_stats['error_change_percent']:.1f}% compared to last week",
+                "this_week": error_stats["this_week_errors"],
+                "last_week": error_stats["last_week_errors"],
+                "change_percent": error_stats["error_change_percent"],
+                "error_types": error_stats["error_types"]
+            })
+
+        # Check 4: High error installations
+        if error_stats["installations_with_errors"] > 0:
+            total_installations = self.db.query(
+                func.count(distinct(Submission.installation_id))
+            ).scalar() or 1
+            error_rate = (error_stats["installations_with_errors"] / total_installations) * 100
+
+            if error_rate > 30:
+                anomalies.append({
+                    "type": "high_error_rate",
+                    "severity": "high" if error_rate > 50 else "medium",
+                    "message": f"{error_rate:.1f}% of installations reporting errors",
+                    "installations_with_errors": error_stats["installations_with_errors"],
+                    "total_installations": total_installations,
+                    "error_rate": round(error_rate, 1)
+                })
 
         return {
             "anomalies": anomalies,
             "checked_at": now.isoformat(),
             "checks_performed": [
                 "active_users_week_over_week",
-                "daily_submission_volume"
+                "daily_submission_volume",
+                "error_spike_detection",
+                "installation_error_rate"
             ]
         }
 

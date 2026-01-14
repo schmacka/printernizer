@@ -679,6 +679,280 @@ async def export_data(
         )
 
 
+@app.get("/stats/feature-trends")
+async def get_feature_trends(
+    days: int = 30,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get feature adoption trends over time.
+
+    Shows how feature usage changes day by day over the specified period.
+
+    Args:
+        days: Number of days to analyze (default 30)
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Daily feature adoption data
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_feature_trends(days=days)
+    except Exception as e:
+        logger.error(f"Failed to get feature trends: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get feature trends"
+        )
+
+
+@app.get("/stats/errors")
+async def get_error_stats(
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get error statistics from submissions.
+
+    Analyzes error patterns and week-over-week changes.
+
+    Args:
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Error statistics with trends
+    """
+    try:
+        analytics = AnalyticsService(db)
+        return analytics.get_error_stats()
+    except Exception as e:
+        logger.error(f"Failed to get error stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get error stats"
+        )
+
+
+# ============================================================================
+# Email Report Endpoints (Phase 3)
+# ============================================================================
+
+from email_service import email_service, report_generator
+
+
+class EmailRequest(BaseModel):
+    """Request model for sending emails."""
+    recipients: Optional[List[str]] = Field(
+        default=None,
+        description="Override default recipients"
+    )
+
+
+@app.get("/reports/email-status")
+async def get_email_status(
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Get SMTP email configuration status.
+
+    Returns whether email is configured and ready to send reports.
+
+    Args:
+        api_key: API key for authentication
+
+    Returns:
+        Email configuration status
+    """
+    return {
+        "enabled": settings.smtp_enabled,
+        "configured": email_service.is_configured(),
+        "host": settings.smtp_host if settings.smtp_enabled else None,
+        "from_email": settings.smtp_from_email if settings.smtp_enabled else None,
+        "recipients_count": len(settings.report_recipients),
+        "use_tls": settings.smtp_use_tls,
+        "use_ssl": settings.smtp_use_ssl
+    }
+
+
+@app.post("/reports/test-email")
+async def send_test_email(
+    request: EmailRequest = None,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Send a test email to verify SMTP configuration.
+
+    Args:
+        request: Optional recipient override
+        api_key: API key for authentication
+
+    Returns:
+        Result of the email send attempt
+    """
+    recipients = request.recipients if request and request.recipients else None
+
+    result = email_service.send_email(
+        subject="Printernizer Stats - Test Email",
+        html_content="""
+        <html>
+        <body style="font-family: sans-serif; padding: 20px;">
+            <h1 style="color: #3b82f6;">Test Email</h1>
+            <p>This is a test email from Printernizer Usage Statistics.</p>
+            <p>If you received this, your SMTP configuration is working correctly!</p>
+        </body>
+        </html>
+        """,
+        text_content="This is a test email from Printernizer Usage Statistics. If you received this, your SMTP configuration is working correctly!",
+        recipients=recipients
+    )
+
+    if result["success"]:
+        return {
+            "status": "success",
+            "message": "Test email sent successfully",
+            "recipients": result.get("recipients", [])
+        }
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.get("error", "Failed to send test email")
+        )
+
+
+@app.post("/reports/weekly")
+async def send_weekly_report(
+    request: EmailRequest = None,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Send weekly summary report via email.
+
+    Generates and sends a weekly summary email with key metrics,
+    anomalies, and version information.
+
+    Args:
+        request: Optional recipient override
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Result of the email send attempt
+    """
+    try:
+        # Gather data for the report
+        analytics = AnalyticsService(db)
+        data = {
+            "overview": analytics.get_overview(),
+            "anomalies": analytics.get_anomalies().get("anomalies", []),
+            "trends": analytics.get_installation_stats(days_trend=7)
+        }
+
+        # Generate report
+        report = report_generator.generate_weekly_summary(data)
+
+        # Send email
+        recipients = request.recipients if request and request.recipients else None
+        result = email_service.send_email(
+            subject=report["subject"],
+            html_content=report["html"],
+            text_content=report["text"],
+            recipients=recipients
+        )
+
+        if result["success"]:
+            logger.info(f"Weekly report sent to {len(result.get('recipients', []))} recipients")
+            return {
+                "status": "success",
+                "message": "Weekly report sent successfully",
+                "recipients": result.get("recipients", [])
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get("error", "Failed to send weekly report")
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to send weekly report: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate or send weekly report: {str(e)}"
+        )
+
+
+@app.post("/reports/monthly")
+async def send_monthly_report(
+    request: EmailRequest = None,
+    db: Session = Depends(get_db_dependency),
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Send monthly comprehensive report via email.
+
+    Generates and sends a detailed monthly report with all metrics,
+    deployment distribution, geography, and feature adoption.
+
+    Args:
+        request: Optional recipient override
+        db: Database session
+        api_key: API key for authentication
+
+    Returns:
+        Result of the email send attempt
+    """
+    try:
+        # Gather comprehensive data for the report
+        analytics = AnalyticsService(db)
+        data = {
+            "overview": analytics.get_overview(),
+            "anomalies": analytics.get_anomalies().get("anomalies", []),
+            "deployment_modes": analytics.get_deployment_distribution().get("deployment_modes", []),
+            "geography": analytics.get_geography_distribution(limit=20).get("countries", []),
+            "features": analytics.get_feature_usage().get("features", [])
+        }
+
+        # Generate report
+        report = report_generator.generate_monthly_report(data)
+
+        # Send email
+        recipients = request.recipients if request and request.recipients else None
+        result = email_service.send_email(
+            subject=report["subject"],
+            html_content=report["html"],
+            text_content=report["text"],
+            recipients=recipients
+        )
+
+        if result["success"]:
+            logger.info(f"Monthly report sent to {len(result.get('recipients', []))} recipients")
+            return {
+                "status": "success",
+                "message": "Monthly report sent successfully",
+                "recipients": result.get("recipients", [])
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get("error", "Failed to send monthly report")
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to send monthly report: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate or send monthly report: {str(e)}"
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

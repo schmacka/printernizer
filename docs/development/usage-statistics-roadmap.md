@@ -370,11 +370,11 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 #### 3.3 Trend Analysis
 - [x] Week-over-week growth (growth percentage card)
 - [x] Version migration patterns (API endpoint `/stats/version-migration`)
-- [ ] Feature adoption trends
-- [ ] Error rate trends
+- [x] Feature adoption trends (API endpoint `/stats/feature-trends`)
+- [x] Error rate trends (API endpoint `/stats/errors`)
 - [x] Geographic distribution (horizontal bar chart, top 10 countries)
 
-**Deliverable:** Trend analysis dashboards ✅ MOSTLY COMPLETE
+**Deliverable:** Trend analysis dashboards ✅ COMPLETE
 
 **Completed:** 2026-01-14
 
@@ -382,25 +382,27 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 
 #### 3.4 Anomaly Detection
 - [x] Set up alerts for unusual patterns (anomaly alerts section in dashboard)
-- [ ] Error spike detection (placeholder - needs error data in submissions)
+- [x] Error spike detection (integrated into anomalies API with week-over-week comparison)
 - [x] Sudden drop in active users (week-over-week comparison)
 - [x] Abnormal usage patterns (daily submission volume comparison)
 
-**Deliverable:** Anomaly detection and alerting ✅ MOSTLY COMPLETE
+**Deliverable:** Anomaly detection and alerting ✅ COMPLETE
 
 **Completed:** 2026-01-14
 
 ---
 
 #### 3.5 Reporting
-- [ ] Weekly summary email
-- [ ] Monthly report generation
+- [x] Weekly summary email (SMTP via `/reports/weekly` endpoint)
+- [x] Monthly report generation (SMTP via `/reports/monthly` endpoint)
 - [x] Export capabilities (JSON export via `/stats/export` endpoint)
+- [x] Email status check (GET `/reports/email-status`)
+- [x] Test email functionality (POST `/reports/test-email`)
 - [ ] Share dashboards with team
 
-**Deliverable:** Automated reporting 🚧 PARTIAL
+**Deliverable:** Automated reporting ✅ MOSTLY COMPLETE
 
-**Completed:** 2026-01-14 (export only)
+**Completed:** 2026-01-14
 
 ---
 
@@ -414,8 +416,13 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 
 **Files Created:**
 - `services/aggregation/analytics.py` - AnalyticsService with SQL queries
+- `services/aggregation/email_service.py` - EmailService and ReportGenerator for SMTP reports
 - `frontend/js/admin-statistics.js` - AdminStatisticsManager class
 - `frontend/css/admin-statistics.css` - Dashboard styling
+
+**Files Modified:**
+- `services/aggregation/config.py` - Added SMTP configuration settings
+- `services/aggregation/main.py` - Added analytics and report endpoints
 
 **API Endpoints Added:**
 - `GET /stats/overview` - Combined dashboard data
@@ -428,12 +435,25 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 - `GET /stats/version-migration` - Version adoption over time
 - `GET /stats/anomalies` - Anomaly detection alerts
 - `GET /stats/export` - Full data export (JSON)
+- `GET /stats/feature-trends` - Feature adoption over time
+- `GET /stats/errors` - Error statistics with trends
+- `GET /reports/email-status` - SMTP configuration status
+- `POST /reports/test-email` - Send test email
+- `POST /reports/weekly` - Send weekly summary report
+- `POST /reports/monthly` - Send monthly comprehensive report
 
 **Dashboard Features:**
 - 4 overview cards (Total, Active 7d, Active 30d, Growth %)
 - 5 charts (Installations, Deployment, Versions, Geography, Features)
 - Anomaly alerts section with severity indicators
 - JSON export functionality
+
+**Email Reporting:**
+- SMTP configuration via environment variables
+- Weekly summary emails with key metrics and anomalies
+- Monthly comprehensive reports with full analytics
+- Test email functionality for configuration verification
+- HTML and plain text email formats
 
 ---
 
@@ -443,7 +463,8 @@ This roadmap outlines the step-by-step implementation of privacy-first usage sta
 - ✅ Key metrics visualized
 - ✅ Trends identified
 - ✅ Anomalies detected automatically
-- 🚧 Weekly reports generated (export only, no automated email)
+- ✅ Weekly reports generated (SMTP email)
+- ✅ Monthly reports generated (SMTP email)
 
 **Phase 3 Total Estimated Time:** ~2 weeks (12 days)
 
