@@ -7,7 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.26.0] - 2026-01-XX
+## [2.27.0] - 2026-01-15
+
+### Added
+- **Usage Statistics Analytics Dashboard (Phase 3)**: Built-in dashboard for visualizing collected statistics
+  - Overview cards: Total installations, Active 7d/30d, Growth percentage
+  - Charts: Installation trends, Deployment mode distribution, Version adoption, Geographic distribution, Feature usage
+  - Anomaly detection alerts with severity indicators
+  - JSON export functionality for full data export
+- **SMTP Email Reports**: Automated reporting via email
+  - Weekly summary reports with key metrics and anomalies
+  - Monthly comprehensive reports with full analytics
+  - Test email functionality for configuration verification
+  - HTML and plain text email formats
+- **15+ Analytics API Endpoints**: Comprehensive data access
+  - `/stats/overview` - Combined dashboard data
+  - `/stats/installations` - Installation metrics with trends
+  - `/stats/deployment-modes` - Deployment distribution
+  - `/stats/versions` - Version adoption rates
+  - `/stats/geography` - Geographic distribution
+  - `/stats/features` - Feature usage (enabled/disabled counts)
+  - `/stats/version-migration` - Version adoption over time
+  - `/stats/anomalies` - Anomaly detection alerts
+  - `/stats/export` - Full data export (JSON)
+  - `/stats/feature-trends` - Feature adoption over time
+  - `/stats/errors` - Error statistics with trends
+  - `/reports/email-status` - SMTP configuration status
+  - `/reports/test-email` - Send test email
+  - `/reports/weekly` - Send weekly summary report
+  - `/reports/monthly` - Send monthly comprehensive report
+
+### Changed
+- **Aggregation Service**: Added AnalyticsService with SQL queries for dashboard data
+- **Email Configuration**: Added SMTP settings to aggregation service config
+
+## [2.26.1] - 2026-01-11
+
+### Fixed
+- **Integration Tests**: Fixed tests with outdated mocks and missing dependencies
+  - Skip backend integration tests requiring running server
+  - Update sync consistency tests to skip when HA codebase not present
+  - Fix various test mock configurations to match current service interfaces
+
+## [2.26.0] - 2026-01-09
 
 ### Added
 - **Multi-channel Notification System**: Comprehensive notification support for print events
