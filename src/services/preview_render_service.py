@@ -87,7 +87,7 @@ class PreviewRenderService:
 
         # Cache settings
         self.cache_duration = timedelta(days=30)
-        self._render_timeout = 10  # seconds
+        self._render_timeout = settings.preview_render_timeout  # seconds (configurable via PREVIEW_RENDER_TIMEOUT)
 
         # Statistics
         self.stats = {

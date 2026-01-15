@@ -248,6 +248,13 @@ class PrinternizerSettings(BaseSettings):
         ge=100,
         le=1000000
     )
+    preview_render_timeout: int = Field(
+        default=60,
+        env="PREVIEW_RENDER_TIMEOUT",
+        description="Timeout in seconds for rendering 3D file previews. Increase for large/complex models.",
+        ge=10,
+        le=300
+    )
 
     # Library System Configuration
     library_enabled: bool = Field(
