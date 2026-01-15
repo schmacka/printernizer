@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.27.1] - 2026-01-15
+
+### Fixed
+- Preview render timeout increased from 10s to 60s for large 3D files (configurable via `PREVIEW_RENDER_TIMEOUT`)
+
 ## [2.27.0] - 2026-01-15
 
 ### Added
