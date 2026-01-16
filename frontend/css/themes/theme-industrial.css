@@ -1,0 +1,287 @@
+/* Printernizer Theme: Industrial/Utilitarian */
+/* Dark workshop vibe with yellow/orange accents, monospace fonts, grid background */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+[data-theme="industrial"] {
+    /* Primary Colors - Industrial Yellow */
+    --primary-color: #fbbf24;
+    --primary-hover: #f59e0b;
+    --primary-light: rgba(251, 191, 36, 0.15);
+
+    /* Secondary Colors */
+    --secondary-color: #9ca3af;
+    --secondary-hover: #6b7280;
+    --secondary-light: #374151;
+
+    /* Status Colors */
+    --success-color: #22c55e;
+    --success-light: rgba(34, 197, 94, 0.15);
+    --warning-color: #f97316;
+    --warning-light: rgba(249, 115, 22, 0.15);
+    --error-color: #ef4444;
+    --error-light: rgba(239, 68, 68, 0.15);
+    --info-color: #3b82f6;
+    --info-light: rgba(59, 130, 246, 0.15);
+
+    /* Neutral Colors - Dark Industrial */
+    --white: #1a1a1a;
+    --gray-50: #242424;
+    --gray-100: #2d2d2d;
+    --gray-200: #3d3d3d;
+    --gray-300: #4d4d4d;
+    --gray-400: #666666;
+    --gray-500: #888888;
+    --gray-600: #aaaaaa;
+    --gray-700: #cccccc;
+    --gray-800: #e5e5e5;
+    --gray-900: #f5f5f5;
+
+    /* Typography - Industrial Monospace */
+    --font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-family-mono: 'JetBrains Mono', monospace;
+
+    /* Shadows - Subtle for dark theme */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+
+    /* Custom Industrial Variables */
+    --industrial-accent: #fbbf24;
+    --industrial-accent-alt: #f97316;
+    --industrial-border: #3d3d3d;
+    --industrial-grid: rgba(59, 59, 59, 0.3);
+}
+
+[data-theme="industrial"] body {
+    background-color: #1a1a1a;
+    background-image:
+        linear-gradient(90deg, var(--industrial-grid) 1px, transparent 1px),
+        linear-gradient(var(--industrial-grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+    color: #e5e5e5;
+}
+
+/* Industrial Navbar */
+[data-theme="industrial"] .navbar {
+    background: #242424;
+    border-bottom: 3px solid var(--industrial-accent);
+}
+
+[data-theme="industrial"] .nav-brand {
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--industrial-accent);
+}
+
+[data-theme="industrial"] .nav-link {
+    font-family: var(--font-family-mono);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #999999;
+}
+
+[data-theme="industrial"] .nav-link:hover,
+[data-theme="industrial"] .nav-link.active {
+    color: var(--industrial-accent);
+    background: rgba(251, 191, 36, 0.1);
+}
+
+[data-theme="industrial"] .nav-link.active {
+    border-bottom: 3px solid var(--industrial-accent);
+}
+
+/* Industrial Cards */
+[data-theme="industrial"] .card,
+[data-theme="industrial"] .printer-card,
+[data-theme="industrial"] .printer-tile-card {
+    background: #242424;
+    border: 1px solid var(--industrial-border);
+    border-radius: 4px;
+}
+
+[data-theme="industrial"] .card:hover,
+[data-theme="industrial"] .printer-card:hover,
+[data-theme="industrial"] .printer-tile-card:hover {
+    border-color: var(--industrial-accent);
+    box-shadow: 0 0 0 1px var(--industrial-accent);
+}
+
+[data-theme="industrial"] .card-header,
+[data-theme="industrial"] .printer-header {
+    background: #2d2d2d;
+    border-bottom: 1px solid var(--industrial-border);
+    font-family: var(--font-family-mono);
+}
+
+/* Industrial Status Badges */
+[data-theme="industrial"] .status-badge {
+    font-family: var(--font-family-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 2px;
+}
+
+[data-theme="industrial"] .status-printing,
+[data-theme="industrial"] .status-online {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+}
+
+[data-theme="industrial"] .status-idle,
+[data-theme="industrial"] .status-offline {
+    background: rgba(100, 116, 139, 0.15);
+    color: #64748b;
+    border: 1px solid #64748b;
+}
+
+[data-theme="industrial"] .status-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+/* Industrial Buttons */
+[data-theme="industrial"] .btn-primary {
+    background: var(--industrial-accent);
+    color: #1a1a1a;
+    border: none;
+    font-family: var(--font-family-mono);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="industrial"] .btn-primary:hover {
+    background: #fcd34d;
+}
+
+[data-theme="industrial"] .btn-secondary {
+    background: #1a1a1a;
+    color: #999999;
+    border: 1px solid var(--industrial-border);
+    font-family: var(--font-family-mono);
+}
+
+[data-theme="industrial"] .btn-secondary:hover {
+    border-color: var(--industrial-accent);
+    color: var(--industrial-accent);
+}
+
+/* Industrial Progress Bars */
+[data-theme="industrial"] .progress {
+    background: #1a1a1a;
+    border-radius: 2px;
+    height: 8px;
+}
+
+[data-theme="industrial"] .progress-bar {
+    background: var(--industrial-accent);
+    border-radius: 2px;
+}
+
+/* Industrial Form Controls */
+[data-theme="industrial"] .form-control,
+[data-theme="industrial"] input,
+[data-theme="industrial"] select,
+[data-theme="industrial"] textarea {
+    background: #1a1a1a;
+    border: 1px solid var(--industrial-border);
+    color: #e5e5e5;
+    font-family: var(--font-family-mono);
+    border-radius: 4px;
+}
+
+[data-theme="industrial"] .form-control:focus,
+[data-theme="industrial"] input:focus,
+[data-theme="industrial"] select:focus,
+[data-theme="industrial"] textarea:focus {
+    border-color: var(--industrial-accent);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.2);
+}
+
+/* Industrial Tables */
+[data-theme="industrial"] .logs-table thead,
+[data-theme="industrial"] table thead {
+    background: #2d2d2d;
+    font-family: var(--font-family-mono);
+    text-transform: uppercase;
+    font-size: 0.6875rem;
+    letter-spacing: 1px;
+}
+
+[data-theme="industrial"] .logs-table tbody tr:hover,
+[data-theme="industrial"] table tbody tr:hover {
+    background: rgba(251, 191, 36, 0.05);
+}
+
+/* Industrial Typography */
+[data-theme="industrial"] h1,
+[data-theme="industrial"] h2,
+[data-theme="industrial"] h3 {
+    font-family: var(--font-family-mono);
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+[data-theme="industrial"] .stat-number,
+[data-theme="industrial"] .overview-card .stat-number {
+    font-family: var(--font-family-mono);
+    font-weight: 700;
+    color: var(--industrial-accent);
+}
+
+/* Industrial Modals */
+[data-theme="industrial"] .modal-content {
+    background: #242424;
+    border: 1px solid var(--industrial-border);
+    border-radius: 4px;
+}
+
+[data-theme="industrial"] .modal-header,
+[data-theme="industrial"] .modal-footer {
+    background: #2d2d2d;
+    border-color: var(--industrial-border);
+}
+
+/* Industrial Scrollbars */
+[data-theme="industrial"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+[data-theme="industrial"] ::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+[data-theme="industrial"] ::-webkit-scrollbar-thumb {
+    background: #3d3d3d;
+    border-radius: 2px;
+}
+
+[data-theme="industrial"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--industrial-accent);
+}
+
+/* Caution stripe accent for headers */
+[data-theme="industrial"] .navbar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: repeating-linear-gradient(
+        45deg,
+        #fbbf24,
+        #fbbf24 10px,
+        #1a1a1a 10px,
+        #1a1a1a 20px
+    );
+}

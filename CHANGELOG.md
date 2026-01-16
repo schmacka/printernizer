@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.28.0] - 2026-01-16
+
+### Added
+- **Multi-Theme System**: 7 selectable visual themes for personalized UI experience
+  - Classic Light (existing) - Clean, professional light theme
+  - Classic Dark (existing) - Easy on the eyes dark theme
+  - Industrial - Workshop vibe with yellow accents and monospace fonts
+  - Refined - Elegant, minimal aesthetic with serif headlines
+  - Soft - Friendly pastel gradients with purple/pink accents
+  - Brutalist - Bold, raw typography with stark contrast
+  - Retro-Futuristic - Cyberpunk neon aesthetic with scanlines
+- **Theme Picker UI**: New "Appearance" tab in Settings
+  - Visual theme previews with live color swatches
+  - Theme descriptions and active indicator
+  - Persistent theme selection via localStorage
+- **Theme Toggle Enhancement**: Navbar toggle now cycles through all themes
+
 ## [2.27.1] - 2026-01-15
 
 ### Fixed

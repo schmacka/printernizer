@@ -1,0 +1,298 @@
+/* Printernizer Theme: Refined/Minimal */
+/* Clean white, serif headlines, subtle shadows, elegant simplicity */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif&display=swap');
+
+[data-theme="refined"] {
+    /* Primary Colors - Elegant Black */
+    --primary-color: #171717;
+    --primary-hover: #404040;
+    --primary-light: #f5f5f5;
+
+    /* Secondary Colors */
+    --secondary-color: #525252;
+    --secondary-hover: #404040;
+    --secondary-light: #f5f5f5;
+
+    /* Status Colors - Muted elegance */
+    --success-color: #16a34a;
+    --success-light: #dcfce7;
+    --warning-color: #ca8a04;
+    --warning-light: #fef9c3;
+    --error-color: #dc2626;
+    --error-light: #fef2f2;
+    --info-color: #0284c7;
+    --info-light: #e0f2fe;
+
+    /* Neutral Colors - Warm whites and grays */
+    --white: #ffffff;
+    --gray-50: #fafafa;
+    --gray-100: #f5f5f5;
+    --gray-200: #e5e5e5;
+    --gray-300: #d4d4d4;
+    --gray-400: #a3a3a3;
+    --gray-500: #737373;
+    --gray-600: #525252;
+    --gray-700: #404040;
+    --gray-800: #262626;
+    --gray-900: #171717;
+
+    /* Typography - Elegant serif + clean sans */
+    --font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-family-display: 'Instrument Serif', Georgia, serif;
+
+    /* Border Radius - More rounded */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+
+    /* Shadows - Soft and subtle */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.06);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="refined"] body {
+    background-color: #fafafa;
+    color: #171717;
+}
+
+/* Refined Navbar */
+[data-theme="refined"] .navbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e5e5;
+    box-shadow: none;
+}
+
+[data-theme="refined"] .nav-brand {
+    font-family: var(--font-family-display);
+    font-size: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    color: #171717;
+}
+
+[data-theme="refined"] .nav-link {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #525252;
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+}
+
+[data-theme="refined"] .nav-link:hover {
+    background: #f5f5f5;
+    color: #171717;
+}
+
+[data-theme="refined"] .nav-link.active {
+    background: #171717;
+    color: #ffffff;
+}
+
+/* Refined Cards */
+[data-theme="refined"] .card,
+[data-theme="refined"] .printer-card,
+[data-theme="refined"] .printer-tile-card {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="refined"] .card:hover,
+[data-theme="refined"] .printer-card:hover,
+[data-theme="refined"] .printer-tile-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+[data-theme="refined"] .card-header,
+[data-theme="refined"] .printer-header {
+    background: transparent;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Refined Typography */
+[data-theme="refined"] h1 {
+    font-family: var(--font-family-display);
+    font-size: 2.625rem;
+    font-weight: 400;
+    letter-spacing: -1px;
+}
+
+[data-theme="refined"] h2 {
+    font-family: var(--font-family-display);
+    font-size: 1.875rem;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+}
+
+[data-theme="refined"] h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+/* Refined Status Badges */
+[data-theme="refined"] .status-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1.25rem;
+}
+
+[data-theme="refined"] .status-printing,
+[data-theme="refined"] .status-online {
+    background: #dcfce7;
+    color: #166534;
+}
+
+[data-theme="refined"] .status-idle,
+[data-theme="refined"] .status-offline {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+[data-theme="refined"] .status-error {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* Refined Buttons */
+[data-theme="refined"] .btn-primary {
+    background: #171717;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.625rem;
+    font-weight: 500;
+}
+
+[data-theme="refined"] .btn-primary:hover {
+    background: #404040;
+    transform: translateY(-1px);
+}
+
+[data-theme="refined"] .btn-secondary {
+    background: transparent;
+    color: #525252;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.625rem;
+}
+
+[data-theme="refined"] .btn-secondary:hover {
+    background: #f5f5f5;
+    color: #171717;
+}
+
+/* Refined Progress Bars */
+[data-theme="refined"] .progress {
+    background: #f5f5f5;
+    border-radius: 6.25rem;
+    height: 0.5rem;
+}
+
+[data-theme="refined"] .progress-bar {
+    background: #171717;
+    border-radius: 6.25rem;
+}
+
+[data-theme="refined"] .progress-bar.progress-success {
+    background: #16a34a;
+}
+
+/* Refined Form Controls */
+[data-theme="refined"] .form-control,
+[data-theme="refined"] input,
+[data-theme="refined"] select,
+[data-theme="refined"] textarea {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    color: #171717;
+    border-radius: 0.625rem;
+}
+
+[data-theme="refined"] .form-control:focus,
+[data-theme="refined"] input:focus,
+[data-theme="refined"] select:focus,
+[data-theme="refined"] textarea:focus {
+    border-color: #171717;
+    box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.1);
+}
+
+/* Refined Stats */
+[data-theme="refined"] .stat-number,
+[data-theme="refined"] .overview-card .stat-number {
+    font-family: var(--font-family-display);
+    font-size: 2.25rem;
+    font-weight: 400;
+    letter-spacing: -1px;
+}
+
+[data-theme="refined"] .stat-label {
+    font-size: 0.8125rem;
+    color: #a3a3a3;
+}
+
+/* Refined Overview Cards */
+[data-theme="refined"] .overview-card {
+    border-radius: 1rem;
+    padding: 1.5rem;
+}
+
+/* Refined Modals */
+[data-theme="refined"] .modal-content {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-xl);
+}
+
+[data-theme="refined"] .modal-header {
+    background: transparent;
+    border-bottom: none;
+}
+
+[data-theme="refined"] .modal-footer {
+    background: transparent;
+    border-top: 1px solid #e5e5e5;
+}
+
+/* Refined Tables */
+[data-theme="refined"] .logs-table,
+[data-theme="refined"] table {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+[data-theme="refined"] .logs-table thead,
+[data-theme="refined"] table thead {
+    background: #fafafa;
+}
+
+[data-theme="refined"] .logs-table tbody tr:hover,
+[data-theme="refined"] table tbody tr:hover {
+    background: #fafafa;
+}
+
+/* Refined Scrollbars */
+[data-theme="refined"] ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+[data-theme="refined"] ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+[data-theme="refined"] ::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 3px;
+}
+
+[data-theme="refined"] ::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+}

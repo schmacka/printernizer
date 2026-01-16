@@ -1,0 +1,354 @@
+/* Printernizer Theme: Brutalist/Raw */
+/* Stark contrast, heavy typography, hard edges, raw aesthetic */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+
+[data-theme="brutalist"] {
+    /* Primary Colors - Bold Orange */
+    --primary-color: #ff3d00;
+    --primary-hover: #ff6d00;
+    --primary-light: rgba(255, 61, 0, 0.1);
+
+    /* Secondary Colors */
+    --secondary-color: #1a1a1a;
+    --secondary-hover: #333333;
+    --secondary-light: #f5f5f0;
+
+    /* Status Colors - High contrast */
+    --success-color: #00e676;
+    --success-light: rgba(0, 230, 118, 0.1);
+    --warning-color: #ffea00;
+    --warning-light: rgba(255, 234, 0, 0.1);
+    --error-color: #ff3d00;
+    --error-light: rgba(255, 61, 0, 0.1);
+    --info-color: #00b0ff;
+    --info-light: rgba(0, 176, 255, 0.1);
+
+    /* Neutral Colors - Cream and black */
+    --white: #f5f5f0;
+    --gray-50: #eeeee8;
+    --gray-100: #e5e5df;
+    --gray-200: #d5d5cf;
+    --gray-300: #b5b5af;
+    --gray-400: #8a8a84;
+    --gray-500: #5a5a54;
+    --gray-600: #3a3a34;
+    --gray-700: #2a2a24;
+    --gray-800: #1a1a1a;
+    --gray-900: #0a0a0a;
+
+    /* Typography - Monospace + Display */
+    --font-family: 'Space Mono', monospace;
+    --font-family-display: 'Bebas Neue', sans-serif;
+
+    /* Border Radius - None/minimal */
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+
+    /* Shadows - None */
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+    --shadow-xl: none;
+
+    /* Custom Brutalist Variables */
+    --brutalist-border: 3px solid #1a1a1a;
+    --brutalist-border-thin: 1px solid #1a1a1a;
+}
+
+[data-theme="brutalist"] body {
+    background-color: #f5f5f0;
+    color: #1a1a1a;
+}
+
+/* Brutalist Navbar */
+[data-theme="brutalist"] .navbar {
+    background: #1a1a1a;
+    color: #f5f5f0;
+    border: none;
+    border-bottom: var(--brutalist-border);
+    border-radius: 0;
+    padding: 0;
+}
+
+[data-theme="brutalist"] .nav-brand {
+    font-family: var(--font-family-display);
+    font-size: 2rem;
+    letter-spacing: 4px;
+    color: #f5f5f0;
+    padding: 1rem 1.5rem;
+    border-right: var(--brutalist-border-thin);
+    border-color: #333;
+}
+
+[data-theme="brutalist"] .nav-brand span,
+[data-theme="brutalist"] .nav-brand .highlight {
+    color: var(--primary-color);
+}
+
+[data-theme="brutalist"] .nav-link {
+    font-family: var(--font-family);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #f5f5f0;
+    padding: 1rem 1.5rem;
+    border-right: var(--brutalist-border-thin);
+    border-color: #333;
+    border-radius: 0;
+}
+
+[data-theme="brutalist"] .nav-link:hover {
+    background: var(--primary-color);
+    color: #f5f5f0;
+}
+
+[data-theme="brutalist"] .nav-link.active {
+    background: #f5f5f0;
+    color: #1a1a1a;
+}
+
+/* Brutalist Cards */
+[data-theme="brutalist"] .card,
+[data-theme="brutalist"] .printer-card,
+[data-theme="brutalist"] .printer-tile-card {
+    background: #f5f5f0;
+    border: var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+[data-theme="brutalist"] .card:hover,
+[data-theme="brutalist"] .printer-card:hover,
+[data-theme="brutalist"] .printer-tile-card:hover {
+    transform: none;
+    box-shadow: 8px 8px 0 #1a1a1a;
+}
+
+[data-theme="brutalist"] .card-header,
+[data-theme="brutalist"] .printer-header {
+    background: #1a1a1a;
+    color: #f5f5f0;
+    border-bottom: var(--brutalist-border);
+    border-radius: 0;
+    padding: 1rem 1.25rem;
+}
+
+/* Brutalist Typography */
+[data-theme="brutalist"] h1 {
+    font-family: var(--font-family-display);
+    font-size: 4rem;
+    letter-spacing: 4px;
+    line-height: 0.9;
+    text-transform: uppercase;
+}
+
+[data-theme="brutalist"] h2 {
+    font-family: var(--font-family-display);
+    font-size: 2.5rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+[data-theme="brutalist"] h3 {
+    font-family: var(--font-family-display);
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Brutalist Status Badges */
+[data-theme="brutalist"] .status-badge {
+    font-family: var(--font-family);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 0.5rem 1rem;
+    border-radius: 0;
+    border: 2px solid currentColor;
+}
+
+[data-theme="brutalist"] .status-printing,
+[data-theme="brutalist"] .status-online {
+    background: transparent;
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+[data-theme="brutalist"] .status-idle,
+[data-theme="brutalist"] .status-offline {
+    background: transparent;
+    color: #666666;
+    border-color: #666666;
+}
+
+[data-theme="brutalist"] .status-error {
+    background: var(--primary-color);
+    color: #f5f5f0;
+    border-color: var(--primary-color);
+}
+
+/* Brutalist Buttons */
+[data-theme="brutalist"] .btn-primary {
+    background: var(--primary-color);
+    color: #f5f5f0;
+    border: var(--brutalist-border);
+    border-color: var(--primary-color);
+    border-radius: 0;
+    font-family: var(--font-family);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+[data-theme="brutalist"] .btn-primary:hover {
+    background: #f5f5f0;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+[data-theme="brutalist"] .btn-secondary {
+    background: #f5f5f0;
+    color: #1a1a1a;
+    border: var(--brutalist-border);
+    border-radius: 0;
+    font-family: var(--font-family);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+[data-theme="brutalist"] .btn-secondary:hover {
+    background: #1a1a1a;
+    color: #f5f5f0;
+}
+
+/* Brutalist Progress Bars */
+[data-theme="brutalist"] .progress {
+    background: #1a1a1a;
+    border-radius: 0;
+    height: 1rem;
+}
+
+[data-theme="brutalist"] .progress-bar {
+    background: var(--primary-color);
+    border-radius: 0;
+}
+
+[data-theme="brutalist"] .progress-bar.progress-success {
+    background: var(--success-color);
+}
+
+/* Brutalist Form Controls */
+[data-theme="brutalist"] .form-control,
+[data-theme="brutalist"] input,
+[data-theme="brutalist"] select,
+[data-theme="brutalist"] textarea {
+    background: #f5f5f0;
+    border: var(--brutalist-border);
+    color: #1a1a1a;
+    font-family: var(--font-family);
+    border-radius: 0;
+}
+
+[data-theme="brutalist"] .form-control:focus,
+[data-theme="brutalist"] input:focus,
+[data-theme="brutalist"] select:focus,
+[data-theme="brutalist"] textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 4px 4px 0 var(--primary-color);
+    outline: none;
+}
+
+/* Brutalist Stats */
+[data-theme="brutalist"] .stat-number,
+[data-theme="brutalist"] .overview-card .stat-number {
+    font-family: var(--font-family-display);
+    font-size: 3rem;
+    letter-spacing: 2px;
+    color: var(--primary-color);
+}
+
+[data-theme="brutalist"] .stat-label {
+    font-family: var(--font-family);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Brutalist Overview Cards */
+[data-theme="brutalist"] .overview-card {
+    border: var(--brutalist-border);
+    border-radius: 0;
+}
+
+/* Brutalist Modals */
+[data-theme="brutalist"] .modal-content {
+    background: #f5f5f0;
+    border: var(--brutalist-border);
+    border-radius: 0;
+    box-shadow: 16px 16px 0 #1a1a1a;
+}
+
+[data-theme="brutalist"] .modal-header {
+    background: #1a1a1a;
+    color: #f5f5f0;
+    border-bottom: var(--brutalist-border);
+    border-radius: 0;
+}
+
+[data-theme="brutalist"] .modal-footer {
+    background: #eeeee8;
+    border-top: var(--brutalist-border);
+    border-radius: 0;
+}
+
+/* Brutalist Tables */
+[data-theme="brutalist"] .logs-table,
+[data-theme="brutalist"] table {
+    border: var(--brutalist-border);
+    border-radius: 0;
+}
+
+[data-theme="brutalist"] .logs-table thead,
+[data-theme="brutalist"] table thead {
+    background: #1a1a1a;
+    color: #f5f5f0;
+    font-family: var(--font-family);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.625rem;
+}
+
+[data-theme="brutalist"] .logs-table th,
+[data-theme="brutalist"] .logs-table td,
+[data-theme="brutalist"] table th,
+[data-theme="brutalist"] table td {
+    border: var(--brutalist-border-thin);
+}
+
+[data-theme="brutalist"] .logs-table tbody tr:hover,
+[data-theme="brutalist"] table tbody tr:hover {
+    background: #eeeee8;
+}
+
+/* Brutalist Scrollbars */
+[data-theme="brutalist"] ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+[data-theme="brutalist"] ::-webkit-scrollbar-track {
+    background: #f5f5f0;
+    border-left: var(--brutalist-border);
+}
+
+[data-theme="brutalist"] ::-webkit-scrollbar-thumb {
+    background: #1a1a1a;
+}
+
+[data-theme="brutalist"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}

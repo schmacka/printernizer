@@ -108,6 +108,11 @@ class SettingsManager {
                 adminStats.init();
             }
 
+            // Initialize theme picker when appearance tab is selected
+            if (tabName === 'appearance') {
+                this.renderThemePicker();
+            }
+
         } catch (error) {
             Logger.error('Error in switchTab:', error);
             showToast('error', 'Fehler', 'Tab konnte nicht gewechselt werden');
@@ -785,6 +790,106 @@ class SettingsManager {
             window.ErrorHandler?.handleSettingsError(error, { operation: 'reset' });
             showToast('error', 'Fehler', 'Einstellungen konnten nicht zurückgesetzt werden');
         }
+    }
+
+    /**
+     * Render theme picker UI
+     */
+    renderThemePicker() {
+        const container = document.getElementById('themePicker');
+        if (!container) {
+            Logger.warn('Theme picker container not found');
+            return;
+        }
+
+        // Get themes from theme switcher
+        if (!window.themeSwitcher) {
+            Logger.warn('Theme switcher not initialized');
+            return;
+        }
+
+        const themes = window.themeSwitcher.getThemeList();
+        const currentTheme = window.themeSwitcher.getCurrentTheme();
+
+        // Build theme cards HTML
+        const html = themes.map(theme => `
+            <div class="theme-card ${theme.id === currentTheme ? 'active' : ''}"
+                 data-theme="${theme.id}"
+                 onclick="settingsManager.selectTheme('${theme.id}')"
+                 role="button"
+                 tabindex="0"
+                 aria-label="Select ${theme.name} theme"
+                 aria-pressed="${theme.id === currentTheme}">
+                <div class="theme-preview theme-preview-${theme.id}">
+                    <div class="theme-preview-header"></div>
+                    <div class="theme-preview-content">
+                        <div class="theme-preview-card"></div>
+                        <div class="theme-preview-card"></div>
+                    </div>
+                </div>
+                <div class="theme-info">
+                    <div class="theme-icon">${theme.icon}</div>
+                    <div class="theme-details">
+                        <div class="theme-name">${theme.name}</div>
+                        <div class="theme-description">${theme.description}</div>
+                    </div>
+                    ${theme.id === currentTheme ? '<span class="theme-active-badge">Active</span>' : ''}
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+
+        // Add keyboard support
+        container.querySelectorAll('.theme-card').forEach(card => {
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.selectTheme(card.dataset.theme);
+                }
+            });
+        });
+
+        Logger.debug('Theme picker rendered');
+    }
+
+    /**
+     * Select a theme
+     * @param {string} themeId - Theme ID to select
+     */
+    selectTheme(themeId) {
+        if (!window.themeSwitcher) {
+            Logger.warn('Theme switcher not initialized');
+            return;
+        }
+
+        window.themeSwitcher.setTheme(themeId);
+
+        // Update active state in UI
+        const container = document.getElementById('themePicker');
+        if (container) {
+            container.querySelectorAll('.theme-card').forEach(card => {
+                const isActive = card.dataset.theme === themeId;
+                card.classList.toggle('active', isActive);
+                card.setAttribute('aria-pressed', isActive);
+
+                // Update active badge
+                const existingBadge = card.querySelector('.theme-active-badge');
+                if (isActive && !existingBadge) {
+                    const info = card.querySelector('.theme-info');
+                    if (info) {
+                        const badge = document.createElement('span');
+                        badge.className = 'theme-active-badge';
+                        badge.textContent = 'Active';
+                        info.appendChild(badge);
+                    }
+                } else if (!isActive && existingBadge) {
+                    existingBadge.remove();
+                }
+            });
+        }
+
+        showToast('success', 'Theme Changed', `Applied "${window.themeSwitcher.getTheme(themeId).name}" theme`);
     }
 }
 

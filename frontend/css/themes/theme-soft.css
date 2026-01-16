@@ -1,0 +1,313 @@
+/* Printernizer Theme: Soft/Modern */
+/* Pastel gradients, purple/pink accents, rounded corners, friendly feel */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+[data-theme="soft"] {
+    /* Primary Colors - Soft Purple */
+    --primary-color: #8b5cf6;
+    --primary-hover: #7c3aed;
+    --primary-light: rgba(139, 92, 246, 0.1);
+
+    /* Secondary Colors - Pink accent */
+    --secondary-color: #ec4899;
+    --secondary-hover: #db2777;
+    --secondary-light: rgba(236, 72, 153, 0.1);
+
+    /* Status Colors - Soft versions */
+    --success-color: #10b981;
+    --success-light: rgba(16, 185, 129, 0.1);
+    --warning-color: #f59e0b;
+    --warning-light: rgba(245, 158, 11, 0.1);
+    --error-color: #f43f5e;
+    --error-light: rgba(244, 63, 94, 0.1);
+    --info-color: #3b82f6;
+    --info-light: rgba(59, 130, 246, 0.1);
+
+    /* Neutral Colors - Soft slate */
+    --white: #ffffff;
+    --gray-50: #faf5ff;
+    --gray-100: #f5f3ff;
+    --gray-200: #ede9fe;
+    --gray-300: #ddd6fe;
+    --gray-400: #a78bfa;
+    --gray-500: #8b5cf6;
+    --gray-600: #6366f1;
+    --gray-700: #4f46e5;
+    --gray-800: #1e1b4b;
+    --gray-900: #0f0e24;
+
+    /* Typography */
+    --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Border Radius - Extra rounded */
+    --radius-sm: 0.75rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.5rem;
+
+    /* Shadows - Soft colored */
+    --shadow-sm: 0 2px 8px rgba(139, 92, 246, 0.06);
+    --shadow-md: 0 4px 16px rgba(139, 92, 246, 0.08);
+    --shadow-lg: 0 8px 32px rgba(139, 92, 246, 0.12);
+    --shadow-xl: 0 16px 48px rgba(139, 92, 246, 0.16);
+
+    /* Custom Soft Variables */
+    --soft-gradient: linear-gradient(135deg, #fdf4ff 0%, #f0f9ff 50%, #f0fdf4 100%);
+    --soft-accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    --soft-border: rgba(139, 92, 246, 0.1);
+    --soft-glass: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="soft"] body {
+    background: var(--soft-gradient);
+    background-attachment: fixed;
+    color: #1e1b4b;
+}
+
+/* Soft Navbar - Floating glass effect */
+[data-theme="soft"] .navbar {
+    background: var(--soft-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--soft-border);
+    border-radius: 1.5rem;
+    margin: 1rem;
+    box-shadow: var(--shadow-md);
+}
+
+[data-theme="soft"] .nav-brand {
+    font-size: 1.375rem;
+    font-weight: 700;
+    background: var(--soft-accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-theme="soft"] .nav-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #94a3b8;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1.25rem;
+}
+
+[data-theme="soft"] .nav-link:hover {
+    color: var(--primary-color);
+}
+
+[data-theme="soft"] .nav-link.active {
+    background: #ffffff;
+    color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+
+/* Soft Cards */
+[data-theme="soft"] .card,
+[data-theme="soft"] .printer-card,
+[data-theme="soft"] .printer-tile-card {
+    background: #ffffff;
+    border: 1px solid var(--soft-border);
+    border-radius: 1.75rem;
+    box-shadow: var(--shadow-sm);
+}
+
+[data-theme="soft"] .card:hover,
+[data-theme="soft"] .printer-card:hover,
+[data-theme="soft"] .printer-tile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+}
+
+[data-theme="soft"] .card-header,
+[data-theme="soft"] .printer-header {
+    background: transparent;
+    border-bottom: none;
+}
+
+/* Soft Typography */
+[data-theme="soft"] h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+}
+
+[data-theme="soft"] h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* Soft Status Badges */
+[data-theme="soft"] .status-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.5rem 0.875rem;
+    border-radius: 6.25rem;
+}
+
+[data-theme="soft"] .status-printing,
+[data-theme="soft"] .status-online {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+[data-theme="soft"] .status-idle,
+[data-theme="soft"] .status-offline {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+}
+
+[data-theme="soft"] .status-error {
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--error-color);
+}
+
+/* Soft Buttons */
+[data-theme="soft"] .btn-primary {
+    background: var(--soft-accent-gradient);
+    color: #ffffff;
+    border: none;
+    border-radius: 1rem;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+[data-theme="soft"] .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
+}
+
+[data-theme="soft"] .btn-secondary {
+    background: transparent;
+    color: #1e1b4b;
+    border: 1px solid var(--soft-border);
+    border-radius: 1rem;
+}
+
+[data-theme="soft"] .btn-secondary:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Soft Progress Bars */
+[data-theme="soft"] .progress {
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 6.25rem;
+    height: 0.625rem;
+}
+
+[data-theme="soft"] .progress-bar {
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-radius: 6.25rem;
+}
+
+/* Soft Form Controls */
+[data-theme="soft"] .form-control,
+[data-theme="soft"] input,
+[data-theme="soft"] select,
+[data-theme="soft"] textarea {
+    background: #ffffff;
+    border: 1px solid var(--soft-border);
+    color: #1e1b4b;
+    border-radius: 0.875rem;
+}
+
+[data-theme="soft"] .form-control:focus,
+[data-theme="soft"] input:focus,
+[data-theme="soft"] select:focus,
+[data-theme="soft"] textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+}
+
+/* Soft Stats */
+[data-theme="soft"] .stat-number,
+[data-theme="soft"] .overview-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+[data-theme="soft"] .overview-card {
+    background: var(--soft-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--soft-border);
+    border-radius: 1.5rem;
+}
+
+/* Soft Overview Card Icons */
+[data-theme="soft"] .overview-card .card-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Soft Modals */
+[data-theme="soft"] .modal-content {
+    background: #ffffff;
+    border: 1px solid var(--soft-border);
+    border-radius: 1.75rem;
+    box-shadow: var(--shadow-xl);
+}
+
+[data-theme="soft"] .modal-header {
+    background: transparent;
+    border-bottom: none;
+}
+
+[data-theme="soft"] .modal-footer {
+    background: transparent;
+    border-top: 1px solid var(--soft-border);
+}
+
+/* Soft Tables */
+[data-theme="soft"] .logs-table,
+[data-theme="soft"] table {
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+[data-theme="soft"] .logs-table thead,
+[data-theme="soft"] table thead {
+    background: rgba(139, 92, 246, 0.05);
+}
+
+[data-theme="soft"] .logs-table tbody tr:hover,
+[data-theme="soft"] table tbody tr:hover {
+    background: rgba(139, 92, 246, 0.03);
+}
+
+/* Soft Scrollbars */
+[data-theme="soft"] ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+[data-theme="soft"] ::-webkit-scrollbar-track {
+    background: rgba(139, 92, 246, 0.05);
+    border-radius: 4px;
+}
+
+[data-theme="soft"] ::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.2);
+    border-radius: 4px;
+}
+
+[data-theme="soft"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* Live indicator pulse */
+[data-theme="soft"] .status-dot.online,
+[data-theme="soft"] .status-dot.printing {
+    animation: softPulse 2s infinite;
+}
+
+@keyframes softPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
+}

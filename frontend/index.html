@@ -14,6 +14,11 @@
     <link rel="stylesheet" href="css/search.css">
     <link rel="stylesheet" href="css/setup-wizard.css">
     <link rel="stylesheet" href="css/dark-theme.css">
+    <link rel="stylesheet" href="css/themes/theme-industrial.css">
+    <link rel="stylesheet" href="css/themes/theme-refined.css">
+    <link rel="stylesheet" href="css/themes/theme-soft.css">
+    <link rel="stylesheet" href="css/themes/theme-brutalist.css">
+    <link rel="stylesheet" href="css/themes/theme-retro.css">
     <link rel="stylesheet" href="css/admin-statistics.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <!-- Logger must be loaded before theme-switcher -->
@@ -1082,6 +1087,10 @@
                         <span class="tab-icon">🔔</span>
                         <span class="tab-label">Notifications</span>
                     </button>
+                    <button class="settings-tab" data-tab="appearance" onclick="settingsManager.switchTab('appearance')">
+                        <span class="tab-icon">🎨</span>
+                        <span class="tab-label">Appearance</span>
+                    </button>
                 </div>
 
                 <div class="settings-tab-content">
@@ -1876,6 +1885,23 @@
                                         <div class="spinner"></div>
                                         <p>Loading notification channels...</p>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance Tab -->
+                    <div class="tab-pane" id="appearance-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🎨 Theme Selection</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted" style="margin-bottom: 20px;">
+                                    Choose a visual theme for Printernizer. Click on a theme to apply it instantly.
+                                </p>
+                                <div class="theme-picker-grid" id="themePicker">
+                                    <!-- Theme cards will be rendered by JavaScript -->
                                 </div>
                             </div>
                         </div>
