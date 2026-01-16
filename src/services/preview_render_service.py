@@ -54,9 +54,9 @@ class PreviewRenderService:
         self.stl_config = {
             'camera_angle': (45, 45, 0),  # azimuth, elevation, roll
             'background_color': '#ffffff',
-            'edge_color': '#333333',
+            'edge_color': 'none',  # No edges for cleaner look
             'face_color': '#6c757d',
-            'edge_width': 0.5,
+            'edge_width': 0,
             'dpi': 100
         }
 
