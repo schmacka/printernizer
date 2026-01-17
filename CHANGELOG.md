@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.28.2] - 2026-01-17
+
+### Added
+- README with theme mockup screenshots in mockups folder
+
 ## [2.28.1] - 2026-01-17
 
 ### Added
