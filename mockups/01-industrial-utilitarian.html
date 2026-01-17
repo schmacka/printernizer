@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printernizer - Industrial/Utilitarian Style</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #242424;
+            --bg-tertiary: #2d2d2d;
+            --text-primary: #e5e5e5;
+            --text-secondary: #999;
+            --text-muted: #666;
+            --accent-yellow: #fbbf24;
+            --accent-orange: #f97316;
+            --status-printing: #22c55e;
+            --status-idle: #64748b;
+            --status-error: #ef4444;
+            --border-color: #3d3d3d;
+            --caution-stripes: repeating-linear-gradient(
+                45deg,
+                #fbbf24,
+                #fbbf24 10px,
+                #1a1a1a 10px,
+                #1a1a1a 20px
+            );
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Top Bar - Like a machine control panel */
+        .top-bar {
+            background: var(--bg-secondary);
+            border-bottom: 3px solid var(--accent-yellow);
+            padding: 0;
+            display: flex;
+            align-items: stretch;
+            height: 64px;
+        }
+
+        .logo-section {
+            background: var(--accent-yellow);
+            color: #1a1a1a;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--accent-yellow);
+        }
+
+        .nav-tabs {
+            display: flex;
+            align-items: stretch;
+            margin-left: 24px;
+        }
+
+        .nav-tab {
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -3px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-yellow);
+            border-bottom-color: var(--accent-yellow);
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .nav-tab svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        .status-panel {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 0 24px;
+            background: var(--bg-tertiary);
+            border-left: 1px solid var(--border-color);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online { background: var(--status-printing); }
+        .status-dot.warning { background: var(--accent-orange); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            min-height: calc(100vh - 64px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 24px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 32px;
+        }
+
+        .sidebar-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 16px;
+            border-radius: 4px;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+        }
+
+        .stat-box.full {
+            grid-column: span 2;
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 32px;
+            background:
+                linear-gradient(90deg, rgba(59, 59, 59, 0.3) 1px, transparent 1px),
+                linear-gradient(rgba(59, 59, 59, 0.3) 1px, transparent 1px),
+                var(--bg-primary);
+            background-size: 40px 40px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title::before {
+            content: '//';
+            color: var(--accent-yellow);
+        }
+
+        .action-btn {
+            background: var(--accent-yellow);
+            color: #1a1a1a;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+
+        .action-btn:hover {
+            background: #fcd34d;
+            transform: translateY(-1px);
+        }
+
+        /* Printer Grid */
+        .printer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .printer-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .printer-card:hover {
+            border-color: var(--accent-yellow);
+            box-shadow: 0 0 0 1px var(--accent-yellow);
+        }
+
+        .printer-card.printing {
+            border-left: 4px solid var(--status-printing);
+        }
+
+        .printer-card.idle {
+            border-left: 4px solid var(--status-idle);
+        }
+
+        .printer-card.error {
+            border-left: 4px solid var(--status-error);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .printer-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .printer-type {
+            font-size: 10px;
+            padding: 4px 8px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.printing {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--status-printing);
+            border: 1px solid var(--status-printing);
+        }
+
+        .status-badge.idle {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--status-idle);
+            border: 1px solid var(--status-idle);
+        }
+
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--status-error);
+            border: 1px solid var(--status-error);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .job-info {
+            margin-bottom: 20px;
+        }
+
+        .job-name {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .progress-section {
+            margin-bottom: 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .progress-percent {
+            color: var(--accent-yellow);
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-yellow);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .temps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .temp-box {
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .temp-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .temp-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent-orange);
+        }
+
+        .temp-value span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .card-footer {
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-btn {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .card-btn:hover {
+            border-color: var(--accent-yellow);
+            color: var(--accent-yellow);
+        }
+
+        .card-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Caution stripe accent */
+        .caution-bar {
+            height: 4px;
+            background: var(--caution-stripes);
+        }
+
+        /* Style Label */
+        .style-label {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--accent-yellow);
+            color: #1a1a1a;
+            padding: 12px 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="caution-bar"></div>
+
+    <header class="top-bar">
+        <div class="logo-section">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/></svg>
+            </div>
+            PRINTERNIZER
+        </div>
+
+        <nav class="nav-tabs">
+            <a href="#" class="nav-tab active">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                Dashboard
+            </a>
+            <a href="#" class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 14H8v-4h8v4zm2-4v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/></svg>
+                Printers
+            </a>
+            <a href="#" class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                Jobs
+            </a>
+            <a href="#" class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"/></svg>
+                Library
+            </a>
+            <a href="#" class="nav-tab">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                Settings
+            </a>
+        </nav>
+
+        <div class="status-panel">
+            <div class="status-indicator">
+                <span class="status-dot online"></span>
+                <span>3 ONLINE</span>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot warning"></span>
+                <span>1 WARNING</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-label">System Status</div>
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-value">4</div>
+                        <div class="stat-label">Printers</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">2</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-box full">
+                        <div class="stat-value">847</div>
+                        <div class="stat-label">Total Jobs Completed</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Today's Output</div>
+                <div class="stat-grid">
+                    <div class="stat-box">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Jobs</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">34h</div>
+                        <div class="stat-label">Print Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-label">Materials</div>
+                <div class="stat-grid">
+                    <div class="stat-box full">
+                        <div class="stat-value" style="font-size: 20px;">2.4 kg</div>
+                        <div class="stat-label">Filament Used Today</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="content-area">
+            <div class="page-header">
+                <h1 class="page-title">Printer Fleet</h1>
+                <button class="action-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                    Add Printer
+                </button>
+            </div>
+
+            <div class="printer-grid">
+                <!-- Printer 1 - Printing -->
+                <div class="printer-card printing">
+                    <div class="card-header">
+                        <div class="printer-name">
+                            Workshop-A1
+                            <span class="printer-type">Bambu A1</span>
+                        </div>
+                        <span class="status-badge printing">Printing</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="job-info">
+                            <div class="job-name">gear_housing_v3.3mf</div>
+                            <div class="job-meta">
+                                <span>Layer 847/1250</span>
+                                <span>ETA 2h 14m</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span>Progress</span>
+                                <span class="progress-percent">67%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 67%"></div>
+                            </div>
+                        </div>
+                        <div class="temps-grid">
+                            <div class="temp-box">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">220<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">60<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">35<span>°C</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            Pause
+                        </button>
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Printer 2 - Printing -->
+                <div class="printer-card printing">
+                    <div class="card-header">
+                        <div class="printer-name">
+                            Workshop-P1S
+                            <span class="printer-type">Bambu P1S</span>
+                        </div>
+                        <span class="status-badge printing">Printing</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="job-info">
+                            <div class="job-name">enclosure_panel_left.3mf</div>
+                            <div class="job-meta">
+                                <span>Layer 234/890</span>
+                                <span>ETA 4h 52m</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span>Progress</span>
+                                <span class="progress-percent">26%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 26%"></div>
+                            </div>
+                        </div>
+                        <div class="temps-grid">
+                            <div class="temp-box">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">245<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">80<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">42<span>°C</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            Pause
+                        </button>
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Printer 3 - Idle -->
+                <div class="printer-card idle">
+                    <div class="card-header">
+                        <div class="printer-name">
+                            Lab-CoreOne
+                            <span class="printer-type">Prusa Core</span>
+                        </div>
+                        <span class="status-badge idle">Idle</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="job-info">
+                            <div class="job-name" style="color: var(--text-muted);">No active job</div>
+                            <div class="job-meta">
+                                <span>Last: bracket_mount.gcode</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span>Ready</span>
+                                <span class="progress-percent">--</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="temps-grid">
+                            <div class="temp-box">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">24<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">22<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">21<span>°C</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            Start Job
+                        </button>
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            Details
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Printer 4 - Error -->
+                <div class="printer-card error">
+                    <div class="card-header">
+                        <div class="printer-name">
+                            Office-Mini
+                            <span class="printer-type">Bambu A1 Mini</span>
+                        </div>
+                        <span class="status-badge error">Error</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="job-info">
+                            <div class="job-name" style="color: var(--status-error);">Filament runout detected</div>
+                            <div class="job-meta">
+                                <span>Job paused at 45%</span>
+                            </div>
+                        </div>
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span>Paused</span>
+                                <span class="progress-percent">45%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 45%; background: var(--status-error);"></div>
+                            </div>
+                        </div>
+                        <div class="temps-grid">
+                            <div class="temp-box">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">185<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">55<span>°C</span></div>
+                            </div>
+                            <div class="temp-box">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">28<span>°C</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button class="card-btn" style="border-color: var(--status-error); color: var(--status-error);">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                            Resolve
+                        </button>
+                        <button class="card-btn">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            Details
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="style-label">Industrial / Utilitarian</div>
+</body>
+</html>

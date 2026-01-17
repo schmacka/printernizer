@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Printernizer - Soft/Modern Style</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-gradient: linear-gradient(135deg, #fdf4ff 0%, #f0f9ff 50%, #f0fdf4 100%);
+            --bg-card: rgba(255, 255, 255, 0.8);
+            --bg-card-solid: #ffffff;
+            --text-primary: #1e1b4b;
+            --text-secondary: #6366f1;
+            --text-muted: #94a3b8;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-blue: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            --status-printing: #10b981;
+            --status-idle: #94a3b8;
+            --status-error: #f43f5e;
+            --border-color: rgba(139, 92, 246, 0.1);
+            --shadow-soft: 0 4px 24px rgba(139, 92, 246, 0.08);
+            --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Floating Navigation */
+        .nav-wrapper {
+            position: sticky;
+            top: 16px;
+            z-index: 100;
+            padding: 0 24px;
+            margin-bottom: 24px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 4px;
+            margin-left: 48px;
+            background: rgba(139, 92, 246, 0.05);
+            padding: 6px;
+            border-radius: 16px;
+        }
+
+        .nav-link {
+            padding: 10px 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-purple);
+        }
+
+        .nav-link.active {
+            background: var(--bg-card-solid);
+            color: var(--accent-purple);
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+        }
+
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--status-printing);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--status-printing);
+            border-radius: 50%;
+            animation: livePulse 2s infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            background: var(--accent-gradient);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .avatar:hover {
+            transform: scale(1.05);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px 48px;
+        }
+
+        /* Welcome Section */
+        .welcome-section {
+            margin-bottom: 40px;
+        }
+
+        .welcome-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .greeting {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 4px;
+        }
+
+        .welcome-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .add-printer-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+        }
+
+        .add-printer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
+        }
+
+        .add-printer-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon.purple { background: rgba(139, 92, 246, 0.1); color: var(--accent-purple); }
+        .stat-icon.pink { background: rgba(236, 72, 153, 0.1); color: var(--accent-pink); }
+        .stat-icon.blue { background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); }
+        .stat-icon.green { background: rgba(16, 185, 129, 0.1); color: var(--status-printing); }
+
+        .stat-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Section Title */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-pill {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill:hover {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        .filter-pill.active {
+            background: var(--accent-gradient);
+            color: white;
+            border-color: transparent;
+        }
+
+        /* Printer Grid */
+        .printer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        .printer-card {
+            background: var(--bg-card-solid);
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s ease;
+        }
+
+        .printer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .card-header {
+            padding: 24px 24px 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .printer-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .printer-icon.bambu { background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%); }
+        .printer-icon.prusa { background: linear-gradient(135deg, #fb923c 0%, #f97316 100%); }
+
+        .status-chip {
+            padding: 8px 14px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-chip.printing {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--status-printing);
+        }
+
+        .status-chip.idle {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--status-idle);
+        }
+
+        .status-chip.error {
+            background: rgba(244, 63, 94, 0.1);
+            color: var(--status-error);
+        }
+
+        .card-body {
+            padding: 20px 24px 24px;
+        }
+
+        .printer-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .printer-model {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .job-info {
+            background: rgba(139, 92, 246, 0.04);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .job-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .job-name svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent-purple);
+        }
+
+        .progress-wrapper {
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 100px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.active {
+            background: linear-gradient(90deg, var(--accent-purple) 0%, var(--accent-pink) 100%);
+        }
+
+        .progress-fill.error {
+            background: var(--status-error);
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .progress-percent {
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+
+        .progress-time {
+            color: var(--text-muted);
+        }
+
+        .temps-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .temp-bubble {
+            flex: 1;
+            background: rgba(139, 92, 246, 0.04);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .temp-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .temp-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent-purple);
+        }
+
+        .temp-value span {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 12px;
+            padding: 0 24px 24px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-btn.primary {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+        }
+
+        .action-btn.secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .action-btn.secondary:hover {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        .action-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Idle state */
+        .idle-state {
+            text-align: center;
+            padding: 20px 0;
+            color: var(--text-muted);
+        }
+
+        .idle-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .idle-icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--status-idle);
+        }
+
+        /* Style Label */
+        .style-label {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--accent-gradient);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-wrapper">
+        <nav class="nav-container">
+            <a href="#" class="logo">Printernizer</a>
+
+            <div class="nav-links">
+                <a href="#" class="nav-link active">Dashboard</a>
+                <a href="#" class="nav-link">Printers</a>
+                <a href="#" class="nav-link">Jobs</a>
+                <a href="#" class="nav-link">Library</a>
+                <a href="#" class="nav-link">Reports</a>
+            </div>
+
+            <div class="nav-right">
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    2 Printing
+                </div>
+                <div class="avatar">M</div>
+            </div>
+        </nav>
+    </div>
+
+    <main class="main-content">
+        <section class="welcome-section">
+            <div class="welcome-row">
+                <div>
+                    <div class="greeting">Good morning!</div>
+                    <h1 class="welcome-title">Your Print Farm</h1>
+                    <p class="welcome-subtitle">2 printers are actively working on your jobs</p>
+                </div>
+                <button class="add-printer-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add Printer
+                </button>
+            </div>
+        </section>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                </div>
+                <div class="stat-value">4</div>
+                <div class="stat-label">Total Printers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon pink">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                </div>
+                <div class="stat-value">2</div>
+                <div class="stat-label">Active Jobs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="stat-value">12</div>
+                <div class="stat-label">Completed Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="stat-value">34h</div>
+                <div class="stat-label">Print Time</div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-header">
+                <h2 class="section-title">Your Printers</h2>
+                <div class="filter-pills">
+                    <button class="filter-pill active">All</button>
+                    <button class="filter-pill">Printing</button>
+                    <button class="filter-pill">Idle</button>
+                    <button class="filter-pill">Issues</button>
+                </div>
+            </div>
+
+            <div class="printer-grid">
+                <!-- Printer 1 - Printing -->
+                <article class="printer-card">
+                    <div class="card-header">
+                        <div class="printer-icon bambu">🖨</div>
+                        <span class="status-chip printing">Printing</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="printer-name">Workshop-A1</h3>
+                        <p class="printer-model">Bambu Lab A1</p>
+
+                        <div class="job-info">
+                            <div class="job-name">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                gear_housing_v3.3mf
+                            </div>
+                            <div class="progress-wrapper">
+                                <div class="progress-bar">
+                                    <div class="progress-fill active" style="width: 67%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-stats">
+                                <span class="progress-percent">67%</span>
+                                <span class="progress-time">2h 14m left</span>
+                            </div>
+                        </div>
+
+                        <div class="temps-row">
+                            <div class="temp-bubble">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">220<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">60<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">35<span>°</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn secondary">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            Pause
+                        </button>
+                        <button class="action-btn primary">View Details</button>
+                    </div>
+                </article>
+
+                <!-- Printer 2 - Printing -->
+                <article class="printer-card">
+                    <div class="card-header">
+                        <div class="printer-icon bambu">🖨</div>
+                        <span class="status-chip printing">Printing</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="printer-name">Workshop-P1S</h3>
+                        <p class="printer-model">Bambu Lab P1S</p>
+
+                        <div class="job-info">
+                            <div class="job-name">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                                enclosure_panel_left.3mf
+                            </div>
+                            <div class="progress-wrapper">
+                                <div class="progress-bar">
+                                    <div class="progress-fill active" style="width: 26%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-stats">
+                                <span class="progress-percent">26%</span>
+                                <span class="progress-time">4h 52m left</span>
+                            </div>
+                        </div>
+
+                        <div class="temps-row">
+                            <div class="temp-bubble">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">245<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">80<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">42<span>°</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn secondary">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            Pause
+                        </button>
+                        <button class="action-btn primary">View Details</button>
+                    </div>
+                </article>
+
+                <!-- Printer 3 - Idle -->
+                <article class="printer-card">
+                    <div class="card-header">
+                        <div class="printer-icon prusa">🖨</div>
+                        <span class="status-chip idle">Idle</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="printer-name">Lab-CoreOne</h3>
+                        <p class="printer-model">Prusa Core One</p>
+
+                        <div class="idle-state">
+                            <div class="idle-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                            </div>
+                            <p>Ready for new job</p>
+                        </div>
+
+                        <div class="temps-row">
+                            <div class="temp-bubble">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">24<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">22<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">21<span>°</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn primary" style="flex: 1;">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            Start Job
+                        </button>
+                    </div>
+                </article>
+
+                <!-- Printer 4 - Error -->
+                <article class="printer-card">
+                    <div class="card-header">
+                        <div class="printer-icon bambu">🖨</div>
+                        <span class="status-chip error">Error</span>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="printer-name">Office-Mini</h3>
+                        <p class="printer-model">Bambu Lab A1 Mini</p>
+
+                        <div class="job-info" style="background: rgba(244, 63, 94, 0.05);">
+                            <div class="job-name" style="color: var(--status-error);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                Filament runout detected
+                            </div>
+                            <div class="progress-wrapper">
+                                <div class="progress-bar">
+                                    <div class="progress-fill error" style="width: 45%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-stats">
+                                <span class="progress-percent" style="color: var(--status-error);">45%</span>
+                                <span class="progress-time">Paused</span>
+                            </div>
+                        </div>
+
+                        <div class="temps-row">
+                            <div class="temp-bubble">
+                                <div class="temp-label">Nozzle</div>
+                                <div class="temp-value">185<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Bed</div>
+                                <div class="temp-value">55<span>°</span></div>
+                            </div>
+                            <div class="temp-bubble">
+                                <div class="temp-label">Chamber</div>
+                                <div class="temp-value">28<span>°</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn primary" style="background: linear-gradient(135deg, #f43f5e 0%, #ef4444 100%);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Resolve Issue
+                        </button>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <div class="style-label">Soft / Modern</div>
+</body>
+</html>
