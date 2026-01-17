@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.28.3] - 2026-01-17
+
+### Fixed
+- Dashboard "Drucker online" card showing 0/0 instead of actual printer count (API response structure handling)
+- Dashboard active jobs count not extracting printers array correctly
+- Dashboard success rate displaying incorrect percentage (was multiplying already-percentage value by 100)
+
 ## [2.28.2] - 2026-01-17
 
 ### Added

@@ -226,8 +226,9 @@ class Dashboard {
         const printerDetailEl = document.getElementById('printerDetail');
         
         if (printerCountEl && printerDetailEl) {
-            // Handle printers as array
-            const printersArray = Array.isArray(printers) ? printers : [];
+            // Handle printers - API returns {printers: [], total_count: N} or array directly
+            const printersData = printers?.printers || printers;
+            const printersArray = Array.isArray(printersData) ? printersData : [];
             const onlineCount = printersArray.filter(p => p.status === 'online').length || 0;
             const totalCount = printersArray.length || 0;
             
@@ -241,8 +242,11 @@ class Dashboard {
         
         if (activeJobsEl && jobsDetailEl) {
             const activeJobs = stats.jobs?.total_jobs || 0;
-            const printingJobs = printers.printers?.filter(p => p.current_job?.status === 'printing').length || 0;
-            
+            // Use extracted printersArray from above
+            const printersData = printers?.printers || printers;
+            const printersArr = Array.isArray(printersData) ? printersData : [];
+            const printingJobs = printersArr.filter(p => p.current_job?.status === 'printing').length;
+
             activeJobsEl.textContent = printingJobs;
             jobsDetailEl.textContent = `${activeJobs} Aufträge heute`;
         }
@@ -266,9 +270,10 @@ class Dashboard {
         if (todayJobsEl && todayDetailEl) {
             const completedToday = stats.jobs?.completed_jobs || 0;
             const successRate = stats.jobs?.success_rate || 0;
-            
+
             todayJobsEl.textContent = completedToday;
-            todayDetailEl.textContent = `${formatPercentage(successRate * 100)} Erfolgsrate`;
+            // API returns success_rate as 0-100, no need to multiply
+            todayDetailEl.textContent = `${formatPercentage(successRate)} Erfolgsrate`;
         }
     }
 
