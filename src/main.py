@@ -74,7 +74,6 @@ from src.services.url_parser_service import UrlParserService
 from src.services.timelapse_service import TimelapseService
 from src.services.notification_service import NotificationService
 from src.utils.logging_config import setup_logging
-from src.utils.exceptions import PrinternizerException
 from src.utils.errors import (
     PrinternizerError,
     printernizer_exception_handler as new_printernizer_exception_handler,
@@ -800,29 +799,6 @@ def create_application() -> FastAPI:
 
     # New standardized PrinternizerError handler (Phase 3)
     app.add_exception_handler(PrinternizerError, new_printernizer_exception_handler)
-
-    # Legacy PrinternizerException handler (backwards compatibility)
-    # NOTE: This handler is kept for backward compatibility during the migration
-    # from PrinternizerException (src/utils/exceptions.py) to PrinternizerError
-    # (src/utils/errors.py). Most code has been migrated to use errors.py classes.
-    # The legacy exceptions.py module is now deprecated.
-    @app.exception_handler(PrinternizerException)
-    async def legacy_printernizer_exception_handler(request: Request, exc: PrinternizerException):
-        logger = structlog.get_logger()
-        logger.warning(
-            "Legacy PrinternizerException caught (deprecated - use PrinternizerError instead)",
-            error_code=exc.error_code,
-            status_code=exc.status_code,
-            message=exc.message,
-            path=request.url.path,
-            method=request.method
-        )
-
-        # Use to_dict() for consistent error format
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=exc.to_dict()
-        )
 
     # HTTPException handler (converts FastAPI HTTPExceptions to standard format)
     app.add_exception_handler(HTTPException, http_exception_handler)

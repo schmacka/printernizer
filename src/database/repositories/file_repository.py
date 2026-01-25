@@ -666,3 +666,92 @@ class FileRepository(BaseRepository):
         except Exception as e:
             logger.error("Failed to get file statistics", error=str(e), exc_info=True)
             return {}
+
+    async def get_old_deleted_files(self, days: int = 30) -> List[Dict[str, Any]]:
+        """Get files with status='deleted' older than N days.
+
+        Args:
+            days: Number of days after which deleted files are considered old (default: 30)
+
+        Returns:
+            List of file dictionaries matching criteria
+
+        Notes:
+            - Uses updated_at timestamp to determine file age
+            - Only returns files with status='deleted'
+        """
+        try:
+            query = """
+                SELECT id, filename, printer_id, status, updated_at
+                FROM files
+                WHERE status = 'deleted'
+                AND updated_at < datetime('now', ?)
+                ORDER BY updated_at ASC
+            """
+            params = [f'-{days} days']
+            return await self._fetch_all(query, params)
+        except Exception as e:
+            logger.error("Failed to get old deleted files", days=days, error=str(e), exc_info=True)
+            return []
+
+    async def get_old_failed_files(self, days: int = 7) -> List[Dict[str, Any]]:
+        """Get files with status='failed' older than N days.
+
+        Args:
+            days: Number of days after which failed files are considered old (default: 7)
+
+        Returns:
+            List of file dictionaries matching criteria
+
+        Notes:
+            - Uses updated_at timestamp to determine file age
+            - Only returns files with status='failed'
+        """
+        try:
+            query = """
+                SELECT id, filename, printer_id, status, updated_at
+                FROM files
+                WHERE status = 'failed'
+                AND updated_at < datetime('now', ?)
+                ORDER BY updated_at ASC
+            """
+            params = [f'-{days} days']
+            return await self._fetch_all(query, params)
+        except Exception as e:
+            logger.error("Failed to get old failed files", days=days, error=str(e), exc_info=True)
+            return []
+
+    async def delete_by_ids(self, ids: List[str]) -> int:
+        """Bulk delete files by ID list.
+
+        Args:
+            ids: List of file IDs to delete
+
+        Returns:
+            Number of files successfully deleted
+
+        Notes:
+            - Performs batch deletion for efficiency
+            - Returns 0 if ids list is empty
+            - Logs each deletion for audit purposes
+        """
+        if not ids:
+            return 0
+
+        try:
+            deleted_count = 0
+            for file_id in ids:
+                try:
+                    await self._execute_write("DELETE FROM files WHERE id = ?", (file_id,))
+                    deleted_count += 1
+                    logger.debug("Deleted file record", file_id=file_id)
+                except Exception as e:
+                    logger.warning("Failed to delete individual file", file_id=file_id, error=str(e))
+
+            logger.info("Bulk file deletion completed",
+                       requested=len(ids),
+                       deleted=deleted_count)
+            return deleted_count
+        except Exception as e:
+            logger.error("Failed to delete files by IDs", count=len(ids), error=str(e), exc_info=True)
+            return 0

@@ -974,6 +974,62 @@ async def update_watch_folder(
     })
 
 
+@router.delete("/cleanup")
+async def cleanup_files(
+    dry_run: bool = Query(True, description="If True, only report what would be deleted without actually deleting"),
+    deleted_days: int = Query(30, description="Remove files marked deleted older than this many days"),
+    failed_days: int = Query(7, description="Remove files marked failed older than this many days"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Clean up old file records from the database.
+
+    This endpoint removes file records that are:
+    - Marked as 'deleted' and older than deleted_days (default: 30 days)
+    - Marked as 'failed' and older than failed_days (default: 7 days)
+
+    This is a conservative cleanup that only removes database records,
+    not physical files. Physical file deletion should be handled separately.
+
+    By default, this endpoint runs in dry_run mode (dry_run=True), which only
+    reports what would be deleted without actually deleting anything.
+    Set dry_run=False to perform the actual cleanup.
+
+    Returns:
+        Dictionary with cleanup statistics:
+        - old_deleted_removed: Count of deleted file records removed
+        - failed_downloads_removed: Count of failed file records removed
+        - dry_run: Whether this was a dry run
+    """
+    logger.info(
+        "File cleanup requested",
+        dry_run=dry_run,
+        deleted_days=deleted_days,
+        failed_days=failed_days
+    )
+
+    result = await file_service.cleanup_files(
+        dry_run=dry_run,
+        deleted_days=deleted_days,
+        failed_days=failed_days
+    )
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"File cleanup failed: {result['error']}"
+        )
+
+    action = "would remove" if dry_run else "removed"
+    total = result["old_deleted_removed"] + result["failed_downloads_removed"]
+
+    return success_response({
+        "status": "completed",
+        "message": f"Cleanup {action} {total} file records",
+        "statistics": result
+    })
+
+
 @router.delete("/{file_id}")
 async def delete_file(
     file_id: str,

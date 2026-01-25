@@ -168,6 +168,33 @@ class PrinterInterface(ABC):
         """Take a camera snapshot and return image data."""
         pass
 
+    @abstractmethod
+    async def upload_file(self, local_path: str, remote_name: str) -> bool:
+        """
+        Upload a file to the printer's storage.
+
+        Args:
+            local_path: Full path to the local file to upload
+            remote_name: Name to use for the file on the printer
+
+        Returns:
+            bool: True if upload succeeded, False otherwise
+        """
+        pass
+
+    @abstractmethod
+    async def start_print(self, filename: str) -> bool:
+        """
+        Start printing a file that exists on the printer.
+
+        Args:
+            filename: Name of the file on the printer to print
+
+        Returns:
+            bool: True if print started successfully, False otherwise
+        """
+        pass
+
 
 class BasePrinter(PrinterInterface):
     """Base class for all printer implementations."""

@@ -473,7 +473,129 @@ class TestFileValidation:
     async def test_file_not_found_error(self, file_service, mock_database):
         """Test handling of file not found errors."""
         mock_database.get_file.return_value = None
-        
+
         file = await file_service.get_file_by_id('nonexistent_id')
-        
+
         assert file is None
+
+
+class TestFileCleanup:
+    """Test file cleanup functionality."""
+
+    @pytest.mark.asyncio
+    async def test_cleanup_files_dry_run(self, file_service, mock_database):
+        """Test cleanup files in dry run mode."""
+        # Mock database connection
+        mock_connection = MagicMock()
+        mock_database.get_connection.return_value = mock_connection
+
+        # Patch FileRepository to return test data
+        with patch('src.services.file_service.FileRepository') as MockFileRepo:
+            mock_repo_instance = MagicMock()
+            MockFileRepo.return_value = mock_repo_instance
+
+            # Mock old deleted files
+            mock_repo_instance.get_old_deleted_files = AsyncMock(return_value=[
+                {'id': 'deleted_1', 'filename': 'old_file1.3mf', 'status': 'deleted'},
+                {'id': 'deleted_2', 'filename': 'old_file2.3mf', 'status': 'deleted'},
+            ])
+
+            # Mock old failed files
+            mock_repo_instance.get_old_failed_files = AsyncMock(return_value=[
+                {'id': 'failed_1', 'filename': 'failed_file.3mf', 'status': 'failed'},
+            ])
+
+            result = await file_service.cleanup_files(dry_run=True)
+
+            assert result['dry_run'] == True
+            assert result['old_deleted_removed'] == 2
+            assert result['failed_downloads_removed'] == 1
+
+            # Verify delete_by_ids was NOT called in dry run mode
+            mock_repo_instance.delete_by_ids.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_cleanup_files_actual_deletion(self, file_service, mock_database):
+        """Test cleanup files with actual deletion."""
+        # Mock database connection
+        mock_connection = MagicMock()
+        mock_database.get_connection.return_value = mock_connection
+
+        with patch('src.services.file_service.FileRepository') as MockFileRepo:
+            mock_repo_instance = MagicMock()
+            MockFileRepo.return_value = mock_repo_instance
+
+            # Mock old deleted files
+            mock_repo_instance.get_old_deleted_files = AsyncMock(return_value=[
+                {'id': 'deleted_1', 'filename': 'old_file1.3mf', 'status': 'deleted'},
+            ])
+
+            # Mock old failed files
+            mock_repo_instance.get_old_failed_files = AsyncMock(return_value=[
+                {'id': 'failed_1', 'filename': 'failed_file.3mf', 'status': 'failed'},
+            ])
+
+            # Mock delete_by_ids to return count of deleted
+            mock_repo_instance.delete_by_ids = AsyncMock(return_value=1)
+
+            result = await file_service.cleanup_files(dry_run=False)
+
+            assert result['dry_run'] == False
+            assert result['old_deleted_removed'] == 1
+            assert result['failed_downloads_removed'] == 1
+
+            # Verify delete_by_ids was called
+            assert mock_repo_instance.delete_by_ids.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_cleanup_files_no_files_to_clean(self, file_service, mock_database):
+        """Test cleanup when there are no files to clean."""
+        mock_connection = MagicMock()
+        mock_database.get_connection.return_value = mock_connection
+
+        with patch('src.services.file_service.FileRepository') as MockFileRepo:
+            mock_repo_instance = MagicMock()
+            MockFileRepo.return_value = mock_repo_instance
+
+            # No old files
+            mock_repo_instance.get_old_deleted_files = AsyncMock(return_value=[])
+            mock_repo_instance.get_old_failed_files = AsyncMock(return_value=[])
+
+            result = await file_service.cleanup_files(dry_run=False)
+
+            assert result['old_deleted_removed'] == 0
+            assert result['failed_downloads_removed'] == 0
+
+    @pytest.mark.asyncio
+    async def test_cleanup_files_custom_days(self, file_service, mock_database):
+        """Test cleanup with custom day thresholds."""
+        mock_connection = MagicMock()
+        mock_database.get_connection.return_value = mock_connection
+
+        with patch('src.services.file_service.FileRepository') as MockFileRepo:
+            mock_repo_instance = MagicMock()
+            MockFileRepo.return_value = mock_repo_instance
+
+            mock_repo_instance.get_old_deleted_files = AsyncMock(return_value=[])
+            mock_repo_instance.get_old_failed_files = AsyncMock(return_value=[])
+
+            await file_service.cleanup_files(
+                dry_run=True,
+                deleted_days=60,
+                failed_days=14
+            )
+
+            # Verify custom day values were passed
+            mock_repo_instance.get_old_deleted_files.assert_called_with(days=60)
+            mock_repo_instance.get_old_failed_files.assert_called_with(days=14)
+
+    @pytest.mark.asyncio
+    async def test_cleanup_files_error_handling(self, file_service, mock_database):
+        """Test cleanup handles errors gracefully."""
+        mock_database.get_connection.side_effect = Exception("Database error")
+
+        result = await file_service.cleanup_files(dry_run=True)
+
+        assert result['old_deleted_removed'] == 0
+        assert result['failed_downloads_removed'] == 0
+        assert 'error' in result

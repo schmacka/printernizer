@@ -19,6 +19,7 @@ from pathlib import Path
 from datetime import datetime
 
 from src.database.database import Database
+from src.database.repositories.file_repository import FileRepository
 from src.services.event_service import EventService
 from src.services.file_watcher_service import FileWatcherService
 from src.services.file_discovery_service import FileDiscoveryService
@@ -800,6 +801,108 @@ class FileService:
         self._background_tasks.add(task)
         task.add_done_callback(self._background_tasks.discard)
         return task
+
+    async def cleanup_files(
+        self,
+        dry_run: bool = True,
+        deleted_days: int = 30,
+        failed_days: int = 7
+    ) -> Dict[str, Any]:
+        """
+        Clean up old file records from the database.
+
+        Removes file records that are:
+        - Marked as 'deleted' and older than deleted_days (default: 30 days)
+        - Marked as 'failed' and older than failed_days (default: 7 days)
+
+        This is a conservative cleanup that only removes database records,
+        not physical files. Physical file deletion should be handled separately.
+
+        Args:
+            dry_run: If True, only report what would be deleted without actually deleting.
+                    Default is True for safety.
+            deleted_days: Number of days after which deleted files are cleaned up (default: 30)
+            failed_days: Number of days after which failed files are cleaned up (default: 7)
+
+        Returns:
+            Dictionary with cleanup statistics:
+                - old_deleted_removed: Count of deleted file records removed
+                - failed_downloads_removed: Count of failed file records removed
+                - dry_run: Whether this was a dry run
+
+        Example:
+            >>> # Preview what would be deleted
+            >>> stats = await file_service.cleanup_files(dry_run=True)
+            >>> print(f"Would remove {stats['old_deleted_removed']} deleted files")
+
+            >>> # Actually perform cleanup
+            >>> stats = await file_service.cleanup_files(dry_run=False)
+            >>> print(f"Removed {stats['old_deleted_removed'] + stats['failed_downloads_removed']} file records")
+        """
+        try:
+            # Get repository access via database connection
+            file_repo = FileRepository(self.database.get_connection())
+
+            # Find old deleted files
+            old_deleted = await file_repo.get_old_deleted_files(days=deleted_days)
+            old_deleted_ids = [f['id'] for f in old_deleted]
+
+            # Find old failed files
+            old_failed = await file_repo.get_old_failed_files(days=failed_days)
+            old_failed_ids = [f['id'] for f in old_failed]
+
+            logger.info(
+                "File cleanup analysis complete",
+                old_deleted_count=len(old_deleted_ids),
+                old_failed_count=len(old_failed_ids),
+                dry_run=dry_run
+            )
+
+            old_deleted_removed = 0
+            failed_downloads_removed = 0
+
+            if not dry_run:
+                # Delete old deleted files
+                if old_deleted_ids:
+                    old_deleted_removed = await file_repo.delete_by_ids(old_deleted_ids)
+                    logger.info(
+                        "Cleaned up old deleted file records",
+                        count=old_deleted_removed
+                    )
+
+                # Delete old failed files
+                if old_failed_ids:
+                    failed_downloads_removed = await file_repo.delete_by_ids(old_failed_ids)
+                    logger.info(
+                        "Cleaned up old failed file records",
+                        count=failed_downloads_removed
+                    )
+
+                # Emit cleanup event
+                await self.event_service.emit_event("files_cleaned_up", {
+                    "old_deleted_removed": old_deleted_removed,
+                    "failed_downloads_removed": failed_downloads_removed,
+                    "timestamp": datetime.now().isoformat()
+                })
+            else:
+                # In dry run mode, report what would be deleted
+                old_deleted_removed = len(old_deleted_ids)
+                failed_downloads_removed = len(old_failed_ids)
+
+            return {
+                "old_deleted_removed": old_deleted_removed,
+                "failed_downloads_removed": failed_downloads_removed,
+                "dry_run": dry_run
+            }
+
+        except Exception as e:
+            logger.error("Failed to cleanup files", error=str(e), exc_info=True)
+            return {
+                "old_deleted_removed": 0,
+                "failed_downloads_removed": 0,
+                "dry_run": dry_run,
+                "error": str(e)
+            }
 
     async def shutdown(self):
         """

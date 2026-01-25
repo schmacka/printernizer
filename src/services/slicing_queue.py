@@ -24,8 +24,204 @@ from src.models.slicer import (
 )
 from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
+import re
 
 logger = structlog.get_logger()
+
+
+class GCodeMetadata:
+    """Container for extracted G-code metadata."""
+
+    def __init__(self):
+        self.estimated_print_time: Optional[int] = None  # seconds
+        self.filament_used: Optional[float] = None  # grams
+
+
+def parse_gcode_metadata(gcode_path: str) -> GCodeMetadata:
+    """
+    Parse G-code file to extract print metadata (time and filament usage).
+
+    Supports multiple slicers:
+    - PrusaSlicer: ; estimated printing time (normal mode) = 1h 30m 15s
+    - OrcaSlicer: ; estimated printing time (normal mode) = 1h 30m 15s
+    - BambuStudio: ; estimated printing time (normal mode) = 1h 30m 15s
+    - Generic: ; TIME:5415, ; total estimated time (s) = 5415
+
+    Args:
+        gcode_path: Path to the G-code file
+
+    Returns:
+        GCodeMetadata with extracted values (or None if not found)
+    """
+    metadata = GCodeMetadata()
+
+    # Patterns for print time extraction
+    time_patterns = [
+        # PrusaSlicer, OrcaSlicer, BambuStudio format: "1h 30m 15s", "30m 15s", "1d 2h 30m"
+        (r';\s*estimated printing time.*?=\s*(.+?)$', 'human'),
+        # Cura, some slicers: ";TIME:5415" (seconds)
+        (r';\s*TIME:\s*(\d+)', 'seconds'),
+        # Alternative format: "; total estimated time (s) = 5415"
+        (r';\s*total estimated time.*?=\s*(\d+)', 'seconds'),
+        # Another format: "; print_time = 5415"
+        (r';\s*print_time\s*=\s*(\d+)', 'seconds'),
+        # BambuStudio alternative: "; total layer number: ..." and "; estimated time: 1h 30m"
+        (r';\s*estimated time:\s*(.+?)$', 'human'),
+    ]
+
+    # Patterns for filament usage extraction
+    filament_patterns = [
+        # PrusaSlicer: "; filament used [g] = 15.23" or "; total filament used [g] = 15.23"
+        (r';\s*(?:total\s+)?filament used \[g\]\s*=\s*([\d.]+)', 'grams'),
+        # OrcaSlicer, BambuStudio: "; filament used [g] = 15.23"
+        (r';\s*filament used \[g\]\s*=\s*([\d.]+)', 'grams'),
+        # Some slicers report in mm: "; filament used [mm] = 5000.0"
+        # Convert mm to grams (approximate: 1m of 1.75mm filament ~ 2.98g for PLA)
+        (r';\s*filament used \[mm\]\s*=\s*([\d.]+)', 'mm'),
+        # Cura format: ";Filament used: 5.0m" or ";Filament used: 5000mm"
+        (r';\s*Filament used:\s*([\d.]+)\s*m(?:m)?', 'cura'),
+        # Alternative: "; filament_used = 15.23"
+        (r';\s*filament_used\s*=\s*([\d.]+)', 'grams'),
+        # Weight-based: "; filament weight = 15.23 g"
+        (r';\s*filament weight\s*=\s*([\d.]+)', 'grams'),
+    ]
+
+    try:
+        # Only read first and last parts of file (metadata usually at start/end)
+        with open(gcode_path, 'r', encoding='utf-8', errors='ignore') as f:
+            # Read first 500 lines (header comments)
+            header_lines = []
+            for i, line in enumerate(f):
+                if i >= 500:
+                    break
+                header_lines.append(line)
+
+            # Seek to end and read last 200 lines (footer comments)
+            f.seek(0, 2)  # End of file
+            file_size = f.tell()
+
+            footer_lines = []
+            if file_size > 50000:  # Only seek for large files
+                # Read last 50KB for footer
+                f.seek(max(0, file_size - 50000))
+                f.readline()  # Skip partial line
+                footer_lines = f.readlines()[-200:]
+            else:
+                # Small file - re-read entirely
+                f.seek(0)
+                all_lines = f.readlines()
+                footer_lines = all_lines[-200:] if len(all_lines) > 200 else []
+
+        # Combine lines for searching
+        lines_to_search = header_lines + footer_lines
+
+        # Search for print time
+        for pattern, format_type in time_patterns:
+            if metadata.estimated_print_time is not None:
+                break
+            for line in lines_to_search:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match:
+                    try:
+                        if format_type == 'seconds':
+                            metadata.estimated_print_time = int(match.group(1))
+                        elif format_type == 'human':
+                            metadata.estimated_print_time = _parse_human_time(match.group(1))
+
+                        if metadata.estimated_print_time is not None:
+                            logger.debug(
+                                "Extracted print time from G-code",
+                                pattern=pattern,
+                                raw_value=match.group(1),
+                                seconds=metadata.estimated_print_time
+                            )
+                            break
+                    except (ValueError, AttributeError) as e:
+                        logger.debug("Failed to parse time value", error=str(e))
+
+        # Search for filament usage
+        for pattern, format_type in filament_patterns:
+            if metadata.filament_used is not None:
+                break
+            for line in lines_to_search:
+                match = re.search(pattern, line, re.IGNORECASE)
+                if match:
+                    try:
+                        value = float(match.group(1))
+                        if format_type == 'grams':
+                            metadata.filament_used = value
+                        elif format_type == 'mm':
+                            # Convert mm to grams (1m of 1.75mm PLA ~ 2.98g)
+                            # Assuming 1.75mm filament and PLA density
+                            metadata.filament_used = (value / 1000.0) * 2.98
+                        elif format_type == 'cura':
+                            # Cura reports in meters or mm, convert to grams
+                            if value < 100:  # Likely meters
+                                metadata.filament_used = value * 2.98
+                            else:  # Likely mm
+                                metadata.filament_used = (value / 1000.0) * 2.98
+
+                        if metadata.filament_used is not None:
+                            logger.debug(
+                                "Extracted filament usage from G-code",
+                                pattern=pattern,
+                                raw_value=match.group(1),
+                                grams=metadata.filament_used
+                            )
+                            break
+                    except (ValueError, AttributeError) as e:
+                        logger.debug("Failed to parse filament value", error=str(e))
+
+    except Exception as e:
+        logger.warning("Failed to parse G-code metadata", path=gcode_path, error=str(e))
+
+    return metadata
+
+
+def _parse_human_time(time_str: str) -> Optional[int]:
+    """
+    Parse human-readable time string to seconds.
+
+    Formats supported:
+    - "1h 30m 15s"
+    - "1d 2h 30m 15s"
+    - "30m 15s"
+    - "15s"
+    - "1h30m" (no spaces)
+
+    Args:
+        time_str: Human-readable time string
+
+    Returns:
+        Time in seconds, or None if parsing fails
+    """
+    if not time_str:
+        return None
+
+    time_str = time_str.strip()
+    total_seconds = 0
+
+    # Pattern for extracting time components
+    # Matches: 1d, 2h, 30m, 15s
+    pattern = r'(\d+)\s*([dhms])'
+    matches = re.findall(pattern, time_str, re.IGNORECASE)
+
+    if not matches:
+        return None
+
+    multipliers = {
+        'd': 86400,  # days
+        'h': 3600,   # hours
+        'm': 60,     # minutes
+        's': 1       # seconds
+    }
+
+    for value, unit in matches:
+        unit = unit.lower()
+        if unit in multipliers:
+            total_seconds += int(value) * multipliers[unit]
+
+    return total_seconds if total_seconds > 0 else None
 
 
 class SlicingQueue(BaseService):
@@ -445,11 +641,18 @@ class SlicingQueue(BaseService):
             
             if not output_file.exists():
                 raise Exception("Output file was not created")
-            
-            # Parse G-code metadata (simplified)
-            # TODO: Extract estimated time and filament usage from G-code
-            
-            # Update job with results
+
+            # Parse G-code metadata to extract print time and filament usage
+            gcode_metadata = parse_gcode_metadata(str(output_file))
+
+            logger.info(
+                "Extracted G-code metadata",
+                job_id=job_id,
+                estimated_print_time=gcode_metadata.estimated_print_time,
+                filament_used=gcode_metadata.filament_used
+            )
+
+            # Update job with results including extracted metadata
             async with self.db.connection() as conn:
                 await conn.execute(
                     """
@@ -457,6 +660,8 @@ class SlicingQueue(BaseService):
                     SET output_file_path = ?,
                         status = ?,
                         progress = ?,
+                        estimated_print_time = ?,
+                        filament_used = ?,
                         completed_at = ?,
                         updated_at = ?
                     WHERE id = ?
@@ -465,6 +670,8 @@ class SlicingQueue(BaseService):
                         str(output_file),
                         SlicingJobStatus.COMPLETED.value,
                         100,
+                        gcode_metadata.estimated_print_time,
+                        gcode_metadata.filament_used,
                         datetime.now(),
                         datetime.now(),
                         job_id,
@@ -541,36 +748,120 @@ class SlicingQueue(BaseService):
         """
         Handle auto-upload of sliced file to printer.
 
+        After slicing completes, this method:
+        1. Gets the printer instance from the printer service
+        2. Uploads the G-code file to the printer
+        3. Optionally starts the print if auto_start is enabled
+
         Args:
             job_id: Job ID
         """
         try:
             job = await self.get_job(job_id)
-            
+
             if not job.output_file_path or not job.target_printer_id:
+                logger.warning(
+                    "Cannot auto-upload: missing output file or target printer",
+                    job_id=job_id,
+                    has_output=bool(job.output_file_path),
+                    has_printer=bool(job.target_printer_id)
+                )
                 return
-            
-            if not self.file_service:
-                logger.warning("File service not available for auto-upload")
+
+            if not self.printer_service:
+                logger.warning("Printer service not available for auto-upload")
                 return
-            
+
             logger.info(
                 "Auto-uploading sliced file",
                 job_id=job_id,
-                printer_id=job.target_printer_id
+                printer_id=job.target_printer_id,
+                output_file=job.output_file_path
             )
-            
-            # TODO: Implement file upload to printer
-            # await self.file_service.upload_to_printer(
-            #     job.target_printer_id,
-            #     job.output_file_path
-            # )
-            
+
+            # Get the printer instance
+            printer = await self.printer_service.get_printer_instance(job.target_printer_id)
+            if not printer:
+                logger.error(
+                    "Could not get printer instance for auto-upload",
+                    job_id=job_id,
+                    printer_id=job.target_printer_id
+                )
+                return
+
+            # Determine remote filename (use basename of output file)
+            output_path = Path(job.output_file_path)
+            remote_name = output_path.name
+
+            # Upload the file to the printer
+            upload_success = await printer.upload_file(
+                local_path=str(output_path),
+                remote_name=remote_name
+            )
+
+            if not upload_success:
+                logger.error(
+                    "Auto-upload failed",
+                    job_id=job_id,
+                    printer_id=job.target_printer_id,
+                    filename=remote_name
+                )
+                await self.event_service.emit("slicing_job.upload_failed", {
+                    "job_id": job_id,
+                    "printer_id": job.target_printer_id,
+                    "filename": remote_name
+                })
+                return
+
+            logger.info(
+                "Auto-upload successful",
+                job_id=job_id,
+                printer_id=job.target_printer_id,
+                filename=remote_name
+            )
+
+            await self.event_service.emit("slicing_job.uploaded", {
+                "job_id": job_id,
+                "printer_id": job.target_printer_id,
+                "filename": remote_name
+            })
+
             # Handle auto-start if enabled
-            if job.auto_start and self.printer_service:
-                # TODO: Implement auto-start
-                pass
-            
+            if job.auto_start:
+                logger.info(
+                    "Auto-starting print",
+                    job_id=job_id,
+                    printer_id=job.target_printer_id,
+                    filename=remote_name
+                )
+
+                start_success = await printer.start_print(remote_name)
+
+                if start_success:
+                    logger.info(
+                        "Auto-start successful",
+                        job_id=job_id,
+                        printer_id=job.target_printer_id,
+                        filename=remote_name
+                    )
+                    await self.event_service.emit("slicing_job.print_started", {
+                        "job_id": job_id,
+                        "printer_id": job.target_printer_id,
+                        "filename": remote_name
+                    })
+                else:
+                    logger.error(
+                        "Auto-start failed",
+                        job_id=job_id,
+                        printer_id=job.target_printer_id,
+                        filename=remote_name
+                    )
+                    await self.event_service.emit("slicing_job.print_start_failed", {
+                        "job_id": job_id,
+                        "printer_id": job.target_printer_id,
+                        "filename": remote_name
+                    })
+
         except Exception as e:
             logger.error("Auto-upload failed", job_id=job_id, error=str(e))
 

@@ -304,11 +304,90 @@ class TestFileAPI:
             data = response.json()
             assert 'files' in data or 'success' in data
     
-    @pytest.mark.skip(reason="File cleanup endpoint not yet implemented - future feature")
-    def test_post_file_cleanup(self, client):
-        """Test POST /api/v1/files/cleanup - Clean up old downloaded files"""
-        # This test is for a future feature - automated cleanup endpoint
-        pass
+    def test_delete_file_cleanup_dry_run(self, client, test_app):
+        """Test DELETE /api/v1/files/cleanup in dry run mode (default)"""
+        # Configure mock file service to return cleanup statistics
+        test_app.state.file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 5,
+            'failed_downloads_removed': 2,
+            'dry_run': True
+        })
+
+        response = client.delete("/api/v1/files/cleanup")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert 'statistics' in data['data']
+        assert data['data']['statistics']['dry_run'] == True
+        assert data['data']['statistics']['old_deleted_removed'] == 5
+        assert data['data']['statistics']['failed_downloads_removed'] == 2
+
+    def test_delete_file_cleanup_actual(self, client, test_app):
+        """Test DELETE /api/v1/files/cleanup with actual deletion"""
+        test_app.state.file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 3,
+            'failed_downloads_removed': 1,
+            'dry_run': False
+        })
+
+        response = client.delete("/api/v1/files/cleanup?dry_run=false")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['statistics']['dry_run'] == False
+        assert data['data']['statistics']['old_deleted_removed'] == 3
+
+    def test_delete_file_cleanup_custom_days(self, client, test_app):
+        """Test DELETE /api/v1/files/cleanup with custom day thresholds"""
+        test_app.state.file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 0,
+            'failed_downloads_removed': 0,
+            'dry_run': True
+        })
+
+        response = client.delete("/api/v1/files/cleanup?deleted_days=60&failed_days=14")
+
+        assert response.status_code == 200
+        # Verify the service was called with custom parameters
+        test_app.state.file_service.cleanup_files.assert_called_with(
+            dry_run=True,
+            deleted_days=60,
+            failed_days=14
+        )
+
+    def test_delete_file_cleanup_no_files(self, client, test_app):
+        """Test DELETE /api/v1/files/cleanup when there are no files to clean"""
+        test_app.state.file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 0,
+            'failed_downloads_removed': 0,
+            'dry_run': False
+        })
+
+        response = client.delete("/api/v1/files/cleanup?dry_run=false")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['data']['statistics']['old_deleted_removed'] == 0
+        assert data['data']['statistics']['failed_downloads_removed'] == 0
+
+    def test_delete_file_cleanup_error(self, client, test_app):
+        """Test DELETE /api/v1/files/cleanup handles errors"""
+        test_app.state.file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 0,
+            'failed_downloads_removed': 0,
+            'dry_run': True,
+            'error': 'Database connection failed'
+        })
+
+        response = client.delete("/api/v1/files/cleanup")
+
+        assert response.status_code == 500
+        data = response.json()
+        # Error response uses standardized format with 'message' key
+        assert data['status'] == 'error'
+        assert 'Database connection failed' in data['message']
 
 
 class TestFileBusinessLogic:

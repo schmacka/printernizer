@@ -2203,3 +2203,167 @@ class BambuLabPrinter(BasePrinter):
                 error_type=type(e).__name__
             )
             return None
+
+    async def upload_file(self, local_path: str, remote_name: str) -> bool:
+        """
+        Upload a file to the Bambu Lab printer's storage.
+
+        Uses FTP to upload to the /cache directory which is the standard
+        location for print files on Bambu Lab printers.
+
+        Args:
+            local_path: Full path to the local file to upload
+            remote_name: Name to use for the file on the printer
+
+        Returns:
+            bool: True if upload succeeded, False otherwise
+        """
+        if not self.is_connected:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+
+        logger.info(
+            "Uploading file to Bambu Lab printer",
+            printer_id=self.printer_id,
+            local_path=local_path,
+            remote_name=remote_name
+        )
+
+        # Initialize FTP service on-demand if not already done
+        if not self.ftp_service:
+            try:
+                self.ftp_service = BambuFTPService(self.ip_address, self.access_code)
+                logger.info("Initialized FTP service for file upload",
+                           printer_id=self.printer_id)
+            except Exception as e:
+                logger.error("Failed to initialize FTP service for upload",
+                            printer_id=self.printer_id, error=str(e))
+                return False
+
+        try:
+            # Upload to /cache directory (standard location for Bambu Lab print files)
+            success = await self.ftp_service.upload_file(
+                local_path=local_path,
+                remote_filename=remote_name,
+                directory="/cache"
+            )
+
+            if success:
+                logger.info(
+                    "File upload successful",
+                    printer_id=self.printer_id,
+                    remote_name=remote_name
+                )
+            else:
+                logger.error(
+                    "File upload failed",
+                    printer_id=self.printer_id,
+                    remote_name=remote_name
+                )
+
+            return success
+
+        except Exception as e:
+            logger.error(
+                "Error uploading file to Bambu Lab printer",
+                printer_id=self.printer_id,
+                local_path=local_path,
+                remote_name=remote_name,
+                error=str(e)
+            )
+            return False
+
+    async def start_print(self, filename: str) -> bool:
+        """
+        Start printing a file that exists on the Bambu Lab printer.
+
+        Uses the bambulabs_api library to send a print command for a file
+        in the /cache directory.
+
+        Args:
+            filename: Name of the file on the printer to print (in /cache directory)
+
+        Returns:
+            bool: True if print started successfully, False otherwise
+        """
+        if not self.is_connected:
+            raise PrinterConnectionError(self.printer_id, "Not connected")
+
+        logger.info(
+            "Starting print on Bambu Lab printer",
+            printer_id=self.printer_id,
+            filename=filename
+        )
+
+        try:
+            if self.use_bambu_api and self.bambu_client:
+                # Use bambulabs_api print_file method if available
+                if hasattr(self.bambu_client, 'print_file'):
+                    # Wrap synchronous call in executor
+                    loop = asyncio.get_event_loop()
+                    result = await loop.run_in_executor(
+                        None,
+                        lambda: self.bambu_client.print_file(filename)
+                    )
+
+                    if result:
+                        logger.info(
+                            "Print started successfully",
+                            printer_id=self.printer_id,
+                            filename=filename
+                        )
+                        return True
+                    else:
+                        logger.warning(
+                            "Print command returned false",
+                            printer_id=self.printer_id,
+                            filename=filename
+                        )
+                        return False
+
+                # Alternative: Use start_print_3mf or similar method
+                elif hasattr(self.bambu_client, 'start_print_3mf'):
+                    loop = asyncio.get_event_loop()
+                    result = await loop.run_in_executor(
+                        None,
+                        lambda: self.bambu_client.start_print_3mf(f"cache/{filename}")
+                    )
+
+                    if result:
+                        logger.info(
+                            "Print started via start_print_3mf",
+                            printer_id=self.printer_id,
+                            filename=filename
+                        )
+                        return True
+                    else:
+                        logger.warning(
+                            "start_print_3mf returned false",
+                            printer_id=self.printer_id,
+                            filename=filename
+                        )
+                        return False
+
+                else:
+                    logger.error(
+                        "No print method available in bambulabs_api client",
+                        printer_id=self.printer_id,
+                        available_methods=[m for m in dir(self.bambu_client) if 'print' in m.lower()]
+                    )
+                    return False
+
+            else:
+                # Direct MQTT mode - would need to send print command via MQTT
+                logger.error(
+                    "Start print not supported in direct MQTT mode",
+                    printer_id=self.printer_id
+                )
+                return False
+
+        except Exception as e:
+            logger.error(
+                "Error starting print on Bambu Lab printer",
+                printer_id=self.printer_id,
+                filename=filename,
+                error=str(e)
+            )
+            return False

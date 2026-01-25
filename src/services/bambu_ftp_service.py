@@ -553,6 +553,83 @@ class BambuFTPService:
                         error=str(e))
             return None
 
+    async def upload_file(self, local_path: str, remote_filename: str,
+                          directory: str = "/cache") -> bool:
+        """
+        Upload a file to the FTP server.
+
+        Args:
+            local_path: Local path of the file to upload
+            remote_filename: Name to use for the file on the server
+            directory: Remote directory to upload to (default: /cache)
+
+        Returns:
+            True if upload successful, False otherwise
+        """
+        logger.info("Uploading file via FTP",
+                   ip=self.ip_address,
+                   local_path=local_path,
+                   remote_file=remote_filename,
+                   directory=directory)
+
+        try:
+            # Verify local file exists
+            local_file = Path(local_path)
+            if not local_file.exists():
+                logger.error("Local file not found for upload",
+                           local_path=local_path)
+                return False
+
+            file_size = local_file.stat().st_size
+
+            async with self.ftp_connection() as ftp:
+                def _sync_upload():
+                    try:
+                        # Change to target directory
+                        ftp.cwd(directory)
+
+                        # Upload the file
+                        with open(local_path, 'rb') as local_file_handle:
+                            ftp.storbinary(f'STOR {remote_filename}', local_file_handle)
+
+                        return True
+
+                    except ftplib.error_perm as e:
+                        logger.error("FTP permission error during upload",
+                                   ip=self.ip_address,
+                                   remote_file=remote_filename,
+                                   error=str(e))
+                        return False
+                    except Exception as e:
+                        logger.error("FTP upload error",
+                                   ip=self.ip_address,
+                                   remote_file=remote_filename,
+                                   error=str(e))
+                        return False
+
+                loop = asyncio.get_event_loop()
+                success = await loop.run_in_executor(None, _sync_upload)
+
+                if success:
+                    logger.info("FTP upload successful",
+                               ip=self.ip_address,
+                               remote_file=remote_filename,
+                               size=file_size)
+                    return True
+                else:
+                    logger.error("FTP upload failed",
+                               ip=self.ip_address,
+                               remote_file=remote_filename)
+                    return False
+
+        except Exception as e:
+            logger.error("FTP upload operation failed",
+                        ip=self.ip_address,
+                        local_path=local_path,
+                        remote_file=remote_filename,
+                        error=str(e))
+            return False
+
     async def test_connection(self) -> Tuple[bool, str]:
         """
         Test the FTP connection without performing any operations.
