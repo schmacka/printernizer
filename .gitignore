@@ -211,4 +211,5 @@ addon_config/
 # Local development overrides
 docker-compose.local.yml
 config.local.json
-settings.local.jsonexports/
+settings.local.json
+exports/
