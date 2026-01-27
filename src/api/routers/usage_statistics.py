@@ -351,5 +351,5 @@ async def get_statistics_status(request: Request) -> Dict[str, Any]:
             "opted_in": False,
             "total_events": 0,
             "collection_active": False,
-            "error": str(e)
+            "error": "Failed to retrieve statistics status"
         }

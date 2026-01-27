@@ -883,7 +883,7 @@ async def send_weekly_report(
         logger.error(f"Failed to send weekly report: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate or send weekly report: {str(e)}"
+            detail="Failed to generate or send weekly report"
         )
 
 
@@ -949,7 +949,7 @@ async def send_monthly_report(
         logger.error(f"Failed to send monthly report: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate or send monthly report: {str(e)}"
+            detail="Failed to generate or send monthly report"
         )
 
 

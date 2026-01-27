@@ -437,7 +437,8 @@ class ConfigService:
             config._validate_config()  # This will raise ValueError if invalid
             return {"valid": True, "message": "Configuration is valid"}
         except ValueError as e:
-            return {"valid": False, "error": str(e)}
+            logger.warning("Printer configuration validation failed", printer_id=printer_id, error=str(e))
+            return {"valid": False, "error": "Printer configuration is invalid. Check IP address, access code, and serial number."}
             
     def get_business_settings(self) -> Dict[str, Any]:
         """Get German business-specific settings."""
@@ -494,7 +495,8 @@ class ConfigService:
             return {"valid": True, "message": "Watch folder is valid"}
 
         except Exception as e:
-            return {"valid": False, "error": f"Invalid path: {str(e)}"}
+            logger.error("Error validating watch folder", path=folder_path, error=str(e))
+            return {"valid": False, "error": "Invalid path provided"}
 
     def validate_downloads_path(self, folder_path: str) -> Dict[str, Any]:
         """Validate the downloads path - check if it's available, writable, and deletable."""
@@ -509,7 +511,8 @@ class ConfigService:
                     path.mkdir(parents=True, exist_ok=True)
                     logger.info("Created downloads directory", path=str(path))
                 except Exception as e:
-                    return {"valid": False, "error": f"Cannot create directory: {str(e)}"}
+                    logger.error("Cannot create downloads directory", path=folder_path, error=str(e))
+                    return {"valid": False, "error": "Cannot create directory"}
 
             # Check if it's a directory
             if not path.is_dir():
@@ -536,11 +539,12 @@ class ConfigService:
                 return {"valid": True, "message": "Download path is valid and writable"}
 
             except Exception as e:
-                return {"valid": False, "error": f"Cannot write or delete files: {str(e)}"}
+                logger.error("Cannot write or delete files in downloads path", path=folder_path, error=str(e))
+                return {"valid": False, "error": "Cannot write or delete files in this directory"}
 
         except Exception as e:
             logger.error("Error validating downloads path", path=folder_path, error=str(e))
-            return {"valid": False, "error": f"Invalid path: {str(e)}"}
+            return {"valid": False, "error": "Invalid path provided"}
 
     def validate_library_path(self, folder_path: str) -> Dict[str, Any]:
         """Validate the library path - check if it's available, writable, and deletable."""
@@ -555,7 +559,8 @@ class ConfigService:
                     path.mkdir(parents=True, exist_ok=True)
                     logger.info("Created library directory", path=str(path))
                 except Exception as e:
-                    return {"valid": False, "error": f"Cannot create directory: {str(e)}"}
+                    logger.error("Cannot create library directory", path=folder_path, error=str(e))
+                    return {"valid": False, "error": "Cannot create directory"}
 
             # Check if it's a directory
             if not path.is_dir():
@@ -582,11 +587,12 @@ class ConfigService:
                 return {"valid": True, "message": "Library path is valid and writable"}
 
             except Exception as e:
-                return {"valid": False, "error": f"Cannot write or delete files: {str(e)}"}
+                logger.error("Cannot write or delete files in library path", path=folder_path, error=str(e))
+                return {"valid": False, "error": "Cannot write or delete files in this directory"}
 
         except Exception as e:
             logger.error("Error validating library path", path=folder_path, error=str(e))
-            return {"valid": False, "error": f"Invalid path: {str(e)}"}
+            return {"valid": False, "error": "Invalid path provided"}
 
     async def get_watch_folder_settings(self) -> Dict[str, Any]:
         """Get all watch folder related settings."""

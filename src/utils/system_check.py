@@ -66,5 +66,5 @@ def check_ffmpeg() -> Dict[str, Any]:
         return {
             'installed': False,
             'version': None,
-            'error': f"Unexpected error: {str(e)}"
+            'error': "Unexpected error while checking ffmpeg"
         }

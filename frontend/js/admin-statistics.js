@@ -43,7 +43,17 @@ class AdminStatisticsManager {
      */
     loadConfig() {
         this.aggregationUrl = localStorage.getItem('aggregation_service_url');
-        this.apiKey = localStorage.getItem('aggregation_api_key');
+        this.apiKey = sessionStorage.getItem('aggregation_api_key');
+
+        // Migrate API key from localStorage if present (one-time cleanup)
+        if (!this.apiKey) {
+            const legacyKey = localStorage.getItem('aggregation_api_key');
+            if (legacyKey) {
+                this.apiKey = legacyKey;
+                sessionStorage.setItem('aggregation_api_key', legacyKey);
+                localStorage.removeItem('aggregation_api_key');
+            }
+        }
 
         // Populate form fields if elements exist
         const urlInput = document.getElementById('aggregationUrl');
@@ -77,7 +87,7 @@ class AdminStatisticsManager {
             localStorage.setItem('aggregation_service_url', this.aggregationUrl);
         }
         if (this.apiKey) {
-            localStorage.setItem('aggregation_api_key', this.apiKey);
+            sessionStorage.setItem('aggregation_api_key', this.apiKey);
         }
     }
 
@@ -645,7 +655,7 @@ class AdminStatisticsManager {
     disconnect() {
         // Clear stored credentials
         localStorage.removeItem('aggregation_service_url');
-        localStorage.removeItem('aggregation_api_key');
+        sessionStorage.removeItem('aggregation_api_key');
 
         // Reset UI
         const dashboardEl = document.getElementById('globalStatsDashboard');
