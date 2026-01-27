@@ -817,9 +817,10 @@ async def send_test_email(
             "recipients": result.get("recipients", [])
         }
     else:
+        logger.error("Failed to send test email", error=result.get("error"))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=result.get("error", "Failed to send test email")
+            detail="Failed to send test email"
         )
 
 
@@ -872,9 +873,10 @@ async def send_weekly_report(
                 "recipients": result.get("recipients", [])
             }
         else:
+            logger.error("Failed to send weekly report", error=result.get("error"))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result.get("error", "Failed to send weekly report")
+                detail="Failed to send weekly report"
             )
 
     except HTTPException:
@@ -938,9 +940,10 @@ async def send_monthly_report(
                 "recipients": result.get("recipients", [])
             }
         else:
+            logger.error("Failed to send monthly report", error=result.get("error"))
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result.get("error", "Failed to send monthly report")
+                detail="Failed to send monthly report"
             )
 
     except HTTPException:
