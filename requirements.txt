@@ -75,7 +75,7 @@ scipy>=1.11.0
 networkx>=3.0  # Required by trimesh for 3MF mesh processing
 
 # Security Headers and Middleware
-python-multipart==0.0.18
+python-multipart==0.0.22
 # cryptography>=42.0.0  # Temporarily disabled for Python 3.13 compatibility
 
 # URL Parsing and Web Content Extraction (for Ideas feature)
