@@ -74,6 +74,14 @@ class NavigationPreferences {
                 required: false
             },
             {
+                id: 'tools',
+                icon: '🛠️',
+                label: 'Tools',
+                description: 'Externe Tools und Helfer für den 3D-Druck',
+                visible: true,
+                required: false
+            },
+            {
                 id: 'settings',
                 icon: '⚙️',
                 label: 'Einstellungen',

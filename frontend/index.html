@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="css/themes/theme-brutalist.css">
     <link rel="stylesheet" href="css/themes/theme-retro.css">
     <link rel="stylesheet" href="css/admin-statistics.css">
+    <link rel="stylesheet" href="css/tools.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
     <!-- Logger must be loaded before theme-switcher -->
     <script src="js/logger.js"></script>
@@ -78,6 +79,11 @@
                     <span class="nav-icon" aria-hidden="true">💡</span>
                     Ideen
                 </a>
+                <a href="#tools" class="nav-link" data-page="tools"
+                   role="button" aria-describedby="nav-tools-desc">
+                    <span class="nav-icon" aria-hidden="true">🛠️</span>
+                    Tools
+                </a>
                 <a href="#settings" class="nav-link" data-page="settings"
                    role="button" aria-describedby="nav-settings-desc">
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
@@ -98,6 +104,7 @@
                 <div id="nav-library-desc">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
                 <div id="nav-materials-desc">Filament-Verwaltung und Bestandsübersicht</div>
                 <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
+                <div id="nav-tools-desc">Externe Tools und Helfer für den 3D-Druck</div>
                 <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
                 <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
             </div>
@@ -1974,6 +1981,28 @@
             </div>
         </div>
 
+        <!-- Tools & Helpers Page -->
+        <div id="tools" class="page">
+            <div class="page-header">
+                <h1>Tools & Helpers</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="toolsCategoryFilter" class="filter-select">
+                            <option value="">All Categories</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <p class="tools-info-text">A curated collection of external tools and resources for 3D printing. All links open in a new tab.</p>
+
+            <div class="section">
+                <div class="tools-grid" id="toolsGrid">
+                    <!-- Tool cards rendered by JavaScript -->
+                </div>
+            </div>
+        </div>
+
         <!-- Debug Page -->
         <div id="debug" class="page">
             <div class="page-header">
@@ -2867,6 +2896,7 @@
     <script src="js/enhanced-metadata.js"></script>
     <script src="js/files.js"></script>
     <script src="js/ideas.js"></script>
+    <script src="js/tools.js"></script>
     <script src="js/settings.js?v=1.1"></script>
     <script src="js/notifications.js?v=1.0"></script>
     <script src="js/usage-statistics.js"></script>

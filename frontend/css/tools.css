@@ -1,0 +1,105 @@
+/* Tools & Helpers Page Styles */
+
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-6);
+    margin-bottom: var(--spacing-8);
+}
+
+.tool-card {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tool-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.tool-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tool-card .card-header h3 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+}
+
+.tool-card .card-icon {
+    font-size: 1.5rem;
+}
+
+.tool-card .card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: var(--spacing-3);
+}
+
+.tool-category-tag {
+    display: inline-block;
+    padding: var(--spacing-1) var(--spacing-3);
+    background-color: var(--primary-50, rgba(37, 99, 235, 0.1));
+    color: var(--primary-color);
+    border-radius: var(--radius-xl);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    width: fit-content;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tool-description {
+    color: var(--gray-600);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    flex: 1;
+    margin: 0;
+}
+
+.tool-open-btn {
+    align-self: flex-start;
+    margin-top: auto;
+    text-decoration: none;
+}
+
+.tools-info-text {
+    color: var(--gray-500);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-6);
+}
+
+/* Empty state */
+.tools-grid .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--spacing-12);
+    color: var(--gray-500);
+}
+
+.tools-grid .empty-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: var(--spacing-4);
+}
+
+/* Dark theme */
+[data-theme="dark"] .tool-category-tag {
+    background-color: rgba(37, 99, 235, 0.2);
+}
+
+[data-theme="dark"] .tool-description {
+    color: var(--gray-400);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tools-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-4);
+    }
+}

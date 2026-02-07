@@ -12,6 +12,7 @@ const AVAILABLE_PAGES = [
     'library',
     'materials',
     'ideas',
+    'tools',
     'settings',
     'debug'
 ];
@@ -31,6 +32,7 @@ class PrinternizerApp {
             library: typeof libraryManager !== 'undefined' ? libraryManager : null,
             materials: typeof materialsManager !== 'undefined' ? materialsManager : null,
             ideas: typeof initializeIdeas !== 'undefined' ? { init: initializeIdeas } : null,
+            tools: typeof toolsManager !== 'undefined' ? toolsManager : null,
             settings: typeof settingsManager !== 'undefined' ? settingsManager : null,
             debug: typeof debugManager !== 'undefined' ? debugManager : null
         };

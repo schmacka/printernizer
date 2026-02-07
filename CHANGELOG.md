@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.0] - 2026-02-07
+
+### Added
+- **Tools & Helpers Page**: New navigation section with curated external links for 3D printing
+  - Gridfinity Layout Tool for designing storage layouts
+  - ToolTrace AI for print settings and troubleshooting assistance
+  - Official 3DBenchy download for printer calibration
+- Category filtering for tools page
+
 ## [2.28.3] - 2026-01-17
 
 ### Fixed
