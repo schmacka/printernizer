@@ -7,7 +7,7 @@
 [![Documentation](https://img.shields.io/badge/docs-MkDocs-blue)](https://schmacka.github.io/printernizer/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**Professional 3D Printer Management System for Bambu Lab & Prusa Printers**
+**Powerful 3D Printer Management System for Bambu Lab & Prusa Printers**
 
 Enterprise-grade fleet management with real-time monitoring, automated job tracking, file management, and business analytics. Perfect for 3D printing services, maker spaces, educational institutions, and production environments.
 
@@ -26,7 +26,7 @@ Printernizer is a **production-ready** 3D printer management system that transfo
 - **🔄 Real-Time Monitoring** - Live printer status, temperatures, and job progress via MQTT & HTTP APIs
 - **📁 Unified File Management** - Seamless file handling across all printers with one-click downloads
 - **🤖 Automated Job Tracking** - Automatically detect and track print jobs across your printer fleet
-- **📊 Business Analytics** - Professional dashboards with cost tracking, material consumption, and reporting
+- **📊 Business Analytics** - Intuitive dashboards with cost tracking, material consumption, and reporting
 - **⚡ Instant Updates** - WebSocket-powered live dashboard with zero page refresh
 - **🌐 Multi-Deployment** - Docker, Home Assistant, Raspberry Pi, or standalone Python
 - **📱 Mobile Ready** - Fully responsive interface works on any device
@@ -125,7 +125,7 @@ Full functionality on mobile devices with optimized responsive layout.
 
 ### 💼 Business & Analytics Features
 
-- **Professional Dashboard** - Clean, business-ready interface with today's statistics
+- **Smart Dashboard** - Clean, easy-to-use interface with today's statistics
 - **Cost Calculations** - Material cost, power consumption, time-based pricing
 - **VAT Support** - Built-in VAT calculations (configurable rate, default 19%)
 - **Material Tracking** - Monitor material usage and consumption
@@ -648,23 +648,25 @@ Have a feature request? [Open an issue](https://github.com/schmacka/printernizer
 
 ## 📄 License
 
-Printernizer is **dual-licensed** to balance open source collaboration with sustainable development:
+Printernizer is **free for private use** and requires a license for professional/commercial use:
 
-### Open Source License
+### Free for Private Users
 
-**AGPL-3.0** for open source projects, personal use, and contributions.
+**AGPL-3.0** - Use Printernizer at home for your personal 3D printing projects at no cost.
 
-- ✅ Free to use, modify, and distribute under AGPL terms
-- ✅ Perfect for developers, researchers, and open source projects
+- ✅ **Free forever** for personal, non-commercial use
+- ✅ Manage your home printers without restrictions
+- ✅ Full access to all features
 - ✅ Community contributions welcome
 
 ### Commercial License
 
-Required for commercial SaaS, enterprise deployments, and proprietary modifications.
+**Required for professional and commercial use** - businesses, print farms, makerspaces, educational institutions, and commercial services.
 
-- 🏢 Removes AGPL obligations
-- 🏢 Commercial use rights
-- 🏢 Technical support and priority updates
+- 🏢 Print farms and production environments
+- 🏢 Commercial 3D printing services
+- 🏢 Makerspaces and educational institutions
+- 🏢 Any revenue-generating use
 - 📧 Contact: sebastian@porcus3d.de
 
 See the [LICENSE](LICENSE) file for complete terms and [SECURITY.md](SECURITY.md) for security policies.
@@ -724,7 +726,7 @@ If you find Printernizer useful, please consider giving it a ⭐ on GitHub!
 
 <div align="center">
 
-**Printernizer** - Professional 3D Printer Management Made Simple
+**Printernizer** - Powerful 3D Printer Management Made Simple
 
 [Website](https://schmacka.github.io/printernizer/) • [Documentation](https://schmacka.github.io/printernizer/) • [GitHub](https://github.com/schmacka/printernizer) • [Releases](https://github.com/schmacka/printernizer/releases)
 
