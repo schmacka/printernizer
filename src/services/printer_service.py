@@ -163,6 +163,9 @@ class PrinterService:
                     current_status = PrinterStatus.ONLINE
                     last_seen = datetime.now()
 
+            config = self.config_service.get_printer(printer_id)
+            webcam_url = config.webcam_url if config else None
+
             printer = Printer(
                 id=printer_id,
                 name=instance.name,
@@ -171,6 +174,7 @@ class PrinterService:
                 api_key=getattr(instance, 'api_key', None),
                 access_code=getattr(instance, 'access_code', None),
                 serial_number=getattr(instance, 'serial_number', None),
+                webcam_url=webcam_url,
                 is_active=True,
                 status=current_status,
                 last_seen=last_seen
@@ -208,6 +212,9 @@ class PrinterService:
             else:
                 current_status = PrinterStatus.ONLINE
 
+        config = self.config_service.get_printer(printer_id)
+        webcam_url = config.webcam_url if config else None
+
         return Printer(
             id=printer_id,
             name=instance.name,
@@ -216,6 +223,7 @@ class PrinterService:
             api_key=getattr(instance, 'api_key', None),
             access_code=getattr(instance, 'access_code', None),
             serial_number=getattr(instance, 'serial_number', None),
+            webcam_url=webcam_url,
             is_active=True,
             status=current_status,
             last_seen=last_seen

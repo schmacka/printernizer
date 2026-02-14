@@ -59,9 +59,9 @@ class ApiClient {
                 const errorData = await response.json().catch(() => ({}));
                 throw new ApiError(
                     response.status,
-                    errorData.error?.message || CONFIG.ERROR_MESSAGES.SERVER_ERROR,
-                    errorData.error?.code,
-                    errorData.error?.details
+                    errorData.message || errorData.detail || errorData.error?.message || CONFIG.ERROR_MESSAGES.SERVER_ERROR,
+                    errorData.error_code || errorData.error?.code,
+                    errorData.details || errorData.error?.details
                 );
             }
 
@@ -203,8 +203,11 @@ class ApiClient {
         return this.put(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), printerData);
     }
 
-    async deletePrinter(printerId) {
-        return this.delete(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId));
+    async deletePrinter(printerId, { force = false } = {}) {
+        const endpoint = force
+            ? `${CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId)}?force=true`
+            : CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId);
+        return this.delete(endpoint);
     }
 
     async testPrinterConnection(printerConfig) {

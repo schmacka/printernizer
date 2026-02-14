@@ -1220,15 +1220,35 @@ class PrinterManager {
     async deletePrinter(printerId) {
         const printer = this.printers.get(printerId);
         if (!printer) return;
-        
+
         const confirmed = confirm(`Möchten Sie den Drucker "${printer.data.name}" wirklich löschen?`);
         if (!confirmed) return;
-        
+
         try {
             await api.deletePrinter(printerId);
             showToast('success', 'Erfolg', CONFIG.SUCCESS_MESSAGES.PRINTER_REMOVED);
             this.loadPrinters();
         } catch (error) {
+            // If blocked by active/stale jobs, offer force deletion
+            if (error instanceof ApiError && error.status === 409) {
+                const forceConfirmed = confirm(
+                    `${error.message}\n\nMöchten Sie den Drucker trotzdem löschen? (Verbleibende Aufträge werden abgebrochen)`
+                );
+                if (forceConfirmed) {
+                    try {
+                        await api.deletePrinter(printerId, { force: true });
+                        showToast('success', 'Erfolg', CONFIG.SUCCESS_MESSAGES.PRINTER_REMOVED);
+                        this.loadPrinters();
+                        return;
+                    } catch (forceError) {
+                        Logger.error('Failed to force-delete printer:', forceError);
+                        const message = forceError instanceof ApiError ? forceError.getUserMessage() : 'Fehler beim Löschen des Druckers';
+                        showToast('error', 'Fehler', message);
+                        return;
+                    }
+                }
+                return;
+            }
             Logger.error('Failed to delete printer:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Löschen des Druckers';
             showToast('error', 'Fehler', message);

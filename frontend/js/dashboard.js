@@ -204,7 +204,7 @@ class Dashboard {
             // Load statistics from API
             const [stats, printers] = await Promise.all([
                 api.getStatisticsOverview('day'),
-                api.getPrinters({ active: true })
+                api.getPrinters({ is_active: true })
             ]);
 
             // Update overview cards
@@ -229,7 +229,8 @@ class Dashboard {
             // Handle printers - API returns {printers: [], total_count: N} or array directly
             const printersData = printers?.printers || printers;
             const printersArray = Array.isArray(printersData) ? printersData : [];
-            const onlineCount = printersArray.filter(p => p.status === 'online').length || 0;
+            const onlineStatuses = ['online', 'printing', 'paused'];
+            const onlineCount = printersArray.filter(p => onlineStatuses.includes(p.status)).length || 0;
             const totalCount = printersArray.length || 0;
             
             printerCountEl.textContent = `${onlineCount}/${totalCount}`;
@@ -422,21 +423,41 @@ class Dashboard {
         try {
             const recentJobsContainer = document.getElementById('recentJobs');
             if (!recentJobsContainer) return;
-            
+
             // Show loading state
             setLoadingState(recentJobsContainer, true);
-            
-            // Load recent jobs from API
-            const response = await api.getJobs({
+
+            // Find the section heading element
+            const sectionHeader = recentJobsContainer.closest('.section')?.querySelector('.section-header h2');
+
+            // First try to load active/running jobs
+            let response = await api.getJobs({
                 limit: 5,
+                job_status: 'running',
                 order_by: 'created_at',
                 order_dir: 'desc'
             });
-            
+
+            let isShowingActive = response.jobs && response.jobs.length > 0;
+
+            // Fall back to recent jobs if no running ones
+            if (!isShowingActive) {
+                response = await api.getJobs({
+                    limit: 5,
+                    order_by: 'created_at',
+                    order_dir: 'desc'
+                });
+            }
+
+            // Update section heading
+            if (sectionHeader) {
+                sectionHeader.textContent = isShowingActive ? 'Aktuelle Aufträge' : 'Letzte Aufträge';
+            }
+
             if (response.jobs && response.jobs.length > 0) {
                 // Create job preview cards
                 recentJobsContainer.innerHTML = '';
-                
+
                 response.jobs.forEach(job => {
                     const jobPreview = this.createJobPreviewCard(job);
                     recentJobsContainer.appendChild(jobPreview);
