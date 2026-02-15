@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.2] - 2026-02-15
+
+### Added
+- Organic Relief Plate Generator (OpenSCAD) to Tools & Helpers page
+- Web OpenSCAD Editor for browser-based parametric modeling
+- Bento3D Gridfinity box creator to Tools & Helpers page
+- Dedicated Gridfinity category grouping all Gridfinity tools together
+
 ## [2.29.1] - 2026-02-14
 
 ### Fixed
