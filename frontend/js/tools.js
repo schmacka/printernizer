@@ -12,7 +12,15 @@ const TOOLS_DATA = [
         description: 'Design and plan Gridfinity storage layouts for your workshop. Create custom bin configurations with an interactive visual editor.',
         url: 'https://www.gridfinitylayouttool.com/l/G3rQIfJ2eXsu/untitled-layout',
         icon: '📐',
-        category: 'Design'
+        category: 'Gridfinity'
+    },
+    {
+        id: 'bento3d-gridfinity',
+        title: 'Bento3D Gridfinity',
+        description: 'Create custom 3D-printable Gridfinity boxes in minutes. Design and export personalized storage containers with an intuitive web interface.',
+        url: 'https://bento3d.design/gridfinity',
+        icon: '📦',
+        category: 'Gridfinity'
     },
     {
         id: 'tooltrace-ai',
@@ -29,6 +37,22 @@ const TOOLS_DATA = [
         url: 'https://www.3dbenchy.com/download/',
         icon: '🚢',
         category: 'Calibration'
+    },
+    {
+        id: 'organic-relief-plate',
+        title: 'Organic Relief Plate Generator',
+        description: 'OpenSCAD-based generator for creating organic relief plates. Customize parameters to produce unique decorative 3D-printable plates.',
+        url: 'https://makerworld.com/de/models/2339750-organic-relief-plate-generator-openscad',
+        icon: '🎨',
+        category: 'Design'
+    },
+    {
+        id: 'web-openscad-editor',
+        title: 'Web OpenSCAD Editor',
+        description: 'Browser-based OpenSCAD editor that lets you create and preview parametric 3D models directly in the browser — no local installation required.',
+        url: 'https://github.com/yawkat/web-openscad-editor',
+        icon: '🖥️',
+        category: 'Design'
     }
 ];
 
