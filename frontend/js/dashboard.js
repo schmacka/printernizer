@@ -1161,11 +1161,15 @@ async function showPrinterDetails(printerId) {
 }
 
 /**
- * Edit printer configuration
+ * Edit printer configuration - delegates to printerManager
  */
 function editPrinter(printerId) {
-    // Implementation would open edit modal
-    showToast('info', 'Funktion nicht verfügbar', 'Drucker-Bearbeitung wird in Phase 2 implementiert');
+    if (typeof printerManager !== 'undefined' && printerManager.editPrinter) {
+        printerManager.editPrinter(printerId);
+    } else {
+        // Fallback: navigate to printers page
+        showPage('printers');
+    }
 }
 
 /**

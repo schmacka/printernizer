@@ -248,6 +248,18 @@ class ApiClient {
         return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'stop'));
     }
 
+    async getPrinterDetails(printerId) {
+        return this.get(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'details'));
+    }
+
+    async connectPrinter(printerId) {
+        return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'connect'));
+    }
+
+    async disconnectPrinter(printerId) {
+        return this.post(this._joinPath(CONFIG.ENDPOINTS.PRINTER_DETAIL(printerId), 'disconnect'));
+    }
+
     // Manually trigger download & processing of current job file (thumbnail extraction)
     async downloadCurrentJobFile(printerId) {
         return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_CURRENT_JOB(printerId));

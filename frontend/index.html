@@ -905,10 +905,11 @@
                     <span class="tab-icon">🔖</span>
                     Lesezeichen
                 </button>
-                <button class="tab-button" data-tab="trending" onclick="showIdeasTab('trending')">
+                <!-- Trending tab hidden: TrendingService is disabled in backend -->
+                <!-- <button class="tab-button" data-tab="trending" onclick="showIdeasTab('trending')">
                     <span class="tab-icon">📈</span>
                     Trending
-                </button>
+                </button> -->
             </div>
 
             <!-- Ideas Statistics -->
@@ -982,40 +983,9 @@
                 </div>
             </div>
 
-            <!-- Trending Tab -->
-            <div id="trending-tab" class="ideas-tab-content">
-                <div class="section">
-                    <div class="section-header">
-                        <h2>
-                            <span class="section-icon">📈</span>
-                            Trending Modelle
-                        </h2>
-                        <div class="header-actions">
-                            <div class="trending-platform-filter">
-                                <button class="platform-btn active" data-platform="all" onclick="filterTrendingByPlatform('all')">
-                                    Alle
-                                </button>
-                                <button class="platform-btn" data-platform="makerworld" onclick="filterTrendingByPlatform('makerworld')">
-                                    Makerworld
-                                </button>
-                                <button class="platform-btn" data-platform="printables" onclick="filterTrendingByPlatform('printables')">
-                                    Printables
-                                </button>
-                            </div>
-                            <button class="btn btn-secondary" onclick="refreshTrending()">
-                                <span class="btn-icon">🔄</span>
-                                Aktualisieren
-                            </button>
-                        </div>
-                    </div>
-                    <div class="trending-container" id="trendingContainer">
-                        <div class="loading-placeholder">
-                            <div class="spinner"></div>
-                            <p>Lade Trending-Modelle...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Trending Tab hidden: TrendingService is disabled in backend -->
+            <!-- Re-enable when TrendingService is implemented -->
+            <div id="trending-tab" class="ideas-tab-content" style="display:none"></div>
         </div>
 
         <!-- Settings Page -->

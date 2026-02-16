@@ -583,6 +583,12 @@ class MaterialsManager {
             search: searchInput ? searchInput.value : ''
         };
 
+        // Toggle search clear button visibility
+        const clearBtn = document.getElementById('materialSearchClear');
+        if (clearBtn) {
+            clearBtn.style.display = this.currentFilters.search ? 'flex' : 'none';
+        }
+
         // Reload and re-render
         this.loadMaterials().then(() => this.render());
     }
@@ -609,6 +615,25 @@ class MaterialsManager {
         if (searchInput) searchInput.value = '';
 
         this.loadMaterials().then(() => this.render());
+    }
+
+    clearSearch() {
+        const searchInput = document.getElementById('materialSearchInput');
+        const clearBtn = document.getElementById('materialSearchClear');
+        if (searchInput) searchInput.value = '';
+        if (clearBtn) clearBtn.style.display = 'none';
+        this.currentFilters.search = '';
+        this.loadMaterials().then(() => this.render());
+    }
+
+    setSorting() {
+        const sortSelect = document.getElementById('sortMaterialsBy');
+        if (sortSelect && sortSelect.value) {
+            const [field, direction] = sortSelect.value.split(':');
+            this.currentSort = { field, direction: direction || 'asc' };
+            this.applySorting();
+            this.render();
+        }
     }
 
     formatMaterialType(type) {

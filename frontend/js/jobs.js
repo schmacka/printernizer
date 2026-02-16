@@ -933,9 +933,9 @@ class JobManager {
             </button>
         `);
 
-        // Export job data
+        // Export job data (planned feature)
         actions.push(`
-            <button class="btn btn-secondary" onclick="jobManager.exportJob('${job.id}')">
+            <button class="btn btn-secondary" disabled title="Export (geplant)">
                 <span class="btn-icon">📊</span>
                 Export
             </button>
@@ -1102,20 +1102,7 @@ class JobManager {
             }
 
             // Make API call to update job
-            const response = await fetch(`/api/v1/jobs/${jobId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(updateData)
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.detail || 'Failed to update job');
-            }
-
-            const updatedJob = await response.json();
+            const updatedJob = await api.updateJob(jobId, updateData);
 
             showToast('success', 'Erfolg', 'Auftrag wurde erfolgreich aktualisiert');
             closeModal('editJobModal');

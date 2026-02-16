@@ -414,7 +414,7 @@ class AutoDownloadUI {
                 </div>
                 <div class="task-actions">
                     ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}')">Retry</button>` : ''}
+                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" disabled title="Retry (geplant)">Retry</button>` : ''}
                     ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${sanitizeAttribute(task.id)}')">Details</button>` : ''}
                 </div>
             </div>
@@ -489,7 +489,7 @@ class AutoDownloadUI {
                 </div>
                 <div class="task-actions">
                     ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${sanitizeAttribute(task.id)}')">Retry</button>` : ''}
+                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" disabled title="Retry (geplant)">Retry</button>` : ''}
                 </div>
             </div>
         `;
@@ -928,7 +928,7 @@ class AutoDownloadUI {
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
                     ${task.status === 'failed' && task.attempts < task.maxAttempts ?
-                        `<button class="btn btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}'); this.closest('.modal').remove();">Retry Task</button>` : ''}
+                        `<button class="btn btn-primary" disabled title="Retry (geplant)">Retry Task</button>` : ''}
                 </div>
             </div>
         `;

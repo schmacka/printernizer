@@ -593,11 +593,11 @@ async def get_printer_details(
     # Get recent jobs for this printer (last 10)
     recent_jobs = await db.fetch_all(
         """
-        SELECT id, file_name, status, progress, started_at, ended_at,
-               actual_print_time, material_used, material_cost
+        SELECT id, filename, status, progress, start_time, end_time,
+               actual_duration, material_used, material_cost
         FROM jobs
         WHERE printer_id = ?
-        ORDER BY started_at DESC
+        ORDER BY start_time DESC
         LIMIT 10
         """,
         (printer_id,)
@@ -610,7 +610,7 @@ async def get_printer_details(
             COUNT(*) as total_jobs,
             COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_jobs,
             COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_jobs,
-            SUM(CASE WHEN status = 'completed' THEN actual_print_time ELSE 0 END) as total_print_time,
+            SUM(CASE WHEN status = 'completed' THEN actual_duration ELSE 0 END) as total_print_time,
             SUM(CASE WHEN status = 'completed' THEN material_used ELSE 0 END) as total_material_used,
             AVG(CASE WHEN status = 'completed' THEN progress ELSE NULL END) as avg_completion
         FROM jobs
@@ -665,12 +665,12 @@ async def get_printer_details(
         "recent_jobs": [
             {
                 "id": job["id"],
-                "file_name": job["file_name"],
+                "file_name": job["filename"],
                 "status": job["status"],
                 "progress": job["progress"],
-                "started_at": job["started_at"],
-                "ended_at": job["ended_at"],
-                "print_time_minutes": job["actual_print_time"],
+                "started_at": job["start_time"],
+                "ended_at": job["end_time"],
+                "print_time_minutes": job["actual_duration"],
                 "material_used": job["material_used"]
             }
             for job in recent_jobs

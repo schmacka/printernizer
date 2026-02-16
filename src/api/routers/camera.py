@@ -601,8 +601,12 @@ async def download_snapshot(
         raise NotFoundError(resource_type="snapshot file", resource_id=str(snapshot_id))
 
     # Return file as streaming response
+    def _file_iterator(path):
+        with open(path, 'rb') as f:
+            yield from f
+
     return StreamingResponse(
-        content=open(storage_path, 'rb'),
+        content=_file_iterator(storage_path),
         media_type=snapshot['content_type'],
         headers={
             'Content-Disposition': f'attachment; filename="{snapshot["filename"]}"'

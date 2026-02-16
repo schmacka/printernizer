@@ -243,7 +243,7 @@ class JobService:
                 return False
 
             # Check if job is in active state
-            active_statuses = [JobStatus.RUNNING.value, JobStatus.PENDING.value, JobStatus.PAUSED.value]
+            active_statuses = [JobStatus.RUNNING.value, JobStatus.PRINTING.value, JobStatus.PENDING.value, JobStatus.PAUSED.value]
             current_status = existing_job.get('status')
             if current_status in active_statuses:
                 error_msg = f"Cannot delete active job (status: {current_status})"
@@ -468,6 +468,17 @@ class JobService:
         # Map file_name to filename for database compatibility
         if 'file_name' in update_dict:
             update_dict['filename'] = update_dict.pop('file_name')
+
+        # Map customer_name to customer_info JSON for database compatibility
+        if 'customer_name' in update_dict:
+            customer_name_val = update_dict.pop('customer_name')
+            if customer_name_val:
+                update_dict['customer_info'] = json.dumps({'name': customer_name_val})
+            else:
+                update_dict['customer_info'] = None
+
+        # Remove notes field if present — not stored in database
+        update_dict.pop('notes', None)
 
         # Update job
         success = await self.job_repo.update(job_id, update_dict)

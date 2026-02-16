@@ -636,10 +636,7 @@ class PrinterManager {
     async showPrinterDetails(printerId) {
         try {
             // Fetch comprehensive printer details
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/details`);
-            if (!response.ok) throw new Error('Failed to fetch printer details');
-
-            const data = await response.json();
+            const data = await api.getPrinterDetails(printerId);
 
             // Create modal HTML
             const modalHtml = this.renderPrinterDetailsModal(data);
@@ -1055,13 +1052,13 @@ class PrinterManager {
      */
     async pausePrinter(printerId) {
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/pause`, { method: 'POST' });
-            if (!response.ok) throw new Error('Failed to pause printer');
+            await api.pausePrinter(printerId);
             showToast('success', 'Erfolg', 'Druck wurde pausiert');
             this.showPrinterDetails(printerId); // Refresh modal
         } catch (error) {
             Logger.error('Failed to pause printer:', error);
-            showToast('error', 'Fehler', 'Konnte Druck nicht pausieren');
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Konnte Druck nicht pausieren';
+            showToast('error', 'Fehler', message);
         }
     }
 
@@ -1070,13 +1067,13 @@ class PrinterManager {
      */
     async resumePrinter(printerId) {
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/resume`, { method: 'POST' });
-            if (!response.ok) throw new Error('Failed to resume printer');
+            await api.resumePrinter(printerId);
             showToast('success', 'Erfolg', 'Druck wird fortgesetzt');
             this.showPrinterDetails(printerId); // Refresh modal
         } catch (error) {
             Logger.error('Failed to resume printer:', error);
-            showToast('error', 'Fehler', 'Konnte Druck nicht fortsetzen');
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Konnte Druck nicht fortsetzen';
+            showToast('error', 'Fehler', message);
         }
     }
 
@@ -1087,13 +1084,13 @@ class PrinterManager {
         if (!confirm('Möchten Sie den Druckauftrag wirklich abbrechen?')) return;
 
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/stop`, { method: 'POST' });
-            if (!response.ok) throw new Error('Failed to stop printer');
+            await api.stopPrinter(printerId);
             showToast('success', 'Erfolg', 'Druckauftrag wurde abgebrochen');
             this.showPrinterDetails(printerId); // Refresh modal
         } catch (error) {
             Logger.error('Failed to stop printer:', error);
-            showToast('error', 'Fehler', 'Konnte Druckauftrag nicht abbrechen');
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Konnte Druckauftrag nicht abbrechen';
+            showToast('error', 'Fehler', message);
         }
     }
 
@@ -1103,14 +1100,10 @@ class PrinterManager {
     async testConnection(printerId) {
         showToast('info', 'Test', 'Verbindung wird getestet...');
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/status`);
-            if (response.ok) {
-                showToast('success', 'Erfolg', 'Verbindung erfolgreich');
-            } else {
-                showToast('warning', 'Warnung', 'Drucker antwortet nicht');
-            }
+            await api.getPrinterStatus(printerId);
+            showToast('success', 'Erfolg', 'Verbindung erfolgreich');
         } catch (error) {
-            showToast('error', 'Fehler', 'Verbindungstest fehlgeschlagen');
+            showToast('warning', 'Warnung', 'Drucker antwortet nicht');
         }
     }
 
@@ -1120,17 +1113,14 @@ class PrinterManager {
     async reconnectPrinter(printerId) {
         showToast('info', 'Verbindung', 'Verbinde neu...');
         try {
-            await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/disconnect`, { method: 'POST' });
+            await api.disconnectPrinter(printerId);
             await new Promise(resolve => setTimeout(resolve, 1000));
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/connect`, { method: 'POST' });
-            if (response.ok) {
-                showToast('success', 'Erfolg', 'Neu verbunden');
-                this.showPrinterDetails(printerId); // Refresh modal
-            } else {
-                showToast('error', 'Fehler', 'Verbindung fehlgeschlagen');
-            }
+            await api.connectPrinter(printerId);
+            showToast('success', 'Erfolg', 'Neu verbunden');
+            this.showPrinterDetails(printerId); // Refresh modal
         } catch (error) {
-            showToast('error', 'Fehler', 'Verbindung fehlgeschlagen');
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Verbindung fehlgeschlagen';
+            showToast('error', 'Fehler', message);
         }
     }
 
@@ -1140,15 +1130,11 @@ class PrinterManager {
     async refreshPrinterFiles(printerId) {
         showToast('info', 'Dateien', 'Dateien werden aktualisiert...');
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/files`);
-            if (response.ok) {
-                const data = await response.json();
-                showToast('success', 'Erfolg', `${data.files?.length || 0} Dateien gefunden`);
-            } else {
-                showToast('warning', 'Warnung', 'Konnte Dateien nicht laden');
-            }
+            const data = await api.getPrinterFiles(printerId);
+            showToast('success', 'Erfolg', `${data.files?.length || 0} Dateien gefunden`);
         } catch (error) {
-            showToast('error', 'Fehler', 'Dateiaktualisierung fehlgeschlagen');
+            const message = error instanceof ApiError ? error.getUserMessage() : 'Dateiaktualisierung fehlgeschlagen';
+            showToast('error', 'Fehler', message);
         }
     }
 
