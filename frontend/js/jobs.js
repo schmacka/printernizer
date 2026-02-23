@@ -175,18 +175,19 @@ class JobManager {
                 jobsTable.innerHTML = '';
             }
             
-            if (response && response.length > 0) {
+            if (response && response.jobs && response.jobs.length > 0) {
                 // Render job rows
-                response.forEach(job => {
+                response.jobs.forEach(job => {
                     const row = this.renderJobRow(job);
                     jobsTable.appendChild(row);
                     this.jobs.set(job.id, job);
                 });
+                this.updatePagination(response.pagination);
             } else if (page === 1) {
                 // Show empty state
                 jobsTable.innerHTML = '<tr><td colspan="6" class="empty-state"><p>Keine Aufträge gefunden</p></td></tr>';
             }
-            
+
             this.currentPage = page;
             
         } catch (error) {
@@ -211,7 +212,7 @@ class JobManager {
         nameCell.innerHTML = `
             <div class="job-name">
                 ${job.is_business ? '<span class="business-badge" title="Geschäftlich">🏢</span>' : ''}
-                <strong>${escapeHtml(job.name || 'Unbenannt')}</strong>
+                <strong>${escapeHtml(job.job_name || 'Unbenannt')}</strong>
                 ${job.customer_name ? `<small>${escapeHtml(job.customer_name)}</small>` : ''}
             </div>
         `;
@@ -230,7 +231,7 @@ class JobManager {
         
         // File
         const fileCell = document.createElement('td');
-        fileCell.textContent = job.file_name || '-';
+        fileCell.textContent = job.filename || '-';
         row.appendChild(fileCell);
         
         // Progress

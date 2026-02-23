@@ -174,15 +174,11 @@ class PrinterCard {
      */
     renderQuickStats() {
         const stats = [];
-        
-        if (this.printer.uptime) {
-            stats.push(`<span class="quick-stat" title="Betriebszeit">⏱️ ${formatDuration(this.printer.uptime)}</span>`);
+
+        if (this.printer.total_jobs !== undefined && this.printer.total_jobs !== null) {
+            stats.push(`<span class="quick-stat" title="Aufträge gesamt">📊 ${this.printer.total_jobs}</span>`);
         }
-        
-        if (this.printer.jobs_today !== undefined) {
-            stats.push(`<span class="quick-stat" title="Aufträge heute">📊 ${this.printer.jobs_today}</span>`);
-        }
-        
+
         return stats.join('');
     }
 

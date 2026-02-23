@@ -13,7 +13,8 @@ import structlog
 
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
-from src.utils.dependencies import get_printer_service, get_database
+from src.utils.dependencies import get_printer_service, get_database, get_job_repository
+from src.database.repositories import JobRepository
 from src.database.database import Database
 from src.utils.errors import (
     PrinterNotFoundError,
@@ -119,6 +120,7 @@ class PrinterResponse(BaseModel):
     current_job: Optional[CurrentJobInfo] = None
     temperatures: Optional[dict] = None
     filaments: Optional[list] = None
+    total_jobs: Optional[int] = None
     created_at: str
     updated_at: str
 
@@ -203,7 +205,8 @@ async def list_printers(
     printer_type: Optional[PrinterType] = Query(None, description="Filter by printer type"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     status: Optional[PrinterStatus] = Query(None, description="Filter by printer status"),
-    printer_service: PrinterService = Depends(get_printer_service)
+    printer_service: PrinterService = Depends(get_printer_service),
+    job_repo: JobRepository = Depends(get_job_repository)
 ):
     """List all configured printers with optional filters and pagination."""
     # Global exception handler will catch any unexpected errors
@@ -218,8 +221,16 @@ async def list_printers(
     if status is not None:
         filtered_printers = [p for p in filtered_printers if p.status == status]
 
-    # Convert to response objects
-    printer_responses = [_printer_to_response(printer, printer_service) for printer in filtered_printers]
+    # Convert to response objects and add job counts
+    printer_responses = []
+    for printer in filtered_printers:
+        response = _printer_to_response(printer, printer_service)
+        try:
+            total_jobs = await job_repo.count(printer_id=printer.id)
+            response = response.model_copy(update={'total_jobs': total_jobs})
+        except Exception as e:
+            logger.warning("Failed to get job count for printer", printer_id=printer.id, error=str(e))
+        printer_responses.append(response)
 
     # Calculate pagination
     total_count = len(printer_responses)

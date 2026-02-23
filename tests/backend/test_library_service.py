@@ -29,27 +29,53 @@ def temp_library_path():
 def mock_database():
     """Mock database for library service testing"""
     db = Mock()
+    # Provide _connection attribute for LibraryRepository initialization
+    db._connection = Mock()
+    return db
 
-    # Make database stateful - store files that are created
+
+@pytest.fixture
+def mock_library_repo():
+    """Mock LibraryRepository for library service testing"""
+    repo = Mock()
+
+    # Make repository stateful - store files that are created
     # Store as attribute so tests can pre-populate it
-    db._created_files = {}
+    repo._created_files = {}
 
     async def create_file(file_record):
-        db._created_files[file_record['checksum']] = file_record
+        repo._created_files[file_record['checksum']] = file_record
         return True
 
-    async def get_file(checksum):
-        return db._created_files.get(checksum, None)
+    async def get_file_by_checksum(checksum):
+        return repo._created_files.get(checksum, None)
 
-    db.create_library_file = AsyncMock(side_effect=create_file)
-    db.get_library_file_by_checksum = AsyncMock(side_effect=get_file)
-    db.update_library_file = AsyncMock(return_value=True)
-    db.create_library_file_source = AsyncMock(return_value=True)
-    db.delete_library_file = AsyncMock(return_value=True)
-    db.delete_library_file_sources = AsyncMock(return_value=True)
-    db.list_library_files = AsyncMock(return_value=([], {'page': 1, 'total_items': 0}))
-    db.get_library_stats = AsyncMock(return_value={})
-    return db
+    async def get_file(file_id):
+        for f in repo._created_files.values():
+            if f.get('id') == file_id:
+                return f
+        return None
+
+    async def update_file(checksum, updates):
+        if checksum in repo._created_files:
+            repo._created_files[checksum].update(updates)
+        return True
+
+    async def delete_file(checksum):
+        if checksum in repo._created_files:
+            del repo._created_files[checksum]
+        return True
+
+    repo.create_file = AsyncMock(side_effect=create_file)
+    repo.get_file_by_checksum = AsyncMock(side_effect=get_file_by_checksum)
+    repo.get_file = AsyncMock(side_effect=get_file)
+    repo.update_file = AsyncMock(side_effect=update_file)
+    repo.create_file_source = AsyncMock(return_value=True)
+    repo.delete_file = AsyncMock(side_effect=delete_file)
+    repo.delete_file_sources = AsyncMock(return_value=True)
+    repo.list_files = AsyncMock(return_value=([], {'page': 1, 'total_items': 0}))
+    repo.get_stats = AsyncMock(return_value={})
+    return repo
 
 
 @pytest.fixture
@@ -75,12 +101,15 @@ def mock_event_service():
 
 
 @pytest.fixture
-async def library_service(mock_database, mock_config_service, mock_event_service):
+async def library_service(mock_database, mock_config_service, mock_event_service, mock_library_repo):
     """Initialize library service with mocks"""
-    from src.services.library_service import LibraryService
-    service = LibraryService(mock_database, mock_config_service, mock_event_service)
-    await service.initialize()
-    return service
+    with patch('src.services.library_service.LibraryRepository', return_value=mock_library_repo):
+        from src.services.library_service import LibraryService
+        service = LibraryService(mock_database, mock_config_service, mock_event_service)
+        # Store reference to mock repo for test assertions
+        service._mock_library_repo = mock_library_repo
+        await service.initialize()
+        return service
 
 
 @pytest.fixture
@@ -205,12 +234,11 @@ class TestLibraryPathGeneration:
         assert shards[0] == 'models'
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestFileAddition:
     """Test adding files to library"""
 
     @pytest.mark.asyncio
-    async def test_add_new_file_to_library(self, library_service, sample_test_file, mock_database):
+    async def test_add_new_file_to_library(self, library_service, sample_test_file, mock_library_repo):
         """Test adding a new file to library"""
         source_info = {
             'type': 'watch_folder',
@@ -225,10 +253,10 @@ class TestFileAddition:
         assert result is not None
         assert result['checksum'] == SAMPLE_FILE_CHECKSUM
         assert result['filename'] == 'test_input.3mf'
-        mock_database.create_library_file.assert_called_once()
+        mock_library_repo.create_file.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_add_duplicate_file_adds_source(self, library_service, sample_test_file, mock_database):
+    async def test_add_duplicate_file_adds_source(self, library_service, sample_test_file, mock_library_repo):
         """Test that adding duplicate file creates new record marked as duplicate"""
         existing_file = {
             'id': 'existing-uuid',
@@ -237,8 +265,8 @@ class TestFileAddition:
             'sources': '[]',  # Add sources field for the update logic
             'duplicate_count': 0
         }
-        # Pre-populate the database with existing file
-        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = existing_file
+        # Pre-populate the repository with existing file
+        mock_library_repo._created_files[SAMPLE_FILE_CHECKSUM] = existing_file
 
         source_info = {
             'type': 'watch_folder',
@@ -255,11 +283,11 @@ class TestFileAddition:
         assert result['is_duplicate'] is True
         assert result['duplicate_of_checksum'] == SAMPLE_FILE_CHECKSUM
         assert SAMPLE_FILE_CHECKSUM in result['checksum']  # Modified checksum includes original
-        mock_database.create_library_file.assert_called_once()
-        mock_database.create_library_file_source.assert_called()
+        mock_library_repo.create_file.assert_called_once()
+        mock_library_repo.create_file_source.assert_called()
 
     @pytest.mark.asyncio
-    async def test_disk_space_check(self, library_service, temp_library_path, mock_database):
+    async def test_disk_space_check(self, library_service, temp_library_path, mock_library_repo):
         """Test that disk space is checked before copying"""
         # Create a large file (simulated)
         large_file = temp_library_path / 'large.3mf'
@@ -276,7 +304,7 @@ class TestFileAddition:
                 )
 
     @pytest.mark.asyncio
-    async def test_file_copy_preserves_original(self, library_service, sample_test_file, mock_database, temp_library_path):
+    async def test_file_copy_preserves_original(self, library_service, sample_test_file, mock_library_repo, temp_library_path):
         """Test that copying file preserves original"""
         source_info = {'type': 'watch_folder', 'folder_path': '/test'}
 
@@ -289,7 +317,7 @@ class TestFileAddition:
         assert sample_test_file.read_bytes() == SAMPLE_FILE_CONTENT
 
     @pytest.mark.asyncio
-    async def test_checksum_verification_after_copy(self, library_service, sample_test_file, mock_database):
+    async def test_checksum_verification_after_copy(self, library_service, sample_test_file, mock_library_repo):
         """Test that checksum is verified after copying"""
         source_info = {'type': 'watch_folder', 'folder_path': '/test'}
 
@@ -301,12 +329,11 @@ class TestFileAddition:
         assert result is not None
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestSourceTracking:
     """Test multi-source tracking"""
 
     @pytest.mark.asyncio
-    async def test_add_multiple_sources(self, library_service, mock_database):
+    async def test_add_multiple_sources(self, library_service, mock_library_repo):
         """Test adding multiple sources to same file"""
         checksum = SAMPLE_FILE_CHECKSUM
 
@@ -327,20 +354,20 @@ class TestSourceTracking:
             'checksum': checksum,
             'sources': json.dumps([source1])
         }
-        # Pre-populate the database with existing file
-        mock_database._created_files[checksum] = existing_file
+        # Pre-populate the repository with existing file
+        mock_library_repo._created_files[checksum] = existing_file
 
         await library_service.add_file_source(checksum, source2)
 
         # Should update sources array
-        mock_database.update_library_file.assert_called()
-        call_args = mock_database.update_library_file.call_args
+        mock_library_repo.update_file.assert_called()
+        call_args = mock_library_repo.update_file.call_args
         sources_json = call_args[0][1]['sources']
         sources = json.loads(sources_json)
         assert len(sources) == 2
 
     @pytest.mark.asyncio
-    async def test_duplicate_source_not_added(self, library_service, mock_database):
+    async def test_duplicate_source_not_added(self, library_service, mock_library_repo):
         """Test that duplicate sources are not added"""
         checksum = SAMPLE_FILE_CHECKSUM
         source_info = {
@@ -353,21 +380,20 @@ class TestSourceTracking:
             'checksum': checksum,
             'sources': json.dumps([source_info])
         }
-        # Pre-populate the database with existing file
-        mock_database._created_files[checksum] = existing_file
+        # Pre-populate the repository with existing file
+        mock_library_repo._created_files[checksum] = existing_file
 
         await library_service.add_file_source(checksum, source_info)
 
         # Should not update if source already exists
-        mock_database.update_library_file.assert_not_called()
+        mock_library_repo.update_file.assert_not_called()
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestFileDeletion:
     """Test file deletion"""
 
     @pytest.mark.asyncio
-    async def test_delete_file_with_physical(self, library_service, mock_database, temp_library_path):
+    async def test_delete_file_with_physical(self, library_service, mock_library_repo, temp_library_path):
         """Test deleting file including physical file"""
         # Create a file in library
         test_file = temp_library_path / 'models' / 'a3' / f"{SAMPLE_FILE_CHECKSUM}.3mf"
@@ -380,17 +406,17 @@ class TestFileDeletion:
             'library_path': f"models/a3/{SAMPLE_FILE_CHECKSUM}.3mf",
             'filename': 'test.3mf'
         }
-        # Pre-populate the database with existing file
-        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = file_record
+        # Pre-populate the repository with existing file
+        mock_library_repo._created_files[SAMPLE_FILE_CHECKSUM] = file_record
 
         result = await library_service.delete_file(SAMPLE_FILE_CHECKSUM, delete_physical=True)
 
         assert result is True
         assert not test_file.exists()  # Physical file deleted
-        mock_database.delete_library_file.assert_called_once()
+        mock_library_repo.delete_file.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_delete_file_database_only(self, library_service, mock_database, temp_library_path):
+    async def test_delete_file_database_only(self, library_service, mock_library_repo, temp_library_path):
         """Test deleting file from database only"""
         test_file = temp_library_path / 'models' / 'a3' / f"{SAMPLE_FILE_CHECKSUM}.3mf"
         test_file.parent.mkdir(parents=True, exist_ok=True)
@@ -402,38 +428,37 @@ class TestFileDeletion:
             'library_path': f"models/a3/{SAMPLE_FILE_CHECKSUM}.3mf",
             'filename': 'test.3mf'
         }
-        # Pre-populate the database with existing file
-        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = file_record
+        # Pre-populate the repository with existing file
+        mock_library_repo._created_files[SAMPLE_FILE_CHECKSUM] = file_record
 
         result = await library_service.delete_file(SAMPLE_FILE_CHECKSUM, delete_physical=False)
 
         assert result is True
         assert test_file.exists()  # Physical file preserved
-        mock_database.delete_library_file.assert_called_once()
+        mock_library_repo.delete_file.assert_called_once()
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestListFiles:
     """Test file listing and filtering"""
 
     @pytest.mark.asyncio
-    async def test_list_files_with_pagination(self, library_service, mock_database):
+    async def test_list_files_with_pagination(self, library_service, mock_library_repo):
         """Test file listing with pagination"""
         files_data = [
             {'id': f'file-{i}', 'checksum': f'checksum-{i}', 'filename': f'file{i}.3mf'}
             for i in range(5)
         ]
         pagination = {'page': 1, 'limit': 50, 'total_items': 5, 'total_pages': 1}
-        mock_database.list_library_files.return_value = (files_data, pagination)
+        mock_library_repo.list_files.return_value = (files_data, pagination)
 
         files, page_info = await library_service.list_files({}, page=1, limit=50)
 
         assert len(files) == 5
         assert page_info['total_items'] == 5
-        mock_database.list_library_files.assert_called_once()
+        mock_library_repo.list_files.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_list_files_with_filters(self, library_service, mock_database):
+    async def test_list_files_with_filters(self, library_service, mock_library_repo):
         """Test file listing with filters"""
         filters = {
             'source_type': 'printer',
@@ -443,60 +468,58 @@ class TestListFiles:
 
         await library_service.list_files(filters, page=1, limit=50)
 
-        call_args = mock_database.list_library_files.call_args
+        call_args = mock_library_repo.list_files.call_args
         assert call_args[0][0] == filters
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestReprocessing:
     """Test file reprocessing"""
 
     @pytest.mark.asyncio
-    async def test_reprocess_file(self, library_service, mock_database):
+    async def test_reprocess_file(self, library_service, mock_library_repo):
         """Test reprocessing file metadata"""
         file_record = {
             'id': 'file-uuid',
             'checksum': SAMPLE_FILE_CHECKSUM,
             'filename': 'test.3mf'
         }
-        # Pre-populate the database with existing file
-        mock_database._created_files[SAMPLE_FILE_CHECKSUM] = file_record
+        # Pre-populate the repository with existing file
+        mock_library_repo._created_files[SAMPLE_FILE_CHECKSUM] = file_record
 
         result = await library_service.reprocess_file(SAMPLE_FILE_CHECKSUM)
 
         assert result is True
 
     @pytest.mark.asyncio
-    async def test_reprocess_nonexistent_file(self, library_service, mock_database):
+    async def test_reprocess_nonexistent_file(self, library_service, mock_library_repo):
         """Test reprocessing non-existent file"""
-        mock_database.get_library_file_by_checksum.return_value = None
+        # Ensure file does not exist (empty _created_files dict)
+        mock_library_repo._created_files.clear()
 
         result = await library_service.reprocess_file('nonexistent-checksum')
 
         assert result is False
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestStatistics:
     """Test library statistics"""
 
     @pytest.mark.asyncio
-    async def test_get_statistics(self, library_service, mock_database):
+    async def test_get_statistics(self, library_service, mock_library_repo):
         """Test getting library statistics"""
         stats = {
             'total_files': 142,
             'total_size': 2458374144,
             'files_with_thumbnails': 89
         }
-        mock_database.get_library_stats.return_value = stats
+        mock_library_repo.get_stats.return_value = stats
 
         result = await library_service.get_library_statistics()
 
         assert result == stats
-        mock_database.get_library_stats.assert_called_once()
+        mock_library_repo.get_stats.assert_called_once()
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestErrorHandling:
     """Test error handling"""
 
@@ -518,9 +541,9 @@ class TestErrorHandling:
             )
 
     @pytest.mark.asyncio
-    async def test_database_error_cleanup(self, library_service, sample_test_file, mock_database, temp_library_path):
+    async def test_database_error_cleanup(self, library_service, sample_test_file, mock_library_repo, temp_library_path):
         """Test that physical file is cleaned up on database error"""
-        mock_database.create_library_file.side_effect = Exception("Database error")
+        mock_library_repo.create_file.side_effect = Exception("Database error")
 
         source_info = {'type': 'watch_folder', 'folder_path': '/test'}
 
@@ -537,29 +560,28 @@ class TestConcurrency:
     """Test concurrent operations"""
 
     @pytest.mark.asyncio
-    async def test_concurrent_file_additions(self, library_service, mock_database):
+    async def test_concurrent_file_additions(self, library_service, mock_library_repo):
         """Test handling concurrent additions of same file"""
         # First call succeeds
-        mock_database.create_library_file.return_value = True
+        mock_library_repo.create_file.return_value = True
 
         # Second call fails (checksum exists)
         async def side_effect(*args, **kwargs):
-            if mock_database.create_library_file.call_count > 1:
+            if mock_library_repo.create_file.call_count > 1:
                 return False
             return True
 
-        mock_database.create_library_file.side_effect = side_effect
+        mock_library_repo.create_file.side_effect = side_effect
 
         # This should handle the race condition gracefully
         # (actual test would need more complex setup)
 
 
-@pytest.mark.skip(reason="Tests require async database mocking refactor for repository pattern")
 class TestIntegration:
     """Integration tests for library service"""
 
     @pytest.mark.asyncio
-    async def test_full_file_lifecycle(self, library_service, sample_test_file, mock_database):
+    async def test_full_file_lifecycle(self, library_service, sample_test_file, mock_library_repo):
         """Test complete file lifecycle: add, list, get, reprocess, delete"""
         # Add file
         source_info = {'type': 'watch_folder', 'folder_path': '/test'}
@@ -568,13 +590,7 @@ class TestIntegration:
         )
         assert add_result is not None
 
-        # Get file
-        file_record = {
-            'id': 'file-uuid',
-            'checksum': SAMPLE_FILE_CHECKSUM,
-            'filename': 'test.3mf'
-        }
-        mock_database.get_library_file_by_checksum.return_value = file_record
+        # Get file - the stateful mock already has the file from add operation
         get_result = await library_service.get_file_by_checksum(SAMPLE_FILE_CHECKSUM)
         assert get_result is not None
 

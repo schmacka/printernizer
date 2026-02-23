@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.3] - 2026-02-23
+
+### Fixed
+- Jobs page not displaying any jobs due to incorrect API response structure handling (`response.length` → `response.jobs.length`)
+- Job names showing as "Unbenannt" (unnamed) due to wrong field name (`job.name` → `job.job_name`)
+- Job filename column always showing "-" due to wrong field name (`job.file_name` → `job.filename`)
+- Printer cards showing no stats; backend now returns total job count per printer via `total_jobs` field
+
 ## [2.29.2] - 2026-02-15
 
 ### Added
