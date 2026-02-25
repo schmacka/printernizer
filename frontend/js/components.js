@@ -372,12 +372,12 @@ class PrinterCard {
         let tempValue, tempTarget = '';
 
         if (typeof temperature === 'object') {
-            tempValue = `${parseFloat(temperature.current).toFixed(1)}°C`;
+            tempValue = `${Math.round(temperature.current)}°C`;
             if (temperature.target) {
-                tempTarget = `<div class="temp-target">Ziel: ${parseFloat(temperature.target).toFixed(1)}°C</div>`;
+                tempTarget = `<div class="temp-target">Ziel: ${Math.round(temperature.target)}°C</div>`;
             }
         } else {
-            tempValue = `${parseFloat(temperature).toFixed(1)}°C`;
+            tempValue = `${Math.round(parseFloat(temperature))}°C`;
         }
 
         const isHeating = typeof temperature === 'object' &&

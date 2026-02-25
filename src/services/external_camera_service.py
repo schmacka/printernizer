@@ -303,13 +303,13 @@ class ExternalCameraService:
             os.close(fd)
 
             # Build ffmpeg command
-            # -rtsp_transport tcp: Use TCP for more reliable RTSP
             # -frames:v 1: Extract only 1 frame
             # -q:v 2: High quality JPEG (scale 2-31, lower is better)
             # -y: Overwrite output file
+            # Note: No -rtsp_transport flag to use default (UDP), which works
+            # with more cameras than forcing TCP
             cmd = [
                 'ffmpeg',
-                '-rtsp_transport', 'tcp',
                 '-i', url,
                 '-frames:v', '1',
                 '-q:v', '2',

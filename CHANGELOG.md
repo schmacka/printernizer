@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.4] - 2026-02-25
+
+### Fixed
+- Temperature values now display as whole numbers (no decimals) across all printer cards and real-time WebSocket updates
+- RTSP camera streams (e.g. Thingino cameras) now correctly capture preview frames — removed forced TCP transport that caused timeouts with UDP-only RTSP sources
+
+### Improved
+- Dashboard layout uses full screen width on desktop monitors (max-width increased from 1200px to 1600px)
+- Printer cards are wider and less cramped on large screens
+- Overview stat cards (all 5) now fit in a single row on wide displays
+- Filament slot badges are more compact and no longer stretch to full width when only one filament is loaded
+
 ## [2.29.3] - 2026-02-23
 
 ### Fixed
