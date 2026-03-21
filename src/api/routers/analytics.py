@@ -75,3 +75,11 @@ async def get_analytics_overview(
     """Get dashboard overview statistics."""
     overview = await analytics_service.get_dashboard_overview(period)
     return overview
+
+
+@router.get("/orders")
+async def get_order_analytics(
+    analytics_service: AnalyticsService = Depends(get_analytics_service)
+):
+    """Get order analytics: totals, by status, by source, fulfillment time."""
+    return await analytics_service.get_order_analytics()

@@ -50,6 +50,7 @@ class JobResponse(BaseModel):
     power_cost: Optional[float] = Field(None, description="Power cost in EUR")
     is_business: bool = Field(False, description="Whether this is a business job")
     customer_name: Optional[str] = Field(None, description="Customer name for business jobs")
+    order_id: Optional[str] = Field(None, description="Associated order ID")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
@@ -86,6 +87,10 @@ def _transform_job_to_response(job_data: dict) -> dict:
         response_data['customer_name'] = customer_info
     else:
         response_data['customer_name'] = None
+
+    # Pass through order_id if present
+    if 'order_id' not in response_data:
+        response_data['order_id'] = None
 
     # Add frontend-compatible aliases
     if 'progress' in response_data:
