@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.0] - 2026-03-21
+
+### Added
+- **Orders Tracking**: Full order management layer on top of the existing job system
+  - Customer database — reusable across orders, searchable by name/email/phone
+  - Order lifecycle: `new → planned → printed → delivered` (forward-only status transitions)
+  - Configurable order sources seeded with "Email / DM", "Walk-in", "Online Shop"
+  - Link print jobs to orders; auto-create draft job on order creation
+  - File attachments per order (library files or external URLs)
+  - Payment status tracking: `unpaid | partial | paid`
+  - Quoted price with computed material + energy costs aggregated from linked jobs
+  - REST API: `/api/v1/orders`, `/api/v1/customers`, `/api/v1/order-sources`
+  - Analytics endpoint: `GET /api/v1/analytics/orders`
+  - Frontend: Orders page, customer management, Settings > Order Sources, order badge on linked jobs
+
 ## [2.29.4] - 2026-02-25
 
 ### Fixed
