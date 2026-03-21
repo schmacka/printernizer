@@ -208,12 +208,16 @@ class JobManager {
         row.className = `job-row status-${job.status}`;
         
         // Job name
+        const orderBadge = job.order_id
+            ? `<a href="#orders" onclick="window.app && window.app.showPage('orders')" class="status-badge" style="background:#8b5cf6;color:white;text-decoration:none;" title="View order">📋 ${job.order_id.slice(0,8)}...</a>`
+            : '';
         const nameCell = document.createElement('td');
         nameCell.innerHTML = `
             <div class="job-name">
                 ${job.is_business ? '<span class="business-badge" title="Geschäftlich">🏢</span>' : ''}
                 <strong>${escapeHtml(job.job_name || 'Unbenannt')}</strong>
                 ${job.customer_name ? `<small>${escapeHtml(job.customer_name)}</small>` : ''}
+                ${orderBadge}
             </div>
         `;
         row.appendChild(nameCell);

@@ -54,6 +54,11 @@
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
                     Aufträge
                 </a>
+                <a href="#orders" class="nav-link" data-page="orders"
+                   role="button" aria-describedby="nav-orders-desc">
+                    <span class="nav-icon" aria-hidden="true">📋</span>
+                    Orders
+                </a>
                 <a href="#timelapses" class="nav-link" data-page="timelapses"
                    role="button" aria-describedby="nav-timelapses-desc">
                     <span class="nav-icon" aria-hidden="true">🎬</span>
@@ -354,6 +359,90 @@
                         <p>Lade Aufträge...</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Orders Page -->
+        <div id="orders" class="page">
+            <div class="page-header">
+                <h1>📋 Orders</h1>
+                <div class="header-actions">
+                    <div class="filter-controls">
+                        <select id="orderStatusFilter" class="filter-select" onchange="ordersManager.applyFilters()">
+                            <option value="">All statuses</option>
+                            <option value="new">New</option>
+                            <option value="planned">Planned</option>
+                            <option value="printed">Printed</option>
+                            <option value="delivered">Delivered</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="ordersManager.load()">
+                        <span class="btn-icon">🔄</span>
+                        Refresh
+                    </button>
+                    <button class="btn btn-primary" onclick="ordersManager.showCreateModal()">
+                        <span class="btn-icon">➕</span>
+                        New Order
+                    </button>
+                </div>
+            </div>
+
+            <div class="orders-container">
+                <table class="jobs-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Customer</th>
+                            <th>Source</th>
+                            <th>Status</th>
+                            <th>Quoted</th>
+                            <th>Payment</th>
+                            <th>Due Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <tr>
+                            <td colspan="8" class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Loading orders...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Customer Management Sub-section -->
+            <div class="page-header" style="margin-top: 2rem;">
+                <h2>👤 Customers</h2>
+                <div class="header-actions">
+                    <input type="text" id="customerSearch" class="form-control" placeholder="Search customers..." style="max-width: 250px;" oninput="ordersManager.searchCustomers(this.value)">
+                    <button class="btn btn-primary btn-sm" onclick="ordersManager.showCreateCustomerModal()">
+                        <span class="btn-icon">➕</span>
+                        New Customer
+                    </button>
+                </div>
+            </div>
+            <div class="orders-container">
+                <table class="jobs-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Orders</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customersTableBody">
+                        <tr>
+                            <td colspan="5" class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Loading customers...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -1067,6 +1156,10 @@
                     <button class="settings-tab" data-tab="appearance" onclick="settingsManager.switchTab('appearance')">
                         <span class="tab-icon">🎨</span>
                         <span class="tab-label">Appearance</span>
+                    </button>
+                    <button class="settings-tab" data-tab="orders" onclick="settingsManager.switchTab('orders')">
+                        <span class="tab-icon">📋</span>
+                        <span class="tab-label">Orders</span>
                     </button>
                 </div>
 
@@ -1880,6 +1973,23 @@
                                 <div class="theme-picker-grid" id="themePicker">
                                     <!-- Theme cards will be rendered by JavaScript -->
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Orders Settings -->
+                    <div class="settings-panel" data-panel="orders">
+                        <div class="settings-section">
+                            <h3>Order Sources</h3>
+                            <p class="section-description">Manage where customer orders come from.</p>
+                            <div class="header-actions" style="margin-bottom: 1rem;">
+                                <button class="btn btn-primary btn-sm" onclick="ordersManager.showCreateSourceModal()">
+                                    <span class="btn-icon">➕</span>
+                                    Add Source
+                                </button>
+                            </div>
+                            <div id="orderSourcesList">
+                                <p class="text-muted">Loading...</p>
                             </div>
                         </div>
                     </div>
@@ -2857,6 +2967,7 @@
     <script src="js/navigation-preferences.js"></script>
     <script src="js/components.js"></script>
     <script src="js/milestone-1-2-functions.js"></script>
+    <script src="js/orders.js"></script>
     <script src="js/printer-form.js"></script>
     <script src="js/camera.js"></script>
     <script src="js/dashboard.js"></script>
