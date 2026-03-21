@@ -57,6 +57,9 @@ from src.api.routers.slicing import router as slicing_router
 from src.api.routers.tags import router as tags_router
 from src.api.routers.notifications import router as notifications_router
 from src.api.routers.logs import router as logs_router
+from src.api.routers.orders import router as orders_router
+from src.api.routers.customers import router as customers_router
+from src.api.routers.order_sources import router as order_sources_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -752,6 +755,9 @@ def create_application() -> FastAPI:
     app.include_router(slicing_router, prefix="/api/v1/slicing", tags=["Slicing"])
     app.include_router(tags_router, prefix="/api/v1", tags=["Tags"])  # File tagging system
     app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["Notifications"])  # Multi-channel notifications
+    app.include_router(orders_router, prefix="/api/v1/orders", tags=["Orders"])
+    app.include_router(customers_router, prefix="/api/v1/customers", tags=["Customers"])
+    app.include_router(order_sources_router, prefix="/api/v1/order-sources", tags=["Order Sources"])
     app.include_router(websocket_router, prefix="/ws", tags=["WebSocket"])
     # Temporary debug endpoints (remove before production if not needed)
     app.include_router(debug_router, prefix="/api/v1/debug", tags=["Debug"])

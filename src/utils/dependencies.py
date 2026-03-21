@@ -163,3 +163,12 @@ async def get_slicer_service(request: Request) -> SlicerService:
 async def get_slicing_queue(request: Request) -> SlicingQueue:
     """Get slicing queue instance from app state."""
     return request.app.state.slicing_queue
+
+
+from src.services.order_service import OrderService
+
+async def get_order_service(
+    database: Database = Depends(get_database)
+) -> OrderService:
+    """Get order service instance."""
+    return OrderService(database)

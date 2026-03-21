@@ -825,14 +825,14 @@ class AnalyticsService:
             }
     
     async def _get_printer_statistics(self) -> Dict[str, Any]:
-        """Get printer statistics.""" 
+        """Get printer statistics."""
         try:
             # Query printers from database
             printers = await self.printer_repo.list()
-            
+
             total_printers = len(printers)
             online_printers = len([p for p in printers if p.get('status') == 'online'])
-            
+
             return {
                 "total_printers": total_printers,
                 "online_printers": online_printers
@@ -843,3 +843,9 @@ class AnalyticsService:
                 "total_printers": 0,
                 "online_printers": 0
             }
+
+    async def get_order_analytics(self) -> Dict[str, Any]:
+        """Get order analytics summary."""
+        from src.services.order_service import OrderService
+        order_service = OrderService(self.database)
+        return await order_service.get_order_analytics()
