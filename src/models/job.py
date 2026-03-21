@@ -38,6 +38,7 @@ class Job(BaseModel):
     power_cost: Optional[float] = Field(None, description="Power cost in EUR")
     is_business: bool = Field(False, description="Whether this is a business job")
     customer_info: Optional[Dict[str, Any]] = Field(None, description="Customer information")
+    order_id: Optional[str] = Field(None, description="Associated order ID")
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     
