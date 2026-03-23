@@ -164,9 +164,114 @@ class OrdersManager {
     // ---- Modals ----
 
     showCreateModal() {
-        const title = prompt('Order title:');
-        if (!title) return;
-        this.createOrder({ title });
+        // Populate customer select
+        const custSelect = document.getElementById('orderCustomerSelect');
+        custSelect.innerHTML = '<option value="">— None —</option>';
+        this.customers.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            custSelect.appendChild(opt);
+        });
+
+        // Populate source select (active only)
+        const srcSelect = document.getElementById('orderSourceSelect');
+        srcSelect.innerHTML = '<option value="">— None —</option>';
+        this.sources.filter(s => s.is_active).forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            srcSelect.appendChild(opt);
+        });
+
+        // Reset form fields
+        document.getElementById('orderTitle').value = '';
+        document.getElementById('orderQuotedPrice').value = '';
+        document.getElementById('orderPaymentStatus').value = 'unpaid';
+        document.getElementById('orderDueDate').value = '';
+        document.getElementById('orderNotes').value = '';
+        document.getElementById('orderFileSearch').value = '';
+
+        // Load library files into picker
+        this.loadLibraryFilesForPicker();
+
+        showModal('createOrderModal');
+    }
+
+    async submitCreateOrder() {
+        const title = document.getElementById('orderTitle').value.trim();
+        if (!title) {
+            showToast('error', 'Error', 'Title is required');
+            return;
+        }
+
+        const priceVal = document.getElementById('orderQuotedPrice').value;
+        const payload = {
+            title,
+            customer_id: document.getElementById('orderCustomerSelect').value || null,
+            source_id: document.getElementById('orderSourceSelect').value || null,
+            quoted_price: priceVal !== '' ? parseFloat(priceVal) : null,
+            payment_status: document.getElementById('orderPaymentStatus').value,
+            due_date: document.getElementById('orderDueDate').value || null,
+            notes: document.getElementById('orderNotes').value.trim() || null,
+        };
+
+        try {
+            const response = await fetch('/api/v1/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const order = await response.json();
+
+            // Attach checked library files
+            const checked = document.querySelectorAll('#orderFilePickerList input[type="checkbox"]:checked');
+            for (const cb of checked) {
+                await fetch(`/api/v1/orders/${order.id}/files`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_id: cb.value, filename: cb.dataset.filename })
+                });
+            }
+
+            closeModal('createOrderModal');
+            showToast('success', 'Order Created', `Order "${title}" created`);
+            await this.load();
+        } catch (error) {
+            Logger.error('Failed to create order:', error);
+            showToast('error', 'Error', 'Failed to create order');
+        }
+    }
+
+    async loadLibraryFilesForPicker(search = '') {
+        const container = document.getElementById('orderFilePickerList');
+        if (!container) return;
+        container.innerHTML = '<span class="text-muted">Loading...</span>';
+
+        try {
+            const params = new URLSearchParams({ limit: '100' });
+            if (search) params.set('search', search);
+            const response = await fetch(`/api/v1/files?${params}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            const files = data.files || [];
+
+            if (!files.length) {
+                container.innerHTML = '<span class="text-muted">No files found.</span>';
+                return;
+            }
+
+            container.innerHTML = files.map(f => `
+                <label style="display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;">
+                    <input type="checkbox" value="${f.id}" data-filename="${this._escapeHtml(f.filename || f.name)}">
+                    ${this._escapeHtml(f.filename || f.name)}
+                </label>
+            `).join('');
+        } catch (error) {
+            Logger.error('Failed to load library files:', error);
+            container.innerHTML = '<span class="text-muted">Failed to load files.</span>';
+        }
     }
 
     showCreateCustomerModal() {

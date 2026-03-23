@@ -3403,5 +3403,65 @@
             </span>
         </div>
     </footer>
+
+    <!-- Create Order Modal -->
+    <div id="createOrderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Order</h3>
+                <button class="modal-close" onclick="closeModal('createOrderModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="orderTitle">Title *</label>
+                    <input type="text" id="orderTitle" class="form-control" placeholder="Order title" required>
+                </div>
+                <div class="form-group">
+                    <label for="orderCustomerSelect">Customer</label>
+                    <select id="orderCustomerSelect" class="form-control">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="orderSourceSelect">Order Source</label>
+                    <select id="orderSourceSelect" class="form-control">
+                        <option value="">— None —</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="orderQuotedPrice">Quoted Price (€)</label>
+                    <input type="number" id="orderQuotedPrice" class="form-control" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="orderPaymentStatus">Payment Status</label>
+                    <select id="orderPaymentStatus" class="form-control">
+                        <option value="unpaid">Unpaid</option>
+                        <option value="partial">Partial</option>
+                        <option value="paid">Paid</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="orderDueDate">Due Date</label>
+                    <input type="date" id="orderDueDate" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="orderNotes">Notes</label>
+                    <textarea id="orderNotes" class="form-control" rows="3" placeholder="Optional notes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Attach Library Files</label>
+                    <input type="text" id="orderFileSearch" class="form-control" placeholder="Search files..."
+                           oninput="clearTimeout(this._debounce); this._debounce = setTimeout(() => ordersManager.loadLibraryFilesForPicker(this.value), 300)">
+                    <div id="orderFilePickerList" style="max-height:200px;overflow-y:auto;margin-top:0.5rem;border:1px solid var(--border-color);border-radius:4px;padding:0.5rem;">
+                        <span class="text-muted">Files will load when modal opens.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('createOrderModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="ordersManager.submitCreateOrder()">Save</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
