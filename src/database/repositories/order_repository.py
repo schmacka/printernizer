@@ -18,22 +18,21 @@ class OrderRepository(BaseRepository):
         """Create a new order."""
         sql = """
             INSERT INTO orders
-            (id, title, description, status, customer_id, source_id,
-             quoted_price, currency, due_date, notes, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, title, customer_id, source_id, status, quoted_price,
+             payment_status, notes, due_date, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         now = datetime.utcnow().isoformat()
         params = (
             data['id'],
             data['title'],
-            data.get('description'),
-            data.get('status', 'pending'),
             data.get('customer_id'),
             data.get('source_id'),
+            data.get('status', 'new'),
             data.get('quoted_price'),
-            data.get('currency', 'EUR'),
-            data.get('due_date'),
+            data.get('payment_status', 'unpaid'),
             data.get('notes'),
+            data.get('due_date'),
             data.get('created_at', now),
             data.get('updated_at', now),
         )
@@ -121,8 +120,8 @@ class OrderRepository(BaseRepository):
             return False
 
         allowed_fields = (
-            'title', 'description', 'status', 'customer_id', 'source_id',
-            'quoted_price', 'currency', 'due_date', 'notes',
+            'title', 'status', 'customer_id', 'source_id',
+            'quoted_price', 'payment_status', 'due_date', 'notes',
         )
         set_clauses = []
         params = []
@@ -207,17 +206,17 @@ class OrderRepository(BaseRepository):
         """Add a file to an order."""
         sql = """
             INSERT INTO order_files
-            (id, order_id, filename, file_path, file_size, mime_type, created_at)
+            (id, order_id, file_id, url, filename, file_type, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         now = datetime.utcnow().isoformat()
         params = (
             data['id'],
             data['order_id'],
+            data.get('file_id'),
+            data.get('url'),
             data['filename'],
-            data.get('file_path'),
-            data.get('file_size'),
-            data.get('mime_type'),
+            data.get('file_type'),
             data.get('created_at', now),
         )
         try:
