@@ -177,7 +177,7 @@ The repository was written against a different schema than the migration. Five m
 
 ### Fix plan
 
-See `/root/.claude/plans/woolly-purring-seal.md` for full implementation plan covering:
+See [`docs/plans/FIX_ORDER_FEATURE_BUGS.md`](../plans/FIX_ORDER_FEATURE_BUGS.md) for the full implementation plan covering:
 1. Fix 5 methods in `order_repository.py`
 2. Add `createOrderModal` to `frontend/index.html`
 3. Replace `showCreateModal()`, add `submitCreateOrder()` and `loadLibraryFilesForPicker()` in `frontend/js/orders.js`
