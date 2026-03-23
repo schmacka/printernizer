@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.1] - 2026-03-23
+
+### Fixed
+- Order repository SQL statements now match actual database schema (removed non-existent columns `description`/`currency`, added `payment_status`)
+- Order file attachment SQL aligned with schema (`file_id`/`url`/`file_type` instead of `file_path`/`file_size`/`mime_type`)
+- Default order status corrected from `pending` to `new`
+- Create-order modal now provides full form (customer, source, price, payment status, due date, notes, library file picker) instead of bare `prompt()` dialog
+
 ## [2.30.0] - 2026-03-21
 
 ### Added
