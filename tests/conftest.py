@@ -855,6 +855,7 @@ def test_app():
     # Create mock database with async methods
     mock_db = MagicMock(spec=Database)
     mock_db.health_check = AsyncMock(return_value=True)
+    mock_db._connection = MagicMock()  # Required by repository dependencies
 
     # Create mock config service with async methods
     mock_config = MagicMock(spec=ConfigService)

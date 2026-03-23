@@ -150,7 +150,7 @@ class TestJobAPI:
             'job_name': 'test_cube.3mf',
             'status': 'printing',
             'is_business': True,
-            'customer_name': 'Test Customer GmbH',
+            'customer_info': 'Test Customer GmbH',
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }

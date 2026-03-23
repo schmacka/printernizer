@@ -56,6 +56,7 @@ def mock_config_service():
     config_service = MagicMock(spec=ConfigService)
     config_service.get_config = MagicMock(return_value={})
     config_service.get_printer_config = MagicMock(return_value={})
+    config_service.get_printer.return_value = None
     return config_service
 
 
