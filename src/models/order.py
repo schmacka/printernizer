@@ -10,6 +10,7 @@ class OrderStatus(str, Enum):
     PLANNED = "planned"
     PRINTED = "printed"
     DELIVERED = "delivered"
+    CANCELLED = "cancelled"
 
 
 class PaymentStatus(str, Enum):

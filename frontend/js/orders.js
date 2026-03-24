@@ -4,10 +4,11 @@
  */
 
 const ORDER_STATUS_COLORS = {
-    'new': '#3b82f6',      // blue
-    'planned': '#f59e0b',  // yellow
-    'printed': '#10b981',  // green
-    'delivered': '#6b7280' // gray
+    'new': '#3b82f6',        // blue
+    'planned': '#f59e0b',    // yellow
+    'printed': '#10b981',    // green
+    'delivered': '#6b7280',  // gray
+    'cancelled': '#ef4444'   // red
 };
 
 const PAYMENT_STATUS_LABELS = {

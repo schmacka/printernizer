@@ -16,10 +16,11 @@ class OrderService(BaseService):
 
     # Valid status transitions (forward-only)
     STATUS_TRANSITIONS = {
-        'new': ['planned'],
-        'planned': ['printed'],
-        'printed': ['delivered'],
-        'delivered': [],  # terminal
+        'new': ['planned', 'cancelled'],
+        'planned': ['printed', 'cancelled'],
+        'printed': ['delivered', 'cancelled'],
+        'delivered': [],
+        'cancelled': [],
     }
 
     def __init__(self, database: Database):
@@ -320,7 +321,7 @@ class OrderService(BaseService):
         # Get all orders to compute analytics
         all_orders, total = await self.list_orders(limit=10000, offset=0)
 
-        orders_by_status = {'new': 0, 'planned': 0, 'printed': 0, 'delivered': 0}
+        orders_by_status = {'new': 0, 'planned': 0, 'printed': 0, 'delivered': 0, 'cancelled': 0}
         total_quoted = 0.0
         total_paid = 0.0
         source_stats: Dict[str, Dict] = {}
