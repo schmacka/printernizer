@@ -336,6 +336,10 @@ class OrderService:
         source_stats: Dict[str, Dict] = {}
         fulfillment_days_list = []
 
+        # Pre-load all sources to avoid N+1 queries
+        all_sources_list = await self.order_repo.list_sources(include_inactive=True)
+        all_sources_map = {s['id']: s for s in all_sources_list}
+
         for order in all_orders:
             status = order.get('status', 'new')
             orders_by_status[status] = orders_by_status.get(status, 0) + 1
@@ -353,7 +357,7 @@ class OrderService:
             source_id = order.get('source_id')
             if source_id:
                 if source_id not in source_stats:
-                    source = await self.order_repo.get_source(source_id)
+                    source = all_sources_map.get(source_id)
                     source_stats[source_id] = {
                         'source_name': source['name'] if source else source_id,
                         'order_count': 0,
