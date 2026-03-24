@@ -24,7 +24,6 @@ class OrderService:
     def __init__(self, database: Database):
         self.order_repo = OrderRepository(database._connection)
         self.customer_repo = CustomerRepository(database._connection)
-        self.database = database
 
     # ===================== Customer methods =====================
 
@@ -216,7 +215,8 @@ class OrderService:
 
     async def _create_draft_job(self, order_id: str, job_name: str, printer_id: Optional[str] = None) -> str:
         """Create a draft job linked to an order. Returns job_id."""
-        job_id = str(uuid.uuid4())
+        import uuid as _uuid
+        job_id = str(_uuid.uuid4())
         now = datetime.now().isoformat()
         job_data = {
             'id': job_id,
@@ -225,25 +225,13 @@ class OrderService:
             'job_name': job_name,
             'status': 'pending',
             'order_id': order_id,
-            'is_business': True,  # orders are always business
+            'is_business': True,
             'created_at': now,
             'updated_at': now,
         }
-        # Insert directly via connection to avoid JobService import cycle
-        sql = """INSERT INTO jobs (id, printer_id, printer_type, job_name, status, order_id, is_business, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        await self._execute_write_on_jobs(sql, (
-            job_data['id'], job_data['printer_id'], job_data['printer_type'],
-            job_data['job_name'], job_data['status'], job_data['order_id'],
-            1 if job_data['is_business'] else 0, job_data['created_at'], job_data['updated_at']
-        ))
+        await self.order_repo.create_draft_job(job_data)
         logger.info("Draft job created for order", job_id=job_id, order_id=order_id)
         return job_id
-
-    async def _execute_write_on_jobs(self, sql: str, params: tuple) -> None:
-        """Execute a write on the jobs table via the shared database connection."""
-        cursor = await self.database._connection.execute(sql, params)
-        await self.database._connection.commit()
 
     async def update_order(self, order_id: str, data: Dict[str, Any]) -> bool:
         """Update order. Validates status transitions."""
