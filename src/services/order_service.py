@@ -134,7 +134,7 @@ class OrderService:
 
     async def list_orders(self, status=None, customer_id=None, source_id=None,
                           due_before=None, due_after=None, limit=100, offset=0) -> tuple:
-        """Returns (orders list, total count)."""
+        """Returns (orders list, total count). Orders are enriched with nested customer and source."""
         orders = await self.order_repo.list_orders(
             status=status, customer_id=customer_id, source_id=source_id,
             due_before=due_before, due_after=due_after, limit=limit, offset=offset
@@ -142,6 +142,15 @@ class OrderService:
         total = await self.order_repo.count_orders(
             status=status, customer_id=customer_id, source_id=source_id
         )
+
+        if orders:
+            # Batch-fetch customers and sources referenced by this page of results
+            all_customers = {c['id']: c for c in await self.customer_repo.list()}
+            all_sources = {s['id']: s for s in await self.order_repo.list_sources(include_inactive=True)}
+            for order in orders:
+                order['customer'] = all_customers.get(order.get('customer_id'))
+                order['source'] = all_sources.get(order.get('source_id'))
+
         return orders, total
 
     async def get_order(self, order_id: str) -> Optional[Dict[str, Any]]:
