@@ -70,8 +70,7 @@ class OrderService:
         existing = await self.customer_repo.get(customer_id)
         if not existing:
             return False
-        # Only pass non-None fields
-        update_data = {k: v for k, v in data.items() if v is not None}
+        update_data = data
         return await self.customer_repo.update(customer_id, update_data)
 
     async def delete_customer(self, customer_id: str) -> bool:
@@ -240,13 +239,13 @@ class OrderService:
             return False
 
         # Validate status transition if status is being updated
-        if 'status' in data and data['status']:
+        if 'status' in data and data['status'] is not None:
             current_status = existing.get('status', 'new')
             new_status = data['status']
             if isinstance(new_status, str) and new_status != current_status:
                 self._validate_status_transition(current_status, new_status)
 
-        update_data = {k: v for k, v in data.items() if v is not None}
+        update_data = data
         return await self.order_repo.update_order(order_id, update_data)
 
     async def delete_order(self, order_id: str) -> bool:
