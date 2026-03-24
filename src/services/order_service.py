@@ -107,6 +107,10 @@ class OrderService:
             return True
         return await self.order_repo.update_source(source_id, update_data)
 
+    async def get_source(self, source_id: str):
+        """Get a single order source by ID."""
+        return await self.order_repo.get_source(source_id)
+
     async def delete_source(self, source_id: str) -> str:
         """Delete source. Returns 'not_found', 'in_use', or 'deleted'."""
         existing = await self.order_repo.get_source(source_id)
