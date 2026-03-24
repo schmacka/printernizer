@@ -254,14 +254,13 @@ class OrderRepository(BaseRepository):
         """Create a new order source."""
         sql = """
             INSERT INTO order_sources
-            (id, name, description, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (id, name, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
         """
         now = datetime.utcnow().isoformat()
         params = (
             data['id'],
             data['name'],
-            data.get('description'),
             1 if data.get('is_active', True) else 0,
             data.get('created_at', now),
             data.get('updated_at', now),
@@ -301,7 +300,7 @@ class OrderRepository(BaseRepository):
         if not data:
             return False
 
-        allowed_fields = ('name', 'description', 'is_active')
+        allowed_fields = ('name', 'is_active')
         set_clauses = []
         params = []
 
