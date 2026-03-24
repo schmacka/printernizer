@@ -162,6 +162,32 @@ class OrderRepository(BaseRepository):
     # Job linking
     # =========================================================================
 
+    async def create_draft_job(self, job_data: Dict[str, Any]) -> bool:
+        """Insert a draft job row linked to an order."""
+        sql = """
+            INSERT INTO jobs
+            (id, printer_id, printer_type, job_name, status, order_id, is_business, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        params = (
+            job_data['id'],
+            job_data['printer_id'],
+            job_data['printer_type'],
+            job_data['job_name'],
+            job_data['status'],
+            job_data['order_id'],
+            1 if job_data.get('is_business') else 0,
+            job_data['created_at'],
+            job_data['updated_at'],
+        )
+        try:
+            await self._execute_write(sql, params)
+            logger.info("Draft job created for order", job_id=job_data['id'], order_id=job_data['order_id'])
+            return True
+        except Exception as e:
+            logger.error("Failed to create draft job", error=str(e), order_id=job_data.get('order_id'))
+            return False
+
     async def link_job(self, order_id: str, job_id: str) -> bool:
         """Set jobs.order_id = order_id for the given job_id."""
         sql = "UPDATE jobs SET order_id = ? WHERE id = ?"
@@ -254,14 +280,13 @@ class OrderRepository(BaseRepository):
         """Create a new order source."""
         sql = """
             INSERT INTO order_sources
-            (id, name, description, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (id, name, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
         """
         now = datetime.utcnow().isoformat()
         params = (
             data['id'],
             data['name'],
-            data.get('description'),
             1 if data.get('is_active', True) else 0,
             data.get('created_at', now),
             data.get('updated_at', now),
@@ -301,7 +326,7 @@ class OrderRepository(BaseRepository):
         if not data:
             return False
 
-        allowed_fields = ('name', 'description', 'is_active')
+        allowed_fields = ('name', 'is_active')
         set_clauses = []
         params = []
 

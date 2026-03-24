@@ -27,7 +27,7 @@ async def create_source(
 ):
     """Create a new order source."""
     source_id = await service.create_source(data.model_dump())
-    source = await service.order_repo.get_source(source_id)
+    source = await service.get_source(source_id)
     return source
 
 
@@ -41,7 +41,7 @@ async def update_source(
     success = await service.update_source(source_id, data.model_dump(exclude_unset=True))
     if not success:
         raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
-    return await service.order_repo.get_source(source_id)
+    return await service.get_source(source_id)
 
 
 @router.delete("/{source_id}", status_code=204)

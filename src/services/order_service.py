@@ -6,25 +6,27 @@ import structlog
 from src.database.database import Database
 from src.database.repositories.order_repository import OrderRepository
 from src.database.repositories.customer_repository import CustomerRepository
+from src.services.base_service import BaseService
 
 logger = structlog.get_logger()
 
 
-class OrderService:
+class OrderService(BaseService):
     """Service for managing orders, customers, and order sources."""
 
     # Valid status transitions (forward-only)
     STATUS_TRANSITIONS = {
-        'new': ['planned'],
-        'planned': ['printed'],
-        'printed': ['delivered'],
-        'delivered': [],  # terminal
+        'new': ['planned', 'cancelled'],
+        'planned': ['printed', 'cancelled'],
+        'printed': ['delivered', 'cancelled'],
+        'delivered': [],
+        'cancelled': [],
     }
 
     def __init__(self, database: Database):
+        super().__init__(database)  # Sets self.db, self._initialized
         self.order_repo = OrderRepository(database._connection)
         self.customer_repo = CustomerRepository(database._connection)
-        self.database = database
 
     # ===================== Customer methods =====================
 
@@ -70,8 +72,7 @@ class OrderService:
         existing = await self.customer_repo.get(customer_id)
         if not existing:
             return False
-        # Only pass non-None fields
-        update_data = {k: v for k, v in data.items() if v is not None}
+        update_data = data
         return await self.customer_repo.update(customer_id, update_data)
 
     async def delete_customer(self, customer_id: str) -> bool:
@@ -108,6 +109,10 @@ class OrderService:
             return True
         return await self.order_repo.update_source(source_id, update_data)
 
+    async def get_source(self, source_id: str):
+        """Get a single order source by ID."""
+        return await self.order_repo.get_source(source_id)
+
     async def delete_source(self, source_id: str) -> str:
         """Delete source. Returns 'not_found', 'in_use', or 'deleted'."""
         existing = await self.order_repo.get_source(source_id)
@@ -131,7 +136,7 @@ class OrderService:
 
     async def list_orders(self, status=None, customer_id=None, source_id=None,
                           due_before=None, due_after=None, limit=100, offset=0) -> tuple:
-        """Returns (orders list, total count)."""
+        """Returns (orders list, total count). Orders are enriched with nested customer and source."""
         orders = await self.order_repo.list_orders(
             status=status, customer_id=customer_id, source_id=source_id,
             due_before=due_before, due_after=due_after, limit=limit, offset=offset
@@ -139,6 +144,15 @@ class OrderService:
         total = await self.order_repo.count_orders(
             status=status, customer_id=customer_id, source_id=source_id
         )
+
+        if orders:
+            # Batch-fetch customers and sources referenced by this page of results
+            all_customers = {c['id']: c for c in await self.customer_repo.list()}
+            all_sources = {s['id']: s for s in await self.order_repo.list_sources(include_inactive=True)}
+            for order in orders:
+                order['customer'] = all_customers.get(order.get('customer_id'))
+                order['source'] = all_sources.get(order.get('source_id'))
+
         return orders, total
 
     async def get_order(self, order_id: str) -> Optional[Dict[str, Any]]:
@@ -204,7 +218,8 @@ class OrderService:
 
     async def _create_draft_job(self, order_id: str, job_name: str, printer_id: Optional[str] = None) -> str:
         """Create a draft job linked to an order. Returns job_id."""
-        job_id = str(uuid.uuid4())
+        import uuid as _uuid
+        job_id = str(_uuid.uuid4())
         now = datetime.now().isoformat()
         job_data = {
             'id': job_id,
@@ -213,25 +228,13 @@ class OrderService:
             'job_name': job_name,
             'status': 'pending',
             'order_id': order_id,
-            'is_business': True,  # orders are always business
+            'is_business': True,
             'created_at': now,
             'updated_at': now,
         }
-        # Insert directly via connection to avoid JobService import cycle
-        sql = """INSERT INTO jobs (id, printer_id, printer_type, job_name, status, order_id, is_business, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        await self._execute_write_on_jobs(sql, (
-            job_data['id'], job_data['printer_id'], job_data['printer_type'],
-            job_data['job_name'], job_data['status'], job_data['order_id'],
-            1 if job_data['is_business'] else 0, job_data['created_at'], job_data['updated_at']
-        ))
+        await self.order_repo.create_draft_job(job_data)
         logger.info("Draft job created for order", job_id=job_id, order_id=order_id)
         return job_id
-
-    async def _execute_write_on_jobs(self, sql: str, params: tuple) -> None:
-        """Execute a write on the jobs table via the shared database connection."""
-        cursor = await self.database._connection.execute(sql, params)
-        await self.database._connection.commit()
 
     async def update_order(self, order_id: str, data: Dict[str, Any]) -> bool:
         """Update order. Validates status transitions."""
@@ -240,13 +243,13 @@ class OrderService:
             return False
 
         # Validate status transition if status is being updated
-        if 'status' in data and data['status']:
+        if 'status' in data and data['status'] is not None:
             current_status = existing.get('status', 'new')
             new_status = data['status']
             if isinstance(new_status, str) and new_status != current_status:
                 self._validate_status_transition(current_status, new_status)
 
-        update_data = {k: v for k, v in data.items() if v is not None}
+        update_data = data
         return await self.order_repo.update_order(order_id, update_data)
 
     async def delete_order(self, order_id: str) -> bool:
@@ -318,11 +321,15 @@ class OrderService:
         # Get all orders to compute analytics
         all_orders, total = await self.list_orders(limit=10000, offset=0)
 
-        orders_by_status = {'new': 0, 'planned': 0, 'printed': 0, 'delivered': 0}
+        orders_by_status = {'new': 0, 'planned': 0, 'printed': 0, 'delivered': 0, 'cancelled': 0}
         total_quoted = 0.0
         total_paid = 0.0
         source_stats: Dict[str, Dict] = {}
         fulfillment_days_list = []
+
+        # Pre-load all sources to avoid N+1 queries
+        all_sources_list = await self.order_repo.list_sources(include_inactive=True)
+        all_sources_map = {s['id']: s for s in all_sources_list}
 
         for order in all_orders:
             status = order.get('status', 'new')
@@ -341,7 +348,7 @@ class OrderService:
             source_id = order.get('source_id')
             if source_id:
                 if source_id not in source_stats:
-                    source = await self.order_repo.get_source(source_id)
+                    source = all_sources_map.get(source_id)
                     source_stats[source_id] = {
                         'source_name': source['name'] if source else source_id,
                         'order_count': 0,

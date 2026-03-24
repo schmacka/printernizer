@@ -62,8 +62,8 @@ class JobManager {
             // Get form data
             const formData = new FormData(form);
             const jobData = {
-                name: formData.get('job_name'),
-                file_id: formData.get('file') ? parseInt(formData.get('file')) : null,
+                job_name: formData.get('job_name'),
+                file_id: formData.get('file') || null,
                 printer_id: formData.get('printer'),
                 is_business: formData.get('is_business') === 'on',
                 customer_name: formData.get('customer_name') || null

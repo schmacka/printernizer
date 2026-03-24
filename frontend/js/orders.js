@@ -4,10 +4,11 @@
  */
 
 const ORDER_STATUS_COLORS = {
-    'new': '#3b82f6',      // blue
-    'planned': '#f59e0b',  // yellow
-    'printed': '#10b981',  // green
-    'delivered': '#6b7280' // gray
+    'new': '#3b82f6',        // blue
+    'planned': '#f59e0b',    // yellow
+    'printed': '#10b981',    // green
+    'delivered': '#6b7280',  // gray
+    'cancelled': '#ef4444'   // red
 };
 
 const PAYMENT_STATUS_LABELS = {
@@ -293,42 +294,125 @@ class OrdersManager {
             const response = await fetch(`/api/v1/orders/${orderId}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const order = await response.json();
+            this._currentOrderDetail = order;
 
-            const detail = `
-Order: ${this._escapeHtml(order.title)}
-Status: ${order.status}
-Customer: ${order.customer?.name || 'None'}
-Quoted: ${order.quoted_price != null ? '€' + order.quoted_price.toFixed(2) : '—'}
-Payment: ${order.payment_status}
-Material cost: €${(order.material_cost_eur || 0).toFixed(2)}
-Energy cost: €${(order.energy_cost_eur || 0).toFixed(2)}
-Jobs: ${order.jobs?.length || 0}
-Files: ${order.files?.length || 0}`;
+            document.getElementById('orderDetailTitle').textContent = order.title;
 
-            alert(detail);
+            const statusColor = ORDER_STATUS_COLORS[order.status] || '#6b7280';
+            const badge = document.getElementById('orderDetailStatusBadge');
+            badge.textContent = order.status;
+            badge.style.background = statusColor;
+
+            const nextStatus = { new: 'planned', planned: 'printed', printed: 'delivered' }[order.status];
+            const advBtn = document.getElementById('orderDetailAdvanceBtn');
+            advBtn.style.display = nextStatus ? '' : 'none';
+            if (nextStatus) advBtn.textContent = `Mark as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}`;
+
+            const cancelBtn = document.getElementById('orderDetailCancelBtn');
+            cancelBtn.style.display = (order.status === 'delivered' || order.status === 'cancelled') ? 'none' : '';
+
+            document.getElementById('orderDetailCustomer').textContent = order.customer?.name || '—';
+            document.getElementById('orderDetailSource').textContent = order.source?.name || '—';
+            document.getElementById('orderDetailQuoted').textContent =
+                order.quoted_price != null ? `€${order.quoted_price.toFixed(2)}` : '—';
+            document.getElementById('orderDetailPayment').textContent =
+                PAYMENT_STATUS_LABELS[order.payment_status] || order.payment_status;
+            document.getElementById('orderDetailDue').textContent =
+                order.due_date ? new Date(order.due_date).toLocaleDateString() : '—';
+            document.getElementById('orderDetailMaterial').textContent = `€${(order.material_cost_eur || 0).toFixed(2)}`;
+            document.getElementById('orderDetailEnergy').textContent = `€${(order.energy_cost_eur || 0).toFixed(2)}`;
+
+            const notesGroup = document.getElementById('orderDetailNotesGroup');
+            document.getElementById('orderDetailNotes').textContent = order.notes || '';
+            notesGroup.style.display = order.notes ? '' : 'none';
+
+            const jobsEl = document.getElementById('orderDetailJobsList');
+            jobsEl.innerHTML = order.jobs?.length
+                ? order.jobs.map(j => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.25rem 0;border-bottom:1px solid var(--border-color);">
+                        <span>${this._escapeHtml(j.job_name)} <small class="text-muted">(${j.status})</small></span>
+                        <button class="btn btn-danger btn-sm" onclick="ordersManager.unlinkJobFromDetail('${order.id}','${j.id}')">Unlink</button>
+                    </div>`).join('')
+                : '<span class="text-muted">No linked jobs.</span>';
+
+            const filesEl = document.getElementById('orderDetailFilesList');
+            filesEl.innerHTML = order.files?.length
+                ? order.files.map(f => `
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.25rem 0;border-bottom:1px solid var(--border-color);">
+                        <span>${this._escapeHtml(f.filename)}</span>
+                        <button class="btn btn-danger btn-sm" onclick="ordersManager.detachFileFromDetail('${order.id}','${f.id}')">Remove</button>
+                    </div>`).join('')
+                : '<span class="text-muted">No attached files.</span>';
+
+            showModal('orderDetailModal');
         } catch (error) {
             Logger.error('Failed to load order detail:', error);
             showToast('error', 'Error', 'Failed to load order details');
         }
     }
 
-    // ---- CRUD operations ----
-
-    async createOrder(data) {
+    async advanceOrderStatus() {
+        const order = this._currentOrderDetail;
+        if (!order) return;
+        const nextStatus = { new: 'planned', planned: 'printed', printed: 'delivered' }[order.status];
+        if (!nextStatus) return;
         try {
-            const response = await fetch('/api/v1/orders', {
-                method: 'POST',
+            const response = await fetch(`/api/v1/orders/${order.id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({ status: nextStatus })
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Order Created', `Order "${data.title}" created`);
+            showToast('success', 'Updated', `Order marked as ${nextStatus}`);
+            closeModal('orderDetailModal');
             await this.load();
         } catch (error) {
-            Logger.error('Failed to create order:', error);
-            showToast('error', 'Error', 'Failed to create order');
+            showToast('error', 'Error', 'Failed to update order status');
         }
     }
+
+    async cancelOrder() {
+        const order = this._currentOrderDetail;
+        if (!order) return;
+        if (!confirm('Cancel this order?')) return;
+        try {
+            const response = await fetch(`/api/v1/orders/${order.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'cancelled' })
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            showToast('success', 'Cancelled', 'Order cancelled');
+            closeModal('orderDetailModal');
+            await this.load();
+        } catch (error) {
+            showToast('error', 'Error', 'Failed to cancel order');
+        }
+    }
+
+    async unlinkJobFromDetail(orderId, jobId) {
+        try {
+            const response = await fetch(`/api/v1/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            showToast('success', 'Unlinked', 'Job unlinked from order');
+            await this.showOrderDetail(orderId);
+        } catch (error) {
+            showToast('error', 'Error', 'Failed to unlink job');
+        }
+    }
+
+    async detachFileFromDetail(orderId, orderFileId) {
+        try {
+            const response = await fetch(`/api/v1/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            showToast('success', 'Removed', 'File detached from order');
+            await this.showOrderDetail(orderId);
+        } catch (error) {
+            showToast('error', 'Error', 'Failed to detach file');
+        }
+    }
+
+    // ---- CRUD operations ----
 
     async deleteOrder(orderId) {
         if (!confirm('Delete this order? Linked jobs will be unlinked.')) return;
