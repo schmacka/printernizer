@@ -7,13 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.30.1] - 2026-03-23
+## [2.30.2] - 2026-03-24
 
 ### Fixed
-- Order repository SQL statements now match actual database schema (removed non-existent columns `description`/`currency`, added `payment_status`)
+- Order repository SQL statements now match actual database schema (removed non-existent `description` column from `order_sources` INSERT and `allowed_fields`)
 - Order file attachment SQL aligned with schema (`file_id`/`url`/`file_type` instead of `file_path`/`file_size`/`mime_type`)
 - Default order status corrected from `pending` to `new`
 - Create-order modal now provides full form (customer, source, price, payment status, due date, notes, library file picker) instead of bare `prompt()` dialog
+- Explicit `None` values in `update_order()` and `update_customer()` are no longer silently dropped (fields such as `customer_id` can now be cleared)
+- `OrderService.get_source()` added; router no longer accesses `order_repo` directly
+- `list_orders()` now returns enriched orders with nested `customer` and `source` objects (fixes `—` display in orders table)
+- Job creation payload corrected: uses `job_name` field and string `file_id` matching backend `JobCreate` model
+- `OrderService` now inherits from `BaseService` per service architecture pattern
+- Draft job creation moved to `OrderRepository.create_draft_job()`; removed direct `_connection` access from service layer
+
+### Added
+- `cancelled` order status with DB migration (029), status transitions from `new`/`planned`/`printed`, and red badge color in UI
+- Order detail modal replacing `alert()` — shows status, customer, source, pricing, jobs, files with Unlink/Remove actions
+- Advance status and Cancel Order buttons in order detail modal
+
+### Improved
+- `get_order_analytics()` pre-loads all sources once instead of one query per order (eliminates N+1)
 
 ## [2.30.0] - 2026-03-21
 
