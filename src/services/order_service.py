@@ -6,11 +6,12 @@ import structlog
 from src.database.database import Database
 from src.database.repositories.order_repository import OrderRepository
 from src.database.repositories.customer_repository import CustomerRepository
+from src.services.base_service import BaseService
 
 logger = structlog.get_logger()
 
 
-class OrderService:
+class OrderService(BaseService):
     """Service for managing orders, customers, and order sources."""
 
     # Valid status transitions (forward-only)
@@ -22,6 +23,7 @@ class OrderService:
     }
 
     def __init__(self, database: Database):
+        super().__init__(database)  # Sets self.db, self._initialized
         self.order_repo = OrderRepository(database._connection)
         self.customer_repo = CustomerRepository(database._connection)
 
