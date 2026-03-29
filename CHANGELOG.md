@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.3] - 2026-03-29
+
+### Fixed
+- Job creation always failed validation due to wrong property name check (`jobData.name` → `jobData.job_name`)
+- Orders feature completely broken in Home Assistant due to hardcoded `/api/v1/` paths — all fetch calls in `orders.js` now use `CONFIG.API_BASE_URL` to correctly resolve the HA Ingress path prefix
+
 ## [2.30.2] - 2026-03-24
 
 ### Fixed

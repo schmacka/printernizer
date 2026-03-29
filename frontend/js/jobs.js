@@ -70,7 +70,7 @@ class JobManager {
             };
 
             // Validate required fields
-            if (!jobData.name) {
+            if (!jobData.job_name) {
                 showToast('error', 'Fehler', 'Bitte geben Sie einen Job-Namen ein');
                 return;
             }

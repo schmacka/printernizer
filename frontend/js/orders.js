@@ -41,7 +41,7 @@ class OrdersManager {
             if (status) params.set('status', status);
             params.set('limit', '100');
 
-            const response = await fetch(`/api/v1/orders?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders?${params}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
             this.orders = data.orders || [];
@@ -97,7 +97,7 @@ class OrdersManager {
         try {
             const params = new URLSearchParams();
             if (search) params.set('search', search);
-            const response = await fetch(`/api/v1/customers?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/customers?${params}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             this.customers = await response.json();
             this.renderCustomers();
@@ -134,7 +134,7 @@ class OrdersManager {
 
     async loadSources() {
         try {
-            const response = await fetch('/api/v1/order-sources?all=true');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/order-sources?all=true`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             this.sources = await response.json();
             this.renderSources();
@@ -218,7 +218,7 @@ class OrdersManager {
         };
 
         try {
-            const response = await fetch('/api/v1/orders', {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -229,7 +229,7 @@ class OrdersManager {
             // Attach checked library files
             const checked = document.querySelectorAll('#orderFilePickerList input[type="checkbox"]:checked');
             for (const cb of checked) {
-                await fetch(`/api/v1/orders/${order.id}/files`, {
+                await fetch(`${CONFIG.API_BASE_URL}/orders/${order.id}/files`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ file_id: cb.value, filename: cb.dataset.filename })
@@ -253,7 +253,7 @@ class OrdersManager {
         try {
             const params = new URLSearchParams({ limit: '100' });
             if (search) params.set('search', search);
-            const response = await fetch(`/api/v1/files?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/files?${params}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
             const files = data.files || [];
@@ -291,7 +291,7 @@ class OrdersManager {
 
     async showOrderDetail(orderId) {
         try {
-            const response = await fetch(`/api/v1/orders/${orderId}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const order = await response.json();
             this._currentOrderDetail = order;
@@ -357,7 +357,7 @@ class OrdersManager {
         const nextStatus = { new: 'planned', planned: 'printed', printed: 'delivered' }[order.status];
         if (!nextStatus) return;
         try {
-            const response = await fetch(`/api/v1/orders/${order.id}`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${order.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: nextStatus })
@@ -376,7 +376,7 @@ class OrdersManager {
         if (!order) return;
         if (!confirm('Cancel this order?')) return;
         try {
-            const response = await fetch(`/api/v1/orders/${order.id}`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${order.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: 'cancelled' })
@@ -392,7 +392,7 @@ class OrdersManager {
 
     async unlinkJobFromDetail(orderId, jobId) {
         try {
-            const response = await fetch(`/api/v1/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             showToast('success', 'Unlinked', 'Job unlinked from order');
             await this.showOrderDetail(orderId);
@@ -403,7 +403,7 @@ class OrdersManager {
 
     async detachFileFromDetail(orderId, orderFileId) {
         try {
-            const response = await fetch(`/api/v1/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             showToast('success', 'Removed', 'File detached from order');
             await this.showOrderDetail(orderId);
@@ -417,7 +417,7 @@ class OrdersManager {
     async deleteOrder(orderId) {
         if (!confirm('Delete this order? Linked jobs will be unlinked.')) return;
         try {
-            const response = await fetch(`/api/v1/orders/${orderId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             showToast('success', 'Deleted', 'Order deleted');
             await this.load();
@@ -428,7 +428,7 @@ class OrdersManager {
 
     async createCustomer(data) {
         try {
-            const response = await fetch('/api/v1/customers', {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/customers`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -444,7 +444,7 @@ class OrdersManager {
     async deleteCustomer(customerId) {
         if (!confirm('Delete this customer? Their orders will be kept but unlinked.')) return;
         try {
-            const response = await fetch(`/api/v1/customers/${customerId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/customers/${customerId}`, { method: 'DELETE' });
             if (response.status === 404) throw new Error('Not found');
             showToast('success', 'Deleted', 'Customer deleted');
             await this.loadCustomers();
@@ -455,7 +455,7 @@ class OrdersManager {
 
     async createSource(data) {
         try {
-            const response = await fetch('/api/v1/order-sources', {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/order-sources`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -470,7 +470,7 @@ class OrdersManager {
 
     async toggleSource(sourceId, isActive) {
         try {
-            const response = await fetch(`/api/v1/order-sources/${sourceId}`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/order-sources/${sourceId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ is_active: isActive })
@@ -485,7 +485,7 @@ class OrdersManager {
     async deleteSource(sourceId) {
         if (!confirm('Delete this source?')) return;
         try {
-            const response = await fetch(`/api/v1/order-sources/${sourceId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/order-sources/${sourceId}`, { method: 'DELETE' });
             if (response.status === 409) {
                 showToast('error', 'Cannot Delete', 'Source is used by existing orders');
                 return;
@@ -500,7 +500,7 @@ class OrdersManager {
 
     async unlinkJob(orderId, jobId) {
         try {
-            const response = await fetch(`/api/v1/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             showToast('success', 'Unlinked', 'Job unlinked from order');
         } catch (error) {
@@ -510,7 +510,7 @@ class OrdersManager {
 
     async detachFile(orderId, orderFileId) {
         try {
-            const response = await fetch(`/api/v1/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             showToast('success', 'Removed', 'File detached from order');
         } catch (error) {
