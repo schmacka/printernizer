@@ -885,14 +885,14 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         exc_info=True
     )
 
-    # Don't expose internal error details in production
+    import traceback as _tb
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "status": "error",
-            "message": "An unexpected error occurred. Please try again later.",
+            "message": str(exc),
             "error_code": "INTERNAL_SERVER_ERROR",
-            "details": {},
+            "details": {"traceback": _tb.format_exc()},
             "timestamp": datetime.now().isoformat()
         }
     )
