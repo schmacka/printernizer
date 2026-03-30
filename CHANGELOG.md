@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.5] - 2026-03-30
+
+### Changed
+- Version bump to trigger HA add-on update
+
 ## [2.30.4] - 2026-03-29
 
 ### Fixed
