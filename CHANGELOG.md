@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.7] - 2026-03-31
+
+### Fixed
+- Orders feature still broken in HA: `migrations/` directory was never copied into the Docker image (missing `COPY migrations/` in Dockerfile) — SQL migration files existed in the repo but were invisible to the running app, so no orders tables were ever created
+
 ## [2.30.6] - 2026-03-31
 
 ### Changed

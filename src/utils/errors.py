@@ -885,14 +885,13 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
         exc_info=True
     )
 
-    import traceback as _tb
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
             "status": "error",
-            "message": str(exc),
+            "message": "An unexpected error occurred. Please try again later.",
             "error_code": "INTERNAL_SERVER_ERROR",
-            "details": {"traceback": _tb.format_exc()},
+            "details": {},
             "timestamp": datetime.now().isoformat()
         }
     )
