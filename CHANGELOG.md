@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.6] - 2026-03-31
+
+### Changed
+- Temporary debug: expose exception details in 500 responses (will be reverted)
+
 ## [2.30.5] - 2026-03-30
 
 ### Changed
