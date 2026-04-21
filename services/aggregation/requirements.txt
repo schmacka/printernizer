@@ -15,7 +15,7 @@ alembic==1.12.1  # Database migrations
 python-jose[cryptography]>=3.4.0
 
 # Utilities
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 structlog==23.2.0
 
 # Testing
