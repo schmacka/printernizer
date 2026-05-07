@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.31.0] - 2026-05-07
+
+### Added
+- Tools: The Hornet parametric blade generator (MakerWorld)
+- Tools: Gridfinity Rebuilt OpenSCAD bin generator
+
 ## [2.30.7] - 2026-03-31
 
 ### Fixed
