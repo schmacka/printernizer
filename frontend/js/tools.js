@@ -53,6 +53,14 @@ const TOOLS_DATA = [
         url: 'https://github.com/yawkat/web-openscad-editor',
         icon: '🖥️',
         category: 'Design'
+    },
+    {
+        id: 'the-hornet-blade-generator',
+        title: 'The Hornet – Parametric Blade Generator',
+        description: 'Free fully parametric 2/3/4-blade propeller and fan generator in OpenSCAD. Customize blade count, pitch, and dimensions for any application.',
+        url: 'https://makerworld.com/en/models/2620727',
+        icon: '🪁',
+        category: 'Design'
     }
 ];
 
