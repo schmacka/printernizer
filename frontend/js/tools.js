@@ -53,6 +53,22 @@ const TOOLS_DATA = [
         url: 'https://github.com/yawkat/web-openscad-editor',
         icon: '🖥️',
         category: 'Design'
+    },
+    {
+        id: 'the-hornet-blade-generator',
+        title: 'The Hornet – Parametric Blade Generator',
+        description: 'Free fully parametric 2/3/4-blade propeller and fan generator in OpenSCAD. Customize blade count, pitch, and dimensions for any application.',
+        url: 'https://makerworld.com/en/models/2620727',
+        icon: '🪁',
+        category: 'Design'
+    },
+    {
+        id: 'gridfinity-rebuilt-openscad',
+        title: 'Gridfinity Rebuilt OpenSCAD',
+        description: 'Spacerless parametric Gridfinity bin generator built in OpenSCAD. Highly configurable bins with support for dividers, magnets, and custom dimensions.',
+        url: 'https://github.com/kennetek/gridfinity-rebuilt-openscad',
+        icon: '📐',
+        category: 'Gridfinity'
     }
 ];
 
