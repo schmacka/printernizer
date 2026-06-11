@@ -9,7 +9,7 @@ import structlog
 
 from src.services.analytics_service import AnalyticsService
 from src.utils.dependencies import get_analytics_service
-from src.utils.errors import success_response
+from src.utils.errors import PrinterNotFoundError, success_response
 
 
 logger = structlog.get_logger()
@@ -83,3 +83,16 @@ async def get_order_analytics(
 ):
     """Get order analytics: totals, by status, by source, fulfillment time."""
     return await analytics_service.get_order_analytics()
+
+
+@router.get("/printers/{printer_id}")
+async def get_printer_statistics(
+    printer_id: str,
+    period: str = Query('month', description="Statistics period (day, week, month)"),
+    analytics_service: AnalyticsService = Depends(get_analytics_service)
+):
+    """Get usage statistics for a single printer (jobs, uptime, materials)."""
+    stats = await analytics_service.get_printer_statistics(printer_id, period)
+    if stats is None:
+        raise PrinterNotFoundError(printer_id)
+    return stats

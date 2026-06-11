@@ -334,6 +334,64 @@ class AnalyticsService:
             logger.error("Error calculating printer usage", error=str(e), days=days, exc_info=True)
             return []
         
+    async def get_printer_statistics(self, printer_id: str, period: str = 'month') -> Optional[Dict[str, Any]]:
+        """
+        Get usage statistics for a single printer over the given period.
+
+        Args:
+            printer_id: ID of the printer
+            period: One of 'day', 'week', 'month' (defaults to 'month')
+
+        Returns:
+            Dictionary with jobs, uptime, and materials statistics, or None
+            if the printer does not exist. success_rate is a 0..1 fraction.
+        """
+        printer = await self.printer_repo.get(printer_id)
+        if not printer:
+            return None
+
+        period_days_map = {'day': 1, 'week': 7, 'month': 30}
+        days = period_days_map.get(period, 30)
+
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+
+        jobs = await self.job_repo.get_by_date_range(
+            start_date.isoformat(),
+            end_date.isoformat()
+        )
+        printer_jobs = [j for j in jobs if j.get('printer_id') == printer_id]
+        completed_jobs = [j for j in printer_jobs if j.get('status') == 'completed']
+        failed_jobs = [j for j in printer_jobs if j.get('status') in ('failed', 'cancelled')]
+
+        total_jobs = len(printer_jobs)
+        success_rate = (len(completed_jobs) / total_jobs) if total_jobs > 0 else 0.0
+
+        total_runtime_minutes = sum(j.get('elapsed_time_minutes', 0) for j in completed_jobs)
+        total_material_grams = sum(j.get('material_used_grams', 0.0) for j in completed_jobs)
+
+        available_minutes = days * 24 * 60
+        utilization_percent = (total_runtime_minutes / available_minutes * 100) if available_minutes > 0 else 0.0
+
+        return {
+            "printer_id": printer_id,
+            "printer_name": printer.get('name', 'Unknown'),
+            "period": period,
+            "jobs": {
+                "total_jobs": total_jobs,
+                "completed_jobs": len(completed_jobs),
+                "failed_jobs": len(failed_jobs),
+                "success_rate": round(success_rate, 3)
+            },
+            "uptime": {
+                "active_hours": round(total_runtime_minutes / 60, 2),
+                "utilization_percent": round(utilization_percent, 1)
+            },
+            "materials": {
+                "total_used_kg": round(total_material_grams / 1000, 3)
+            }
+        }
+
     async def get_material_consumption(self, days: int = 30) -> Dict[str, Any]:
         """Get material consumption statistics for the last N days."""
         try:

@@ -234,6 +234,49 @@ class TestConfigService:
 
         return ConfigService(config_path=str(temp_config_path), database=mock_database)
 
+    def test_reset_application_settings(self, config_service_with_empty_config, tmp_path, monkeypatch):
+        """Test resetting application settings to pydantic defaults."""
+        from unittest.mock import patch
+        from src.utils.config import PrinternizerSettings
+
+        service = config_service_with_empty_config
+
+        settings = PrinternizerSettings()
+        settings.log_level = "DEBUG"
+        settings.vat_rate = 7.0
+
+        env_file = tmp_path / ".env"
+        env_file.write_text('LOG_LEVEL="DEBUG"\nVAT_RATE=7.0\nPORT=9000\n')
+
+        def fake_remove(keys):
+            # Redirect .env handling to the temp file
+            env_keys = {service.ENV_KEY_MAPPING[k] for k in keys if k in service.ENV_KEY_MAPPING}
+            kept = [
+                line for line in env_file.read_text().splitlines(keepends=True)
+                if line.split('=', 1)[0].strip() not in env_keys
+            ]
+            env_file.write_text(''.join(kept))
+
+        with patch('src.services.config_service.get_settings', return_value=settings), \
+             patch.object(service, '_remove_settings_from_env', side_effect=fake_remove):
+            reset_fields = service.reset_application_settings()
+
+        # Modified values restored to their field defaults (independent of
+        # environment variables, which a fresh Settings() would pick up)
+        fields = PrinternizerSettings.model_fields
+        assert settings.log_level == fields['log_level'].get_default(call_default_factory=True)
+        assert settings.vat_rate == fields['vat_rate'].get_default(call_default_factory=True)
+
+        # All resettable fields reported
+        assert 'log_level' in reset_fields
+        assert 'vat_rate' in reset_fields
+
+        # Env overrides removed, unrelated keys untouched
+        remaining = env_file.read_text()
+        assert 'LOG_LEVEL' not in remaining
+        assert 'VAT_RATE' not in remaining
+        assert 'PORT=9000' in remaining
+
     def test_config_service_initialization(self, config_service_with_empty_config):
         """Test ConfigService initializes correctly."""
         service = config_service_with_empty_config

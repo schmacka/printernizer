@@ -325,6 +325,24 @@ async def reload_configuration(
     return success_response({"message": "Configuration reloaded successfully"})
 
 
+@router.post("/reset")
+async def reset_application_settings(
+    config_service: ConfigService = Depends(get_config_service)
+):
+    """Reset runtime-modifiable application settings to their defaults.
+
+    Only affects the writable .env file and in-memory settings. Environment
+    variables injected externally (e.g. by the Home Assistant add-on) are
+    not modified and take precedence again after a restart.
+    """
+    reset_fields = config_service.reset_application_settings()
+
+    return success_response({
+        "message": "Settings reset to defaults",
+        "reset_fields": reset_fields
+    })
+
+
 @router.get("/ffmpeg-check")
 async def check_ffmpeg_installation():
     """Check if ffmpeg is installed and available on the system."""

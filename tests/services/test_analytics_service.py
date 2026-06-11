@@ -154,6 +154,40 @@ class TestAnalyticsService:
             assert 'failed_jobs' in printer_stats
 
     @pytest.mark.asyncio
+    async def test_get_printer_statistics(self, analytics_test_database):
+        """Test getting statistics for a single printer"""
+        database = analytics_test_database
+
+        service = AnalyticsService(database)
+
+        stats = await service.get_printer_statistics('printer_analytics_1', period='month')
+
+        assert stats is not None
+        assert stats['printer_id'] == 'printer_analytics_1'
+        assert stats['period'] == 'month'
+
+        # Job statistics: printer 1 has one completed and one running job
+        assert stats['jobs']['total_jobs'] >= 2
+        assert stats['jobs']['completed_jobs'] >= 1
+        assert 0.0 <= stats['jobs']['success_rate'] <= 1.0
+
+        # Uptime and material aggregates
+        assert stats['uptime']['active_hours'] >= 0
+        assert stats['uptime']['utilization_percent'] >= 0
+        assert stats['materials']['total_used_kg'] >= 0
+
+    @pytest.mark.asyncio
+    async def test_get_printer_statistics_unknown_printer(self, analytics_test_database):
+        """Test that statistics for an unknown printer return None"""
+        database = analytics_test_database
+
+        service = AnalyticsService(database)
+
+        stats = await service.get_printer_statistics('nonexistent_printer')
+
+        assert stats is None
+
+    @pytest.mark.asyncio
     async def test_get_material_consumption(self, analytics_test_database):
         """Test getting material consumption statistics"""
         database = analytics_test_database

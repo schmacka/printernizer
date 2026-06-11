@@ -191,6 +191,47 @@ async def get_file_statistics(
     })
 
 
+@router.get("/cleanup/candidates")
+async def get_cleanup_candidates(
+    deleted_days: int = Query(30, description="Consider files marked deleted older than this many days"),
+    failed_days: int = Query(7, description="Consider files marked failed older than this many days"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Preview which file records would be removed by a cleanup run.
+
+    Performs a dry-run of the database-record cleanup (see DELETE /cleanup).
+    Only database records are considered - physical files are not touched,
+    so no disk-space estimate is available.
+    """
+    result = await file_service.cleanup_files(
+        dry_run=True,
+        deleted_days=deleted_days,
+        failed_days=failed_days
+    )
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["error"]
+        )
+
+    old_deleted = result.get("old_deleted_removed", 0)
+    failed_downloads = result.get("failed_downloads_removed", 0)
+
+    return success_response({
+        "total_candidates": old_deleted + failed_downloads,
+        "candidates": {
+            "old_deleted": old_deleted,
+            "failed_downloads": failed_downloads
+        },
+        "criteria": {
+            "deleted_days": deleted_days,
+            "failed_days": failed_days
+        }
+    })
+
+
 @router.get("/downloads/{download_id}/progress")
 async def get_download_progress(
     download_id: str,
