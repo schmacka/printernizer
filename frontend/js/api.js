@@ -658,30 +658,34 @@ class ApiError extends Error {
      * Get user-friendly error message
      */
     getUserMessage() {
+        // Prefer i18n translations; CONFIG.ERROR_MESSAGES remains the German fallback
+        const msg = (key, fallback) =>
+            (typeof t === 'function' && i18n?.has?.(key)) ? t(key) : fallback;
+
         if (this.isNetworkError()) {
-            return CONFIG.ERROR_MESSAGES.NETWORK_ERROR;
+            return msg('errors.network', CONFIG.ERROR_MESSAGES.NETWORK_ERROR);
         }
-        
+
         if (this.isPrinterOffline()) {
-            return CONFIG.ERROR_MESSAGES.PRINTER_OFFLINE;
+            return msg('errors.printerOffline', CONFIG.ERROR_MESSAGES.PRINTER_OFFLINE);
         }
-        
+
         if (this.isNotFound()) {
             if (this.details?.endpoint && String(this.details.endpoint).includes('/printers/')) {
-                return CONFIG.ERROR_MESSAGES.PRINTER_NOT_FOUND || 'Drucker wurde nicht gefunden.';
+                return msg('errors.printerNotFound', CONFIG.ERROR_MESSAGES.PRINTER_NOT_FOUND || 'Drucker wurde nicht gefunden.');
             }
-            return CONFIG.ERROR_MESSAGES.FILE_NOT_FOUND;
+            return msg('errors.fileNotFound', CONFIG.ERROR_MESSAGES.FILE_NOT_FOUND);
         }
-        
+
         if (this.status === 422) {
-            return CONFIG.ERROR_MESSAGES.INVALID_INPUT;
+            return msg('errors.invalidInput', CONFIG.ERROR_MESSAGES.INVALID_INPUT);
         }
-        
+
         if (this.status === 403) {
-            return CONFIG.ERROR_MESSAGES.PERMISSION_DENIED;
+            return msg('errors.permissionDenied', CONFIG.ERROR_MESSAGES.PERMISSION_DENIED);
         }
-        
-        return this.message || CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR;
+
+        return this.message || msg('errors.unknown', CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR);
     }
 }
 

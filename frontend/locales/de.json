@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "printers": "Drucker",
+    "jobs": "Aufträge",
+    "orders": "Bestellungen",
+    "timelapses": "Zeitraffer",
+    "files": "Dateien",
+    "library": "Bibliothek",
+    "materials": "Filamente",
+    "ideas": "Ideen",
+    "tools": "Tools",
+    "settings": "Einstellungen",
+    "debug": "Debug"
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "export": "Export",
+    "retry": "Erneut versuchen",
+    "download": "Herunterladen",
+    "upload": "Hochladen",
+    "loading": "Wird geladen…",
+    "confirm": "Bestätigen",
+    "search": "Suchen",
+    "refresh": "Aktualisieren",
+    "yes": "Ja",
+    "no": "Nein",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "info": "Hinweis",
+    "warning": "Warnung",
+    "unknown": "Unbekannt"
+  },
+  "status": {
+    "printer": {
+      "online": "Online",
+      "offline": "Offline",
+      "printing": "Druckt",
+      "idle": "Bereit",
+      "error": "Fehler",
+      "unknown": "Unbekannt"
+    },
+    "job": {
+      "queued": "Warteschlange",
+      "preparing": "Vorbereitung",
+      "printing": "Druckt",
+      "paused": "Pausiert",
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen",
+      "cancelled": "Abgebrochen"
+    },
+    "file": {
+      "available": "Verfügbar",
+      "downloaded": "Heruntergeladen",
+      "local": "Lokal",
+      "downloading": "Lädt herunter…",
+      "error": "Fehler",
+      "deleted": "Gelöscht",
+      "unavailable": "Nicht verfügbar"
+    }
+  },
+  "errors": {
+    "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.",
+    "server": "Serverfehler. Bitte versuchen Sie es später erneut.",
+    "printerOffline": "Drucker ist offline oder nicht erreichbar.",
+    "fileNotFound": "Datei wurde nicht gefunden.",
+    "printerNotFound": "Drucker wurde nicht gefunden.",
+    "downloadFailed": "Download fehlgeschlagen.",
+    "invalidInput": "Ungültige Eingabe. Bitte überprüfen Sie Ihre Daten.",
+    "permissionDenied": "Zugriff verweigert.",
+    "timeout": "Zeitüberschreitung. Vorgang abgebrochen.",
+    "unknown": "Ein unbekannter Fehler ist aufgetreten."
+  },
+  "success": {
+    "printerAdded": "Drucker erfolgreich hinzugefügt.",
+    "printerUpdated": "Drucker-Einstellungen aktualisiert.",
+    "printerRemoved": "Drucker entfernt.",
+    "fileDownloaded": "Datei erfolgreich heruntergeladen.",
+    "jobCancelled": "Auftrag wurde abgebrochen.",
+    "settingsSaved": "Einstellungen gespeichert."
+  },
+  "loading": {
+    "printers": "Lade Drucker…",
+    "jobs": "Lade Aufträge…",
+    "files": "Lade Dateien…",
+    "statistics": "Lade Statistiken…",
+    "connecting": "Verbinde…",
+    "downloading": "Lade herunter…"
+  },
+  "settings": {
+    "language": "Sprache",
+    "languageDescription": "Sprache der Benutzeroberfläche. Die Seite wird nach dem Wechsel neu geladen.",
+    "german": "Deutsch",
+    "english": "Englisch"
+  }
+}

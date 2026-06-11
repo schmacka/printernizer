@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "printers": "Printers",
+    "jobs": "Jobs",
+    "orders": "Orders",
+    "timelapses": "Timelapses",
+    "files": "Files",
+    "library": "Library",
+    "materials": "Filaments",
+    "ideas": "Ideas",
+    "tools": "Tools",
+    "settings": "Settings",
+    "debug": "Debug"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "export": "Export",
+    "retry": "Retry",
+    "download": "Download",
+    "upload": "Upload",
+    "loading": "Loading…",
+    "confirm": "Confirm",
+    "search": "Search",
+    "refresh": "Refresh",
+    "yes": "Yes",
+    "no": "No",
+    "error": "Error",
+    "success": "Success",
+    "info": "Info",
+    "warning": "Warning",
+    "unknown": "Unknown"
+  },
+  "status": {
+    "printer": {
+      "online": "Online",
+      "offline": "Offline",
+      "printing": "Printing",
+      "idle": "Idle",
+      "error": "Error",
+      "unknown": "Unknown"
+    },
+    "job": {
+      "queued": "Queued",
+      "preparing": "Preparing",
+      "printing": "Printing",
+      "paused": "Paused",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "file": {
+      "available": "Available",
+      "downloaded": "Downloaded",
+      "local": "Local",
+      "downloading": "Downloading…",
+      "error": "Error",
+      "deleted": "Deleted",
+      "unavailable": "Unavailable"
+    }
+  },
+  "errors": {
+    "network": "Network error. Please check your internet connection.",
+    "server": "Server error. Please try again later.",
+    "printerOffline": "Printer is offline or unreachable.",
+    "fileNotFound": "File was not found.",
+    "printerNotFound": "Printer was not found.",
+    "downloadFailed": "Download failed.",
+    "invalidInput": "Invalid input. Please check your data.",
+    "permissionDenied": "Access denied.",
+    "timeout": "Timeout. Operation aborted.",
+    "unknown": "An unknown error occurred."
+  },
+  "success": {
+    "printerAdded": "Printer added successfully.",
+    "printerUpdated": "Printer settings updated.",
+    "printerRemoved": "Printer removed.",
+    "fileDownloaded": "File downloaded successfully.",
+    "jobCancelled": "Job was cancelled.",
+    "settingsSaved": "Settings saved."
+  },
+  "loading": {
+    "printers": "Loading printers…",
+    "jobs": "Loading jobs…",
+    "files": "Loading files…",
+    "statistics": "Loading statistics…",
+    "connecting": "Connecting…",
+    "downloading": "Downloading…"
+  },
+  "settings": {
+    "language": "Language",
+    "languageDescription": "Language of the user interface. The page reloads after switching.",
+    "german": "German",
+    "english": "English"
+  }
+}

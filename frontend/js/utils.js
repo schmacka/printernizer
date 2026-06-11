@@ -892,11 +892,19 @@ function getStatusConfig(type, status) {
         'file': CONFIG.FILE_STATUS
     };
 
-    return configs[type]?.[status] || {
-        label: escapeHtml(status),  // Escape unknown status values for safety
-        icon: '❓',
-        class: 'status-unknown'
-    };
+    const config = configs[type]?.[status];
+    if (!config) {
+        return {
+            label: escapeHtml(status),  // Escape unknown status values for safety
+            icon: '❓',
+            class: 'status-unknown'
+        };
+    }
+
+    // Translated label when available; CONFIG keeps the German fallback
+    const i18nKey = `status.${type}.${status}`;
+    const label = (typeof i18n !== 'undefined' && i18n.has?.(i18nKey)) ? t(i18nKey) : config.label;
+    return { ...config, label };
 }
 
 /**

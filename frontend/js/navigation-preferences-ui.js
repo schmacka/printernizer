@@ -246,7 +246,14 @@ class NavigationPreferencesUIManager {
             iconSpan.textContent = section.icon;
 
             link.appendChild(iconSpan);
-            link.appendChild(document.createTextNode('\n                    ' + section.label + '\n                '));
+
+            const labelSpan = document.createElement('span');
+            const i18nKey = `nav.${section.id}`;
+            labelSpan.setAttribute('data-i18n', i18nKey);
+            labelSpan.textContent = (typeof i18n !== 'undefined' && i18n.has?.(i18nKey))
+                ? t(i18nKey)
+                : section.label;
+            link.appendChild(labelSpan);
 
             navMenu.appendChild(link);
         });
