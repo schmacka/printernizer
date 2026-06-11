@@ -289,7 +289,7 @@ class PrinterCard {
 
         // Determine thumbnail source
         const thumbnailSrc = this.printer.current_job_has_thumbnail
-            ? `/api/v1/files/${this.printer.current_job_file_id}/thumbnail`
+            ? `${CONFIG.API_BASE_URL}/files/${this.printer.current_job_file_id}/thumbnail`
             : 'assets/placeholder-thumbnail.svg';
 
         return `

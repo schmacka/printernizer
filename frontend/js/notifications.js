@@ -39,7 +39,7 @@ class NotificationManager {
      */
     async loadEventTypes() {
         try {
-            const response = await fetch('/api/v1/notifications/events');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/events`);
             if (!response.ok) throw new Error('Failed to load event types');
 
             const data = await response.json();
@@ -70,7 +70,7 @@ class NotificationManager {
         this.renderLoading();
 
         try {
-            const response = await fetch('/api/v1/notifications');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications`);
             if (!response.ok) throw new Error('Failed to load channels');
 
             const data = await response.json();
@@ -412,7 +412,7 @@ class NotificationManager {
 
             if (this.editingChannelId) {
                 // Update existing channel
-                response = await fetch(`/api/v1/notifications/${this.editingChannelId}`, {
+                response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${this.editingChannelId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -420,7 +420,7 @@ class NotificationManager {
 
                 // Update subscriptions separately
                 if (response.ok) {
-                    await fetch(`/api/v1/notifications/${this.editingChannelId}/subscriptions`, {
+                    await fetch(`${CONFIG.API_BASE_URL}/notifications/${this.editingChannelId}/subscriptions`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ subscribed_events: subscribedEvents })
@@ -428,7 +428,7 @@ class NotificationManager {
                 }
             } else {
                 // Create new channel
-                response = await fetch('/api/v1/notifications', {
+                response = await fetch(`${CONFIG.API_BASE_URL}/notifications`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -461,7 +461,7 @@ class NotificationManager {
         if (!confirmed) return;
 
         try {
-            const response = await fetch(`/api/v1/notifications/${channelId}`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${channelId}`, {
                 method: 'DELETE'
             });
 
@@ -488,7 +488,7 @@ class NotificationManager {
         try {
             showToast('info', 'Testing...', `Sending test notification to ${channel.name}`);
 
-            const response = await fetch(`/api/v1/notifications/${channelId}/test`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/notifications/${channelId}/test`, {
                 method: 'POST'
             });
 

@@ -579,7 +579,7 @@ class VideoPlayerModal {
         // Set video source
         if (timelapse.output_video_path) {
             // Build video URL
-            const videoUrl = `/api/v1/timelapses/${timelapse.id}/video`;
+            const videoUrl = `${CONFIG.API_BASE_URL}/timelapses/${timelapse.id}/video`;
             this.video.src = videoUrl;
         }
 
@@ -652,7 +652,7 @@ class VideoPlayerModal {
      */
     downloadVideo() {
         if (this.timelapse && this.timelapse.id) {
-            const downloadUrl = `/api/v1/timelapses/${this.timelapse.id}/video?download=true`;
+            const downloadUrl = `${CONFIG.API_BASE_URL}/timelapses/${this.timelapse.id}/video?download=true`;
             window.open(downloadUrl, '_blank');
         }
     }

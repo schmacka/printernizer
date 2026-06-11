@@ -799,25 +799,17 @@ async function saveModalSettings() {
         });
 
         // Save settings via API
-        const response = await fetch(`${CONFIG.API_BASE_URL}/settings`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settingsData)
-        });
+        await api.updateApplicationSettings(settingsData);
 
-        if (response.ok) {
-            showToast('success', 'Gespeichert', 'Einstellungen wurden erfolgreich gespeichert');
+        showToast('success', 'Gespeichert', 'Einstellungen wurden erfolgreich gespeichert');
 
-            // Reload settings in main page if needed
-            if (window.settingsManager) {
-                await settingsManager.loadSettings();
-            }
-
-            // Close modal after brief delay
-            setTimeout(() => closeSettingsModal(), 500);
-        } else {
-            throw new Error('Failed to save settings');
+        // Reload settings in main page if needed
+        if (window.settingsManager) {
+            await settingsManager.loadSettings();
         }
+
+        // Close modal after brief delay
+        setTimeout(() => closeSettingsModal(), 500);
     } catch (error) {
         Logger.error('Error saving settings:', error);
         showToast('error', 'Fehler', 'Einstellungen konnten nicht gespeichert werden');

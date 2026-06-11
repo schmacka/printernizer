@@ -1,7 +1,9 @@
 """Timelapse management endpoints."""
 
+from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import structlog
 
@@ -75,6 +77,40 @@ async def get_timelapse(
         raise NotFoundError(resource_type="timelapse", resource_id=timelapse_id)
 
     return timelapse
+
+
+@router.get("/{timelapse_id}/video")
+async def get_timelapse_video(
+    timelapse_id: str,
+    download: bool = Query(False, description="Force download instead of inline playback"),
+    timelapse_service: TimelapseService = Depends(get_timelapse_service)
+):
+    """
+    Stream or download the rendered timelapse video.
+
+    - **timelapse_id**: Unique timelapse identifier
+    - **download**: When true, sets a download Content-Disposition
+    """
+    timelapse = await timelapse_service.get_timelapse(timelapse_id)
+
+    if not timelapse:
+        raise NotFoundError(resource_type="timelapse", resource_id=timelapse_id)
+
+    video_path = timelapse.get("output_video_path")
+    if not video_path or not Path(video_path).resolve().is_file():
+        raise NotFoundError(
+            resource_type="timelapse video",
+            resource_id=timelapse_id,
+            details={"reason": "Video has not been rendered or the file is missing"}
+        )
+
+    video_file = Path(video_path).resolve()
+    return FileResponse(
+        path=str(video_file),
+        media_type="video/mp4",
+        filename=video_file.name,
+        content_disposition_type="attachment" if download else "inline"
+    )
 
 
 @router.post("/{timelapse_id}/process", response_model=dict)

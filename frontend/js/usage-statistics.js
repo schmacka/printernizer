@@ -33,7 +33,7 @@ class UsageStatisticsManager {
      */
     async loadStatus() {
         try {
-            const response = await fetch('/api/v1/usage-stats/status');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/usage-stats/status`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -67,12 +67,12 @@ class UsageStatisticsManager {
 
             if (shouldOptIn) {
                 // Opt in
-                response = await fetch('/api/v1/usage-stats/opt-in', {
+                response = await fetch(`${CONFIG.API_BASE_URL}/usage-stats/opt-in`, {
                     method: 'POST'
                 });
             } else {
                 // Opt out
-                response = await fetch('/api/v1/usage-stats/opt-out', {
+                response = await fetch(`${CONFIG.API_BASE_URL}/usage-stats/opt-out`, {
                     method: 'POST'
                 });
             }
@@ -129,7 +129,7 @@ class UsageStatisticsManager {
                 </div>
             `;
 
-            const response = await fetch('/api/v1/usage-stats/local');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/usage-stats/local`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -242,7 +242,7 @@ class UsageStatisticsManager {
         try {
             Logger.info('Exporting usage statistics...');
 
-            const response = await fetch('/api/v1/usage-stats/export');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/usage-stats/export`);
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -285,7 +285,7 @@ class UsageStatisticsManager {
         try {
             Logger.info('Deleting all usage statistics...');
 
-            const response = await fetch('/api/v1/usage-stats', {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/usage-stats`, {
                 method: 'DELETE'
             });
 

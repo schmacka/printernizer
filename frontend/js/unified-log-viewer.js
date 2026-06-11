@@ -158,7 +158,7 @@ class UnifiedLogViewer {
      */
     async loadCategories() {
         try {
-            const response = await fetch('/api/v1/logs/categories');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/logs/categories`);
             if (response.ok) {
                 this.categories = await response.json();
                 this.updateCategoryDropdown();
@@ -233,7 +233,7 @@ class UnifiedLogViewer {
             params.set('per_page', this.perPage);
 
             // Fetch from API
-            const response = await fetch(`/api/v1/logs?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/logs?${params}`);
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }
@@ -500,7 +500,7 @@ class UnifiedLogViewer {
         try {
             // Clear backend logs
             const params = this.activeSource !== 'all' ? `?source=${this.activeSource}` : '';
-            const response = await fetch(`/api/v1/logs${params}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/logs${params}`, { method: 'DELETE' });
 
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
@@ -534,7 +534,7 @@ class UnifiedLogViewer {
             const params = this.buildExportParams();
             params.set('format', 'csv');
 
-            const response = await fetch(`/api/v1/logs/export?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/logs/export?${params}`);
             if (!response.ok) {
                 throw new Error(`Export failed: ${response.status}`);
             }
@@ -559,7 +559,7 @@ class UnifiedLogViewer {
             const params = this.buildExportParams();
             params.set('format', 'json');
 
-            const response = await fetch(`/api/v1/logs/export?${params}`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/logs/export?${params}`);
             if (!response.ok) {
                 throw new Error(`Export failed: ${response.status}`);
             }
