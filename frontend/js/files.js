@@ -547,12 +547,13 @@ class FileManager {
         
         const checkProgress = async () => {
             try {
-                const progress = await api.getDownloadStatus(fileId);
-                
-                if (progress.status === 'downloading') {
+                const response = await api.getDownloadStatus(downloadId || fileId);
+                const progress = response?.data || response;
+
+                if (progress.status === 'downloading' || progress.status === 'starting') {
                     // Update progress display
                     this.updateDownloadProgress(fileId, progress);
-                    
+
                     // Continue monitoring
                     if (attempts < maxAttempts) {
                         attempts++;
@@ -572,9 +573,9 @@ class FileManager {
                     // Refresh statistics
                     this.loadFileStatistics();
                     
-                } else if (progress.error) {
+                } else if (progress.status === 'failed') {
                     // Download failed
-                    showToast('error', 'Download fehlgeschlagen', progress.error);
+                    showToast('error', 'Download fehlgeschlagen', progress.error || CONFIG.ERROR_MESSAGES.DOWNLOAD_FAILED);
                     
                     // Reset file status
                     const fileItem = this.files.get(fileId);
@@ -1016,22 +1017,22 @@ class FileManager {
      */
     async showCleanupCandidates() {
         try {
-            const candidates = await api.getCleanupCandidates({
-                older_than_days: 30,
-                min_size_mb: 1,
-                unused_only: true
+            const response = await api.getCleanupCandidates({
+                deleted_days: 30,
+                failed_days: 7
             });
-            
-            if (candidates.cleanup_candidates && candidates.cleanup_candidates.length > 0) {
+            const result = response?.data || response;
+
+            if (result.total_candidates > 0) {
                 const message = `
-                    ${candidates.total_candidates} Dateien können bereinigt werden
-                    Speicherplatz-Ersparnis: ${candidates.total_space_savings_mb} MB
+                    ${result.total_candidates} Dateieinträge können bereinigt werden
+                    (${result.candidates.old_deleted} gelöschte, ${result.candidates.failed_downloads} fehlgeschlagene)
                 `;
                 showToast('info', 'Bereinigung möglich', message);
             } else {
                 showToast('info', 'Bereinigung', 'Keine Dateien zur Bereinigung gefunden');
             }
-            
+
         } catch (error) {
             Logger.error('Failed to load cleanup candidates:', error);
             showToast('error', 'Fehler', 'Bereinigungs-Kandidaten konnten nicht geladen werden');

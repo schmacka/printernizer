@@ -775,13 +775,7 @@ class SettingsManager {
         try {
             showToast('info', 'Zurücksetzen', 'Einstellungen werden zurückgesetzt');
 
-            const response = await fetch(`${CONFIG.API_BASE_URL}/settings/reset`, {
-                method: 'POST'
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            await api.resetApplicationSettings();
 
             showToast('success', 'Zurückgesetzt', 'Einstellungen wurden auf Standardwerte zurückgesetzt');
             await this.loadSettings();
