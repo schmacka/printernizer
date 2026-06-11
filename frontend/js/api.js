@@ -265,6 +265,13 @@ class ApiClient {
         return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_CURRENT_JOB(printerId));
     }
 
+    async uploadFileToPrinter(printerId, fileId, remoteName = null) {
+        return this.post(`printers/${printerId}/files/upload`, {
+            file_id: fileId,
+            remote_name: remoteName
+        });
+    }
+
     // Thumbnail Processing Endpoints
     async extractFileThumbnail(fileId) {
         return this.post(CONFIG.ENDPOINTS.FILE_EXTRACT_THUMBNAIL(fileId));

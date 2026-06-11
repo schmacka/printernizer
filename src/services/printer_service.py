@@ -555,6 +555,33 @@ class PrinterService:
     # FILE OPERATIONS (delegated to printer instances)
     # ========================================================================
 
+    async def upload_file_to_printer(self, printer_id: str, local_path: str, remote_name: str) -> bool:
+        """
+        Upload a local file to a printer's storage.
+
+        Args:
+            printer_id: Printer identifier
+            local_path: Full path to the local file to upload
+            remote_name: Name to use for the file on the printer
+
+        Returns:
+            True if the upload succeeded
+
+        Raises:
+            NotFoundError: If printer not found
+            PrinterConnectionError: If the printer is unreachable
+        """
+        instance = self.connection.get_printer_instance(printer_id)
+        if not instance:
+            raise NotFoundError("Printer", printer_id)
+
+        if not instance.is_connected:
+            await instance.connect()
+
+        logger.info("Uploading file to printer",
+                   printer_id=printer_id, local_path=local_path, remote_name=remote_name)
+        return await instance.upload_file(local_path, remote_name)
+
     async def get_printer_files(self, printer_id: str) -> List[Dict[str, Any]]:
         """
         Get list of files available on printer.

@@ -437,11 +437,54 @@ function previewFile(fileData) {
 }
 
 /**
- * Open local file in explorer
+ * Download the locally stored file via the browser
  */
 function openLocalFile(fileId) {
-    // TODO: Implement local file opening
-    showToast('Lokale Datei-Funktion wird in einer späteren Version verfügbar sein', 'info');
+    const link = document.createElement('a');
+    link.href = `${CONFIG.API_BASE_URL}/files/${encodeURIComponent(fileId)}/content`;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * Upload a locally available file to a printer
+ */
+async function uploadFileToPrinter(fileId) {
+    try {
+        const response = await api.getPrinters();
+        const printers = response.printers || response || [];
+
+        if (!printers.length) {
+            showToast('error', 'Kein Drucker', 'Es ist kein Drucker konfiguriert');
+            return;
+        }
+
+        let printerId;
+        if (printers.length === 1) {
+            printerId = printers[0].id;
+        } else {
+            const choices = printers.map((p, i) => `${i + 1}: ${p.name}`).join('\n');
+            const input = prompt(`Zu welchem Drucker hochladen?\n${choices}`, '1');
+            if (input === null) return;
+            const index = parseInt(input, 10) - 1;
+            if (isNaN(index) || index < 0 || index >= printers.length) {
+                showToast('error', 'Ungültige Auswahl', 'Bitte eine gültige Nummer eingeben');
+                return;
+            }
+            printerId = printers[index].id;
+        }
+
+        showToast('info', 'Upload gestartet', 'Datei wird zum Drucker hochgeladen…');
+        await api.uploadFileToPrinter(printerId, fileId);
+        showToast('success', 'Hochgeladen', 'Datei wurde zum Drucker hochgeladen');
+
+    } catch (error) {
+        Logger.error('Failed to upload file to printer:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : 'Upload zum Drucker fehlgeschlagen';
+        showToast('error', 'Upload-Fehler', message);
+    }
 }
 
 /**

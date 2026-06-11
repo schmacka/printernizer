@@ -970,17 +970,17 @@ class FileManager {
     }
 
     /**
-     * Open local file
+     * Open local file (delegates to the global browser-download helper)
      */
     openLocalFile(fileId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Lokale Datei-Anzeige wird in Phase 2 implementiert');
+        window.openLocalFile(fileId);
     }
 
     /**
-     * Upload file to printer
+     * Upload file to printer (delegates to the global helper)
      */
     uploadToPrinter(fileId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Upload zu Drucker wird in Phase 2 implementiert');
+        window.uploadFileToPrinter(fileId);
     }
 
     /**

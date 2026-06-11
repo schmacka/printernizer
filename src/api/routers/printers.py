@@ -13,7 +13,7 @@ import structlog
 
 from src.models.printer import Printer, PrinterType, PrinterStatus
 from src.services.printer_service import PrinterService
-from src.utils.dependencies import get_printer_service, get_database, get_job_repository
+from src.utils.dependencies import get_printer_service, get_database, get_job_repository, get_file_service
 from src.database.repositories import JobRepository
 from src.database.database import Database
 from src.utils.errors import (
@@ -853,6 +853,58 @@ async def download_printer_file(
             reason="Download operation failed - file may not exist or printer is unreachable"
         )
     return success_response({"status": "downloaded", "filename": filename})
+
+
+class PrinterFileUploadRequest(BaseModel):
+    """Request model for uploading a local file to a printer."""
+    file_id: str
+    remote_name: Optional[str] = None
+
+
+@router.post("/{printer_id}/files/upload")
+async def upload_file_to_printer(
+    printer_id: str,
+    upload_request: PrinterFileUploadRequest,
+    printer_service: PrinterService = Depends(get_printer_service),
+    file_service = Depends(get_file_service)
+):
+    """Upload a locally available file to the printer's storage.
+
+    The file must already exist locally (downloaded or from a watch folder).
+    The upload runs synchronously; large files over slow connections can
+    take a while.
+    """
+    from pathlib import Path
+    from src.utils.errors import FileNotFoundError as PrinternizerFileNotFoundError, FileOperationError
+
+    file_record = await file_service.get_file_by_id(upload_request.file_id)
+    if not file_record:
+        raise PrinternizerFileNotFoundError(upload_request.file_id)
+
+    local_path = file_record.get("file_path")
+    if not local_path or not Path(local_path).resolve().is_file():
+        raise PrinternizerValidationError(
+            field="file_id",
+            error="File is not available locally - download it first"
+        )
+
+    remote_name = upload_request.remote_name or file_record.get("filename") or Path(local_path).name
+
+    success = await printer_service.upload_file_to_printer(
+        printer_id, str(Path(local_path).resolve()), remote_name
+    )
+    if not success:
+        raise FileOperationError(
+            operation="upload",
+            filename=remote_name,
+            reason="Printer rejected the upload or the transfer failed"
+        )
+
+    return success_response({
+        "status": "uploaded",
+        "printer_id": printer_id,
+        "remote_name": remote_name
+    })
 
 
 @router.get("/{printer_id}/thumbnail")

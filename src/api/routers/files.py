@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File as FastAPIFile, Form
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse as FastAPIFileResponse
 from pydantic import BaseModel
 import structlog
 import base64
@@ -284,6 +284,37 @@ async def get_file_by_id(
     if not file_data:
         raise PrinternizerFileNotFoundError(file_id)
     return FileResponse.model_validate(file_data)
+
+
+@router.get("/{file_id}/content")
+async def get_file_content(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Serve the locally stored file as a browser download.
+
+    Only works for files that are available on local storage (downloaded
+    from a printer or discovered in a watch folder).
+    """
+    from pathlib import Path
+
+    file_data = await file_service.get_file_by_id(file_id)
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+
+    file_path = file_data.get("file_path")
+    if not file_path or not Path(file_path).resolve().is_file():
+        raise PrinternizerFileNotFoundError(
+            file_id,
+            details={"reason": "File is not available on local storage"}
+        )
+
+    resolved = Path(file_path).resolve()
+    return FastAPIFileResponse(
+        path=str(resolved),
+        filename=file_data.get("filename") or resolved.name,
+        media_type="application/octet-stream"
+    )
 
 
 @router.post("/{file_id}/download")

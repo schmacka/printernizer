@@ -1261,19 +1261,19 @@ class FileListItem {
             `);
         }
         
-        // Open local file button (planned feature)
+        // Open local file button (browser download)
         if (this.file.status === 'downloaded' && this.file.local_path) {
             actions.push(`
-                <button class="btn btn-sm btn-success" disabled title="Lokale Datei öffnen (geplant)">
+                <button class="btn btn-sm btn-success" onclick="openLocalFile('${this.file.id}')" title="Lokale Datei herunterladen">
                     <span class="btn-icon">📂</span>
                 </button>
             `);
         }
 
-        // Upload to printer (planned feature)
+        // Upload to printer
         if (this.file.status === 'local') {
             actions.push(`
-                <button class="btn btn-sm btn-secondary" disabled title="Zu Drucker hochladen (geplant)">
+                <button class="btn btn-sm btn-secondary" onclick="uploadFileToPrinter('${this.file.id}')" title="Zu Drucker hochladen">
                     <span class="btn-icon">⬆️</span>
                 </button>
             `);
@@ -1942,7 +1942,7 @@ class DruckerDateienManager {
 
             case 'downloaded':
                 actions.push(`
-                    <button class="btn btn-sm btn-success" disabled title="Lokale Datei öffnen (geplant)">
+                    <button class="btn btn-sm btn-success" onclick="openLocalFile('${file.id}')" title="Lokale Datei herunterladen">
                         <span class="btn-icon">📂</span>
                     </button>
                     <button class="btn btn-sm btn-error" onclick="deleteLocalFile('${file.id}')" title="Lokale Datei löschen">
