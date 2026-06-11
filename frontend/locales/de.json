@@ -34,7 +34,10 @@
     "success": "Erfolg",
     "info": "Hinweis",
     "warning": "Warnung",
-    "unknown": "Unbekannt"
+    "unknown": "Unbekannt",
+    "copiedTitle": "Kopiert",
+    "copiedToClipboard": "Text wurde in die Zwischenablage kopiert",
+    "copyFailed": "Text konnte nicht kopiert werden"
   },
   "status": {
     "printer": {
@@ -92,10 +95,26 @@
     "connecting": "Verbinde…",
     "downloading": "Lade herunter…"
   },
+  "autoDownload": {
+    "retryStartedTitle": "Retry gestartet",
+    "retryStartedMessage": "Aufgabe wurde erneut in die Warteschlange gestellt",
+    "retryFailedTitle": "Retry fehlgeschlagen",
+    "retryFailedMessage": "Aufgabe wurde nicht in den Fehlschlägen gefunden"
+  },
+  "time": {
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {count} Min.",
+    "hoursAgo": "vor {count} Std.",
+    "daysAgo": "vor {count} Tag(en)"
+  },
   "settings": {
     "language": "Sprache",
     "languageDescription": "Sprache der Benutzeroberfläche. Die Seite wird nach dem Wechsel neu geladen.",
     "german": "Deutsch",
-    "english": "Englisch"
+    "english": "Englisch",
+    "nothingToSave": "Keine Einstellungen zum Speichern gefunden",
+    "savedTitle": "Gespeichert",
+    "savedMessage": "Einstellungen wurden erfolgreich gespeichert",
+    "saveFailed": "Einstellungen konnten nicht gespeichert werden"
   }
 }

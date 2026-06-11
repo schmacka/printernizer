@@ -34,7 +34,10 @@
     "success": "Success",
     "info": "Info",
     "warning": "Warning",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "copiedTitle": "Copied",
+    "copiedToClipboard": "Text was copied to the clipboard",
+    "copyFailed": "Text could not be copied"
   },
   "status": {
     "printer": {
@@ -92,10 +95,26 @@
     "connecting": "Connecting…",
     "downloading": "Downloading…"
   },
+  "autoDownload": {
+    "retryStartedTitle": "Retry started",
+    "retryStartedMessage": "Task was re-queued",
+    "retryFailedTitle": "Retry failed",
+    "retryFailedMessage": "Task was not found in the failed list"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{count} min ago",
+    "hoursAgo": "{count} h ago",
+    "daysAgo": "{count} day(s) ago"
+  },
   "settings": {
     "language": "Language",
     "languageDescription": "Language of the user interface. The page reloads after switching.",
     "german": "German",
-    "english": "English"
+    "english": "English",
+    "nothingToSave": "No settings found to save",
+    "savedTitle": "Saved",
+    "savedMessage": "Settings were saved successfully",
+    "saveFailed": "Settings could not be saved"
   }
 }

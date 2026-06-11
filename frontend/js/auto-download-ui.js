@@ -414,7 +414,7 @@ class AutoDownloadUI {
                 </div>
                 <div class="task-actions">
                     ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
-                    ${section === 'failed' ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}')" title="Erneut versuchen">Retry</button>` : ''}
+                    ${section === 'failed' ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}')" title="${t('common.retry')}">Retry</button>` : ''}
                     ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${sanitizeAttribute(task.id)}')">Details</button>` : ''}
                 </div>
             </div>
@@ -489,7 +489,7 @@ class AutoDownloadUI {
                 </div>
                 <div class="task-actions">
                     ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
-                    ${section === 'failed' ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${sanitizeAttribute(task.id)}')" title="Erneut versuchen">Retry</button>` : ''}
+                    ${section === 'failed' ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${sanitizeAttribute(task.id)}')" title="${t('common.retry')}">Retry</button>` : ''}
                 </div>
             </div>
         `;
@@ -835,9 +835,9 @@ class AutoDownloadUI {
         const success = this.autoDownloadManager.retryTask(queueType, taskId);
 
         if (success) {
-            showToast('info', 'Retry gestartet', 'Aufgabe wurde erneut in die Warteschlange gestellt');
+            showToast('info', t('autoDownload.retryStartedTitle'), t('autoDownload.retryStartedMessage'));
         } else {
-            showToast('error', 'Retry fehlgeschlagen', 'Aufgabe wurde nicht in den Fehlschlägen gefunden');
+            showToast('error', t('autoDownload.retryFailedTitle'), t('autoDownload.retryFailedMessage'));
         }
 
         // Close an open details modal so the refreshed queue state is visible

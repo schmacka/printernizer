@@ -4,11 +4,18 @@
  */
 
 /**
- * Date and Time Formatting (German locale)
+ * Intl locale for date/number formatting, derived from the active UI language
+ */
+function getIntlLocale() {
+    return (typeof i18n !== 'undefined' && i18n.getIntlLocale) ? i18n.getIntlLocale() : 'de-DE';
+}
+
+/**
+ * Date and Time Formatting (locale-aware)
  */
 
 /**
- * Format date with German locale
+ * Format date with the active locale
  */
 function formatDate(dateString, format = 'short') {
     if (!dateString) return '-';
@@ -27,11 +34,11 @@ function formatDate(dateString, format = 'short') {
         options.month = 'long';
     }
     
-    return date.toLocaleDateString('de-DE', options);
+    return date.toLocaleDateString(getIntlLocale(), options);
 }
 
 /**
- * Format time with German locale
+ * Format time with the active locale
  */
 function formatTime(dateString, includeSeconds = false) {
     if (!dateString) return '-';
@@ -48,11 +55,11 @@ function formatTime(dateString, includeSeconds = false) {
         options.second = '2-digit';
     }
     
-    return date.toLocaleTimeString('de-DE', options);
+    return date.toLocaleTimeString(getIntlLocale(), options);
 }
 
 /**
- * Format date and time with German locale
+ * Format date and time with the active locale
  */
 function formatDateTime(dateString, format = 'short') {
     if (!dateString) return '-';
@@ -61,7 +68,7 @@ function formatDateTime(dateString, format = 'short') {
 }
 
 /**
- * Get relative time (German)
+ * Get relative time in the active locale
  */
 function getRelativeTime(dateString) {
     if (!dateString) return '-';
@@ -73,10 +80,10 @@ function getRelativeTime(dateString) {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
     
-    if (diffMins < 1) return 'gerade eben';
-    if (diffMins < 60) return `vor ${diffMins} Min.`;
-    if (diffHours < 24) return `vor ${diffHours} Std.`;
-    if (diffDays < 7) return `vor ${diffDays} Tag(en)`;
+    if (diffMins < 1) return t('time.justNow');
+    if (diffMins < 60) return t('time.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('time.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('time.daysAgo', { count: diffDays });
     
     return formatDate(dateString);
 }
@@ -101,32 +108,32 @@ function formatDuration(seconds) {
 }
 
 /**
- * Number and Currency Formatting (German locale)
+ * Number and Currency Formatting (locale-aware)
  */
 
 /**
- * Format number with German locale
+ * Format number with the active locale
  */
 function formatNumber(number, decimals = 2) {
     if (number === null || number === undefined || isNaN(number)) return '-';
     
-    return new Intl.NumberFormat('de-DE', {
+    return new Intl.NumberFormat(getIntlLocale(), {
         minimumFractionDigits: 0,
         maximumFractionDigits: decimals
     }).format(number);
 }
 
 /**
- * Format currency (EUR) with German locale
+ * Format currency (EUR) with the active locale
  */
 function formatCurrency(amount) {
     if (amount === null || amount === undefined || isNaN(amount)) return '-';
     
-    return new Intl.NumberFormat('de-DE', CONFIG.CURRENCY_FORMAT).format(amount);
+    return new Intl.NumberFormat(getIntlLocale(), CONFIG.CURRENCY_FORMAT).format(amount);
 }
 
 /**
- * Format percentage with German locale
+ * Format percentage with the active locale
  */
 function formatPercentage(value, decimals = 1) {
     if (value === null || value === undefined || isNaN(value)) return '-';
@@ -781,7 +788,7 @@ async function saveModalSettings() {
     const currentTab = modal?.dataset.currentTab;
 
     if (!currentTab) {
-        showToast('error', 'Fehler', 'Keine Einstellungen zum Speichern gefunden');
+        showToast('error', t('common.error'), t('settings.nothingToSave'));
         return;
     }
 
@@ -801,7 +808,7 @@ async function saveModalSettings() {
         // Save settings via API
         await api.updateApplicationSettings(settingsData);
 
-        showToast('success', 'Gespeichert', 'Einstellungen wurden erfolgreich gespeichert');
+        showToast('success', t('settings.savedTitle'), t('settings.savedMessage'));
 
         // Reload settings in main page if needed
         if (window.settingsManager) {
@@ -812,7 +819,7 @@ async function saveModalSettings() {
         setTimeout(() => closeSettingsModal(), 500);
     } catch (error) {
         Logger.error('Error saving settings:', error);
-        showToast('error', 'Fehler', 'Einstellungen konnten nicht gespeichert werden');
+        showToast('error', t('common.error'), t('settings.saveFailed'));
     }
 }
 
@@ -852,7 +859,7 @@ async function copyToClipboard(text) {
     try {
         if (navigator.clipboard) {
             await navigator.clipboard.writeText(text);
-            showToast('success', 'Kopiert', 'Text wurde in die Zwischenablage kopiert');
+            showToast('success', t('common.copiedTitle'), t('common.copiedToClipboard'));
         } else {
             // Fallback for older browsers
             const textArea = document.createElement('textarea');
@@ -861,11 +868,11 @@ async function copyToClipboard(text) {
             textArea.select();
             document.execCommand('copy');
             document.body.removeChild(textArea);
-            showToast('success', 'Kopiert', 'Text wurde in die Zwischenablage kopiert');
+            showToast('success', t('common.copiedTitle'), t('common.copiedToClipboard'));
         }
         return true;
     } catch (error) {
-        showToast('error', 'Fehler', 'Text konnte nicht kopiert werden');
+        showToast('error', t('common.error'), t('common.copyFailed'));
         return false;
     }
 }
@@ -1284,14 +1291,14 @@ window.loadAppVersion = loadAppVersion;
  */
 function showNotification(message, type = 'info') {
     // Map type to title
-    const titles = {
-        success: 'Erfolg',
-        error: 'Fehler',
-        warning: 'Warnung',
-        info: 'Information'
+    const titleKeys = {
+        success: 'common.success',
+        error: 'common.error',
+        warning: 'common.warning',
+        info: 'common.info'
     };
 
-    const title = titles[type] || titles.info;
+    const title = t(titleKeys[type] || titleKeys.info);
 
     // Generate a hash of the message for deduplication
     const messageHash = hashString(message);

@@ -122,6 +122,14 @@ class I18n {
     }
 
     /**
+     * Full Intl locale tag for date/number formatting
+     */
+    getIntlLocale() {
+        const intlLocales = { de: 'de-DE', en: 'en-US' };
+        return intlLocales[this.locale] || 'de-DE';
+    }
+
+    /**
      * Apply translations to static markup via data-i18n attributes.
      * Only replaces content when a translation actually exists.
      */
