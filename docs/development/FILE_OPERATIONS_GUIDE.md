@@ -185,7 +185,7 @@ async def my_own_download(printer_id: str, filename: str):
 | PrinterInterface.download_file() | `src/printers/base.py:108` | 🔧 Interface | Abstract method |
 | API download_file() | `src/api/routers/files.py:167` | ✅ Endpoint | Delegates to FileService |
 | BambuFTPService.download_file() | `src/services/bambu_ftp_service.py:296` | 🔧 Low-level | Used by BambuLabPrinter |
-| BambuFTP.download_file() | `scripts/working_bambu_ftp.py:127` | 🛠️ Testing | Standalone test utility |
+| BambuFTP.download_file() | `scripts/bambu/working_bambu_ftp.py:127` | 🛠️ Testing | Standalone test utility |
 | test download_file() | `tests/backend/test_api_files.py:496` | ✅ Test | Mock for testing |
 
 ### List Files Operations
@@ -260,7 +260,7 @@ result = await file_service.download_file(printer_id, filename)
 
 ### For Testing/Scripts
 
-**Standalone utilities** (like `scripts/working_bambu_ftp.py`):
+**Standalone utilities** (like `scripts/bambu/working_bambu_ftp.py`):
 - ✅ OK to have direct implementations
 - 🎯 Purpose: Testing, debugging, one-off operations
 - ⚠️ Should NOT be used in production code
