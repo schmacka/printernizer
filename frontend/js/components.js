@@ -34,16 +34,16 @@ class PrinterCard {
                 </div>
                 <div class="printer-actions">
                     ${this.renderMonitoringToggle()}
-                    <button class="btn btn-sm btn-secondary" onclick="showPrinterDetails('${sanitizeAttribute(this.printer.id)}')" title="Details anzeigen">
+                    <button class="btn btn-sm btn-secondary" onclick="showPrinterDetails('${sanitizeAttribute(this.printer.id)}')" title="${t('printers.showDetails')}">
                         <span class="btn-icon">👁️</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="showPrinterFiles('${sanitizeAttribute(this.printer.id)}')" title="Drucker-Dateien">
+                    <button class="btn btn-sm btn-secondary" onclick="showPrinterFiles('${sanitizeAttribute(this.printer.id)}')" title="${t('files.printerFiles')}">
                         <span class="btn-icon">📁</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="editPrinter('${sanitizeAttribute(this.printer.id)}')" title="Bearbeiten">
+                    <button class="btn btn-sm btn-secondary" onclick="editPrinter('${sanitizeAttribute(this.printer.id)}')" title="${t('common.edit')}">
                         <span class="btn-icon">✏️</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="triggerCurrentJobDownload('${sanitizeAttribute(this.printer.id)}')" title="Aktuelle Druckdatei herunterladen & Thumbnail verarbeiten">
+                    <button class="btn btn-sm btn-secondary" onclick="triggerCurrentJobDownload('${sanitizeAttribute(this.printer.id)}')" title="${t('printers.downloadCurrentJobThumbnailTitle')}">
                         <span class="btn-icon">🖼️</span>
                     </button>
                 </div>
@@ -118,9 +118,9 @@ class PrinterCard {
         // Fallback if CameraManager not loaded yet
         return `
             <div class="info-section camera-section">
-                <h4>📷 Kamera</h4>
+                <h4>📷 ${t('printers.camera')}</h4>
                 <div class="info-item">
-                    <span class="text-muted">Wird geladen...</span>
+                    <span class="text-muted">${t('common.loading')}</span>
                 </div>
             </div>
         `;
@@ -134,7 +134,7 @@ class PrinterCard {
         const isActive = this.isMonitoring;
         const buttonClass = isActive ? 'btn-primary' : 'btn-secondary';
         const buttonIcon = isActive ? '⏹️' : '▶️';
-        const buttonTitle = isActive ? 'Überwachung stoppen' : 'Überwachung starten';
+        const buttonTitle = isActive ? t('printers.stopMonitoring') : t('printers.startMonitoring');
         
         return `
             <button class="btn btn-sm ${buttonClass} monitoring-toggle" 
@@ -152,18 +152,18 @@ class PrinterCard {
     renderLastCommunication() {
         // Show "Druckt" when printer is actively printing
         if (this.printer.status === 'printing') {
-            return '<span class="text-success printer-printing-status">🖨️ Druckt</span>';
+            return `<span class="text-success printer-printing-status">🖨️ ${t('status.printer.printing')}</span>`;
         }
 
         if (!this.printer.last_seen) {
-            return '<span class="text-muted">Nie verbunden</span>';
+            return `<span class="text-muted">${t('printers.neverConnected')}</span>`;
         }
 
         const timeSinceLastComm = Date.now() - new Date(this.printer.last_seen).getTime();
         const isRecent = timeSinceLastComm < 60000; // Less than 1 minute
 
         return `
-            <span class="last-communication ${isRecent ? 'text-success' : 'text-warning'}" title="Letzte Kommunikation">
+            <span class="last-communication ${isRecent ? 'text-success' : 'text-warning'}" title="${t('printers.lastCommunication')}">
                 ${isRecent ? '🟢' : '🟡'} ${getRelativeTime(this.printer.last_seen)}
             </span>
         `;
@@ -176,7 +176,7 @@ class PrinterCard {
         const stats = [];
 
         if (this.printer.total_jobs !== undefined && this.printer.total_jobs !== null) {
-            stats.push(`<span class="quick-stat" title="Aufträge gesamt">📊 ${this.printer.total_jobs}</span>`);
+            stats.push(`<span class="quick-stat" title="${t('printers.jobsTotal')}">📊 ${this.printer.total_jobs}</span>`);
         }
 
         return stats.join('');
@@ -202,7 +202,7 @@ class PrinterCard {
         return `
             <div class="realtime-progress">
                 <div class="progress-header">
-                    <span class="progress-label">Live-Fortschritt</span>
+                    <span class="progress-label">${t('printers.liveProgress')}</span>
                     <span class="progress-percentage">${formatPercentage(job.progress || 0)}</span>
                 </div>
                 <div class="progress progress-animated">
@@ -210,10 +210,10 @@ class PrinterCard {
                 </div>
                 <div class="progress-details">
                     ${job.layer_current && job.layer_total ? `
-                        <span>Schicht ${job.layer_current}/${job.layer_total}</span>
+                        <span>${t('printers.layer')} ${job.layer_current}/${job.layer_total}</span>
                     ` : ''}
                     ${job.estimated_remaining ? `
-                        <span>⏰ ${formatDuration(job.estimated_remaining)} verbleibend</span>
+                        <span>⏰ ${t('printers.timeRemaining', { time: formatDuration(job.estimated_remaining) })}</span>
                     ` : ''}
                     ${job.print_speed ? `
                         <span>⚡ ${job.print_speed}%</span>
@@ -233,7 +233,7 @@ class PrinterCard {
                 <div class="current-job current-job-placeholder">
                     <div class="job-placeholder-content">
                         <span class="placeholder-icon">📭</span>
-                        <p class="text-muted">Kein aktiver Auftrag</p>
+                        <p class="text-muted">${t('printers.noActiveJob')}</p>
                     </div>
                 </div>
             `;
@@ -255,7 +255,7 @@ class PrinterCard {
                         <div class="progress-info">
                             <span class="progress-percentage">${formatPercentage(progress)}</span>
                             <span class="progress-time estimated-time">
-                                ${this.printer.remaining_time_minutes ? `Noch ${formatDuration(this.printer.remaining_time_minutes * 60)}` : ''}
+                                ${this.printer.remaining_time_minutes ? t('printers.timeLeft', { time: formatDuration(this.printer.remaining_time_minutes * 60) }) : ''}
                             </span>
                         </div>
                         <div class="progress">
@@ -267,10 +267,10 @@ class PrinterCard {
                 ${this.printer.remaining_time_minutes || this.printer.estimated_end_time ? `
                     <div class="time-info">
                         ${this.printer.remaining_time_minutes ? `
-                            <span class="remaining-time">Verbleibend: ${formatDuration(this.printer.remaining_time_minutes * 60)}</span>
+                            <span class="remaining-time">${t('printers.remaining')}: ${formatDuration(this.printer.remaining_time_minutes * 60)}</span>
                         ` : ''}
                         ${this.printer.estimated_end_time ? `
-                            <span class="end-time">Ende: ${formatTime(this.printer.estimated_end_time)}</span>
+                            <span class="end-time">${t('printers.end')}: ${formatTime(this.printer.estimated_end_time)}</span>
                         ` : ''}
                     </div>
                 ` : ''}
@@ -295,7 +295,7 @@ class PrinterCard {
         return `
             <div class="job-thumbnail">
                 <img src="${thumbnailSrc}"
-                     alt="${this.printer.current_job_has_thumbnail ? 'Job Thumbnail' : 'Keine Vorschau verfügbar'}"
+                     alt="${this.printer.current_job_has_thumbnail ? 'Job Thumbnail' : t('printers.noPreviewAvailable')}"
                      class="thumbnail-image ${!this.printer.current_job_has_thumbnail ? 'placeholder-image' : ''}"
                      data-file-id="${this.printer.current_job_file_id}"
                      loading="lazy"
@@ -317,11 +317,11 @@ class PrinterCard {
             return `
                 <div class="temperatures temperatures-placeholder">
                     <div class="temp-item">
-                        <div class="temp-label">Düse</div>
+                        <div class="temp-label">${t('printers.nozzle')}</div>
                         <div class="temp-value text-muted">--°C</div>
                     </div>
                     <div class="temp-item">
-                        <div class="temp-label">Bett</div>
+                        <div class="temp-label">${t('printers.bed')}</div>
                         <div class="temp-value text-muted">--°C</div>
                     </div>
                 </div>
@@ -332,26 +332,26 @@ class PrinterCard {
         const tempItems = [];
 
         if (temps.nozzle !== undefined) {
-            tempItems.push(this.renderTemperatureItem('nozzle', 'Düse', temps.nozzle));
+            tempItems.push(this.renderTemperatureItem('nozzle', t('printers.nozzle'), temps.nozzle));
         }
 
         if (temps.bed !== undefined) {
-            tempItems.push(this.renderTemperatureItem('bed', 'Bett', temps.bed));
+            tempItems.push(this.renderTemperatureItem('bed', t('printers.bed'), temps.bed));
         }
 
         if (temps.chamber !== undefined) {
-            tempItems.push(this.renderTemperatureItem('chamber', 'Kammer', temps.chamber));
+            tempItems.push(this.renderTemperatureItem('chamber', t('printers.chamber'), temps.chamber));
         }
 
         if (tempItems.length === 0) {
             return `
                 <div class="temperatures temperatures-placeholder">
                     <div class="temp-item">
-                        <div class="temp-label">Düse</div>
+                        <div class="temp-label">${t('printers.nozzle')}</div>
                         <div class="temp-value text-muted">--°C</div>
                     </div>
                     <div class="temp-item">
-                        <div class="temp-label">Bett</div>
+                        <div class="temp-label">${t('printers.bed')}</div>
                         <div class="temp-value text-muted">--°C</div>
                     </div>
                 </div>
@@ -374,7 +374,7 @@ class PrinterCard {
         if (typeof temperature === 'object') {
             tempValue = `${Math.round(temperature.current)}°C`;
             if (temperature.target) {
-                tempTarget = `<div class="temp-target">Ziel: ${Math.round(temperature.target)}°C</div>`;
+                tempTarget = `<div class="temp-target">${t('printers.target')}: ${Math.round(temperature.target)}°C</div>`;
             }
         } else {
             tempValue = `${Math.round(parseFloat(temperature))}°C`;
@@ -409,7 +409,7 @@ class PrinterCard {
         return `
             <div class="filaments">
                 <div class="filaments-header">
-                    <span class="filaments-label">Filamente</span>
+                    <span class="filaments-label">${t('printers.filaments')}</span>
                 </div>
                 <div class="filaments-list">
                     ${filamentItems}
@@ -428,7 +428,7 @@ class PrinterCard {
         const isActive = filament.is_active;
 
         return `
-            <div class="filament-item ${isActive ? 'filament-active' : ''}" data-slot="${filament.slot}" title="Slot ${slotLabel}: ${filamentType}">
+            <div class="filament-item ${isActive ? 'filament-active' : ''}" data-slot="${filament.slot}" title="${t('printers.slotTitle', { slot: slotLabel, type: filamentType })}">
                 <div class="filament-color" style="background-color: ${escapeHtml(filamentColor)}"></div>
                 <div class="filament-info">
                     <span class="filament-slot">${slotLabel}</span>
@@ -466,7 +466,7 @@ class PrinterCard {
             
         } catch (error) {
             Logger.error('Failed to start monitoring:', error);
-            showToast('Überwachung konnte nicht gestartet werden', 'error');
+            showToast(t('printers.monitoringStartFailed'), 'error');
         }
     }
 
@@ -494,7 +494,7 @@ class PrinterCard {
             
         } catch (error) {
             Logger.error('Failed to stop monitoring:', error);
-            showToast('Überwachung konnte nicht gestoppt werden', 'error');
+            showToast(t('printers.monitoringStopFailed'), 'error');
         }
     }
 
@@ -507,7 +507,7 @@ class PrinterCard {
         
         const isActive = this.isMonitoring;
         button.className = `btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'} monitoring-toggle`;
-        button.title = isActive ? 'Überwachung stoppen' : 'Überwachung starten';
+        button.title = isActive ? t('printers.stopMonitoring') : t('printers.startMonitoring');
         button.querySelector('.btn-icon').textContent = isActive ? '⏹️' : '▶️';
         button.setAttribute('data-monitoring', isActive);
     }
@@ -584,14 +584,14 @@ class PrinterCard {
         if (jobData.layer_current && jobData.layer_total) {
             const layerInfo = this.element.querySelector('.layer-info span');
             if (layerInfo) {
-                layerInfo.textContent = `Schicht: ${jobData.layer_current}/${jobData.layer_total}`;
+                layerInfo.textContent = `${t('printers.layer')}: ${jobData.layer_current}/${jobData.layer_total}`;
             }
         }
         
         // Update remaining time
         const remainingTimeElement = this.element.querySelector('.estimated-time');
         if (remainingTimeElement && jobData.estimated_remaining) {
-            remainingTimeElement.textContent = `Noch ${formatDuration(jobData.estimated_remaining)}`;
+            remainingTimeElement.textContent = t('printers.timeLeft', { time: formatDuration(jobData.estimated_remaining) });
         }
     }
 
@@ -605,7 +605,7 @@ class PrinterCard {
         // Show "Druckt" when printer is actively printing
         if (this.printer.status === 'printing') {
             commElement.className = 'text-success printer-printing-status';
-            commElement.innerHTML = '🖨️ Druckt';
+            commElement.innerHTML = `🖨️ ${t('status.printer.printing')}`;
             return;
         }
 
@@ -689,11 +689,11 @@ class JobListItem {
         this.element.innerHTML = `
             <div class="data-item-content">
                 <div class="data-item-main">
-                    <div class="data-item-title">${escapeHtml(this.job.filename || this.job.job_name || 'Unbenannter Job')}</div>
+                    <div class="data-item-title">${escapeHtml(this.job.filename || this.job.job_name || t('components.unnamedJob'))}</div>
                     <div class="data-item-subtitle">
-                        ${escapeHtml(this.job.printer_id || this.job.printer_name || 'Unbekannter Drucker')} •
-                        ${this.job.started_at ? formatDateTime(this.job.started_at) : (this.job.start_time ? formatDateTime(this.job.start_time) : 'Nicht gestartet')}
-                        ${this.job.is_business ? ' • Geschäftlich' : ''}
+                        ${escapeHtml(this.job.printer_id || this.job.printer_name || t('printers.unknownPrinter'))} •
+                        ${this.job.started_at ? formatDateTime(this.job.started_at) : (this.job.start_time ? formatDateTime(this.job.start_time) : t('dashboard.notStarted'))}
+                        ${this.job.is_business ? ` • ${t('components.business')}` : ''}
                     </div>
                 </div>
 
@@ -708,7 +708,7 @@ class JobListItem {
                 ${this.renderProgress()}
 
                 <div class="data-item-meta">
-                    <div class="data-item-meta-label">Kosten</div>
+                    <div class="data-item-meta-label">${t('components.costs')}</div>
                     <div class="data-item-meta-value">
                         ${this.job.cost_eur ? formatCurrency(this.job.cost_eur) : (this.job.costs ? formatCurrency(this.job.costs.total_cost) : '-')}
                     </div>
@@ -733,7 +733,7 @@ class JobListItem {
         if (this.job.status === 'printing' && progressValue !== undefined) {
             return `
                 <div class="data-item-meta">
-                    <div class="data-item-meta-label">Fortschritt</div>
+                    <div class="data-item-meta-label">${t('printers.progress')}</div>
                     <div class="job-progress-container">
                         <div class="progress">
                             <div class="progress-bar" style="width: ${progressValue}%"></div>
@@ -741,7 +741,7 @@ class JobListItem {
                         <div class="progress-text">${formatPercentage(progressValue)}</div>
                         ${this.job.estimated_completion ? `
                             <div class="estimated-time text-muted">
-                                Fertig: ${formatTime(this.job.estimated_completion)}
+                                ${t('components.finished')}: ${formatTime(this.job.estimated_completion)}
                             </div>
                         ` : ''}
                     </div>
@@ -753,7 +753,7 @@ class JobListItem {
         if (this.job.elapsed_time_minutes) {
             return `
                 <div class="data-item-meta">
-                    <div class="data-item-meta-label">Dauer</div>
+                    <div class="data-item-meta-label">${t('printers.duration')}</div>
                     <div class="data-item-meta-value">
                         ${formatDuration(this.job.elapsed_time_minutes * 60)}
                     </div>
@@ -764,7 +764,7 @@ class JobListItem {
         if (this.job.actual_duration) {
             return `
                 <div class="data-item-meta">
-                    <div class="data-item-meta-label">Dauer</div>
+                    <div class="data-item-meta-label">${t('printers.duration')}</div>
                     <div class="data-item-meta-value">
                         ${formatDuration(this.job.actual_duration)}
                     </div>
@@ -776,7 +776,7 @@ class JobListItem {
         if (this.job.estimated_time_minutes) {
             return `
                 <div class="data-item-meta">
-                    <div class="data-item-meta-label">Geschätzt</div>
+                    <div class="data-item-meta-label">${t('dashboard.estimated')}</div>
                     <div class="data-item-meta-value">
                         ${formatDuration(this.job.estimated_time_minutes * 60)}
                     </div>
@@ -787,7 +787,7 @@ class JobListItem {
         if (this.job.estimated_duration) {
             return `
                 <div class="data-item-meta">
-                    <div class="data-item-meta-label">Geschätzt</div>
+                    <div class="data-item-meta-label">${t('dashboard.estimated')}</div>
                     <div class="data-item-meta-value">
                         ${formatDuration(this.job.estimated_duration)}
                     </div>
@@ -797,7 +797,7 @@ class JobListItem {
 
         return `
             <div class="data-item-meta">
-                <div class="data-item-meta-label">Erstellt</div>
+                <div class="data-item-meta-label">${t('printers.created')}</div>
                 <div class="data-item-meta-value">
                     ${formatDateTime(this.job.created_at)}
                 </div>
@@ -816,15 +816,15 @@ class JobListItem {
             const wasStartup = this.job.customer_info.discovered_on_startup;
 
             // Build tooltip text
-            let tooltipText = 'Automatisch erstellt';
+            let tooltipText = t('components.autoCreated');
             if (wasStartup) {
-                tooltipText += ' (beim Start entdeckt)';
+                tooltipText += ` (${t('components.discoveredOnStartup')})`;
             }
             if (discoveryTime) {
-                tooltipText += `\nEntdeckt: ${formatDateTime(discoveryTime)}`;
+                tooltipText += `\n${t('components.discoveredAt', { time: formatDateTime(discoveryTime) })}`;
             }
             if (printerStartTime) {
-                tooltipText += `\nDrucker-Start: ${formatDateTime(printerStartTime)}`;
+                tooltipText += `\n${t('components.printerStartedAt', { time: formatDateTime(printerStartTime) })}`;
             }
 
             return `
@@ -844,7 +844,7 @@ class JobListItem {
 
         // View details
         actions.push(`
-            <button class="btn btn-sm btn-secondary" onclick="showJobDetails('${this.job.id}')" title="Details anzeigen">
+            <button class="btn btn-sm btn-secondary" onclick="showJobDetails('${this.job.id}')" title="${t('printers.showDetails')}">
                 <span class="btn-icon">👁️</span>
             </button>
         `);
@@ -852,7 +852,7 @@ class JobListItem {
         // Cancel job if active
         if (['printing', 'queued', 'preparing'].includes(this.job.status)) {
             actions.push(`
-                <button class="btn btn-sm btn-warning" onclick="cancelJob('${this.job.id}')" title="Auftrag abbrechen">
+                <button class="btn btn-sm btn-warning" onclick="cancelJob('${this.job.id}')" title="${t('components.cancelJob')}">
                     <span class="btn-icon">⏹️</span>
                 </button>
             `);
@@ -860,7 +860,7 @@ class JobListItem {
 
         // Edit job info
         actions.push(`
-            <button class="btn btn-sm btn-secondary" onclick="editJob('${this.job.id}')" title="Bearbeiten">
+            <button class="btn btn-sm btn-secondary" onclick="editJob('${this.job.id}')" title="${t('common.edit')}">
                 <span class="btn-icon">✏️</span>
             </button>
         `);
@@ -1152,7 +1152,7 @@ class FileListItem {
 
         // Show layer information
         if (metadata.total_layer_count || metadata.layer_count) {
-            metadataItems.push(`📐 ${metadata.total_layer_count || metadata.layer_count} Schichten`);
+            metadataItems.push(`📐 ${t('files.layersCount', { count: metadata.total_layer_count || metadata.layer_count })}`);
         }
 
         // Show filament usage
@@ -1232,7 +1232,7 @@ class FileListItem {
                 <div class="progress">
                     <div class="progress-bar" style="width: 0%"></div>
                 </div>
-                <div class="download-status">Vorbereitung...</div>
+                <div class="download-status">${t('status.job.preparing')}...</div>
             </div>
         `;
     }
@@ -1246,7 +1246,7 @@ class FileListItem {
         // Preview button (if supported)
         if (this.file.preview_url) {
             actions.push(`
-                <button class="btn btn-sm btn-secondary" onclick="previewFile('${this.file.id}')" title="Vorschau anzeigen">
+                <button class="btn btn-sm btn-secondary" onclick="previewFile('${this.file.id}')" title="${t('files.showPreview')}">
                     <span class="btn-icon">👁️</span>
                 </button>
             `);
@@ -1255,7 +1255,7 @@ class FileListItem {
         // Download button
         if (this.file.status === 'available') {
             actions.push(`
-                <button class="btn btn-sm btn-primary" onclick="downloadFileFromPrinter('${this.file.id}')" title="Herunterladen">
+                <button class="btn btn-sm btn-primary" onclick="downloadFileFromPrinter('${this.file.id}')" title="${t('common.download')}">
                     <span class="btn-icon">⬇️</span>
                 </button>
             `);
@@ -1264,7 +1264,7 @@ class FileListItem {
         // Open local file button (browser download)
         if (this.file.status === 'downloaded' && this.file.local_path) {
             actions.push(`
-                <button class="btn btn-sm btn-success" onclick="openLocalFile('${this.file.id}')" title="Lokale Datei herunterladen">
+                <button class="btn btn-sm btn-success" onclick="openLocalFile('${this.file.id}')" title="${t('files.downloadLocalFile')}">
                     <span class="btn-icon">📂</span>
                 </button>
             `);
@@ -1273,7 +1273,7 @@ class FileListItem {
         // Upload to printer
         if (this.file.status === 'local') {
             actions.push(`
-                <button class="btn btn-sm btn-secondary" onclick="uploadFileToPrinter('${this.file.id}')" title="Zu Drucker hochladen">
+                <button class="btn btn-sm btn-secondary" onclick="uploadFileToPrinter('${this.file.id}')" title="${t('files.uploadToPrinter')}">
                     <span class="btn-icon">⬆️</span>
                 </button>
             `);
@@ -1282,12 +1282,12 @@ class FileListItem {
         // Delete button
         if (this.file.status === 'downloaded') {
             actions.push(`
-                <button class="btn btn-sm btn-error" onclick="deleteLocalFile('${this.file.id}')" title="Lokale Datei löschen">
+                <button class="btn btn-sm btn-error" onclick="deleteLocalFile('${this.file.id}')" title="${t('files.deleteLocalFile')}">
                     <span class="btn-icon">🗑️</span>
                 </button>
             `);
         }
-        
+
         return actions.join('');
     }
 
@@ -1407,7 +1407,7 @@ class Pagination {
             '‹',
             this.currentPage - 1,
             this.currentPage <= 1,
-            'Vorherige Seite'
+            t('components.previousPage')
         ));
         
         // Page numbers
@@ -1426,7 +1426,7 @@ class Pagination {
                 i,
                 i,
                 false,
-                `Seite ${i}`,
+                t('components.pageN', { page: i }),
                 i === this.currentPage
             ));
         }
@@ -1443,7 +1443,7 @@ class Pagination {
             '›',
             this.currentPage + 1,
             this.currentPage >= this.totalPages,
-            'Nächste Seite'
+            t('components.nextPage')
         ));
         
         this.element.innerHTML = buttons.join('');
@@ -1543,15 +1543,15 @@ class DruckerDateienManager {
             <div class="drucker-dateien-manager">
                 <div class="file-manager-header">
                     <div class="header-title">
-                        <h2>📁 Drucker-Dateien</h2>
-                        <span class="subtitle">Einheitliche Verwaltung aller Drucker-Dateien</span>
+                        <h2>📁 ${t('files.printerFiles')}</h2>
+                        <span class="subtitle">${t('files.printerFilesSubtitle')}</span>
                     </div>
                     <div class="header-actions">
-                        <button class="btn btn-primary" onclick="refreshFiles()" title="Dateien aktualisieren">
-                            <span class="btn-icon">🔄</span> Aktualisieren
+                        <button class="btn btn-primary" onclick="refreshFiles()" title="${t('files.refreshFiles')}">
+                            <span class="btn-icon">🔄</span> ${t('common.refresh')}
                         </button>
-                        <button class="btn btn-success" onclick="downloadAllAvailable()" title="Alle verfügbaren Dateien herunterladen">
-                            <span class="btn-icon">⬇️</span> Alle laden
+                        <button class="btn btn-success" onclick="downloadAllAvailable()" title="${t('files.downloadAllAvailableTitle')}">
+                            <span class="btn-icon">⬇️</span> ${t('files.downloadAll')}
                         </button>
                     </div>
                 </div>
@@ -1559,13 +1559,13 @@ class DruckerDateienManager {
                 <div class="selection-controls">
                     <div class="selection-actions">
                         <button class="btn btn-sm btn-secondary" onclick="selectAllFiles()">
-                            <span class="btn-icon">☑️</span> Alle auswählen
+                            <span class="btn-icon">☑️</span> ${t('files.selectAll')}
                         </button>
                         <button class="btn btn-sm btn-secondary" onclick="selectNone()">
-                            <span class="btn-icon">☐</span> Auswahl aufheben
+                            <span class="btn-icon">☐</span> ${t('files.deselectAll')}
                         </button>
                         <button class="btn btn-sm btn-secondary" onclick="selectAvailable()">
-                            <span class="btn-icon">📁</span> Verfügbare auswählen
+                            <span class="btn-icon">📁</span> ${t('files.selectAvailable')}
                         </button>
                     </div>
                 </div>
@@ -1574,25 +1574,25 @@ class DruckerDateienManager {
                     <div class="filter-group">
                         <label for="status-filter">Status:</label>
                         <select id="status-filter" class="form-control">
-                            <option value="all">Alle Status</option>
-                            <option value="available">📁 Verfügbar</option>
-                            <option value="downloaded">✓ Heruntergeladen</option>
-                            <option value="local">💾 Lokal</option>
-                            <option value="downloading">⬇️ Lädt herunter</option>
+                            <option value="all">${t('files.allStatuses')}</option>
+                            <option value="available">📁 ${t('status.file.available')}</option>
+                            <option value="downloaded">✓ ${t('status.file.downloaded')}</option>
+                            <option value="local">💾 ${t('status.file.local')}</option>
+                            <option value="downloading">⬇️ ${t('status.file.downloading')}</option>
                         </select>
                     </div>
                     
                     <div class="filter-group">
-                        <label for="printer-filter">Drucker:</label>
+                        <label for="printer-filter">${t('files.printer')}:</label>
                         <select id="printer-filter" class="form-control">
-                            <option value="all">Alle Drucker</option>
+                            <option value="all">${t('files.allPrinters')}</option>
                         </select>
                     </div>
                     
                     <div class="filter-group">
-                        <label for="type-filter">Dateityp:</label>
+                        <label for="type-filter">${t('files.fileType')}:</label>
                         <select id="type-filter" class="form-control">
-                            <option value="all">Alle Typen</option>
+                            <option value="all">${t('files.allTypes')}</option>
                             <option value="3mf">📦 3MF</option>
                             <option value="stl">🔺 STL</option>
                             <option value="gcode">⚙️ G-Code</option>
@@ -1600,26 +1600,26 @@ class DruckerDateienManager {
                     </div>
                     
                     <div class="filter-group search-group">
-                        <label for="file-search">Suche:</label>
-                        <input type="text" id="file-search" class="form-control" placeholder="Dateiname suchen...">
+                        <label for="file-search">${t('files.searchLabel')}:</label>
+                        <input type="text" id="file-search" class="form-control" placeholder="${t('files.searchFilenamePlaceholder')}">
                     </div>
                 </div>
 
                 <div class="file-stats">
                     <div class="stat-item">
-                        <span class="stat-label">Gesamt:</span>
+                        <span class="stat-label">${t('files.total')}:</span>
                         <span class="stat-value" id="total-files">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Verfügbar:</span>
+                        <span class="stat-label">${t('status.file.available')}:</span>
                         <span class="stat-value" id="available-files">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Heruntergeladen:</span>
+                        <span class="stat-label">${t('status.file.downloaded')}:</span>
                         <span class="stat-value" id="downloaded-files">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Gesamtgröße:</span>
+                        <span class="stat-label">${t('files.totalSize')}:</span>
                         <span class="stat-value" id="total-size">0 MB</span>
                     </div>
                 </div>
@@ -1628,21 +1628,21 @@ class DruckerDateienManager {
                     <div id="files-list" class="files-list">
                         <div class="loading-state">
                             <div class="spinner"></div>
-                            <p>Lade Dateien...</p>
+                            <p>${t('loading.files')}</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="bulk-actions" style="display: none;">
                     <div class="selected-info">
-                        <span id="selected-count">0</span> Dateien ausgewählt
+                        <span id="selected-count">0</span> ${t('files.filesSelected')}
                     </div>
                     <div class="action-buttons">
                         <button class="btn btn-primary" onclick="downloadSelected()">
-                            <span class="btn-icon">⬇️</span> Ausgewählte laden
+                            <span class="btn-icon">⬇️</span> ${t('files.downloadSelected')}
                         </button>
                         <button class="btn btn-error" onclick="deleteSelected()">
-                            <span class="btn-icon">🗑️</span> Ausgewählte löschen
+                            <span class="btn-icon">🗑️</span> ${t('files.deleteSelected')}
                         </button>
                     </div>
                 </div>
@@ -1770,7 +1770,7 @@ class DruckerDateienManager {
             
         } catch (error) {
             Logger.error('Failed to load files:', error);
-            this.showError('Fehler beim Laden der Dateien');
+            this.showError(t('files.loadError'));
         }
     }
 
@@ -1858,8 +1858,8 @@ class DruckerDateienManager {
             filesList.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">📭</div>
-                    <h3>Keine Dateien gefunden</h3>
-                    <p>Mit den aktuellen Filtern wurden keine Dateien gefunden.</p>
+                    <h3>${t('files.noFilesFound')}</h3>
+                    <p>${t('files.noFilesMatchFilters')}</p>
                 </div>
             `;
             return;
@@ -1893,7 +1893,7 @@ class DruckerDateienManager {
                                    ${!isAvailableForDownload ? 'disabled' : ''}>
                             <span class="checkbox-custom"></span>
                         </label>
-                        ${isDownloaded ? '<span class="downloaded-indicator" title="Bereits heruntergeladen">✅</span>' : ''}
+                        ${isDownloaded ? `<span class="downloaded-indicator" title="${t('files.alreadyDownloaded')}">✅</span>` : ''}
                     </div>
                     <div class="file-icon">${fileIcon}</div>
                     <div class="file-status">
@@ -1910,9 +1910,9 @@ class DruckerDateienManager {
                     </div>
                     <div class="file-meta">
                         <span class="file-date">
-                            ${file.created_on_printer ? formatDateTime(file.created_on_printer) : 'Unbekannt'}
+                            ${file.created_on_printer ? formatDateTime(file.created_on_printer) : t('common.unknown')}
                         </span>
-                        ${isDownloaded ? '<span class="downloaded-badge">📁 Heruntergeladen</span>' : ''}
+                        ${isDownloaded ? `<span class="downloaded-badge">📁 ${t('status.file.downloaded')}</span>` : ''}
                     </div>
                 </div>
 
@@ -1934,7 +1934,7 @@ class DruckerDateienManager {
         switch (file.status) {
             case 'available':
                 actions.push(`
-                    <button class="btn btn-sm btn-primary" onclick="downloadFile('${file.id}')" title="Datei herunterladen">
+                    <button class="btn btn-sm btn-primary" onclick="downloadFile('${file.id}')" title="${t('files.downloadFile')}">
                         <span class="btn-icon">⬇️</span>
                     </button>
                 `);
@@ -1942,10 +1942,10 @@ class DruckerDateienManager {
 
             case 'downloaded':
                 actions.push(`
-                    <button class="btn btn-sm btn-success" onclick="openLocalFile('${file.id}')" title="Lokale Datei herunterladen">
+                    <button class="btn btn-sm btn-success" onclick="openLocalFile('${file.id}')" title="${t('files.downloadLocalFile')}">
                         <span class="btn-icon">📂</span>
                     </button>
-                    <button class="btn btn-sm btn-error" onclick="deleteLocalFile('${file.id}')" title="Lokale Datei löschen">
+                    <button class="btn btn-sm btn-error" onclick="deleteLocalFile('${file.id}')" title="${t('files.deleteLocalFile')}">
                         <span class="btn-icon">🗑️</span>
                     </button>
                 `);
@@ -1953,7 +1953,7 @@ class DruckerDateienManager {
 
             case 'downloading':
                 actions.push(`
-                    <button class="btn btn-sm btn-secondary" disabled title="Download läuft">
+                    <button class="btn btn-sm btn-secondary" disabled title="${t('files.downloadInProgress')}">
                         <span class="btn-icon">⏳</span>
                     </button>
                 `);
@@ -1963,7 +1963,7 @@ class DruckerDateienManager {
         // Preview button for supported formats
         if (this.isPreviewSupported(file.filename)) {
             actions.push(`
-                <button class="btn btn-sm btn-secondary" onclick="previewFile('${file.id}')" title="Vorschau anzeigen">
+                <button class="btn btn-sm btn-secondary" onclick="previewFile('${file.id}')" title="${t('files.showPreview')}">
                     <span class="btn-icon">👁️</span>
                 </button>
             `);
@@ -2007,12 +2007,12 @@ class DruckerDateienManager {
      */
     getSourceDisplay(source, watchFolderPath) {
         const sourceIcons = {
-            'printer': '🖨️ Drucker',
-            'local_watch': '📁 Ordner',
-            'local': '💾 Lokal'
+            'printer': `🖨️ ${t('files.printer')}`,
+            'local_watch': `📁 ${t('files.folder')}`,
+            'local': `💾 ${t('status.file.local')}`
         };
 
-        let display = sourceIcons[source] || '❓ Unbekannt';
+        let display = sourceIcons[source] || `❓ ${t('common.unknown')}`;
 
         // Add folder path for watch folders
         if (source === 'local_watch' && watchFolderPath) {
@@ -2039,17 +2039,17 @@ class DruckerDateienManager {
 
         if (!file) {
             console.error('File not found:', fileId, 'Available:', this.files.map(f => f.id));
-            throw new Error(`Datei mit ID ${fileId} nicht gefunden`);
+            throw new Error(t('files.fileNotFoundWithId', { id: fileId }));
         }
 
         if (!file.printer_id) {
             console.error('Missing printer_id:', file);
-            throw new Error(`Datei "${file.filename}" hat keine Drucker-ID`);
+            throw new Error(t('files.fileMissingPrinterId', { name: file.filename }));
         }
 
         if (!file.filename) {
             console.error('Missing filename:', file);
-            throw new Error(`Datei hat keinen Dateinamen`);
+            throw new Error(t('files.fileMissingFilename'));
         }
 
         console.log('Downloading:', { printer_id: file.printer_id, filename: file.filename });
@@ -2077,14 +2077,14 @@ class DruckerDateienManager {
             this.downloadProgress.delete(fileId);
             this.applyFilters();
             
-            showToast(`Datei "${file.filename}" erfolgreich heruntergeladen`, 'success');
+            showToast(t('files.fileDownloadedNamed', { name: file.filename }), 'success');
 
         } catch (error) {
             Logger.error('Download failed:', error);
             file.status = 'available'; // Reset status
             this.downloadProgress.delete(fileId);
             this.applyFilters();
-            showToast(`Download fehlgeschlagen: ${error.message}`, 'error');
+            showToast(t('files.downloadFailedWithError', { message: error.message }), 'error');
         }
     }
 
@@ -2144,9 +2144,9 @@ class DruckerDateienManager {
         filesList.innerHTML = `
             <div class="error-state">
                 <div class="error-icon">⚠️</div>
-                <h3>Fehler</h3>
+                <h3>${t('common.error')}</h3>
                 <p>${escapeHtml(message)}</p>
-                <button class="btn btn-primary" onclick="location.reload()">Seite neu laden</button>
+                <button class="btn btn-primary" onclick="location.reload()">${t('components.reloadPage')}</button>
             </div>
         `;
     }
@@ -2201,13 +2201,13 @@ class StatusHistoryChart {
         this.container.innerHTML = `
             <div class="status-history-chart">
                 <div class="chart-header">
-                    <h3>📊 Temperaturverlauf (24h)</h3>
+                    <h3>📊 ${t('components.temperatureHistory')}</h3>
                     <div class="chart-controls">
                         <select class="form-control chart-period" onchange="updateChartPeriod(this.value)">
-                            <option value="1">1 Stunde</option>
-                            <option value="6">6 Stunden</option>
-                            <option value="24" selected>24 Stunden</option>
-                            <option value="168">7 Tage</option>
+                            <option value="1">${t('components.oneHour')}</option>
+                            <option value="6">${t('components.hoursCount', { count: 6 })}</option>
+                            <option value="24" selected>${t('components.hoursCount', { count: 24 })}</option>
+                            <option value="168">${t('components.sevenDays')}</option>
                         </select>
                     </div>
                 </div>
@@ -2217,15 +2217,15 @@ class StatusHistoryChart {
                 <div class="chart-legend">
                     <div class="legend-item">
                         <span class="legend-color" style="background-color: #ef4444;"></span>
-                        <span>Düse</span>
+                        <span>${t('printers.nozzle')}</span>
                     </div>
                     <div class="legend-item">
                         <span class="legend-color" style="background-color: #3b82f6;"></span>
-                        <span>Bett</span>
+                        <span>${t('printers.bed')}</span>
                     </div>
                     <div class="legend-item">
                         <span class="legend-color" style="background-color: #10b981;"></span>
-                        <span>Kammer</span>
+                        <span>${t('printers.chamber')}</span>
                     </div>
                 </div>
             </div>
@@ -2246,9 +2246,9 @@ class StatusHistoryChart {
             ctx.fillStyle = '#6b7280';
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Statusverlauf noch nicht verfügbar', canvas.width / 2, canvas.height / 2 - 10);
+            ctx.fillText(t('components.statusHistoryUnavailable'), canvas.width / 2, canvas.height / 2 - 10);
             ctx.font = '14px Arial';
-            ctx.fillText('Diese Funktion wird in einer zukünftigen Version hinzugefügt', canvas.width / 2, canvas.height / 2 + 15);
+            ctx.fillText(t('components.featureComingSoon'), canvas.width / 2, canvas.height / 2 + 15);
         }
     }
 
@@ -2266,7 +2266,7 @@ class StatusHistoryChart {
             ctx.fillStyle = '#6b7280';
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Keine Daten verfügbar', canvas.width / 2, canvas.height / 2);
+            ctx.fillText(t('settings.noDataMessage'), canvas.width / 2, canvas.height / 2);
             return;
         }
 
@@ -2394,7 +2394,7 @@ class SearchBox {
                     class="form-control search-input" 
                     placeholder="${escapeHtml(this.placeholder)}"
                 >
-                <button class="search-clear" title="Leeren" style="display: none;">×</button>
+                <button class="search-clear" title="${t('components.clear')}" style="display: none;">×</button>
             </div>
         `;
         
