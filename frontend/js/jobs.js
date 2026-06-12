@@ -940,7 +940,7 @@ class JobManager {
 
         // Export job data as CSV
         actions.push(`
-            <button class="btn btn-secondary" onclick="jobManager.exportJob('${job.id}')" title="Auftrag als CSV exportieren">
+            <button class="btn btn-secondary" onclick="jobManager.exportJob('${job.id}')" title="${t('jobs.exportCsvTitle')}">
                 <span class="btn-icon">📊</span>
                 Export
             </button>

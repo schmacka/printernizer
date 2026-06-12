@@ -321,7 +321,16 @@
     "type": "Type",
     "uploaded": "File \"{name}\" was uploaded",
     "watchFoldersHint": "Add folders to track local files automatically",
-    "watchFoldersLoadError": "Failed to load watch folders"
+    "watchFoldersLoadError": "Failed to load watch folders",
+    "uploadChoosePrinter": "Upload to which printer?",
+    "uploadInvalidChoiceTitle": "Invalid choice",
+    "uploadInvalidChoiceMessage": "Please enter a valid number",
+    "uploadStartedTitle": "Upload started",
+    "uploadStartedMessage": "Uploading file to the printer…",
+    "uploadDoneTitle": "Uploaded",
+    "uploadDoneMessage": "File was uploaded to the printer",
+    "uploadFailedTitle": "Upload error",
+    "uploadFailedMessage": "Upload to the printer failed"
   },
   "materials": {
     "actions": "Actions",
@@ -527,5 +536,8 @@
     "testConnection": "Test connection",
     "testing": "Testing…",
     "testingConnection": "Testing connection…"
+  },
+  "jobs": {
+    "exportCsvTitle": "Export job as CSV"
   }
 }

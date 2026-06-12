@@ -457,7 +457,7 @@ async function uploadFileToPrinter(fileId) {
         const printers = response.printers || response || [];
 
         if (!printers.length) {
-            showToast('error', 'Kein Drucker', 'Es ist kein Drucker konfiguriert');
+            showToast('error', t('printers.noneConfigured'), t('printers.addFirstPrinter'));
             return;
         }
 
@@ -466,24 +466,24 @@ async function uploadFileToPrinter(fileId) {
             printerId = printers[0].id;
         } else {
             const choices = printers.map((p, i) => `${i + 1}: ${p.name}`).join('\n');
-            const input = prompt(`Zu welchem Drucker hochladen?\n${choices}`, '1');
+            const input = prompt(`${t('files.uploadChoosePrinter')}\n${choices}`, '1');
             if (input === null) return;
             const index = parseInt(input, 10) - 1;
             if (isNaN(index) || index < 0 || index >= printers.length) {
-                showToast('error', 'Ungültige Auswahl', 'Bitte eine gültige Nummer eingeben');
+                showToast('error', t('files.uploadInvalidChoiceTitle'), t('files.uploadInvalidChoiceMessage'));
                 return;
             }
             printerId = printers[index].id;
         }
 
-        showToast('info', 'Upload gestartet', 'Datei wird zum Drucker hochgeladen…');
+        showToast('info', t('files.uploadStartedTitle'), t('files.uploadStartedMessage'));
         await api.uploadFileToPrinter(printerId, fileId);
-        showToast('success', 'Hochgeladen', 'Datei wurde zum Drucker hochgeladen');
+        showToast('success', t('files.uploadDoneTitle'), t('files.uploadDoneMessage'));
 
     } catch (error) {
         Logger.error('Failed to upload file to printer:', error);
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Upload zum Drucker fehlgeschlagen';
-        showToast('error', 'Upload-Fehler', message);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.uploadFailedMessage');
+        showToast('error', t('files.uploadFailedTitle'), message);
     }
 }
 

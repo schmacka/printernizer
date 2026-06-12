@@ -321,7 +321,16 @@
     "type": "Typ",
     "uploaded": "Datei \"{name}\" wurde hochgeladen",
     "watchFoldersHint": "Fügen Sie Ordner hinzu, um lokale Dateien automatisch zu erfassen",
-    "watchFoldersLoadError": "Fehler beim Laden der überwachten Verzeichnisse"
+    "watchFoldersLoadError": "Fehler beim Laden der überwachten Verzeichnisse",
+    "uploadChoosePrinter": "Zu welchem Drucker hochladen?",
+    "uploadInvalidChoiceTitle": "Ungültige Auswahl",
+    "uploadInvalidChoiceMessage": "Bitte eine gültige Nummer eingeben",
+    "uploadStartedTitle": "Upload gestartet",
+    "uploadStartedMessage": "Datei wird zum Drucker hochgeladen…",
+    "uploadDoneTitle": "Hochgeladen",
+    "uploadDoneMessage": "Datei wurde zum Drucker hochgeladen",
+    "uploadFailedTitle": "Upload-Fehler",
+    "uploadFailedMessage": "Upload zum Drucker fehlgeschlagen"
   },
   "materials": {
     "actions": "Aktionen",
@@ -527,5 +536,8 @@
     "testConnection": "Verbindung testen",
     "testing": "Teste…",
     "testingConnection": "Verbindung wird getestet…"
+  },
+  "jobs": {
+    "exportCsvTitle": "Auftrag als CSV exportieren"
   }
 }
