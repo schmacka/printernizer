@@ -146,8 +146,8 @@ class PrinterManager {
         // Connection type indicator
         const connectionType = printer.connection_type || (printer.printer_type === 'bambu_lab' ? 'MQTT' : 'HTTP');
         const connectionIndicator = isConnecting
-            ? `<span class="connection-indicator connecting" title="Verbindung wird hergestellt...">⟳ ${connectionType}</span>`
-            : `<span class="connection-indicator ${printer.status === 'online' || printer.status === 'printing' ? 'connected' : 'disconnected'}" title="${connectionType}-Verbindung">${connectionType}</span>`;
+            ? `<span class="connection-indicator connecting" title="${t('printers.connectionEstablishing')}">⟳ ${connectionType}</span>`
+            : `<span class="connection-indicator ${printer.status === 'online' || printer.status === 'printing' ? 'connected' : 'disconnected'}" title="${t('printers.connectionType', { type: connectionType })}">${connectionType}</span>`;
 
         card.innerHTML = `
             <div class="printer-tile-header">
@@ -177,14 +177,14 @@ class PrinterManager {
 
             <div class="printer-tile-footer">
                 <div class="printer-tile-actions">
-                    <button class="btn-icon" onclick="printerManager.showPrinterDetails('${sanitizeAttribute(printer.id)}')" title="Details anzeigen">
+                    <button class="btn-icon" onclick="printerManager.showPrinterDetails('${sanitizeAttribute(printer.id)}')" title="${t('printers.showDetails')}">
                         👁️
                     </button>
-                    <button class="btn-icon" onclick="printerManager.editPrinter('${sanitizeAttribute(printer.id)}')" title="Bearbeiten">
+                    <button class="btn-icon" onclick="printerManager.editPrinter('${sanitizeAttribute(printer.id)}')" title="${t('common.edit')}">
                         ✏️
                     </button>
                     ${this.renderTilePrinterControls(printer)}
-                    <button class="btn-icon btn-error-icon" onclick="printerManager.deletePrinter('${sanitizeAttribute(printer.id)}')" title="Löschen">
+                    <button class="btn-icon btn-error-icon" onclick="printerManager.deletePrinter('${sanitizeAttribute(printer.id)}')" title="${t('common.delete')}">
                         🗑️
                     </button>
                 </div>
@@ -199,7 +199,7 @@ class PrinterManager {
      */
     renderTileCurrentJob(printer) {
         if (!printer.current_job) {
-            return '<div class="printer-tile-idle"><span class="text-muted">Bereit</span></div>';
+            return `<div class="printer-tile-idle"><span class="text-muted">${t('status.printer.idle')}</span></div>`;
         }
 
         const jobName = typeof printer.current_job === 'string' ? printer.current_job : printer.current_job.name;
@@ -217,7 +217,7 @@ class PrinterManager {
                 ` : ''}
                 ${printer.remaining_time_minutes ? `
                     <div class="tile-time-remaining">
-                        ⏱️ ${formatDuration(printer.remaining_time_minutes * 60)} verbleibend
+                        ⏱️ ${t('printers.timeRemaining', { time: formatDuration(printer.remaining_time_minutes * 60) })}
                     </div>
                 ` : ''}
             </div>
@@ -232,8 +232,8 @@ class PrinterManager {
         if (!temperatures) {
             return `
                 <div class="printer-tile-temps printer-tile-temps-placeholder">
-                    <span class="tile-temp text-muted" title="Düse">🔥 --°C</span>
-                    <span class="tile-temp text-muted" title="Druckbett">🛏️ --°C</span>
+                    <span class="tile-temp text-muted" title="${t('printers.nozzle')}">🔥 --°C</span>
+                    <span class="tile-temp text-muted" title="${t('printers.printBed')}">🛏️ --°C</span>
                 </div>
             `;
         }
@@ -242,19 +242,19 @@ class PrinterManager {
 
         if (temperatures.nozzle !== undefined) {
             const nozzle = typeof temperatures.nozzle === 'object' ? temperatures.nozzle : { current: temperatures.nozzle };
-            tempItems.push(`<span class="tile-temp" title="Düse">🔥 ${parseFloat(nozzle.current).toFixed(0)}°C</span>`);
+            tempItems.push(`<span class="tile-temp" title="${t('printers.nozzle')}">🔥 ${parseFloat(nozzle.current).toFixed(0)}°C</span>`);
         }
 
         if (temperatures.bed !== undefined) {
             const bed = typeof temperatures.bed === 'object' ? temperatures.bed : { current: temperatures.bed };
-            tempItems.push(`<span class="tile-temp" title="Druckbett">🛏️ ${parseFloat(bed.current).toFixed(0)}°C</span>`);
+            tempItems.push(`<span class="tile-temp" title="${t('printers.printBed')}">🛏️ ${parseFloat(bed.current).toFixed(0)}°C</span>`);
         }
 
         if (tempItems.length === 0) {
             return `
                 <div class="printer-tile-temps printer-tile-temps-placeholder">
-                    <span class="tile-temp text-muted" title="Düse">🔥 --°C</span>
-                    <span class="tile-temp text-muted" title="Druckbett">🛏️ --°C</span>
+                    <span class="tile-temp text-muted" title="${t('printers.nozzle')}">🔥 --°C</span>
+                    <span class="tile-temp text-muted" title="${t('printers.printBed')}">🛏️ --°C</span>
                 </div>
             `;
         }
@@ -281,7 +281,7 @@ class PrinterManager {
             const isActive = filament.is_active;
 
             return `
-                <div class="filament-item ${isActive ? 'filament-active' : ''}" data-slot="${filament.slot}" title="Slot ${slotLabel}: ${filamentType}">
+                <div class="filament-item ${isActive ? 'filament-active' : ''}" data-slot="${filament.slot}" title="${t('printers.slotTitle', { slot: slotLabel, type: filamentType })}">
                     <div class="filament-color" style="background-color: ${escapeHtml(filamentColor)}"></div>
                     <div class="filament-info">
                         <span class="filament-slot">${slotLabel}</span>
@@ -294,7 +294,7 @@ class PrinterManager {
         return `
             <div class="filaments">
                 <div class="filaments-header">
-                    <span class="filaments-label">Filamente</span>
+                    <span class="filaments-label">${t('printers.filaments')}</span>
                 </div>
                 <div class="filaments-list">
                     ${filamentItems}
@@ -307,17 +307,17 @@ class PrinterManager {
      * Render statistics for tile layout
      */
     renderTileStatistics(statistics) {
-        if (!statistics) return '<span class="text-muted">Keine Statistiken</span>';
+        if (!statistics) return `<span class="text-muted">${t('printers.noStatistics')}</span>`;
 
         const stats = [];
 
         if (statistics.total_jobs !== undefined) {
-            stats.push(`<span class="tile-stat" title="Gesamte Aufträge">📊 ${statistics.total_jobs}</span>`);
+            stats.push(`<span class="tile-stat" title="${t('printers.totalJobs')}">📊 ${statistics.total_jobs}</span>`);
         }
 
         if (statistics.success_rate !== undefined) {
             const rate = (statistics.success_rate * 100).toFixed(0);
-            stats.push(`<span class="tile-stat" title="Erfolgsrate">✓ ${rate}%</span>`);
+            stats.push(`<span class="tile-stat" title="${t('printers.successRate')}">✓ ${rate}%</span>`);
         }
 
         if (stats.length === 0) return '<span class="text-muted">-</span>';
@@ -331,19 +331,19 @@ class PrinterManager {
     renderTilePrinterControls(printer) {
         if (printer.status === 'printing') {
             return `
-                <button class="btn-icon" onclick="printerManager.pausePrinter('${printer.id}')" title="Pausieren">
+                <button class="btn-icon" onclick="printerManager.pausePrinter('${printer.id}')" title="${t('printers.pause')}">
                     ⏸️
                 </button>
-                <button class="btn-icon btn-error-icon" onclick="printerManager.stopPrinter('${printer.id}')" title="Stoppen">
+                <button class="btn-icon btn-error-icon" onclick="printerManager.stopPrinter('${printer.id}')" title="${t('printers.stop')}">
                     ⏹️
                 </button>
             `;
         } else if (printer.status === 'paused') {
             return `
-                <button class="btn-icon" onclick="printerManager.resumePrinter('${printer.id}')" title="Fortsetzen">
+                <button class="btn-icon" onclick="printerManager.resumePrinter('${printer.id}')" title="${t('printers.resume')}">
                     ▶️
                 </button>
-                <button class="btn-icon btn-error-icon" onclick="printerManager.stopPrinter('${printer.id}')" title="Stoppen">
+                <button class="btn-icon btn-error-icon" onclick="printerManager.stopPrinter('${printer.id}')" title="${t('printers.stop')}">
                     ⏹️
                 </button>
             `;
@@ -364,7 +364,7 @@ class PrinterManager {
      */
     renderCurrentJobInfo(printer) {
         if (!printer.current_job) {
-            return '<div class="info-item"><span class="text-muted">Kein aktiver Auftrag</span></div>';
+            return `<div class="info-item"><span class="text-muted">${t('printers.noActiveJob')}</span></div>`;
         }
 
         // Handle both old job object structure and new string job name structure
@@ -375,7 +375,7 @@ class PrinterManager {
         return `
             <div class="current-job-info">
                 <div class="info-item">
-                    <label>Aktueller Auftrag:</label>
+                    <label>${t('printers.currentJob')}:</label>
                     <span>${escapeHtml(jobName)}</span>
                 </div>
                 ${this.renderJobThumbnail(printer)}
@@ -385,7 +385,7 @@ class PrinterManager {
                 </div>
                 ${printer.progress !== undefined ? `
                     <div class="info-item">
-                        <label>Fortschritt:</label>
+                        <label>${t('printers.progress')}:</label>
                         <div class="inline-progress">
                             <div class="progress">
                                 <div class="progress-bar" style="width: ${printer.progress}%"></div>
@@ -396,13 +396,13 @@ class PrinterManager {
                 ` : ''}
                 ${printer.remaining_time_minutes ? `
                     <div class="info-item">
-                        <label>Verbleibend:</label>
+                        <label>${t('printers.remaining')}:</label>
                         <span>${formatDuration(printer.remaining_time_minutes * 60)}</span>
                     </div>
                 ` : ''}
                 ${printer.estimated_end_time ? `
                     <div class="info-item">
-                        <label>Ende:</label>
+                        <label>${t('printers.end')}:</label>
                         <span>${formatTime(printer.estimated_end_time)}</span>
                     </div>
                 ` : ''}
@@ -419,11 +419,11 @@ class PrinterManager {
             // Show camera unavailable placeholder
             return `
                 <div class="info-item">
-                    <label>Vorschau:</label>
+                    <label>${t('printers.preview')}:</label>
                     <div class="job-thumbnail-info thumbnail-unavailable">
                         <div class="camera-placeholder">
                             <span class="camera-icon">📷</span>
-                            <span class="camera-text">Keine Vorschau</span>
+                            <span class="camera-text">${t('printers.noPreview')}</span>
                         </div>
                     </div>
                 </div>
@@ -437,15 +437,15 @@ class PrinterManager {
 
         return `
             <div class="info-item">
-                <label>Vorschau:</label>
+                <label>${t('printers.preview')}:</label>
                 <div class="job-thumbnail-info">
                     <img src="${thumbnailSrc}"
-                         alt="${printer.current_job_has_thumbnail ? 'Job Thumbnail' : 'Keine Vorschau verfügbar'}"
+                         alt="${printer.current_job_has_thumbnail ? 'Job Thumbnail' : t('printers.noPreviewAvailable')}"
                          class="thumbnail-image-small ${!printer.current_job_has_thumbnail ? 'placeholder-image' : ''}"
                          data-file-id="${printer.current_job_file_id}"
                          loading="lazy"
                          onclick="showFullThumbnail('${printer.current_job_file_id}', '${escapeHtml(printer.current_job || 'Current Job')}')"
-                         ${printer.current_job_has_thumbnail ? "onerror=\"this.onerror=null; this.parentElement.innerHTML='<div class=\\'camera-placeholder\\'><span class=\\'camera-icon\\'>📷</span><span class=\\'camera-text\\'>Bild nicht verfügbar</span></div>';\"" : ''}>
+                         ${printer.current_job_has_thumbnail ? `onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'camera-placeholder\\'><span class=\\'camera-icon\\'>📷</span><span class=\\'camera-text\\'>${t('printers.imageUnavailable')}</span></div>';"` : ''}>
                 </div>
             </div>
         `;
@@ -465,7 +465,7 @@ class PrinterManager {
             const nozzle = typeof temperatures.nozzle === 'object' ? temperatures.nozzle : { current: temperatures.nozzle };
             tempItems.push(`
                 <div class="info-item">
-                    <label>Düse:</label>
+                    <label>${t('printers.nozzle')}:</label>
                     <span class="temperature ${Math.abs(nozzle.current - (nozzle.target || 0)) > 2 ? 'temp-heating' : ''}">
                         ${parseFloat(nozzle.current).toFixed(1)}°C${nozzle.target ? ` / ${parseFloat(nozzle.target).toFixed(1)}°C` : ''}
                     </span>
@@ -477,7 +477,7 @@ class PrinterManager {
             const bed = typeof temperatures.bed === 'object' ? temperatures.bed : { current: temperatures.bed };
             tempItems.push(`
                 <div class="info-item">
-                    <label>Bett:</label>
+                    <label>${t('printers.bed')}:</label>
                     <span class="temperature ${Math.abs(bed.current - (bed.target || 0)) > 2 ? 'temp-heating' : ''}">
                         ${parseFloat(bed.current).toFixed(1)}°C${bed.target ? ` / ${parseFloat(bed.target).toFixed(1)}°C` : ''}
                     </span>
@@ -489,7 +489,7 @@ class PrinterManager {
             const chamber = typeof temperatures.chamber === 'object' ? temperatures.chamber : { current: temperatures.chamber };
             tempItems.push(`
                 <div class="info-item">
-                    <label>Kammer:</label>
+                    <label>${t('printers.chamber')}:</label>
                     <span class="temperature">${parseFloat(chamber.current).toFixed(1)}°C</span>
                 </div>
             `);
@@ -503,16 +503,16 @@ class PrinterManager {
      */
     renderPrinterStatistics(statistics) {
         if (!statistics) {
-            return '<div class="info-item"><span class="text-muted">Keine Statistiken verfügbar</span></div>';
+            return `<div class="info-item"><span class="text-muted">${t('printers.noStatisticsAvailable')}</span></div>`;
         }
-        
+
         return `
             <div class="info-item">
-                <label>Aufträge:</label>
-                <span>${statistics.total_jobs} (${formatPercentage(statistics.success_rate * 100)} Erfolg)</span>
+                <label>${t('printers.jobs')}:</label>
+                <span>${t('printers.jobsSuccess', { count: statistics.total_jobs, rate: formatPercentage(statistics.success_rate * 100) })}</span>
             </div>
             <div class="info-item">
-                <label>Druckzeit:</label>
+                <label>${t('printers.printTime')}:</label>
                 <span>${formatDuration(statistics.total_print_time)}</span>
             </div>
             <div class="info-item">
@@ -530,9 +530,9 @@ class PrinterManager {
         
         // Test connection
         buttons.push(`
-            <button class="btn btn-sm btn-secondary" onclick="printerManager.testConnection('${printer.id}')" title="Verbindung testen">
+            <button class="btn btn-sm btn-secondary" onclick="printerManager.testConnection('${printer.id}')" title="${t('printers.testConnection')}">
                 <span class="btn-icon">🔌</span>
-                Verbindung testen
+                ${t('printers.testConnection')}
             </button>
         `);
         
@@ -540,46 +540,46 @@ class PrinterManager {
         if (printer.status === 'printing') {
             // Show pause and stop buttons when printing
             buttons.push(`
-                <button class="btn btn-sm btn-warning" onclick="printerManager.pausePrint('${printer.id}')" title="Druck pausieren">
+                <button class="btn btn-sm btn-warning" onclick="printerManager.pausePrint('${printer.id}')" title="${t('printers.pausePrint')}">
                     <span class="btn-icon">⏸️</span>
-                    Pausieren
+                    ${t('printers.pause')}
                 </button>
-                <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="Druck stoppen">
+                <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="${t('printers.stopPrint')}">
                     <span class="btn-icon">⏹️</span>
-                    Stoppen
+                    ${t('printers.stop')}
                 </button>
-                <button class="btn btn-sm btn-secondary" onclick="printerManager.downloadCurrentJob('${printer.id}')" title="Aktuelle Druckdatei herunterladen & Thumbnail verarbeiten">
+                <button class="btn btn-sm btn-secondary" onclick="printerManager.downloadCurrentJob('${printer.id}')" title="${t('printers.downloadCurrentJobTitle')}">
                     <span class="btn-icon">🖼️</span>
-                    Thumbnail holen
+                    ${t('printers.fetchThumbnail')}
                 </button>
             `);
         } else if (printer.status === 'paused') {
             // Show resume and stop buttons when paused
             buttons.push(`
-                <button class="btn btn-sm btn-success" onclick="printerManager.resumePrint('${printer.id}')" title="Druck fortsetzen">
+                <button class="btn btn-sm btn-success" onclick="printerManager.resumePrint('${printer.id}')" title="${t('printers.resumePrint')}">
                     <span class="btn-icon">▶️</span>
-                    Fortsetzen
+                    ${t('printers.resume')}
                 </button>
-                <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="Druck stoppen">
+                <button class="btn btn-sm btn-error" onclick="printerManager.stopPrint('${printer.id}')" title="${t('printers.stopPrint')}">
                     <span class="btn-icon">⏹️</span>
-                    Stoppen
+                    ${t('printers.stop')}
                 </button>
             `);
         } else if (printer.status === 'online') {
             // Show generic control button when online but not printing
             buttons.push(`
-                <button class="btn btn-sm btn-secondary" onclick="printerManager.showPrinterControl('${printer.id}')" title="Drucker steuern">
+                <button class="btn btn-sm btn-secondary" onclick="printerManager.showPrinterControl('${printer.id}')" title="${t('printers.controlPrinter')}">
                     <span class="btn-icon">🎮</span>
-                    Steuern
+                    ${t('printers.control')}
                 </button>
             `);
         }
         
         // View statistics
         buttons.push(`
-            <button class="btn btn-sm btn-secondary" onclick="printerManager.showStatistics('${printer.id}')" title="Statistiken anzeigen">
+            <button class="btn btn-sm btn-secondary" onclick="printerManager.showStatistics('${printer.id}')" title="${t('printers.showStatistics')}">
                 <span class="btn-icon">📊</span>
-                Statistiken
+                ${t('printers.statistics')}
             </button>
         `);
         
@@ -593,11 +593,11 @@ class PrinterManager {
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">🖨️</div>
-                <h3>Keine Drucker konfiguriert</h3>
-                <p>Fügen Sie Ihren ersten Drucker hinzu, um mit der Verwaltung zu beginnen.</p>
+                <h3>${t('printers.noneConfigured')}</h3>
+                <p>${t('printers.addFirstPrinter')}</p>
                 <button class="btn btn-primary" onclick="showAddPrinter()">
                     <span class="btn-icon">➕</span>
-                    Drucker hinzufügen
+                    ${t('printers.addPrinter')}
                 </button>
             </div>
         `;
@@ -607,16 +607,16 @@ class PrinterManager {
      * Render printers error state
      */
     renderPrintersError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Drucker';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('printers.loadFailed');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('printers.loadError')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="printerManager.loadPrinters()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -665,7 +665,7 @@ class PrinterManager {
 
         } catch (error) {
             Logger.error('Failed to load printer details:', error);
-            showToast('error', 'Fehler', 'Drucker-Details konnten nicht geladen werden');
+            showToast('error', t('common.error'), t('printers.detailsLoadFailed'));
         }
     }
 
@@ -684,7 +684,7 @@ class PrinterManager {
         const { printer, connection, statistics, recent_jobs, current_status } = data;
 
         const statusIcon = this.getStatusIcon(printer.status);
-        const connectionStatus = connection.is_connected ? '🟢 Verbunden' : '🔴 Getrennt';
+        const connectionStatus = connection.is_connected ? `🟢 ${t('printers.connected')}` : `🔴 ${t('printers.disconnected')}`;
         const isPrinting = printer.status === 'printing';
         const isPaused = printer.status === 'paused';
         const canControl = connection.is_connected && (isPrinting || isPaused);
@@ -702,10 +702,10 @@ class PrinterManager {
 
                     <!-- Tab Navigation -->
                     <div class="modal-tabs">
-                        <button class="tab-btn active" data-tab="overview">📊 Übersicht</button>
+                        <button class="tab-btn active" data-tab="overview">📊 ${t('printers.tabOverview')}</button>
                         <button class="tab-btn" data-tab="status">⚡ Status</button>
-                        <button class="tab-btn" data-tab="history">📜 Verlauf</button>
-                        <button class="tab-btn" data-tab="diagnostics">🔧 Diagnose</button>
+                        <button class="tab-btn" data-tab="history">📜 ${t('printers.tabHistory')}</button>
+                        <button class="tab-btn" data-tab="diagnostics">🔧 ${t('printers.tabDiagnostics')}</button>
                     </div>
 
                     <div class="modal-body">
@@ -715,71 +715,71 @@ class PrinterManager {
                             <div class="stats-grid stats-grid-4">
                                 <div class="stat-card-small">
                                     <div class="stat-value">${statistics.total_jobs}</div>
-                                    <div class="stat-label">Aufträge gesamt</div>
+                                    <div class="stat-label">${t('printers.jobsTotal')}</div>
                                 </div>
                                 <div class="stat-card-small stat-success">
                                     <div class="stat-value">${statistics.success_rate}%</div>
-                                    <div class="stat-label">Erfolgsrate</div>
+                                    <div class="stat-label">${t('printers.successRate')}</div>
                                 </div>
                                 <div class="stat-card-small">
                                     <div class="stat-value">${statistics.total_print_time_hours}h</div>
-                                    <div class="stat-label">Druckzeit</div>
+                                    <div class="stat-label">${t('printers.printTime')}</div>
                                 </div>
                                 <div class="stat-card-small">
                                     <div class="stat-value">${statistics.total_material_kg}kg</div>
-                                    <div class="stat-label">Material verbraucht</div>
+                                    <div class="stat-label">${t('printers.materialUsed')}</div>
                                 </div>
                             </div>
 
                             <!-- Printer Info Grid -->
                             <div class="details-section">
-                                <h3>📋 Druckerinformationen</h3>
+                                <h3>📋 ${t('printers.printerInformation')}</h3>
                                 <div class="details-grid details-grid-2">
                                     <div class="detail-item">
                                         <span class="detail-label">Status</span>
                                         <span class="detail-value status-badge status-${printer.status}">${this.formatStatus(printer.status)}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="detail-label">Standort</span>
+                                        <span class="detail-label">${t('printers.location')}</span>
                                         <span class="detail-value">${escapeHtml(printer.location) || '-'}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="detail-label">Beschreibung</span>
+                                        <span class="detail-label">${t('printers.description')}</span>
                                         <span class="detail-value">${escapeHtml(printer.description) || '-'}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="detail-label">Aktiviert</span>
-                                        <span class="detail-value">${printer.is_enabled ? '✅ Ja' : '❌ Nein'}</span>
+                                        <span class="detail-label">${t('printers.enabled')}</span>
+                                        <span class="detail-value">${printer.is_enabled ? `✅ ${t('common.yes')}` : `❌ ${t('common.no')}`}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="detail-label">Erstellt</span>
-                                        <span class="detail-value">${printer.created_at ? new Date(printer.created_at).toLocaleDateString('de-DE') : '-'}</span>
+                                        <span class="detail-label">${t('printers.created')}</span>
+                                        <span class="detail-value">${printer.created_at ? new Date(printer.created_at).toLocaleDateString(getIntlLocale()) : '-'}</span>
                                     </div>
                                     <div class="detail-item">
-                                        <span class="detail-label">Letzte Aktivität</span>
-                                        <span class="detail-value">${printer.last_seen ? new Date(printer.last_seen).toLocaleString('de-DE') : '-'}</span>
+                                        <span class="detail-label">${t('printers.lastActivity')}</span>
+                                        <span class="detail-value">${printer.last_seen ? new Date(printer.last_seen).toLocaleString(getIntlLocale()) : '-'}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Recent Jobs Preview -->
                             <div class="details-section">
-                                <h3>📜 Letzte Aufträge</h3>
+                                <h3>📜 ${t('printers.recentJobs')}</h3>
                                 ${recent_jobs.length > 0 ? `
                                 <div class="recent-jobs-list">
                                     ${recent_jobs.slice(0, 3).map(job => `
                                         <div class="recent-job-item">
                                             <div class="job-info">
-                                                <span class="job-name">${escapeHtml(job.file_name || 'Unbekannt')}</span>
+                                                <span class="job-name">${escapeHtml(job.file_name || t('common.unknown'))}</span>
                                                 <span class="job-meta">${job.print_time_minutes ? this.formatMinutes(job.print_time_minutes) : ''} ${job.material_used ? `· ${job.material_used}g` : ''}</span>
                                             </div>
                                             <span class="job-status status-badge status-${job.status}">${this.formatJobStatus(job.status)}</span>
-                                            <span class="job-date">${job.started_at ? new Date(job.started_at).toLocaleDateString('de-DE') : '-'}</span>
+                                            <span class="job-date">${job.started_at ? new Date(job.started_at).toLocaleDateString(getIntlLocale()) : '-'}</span>
                                         </div>
                                     `).join('')}
                                 </div>
-                                <button class="btn btn-link" onclick="printerManager.switchTab('history')">Alle Aufträge anzeigen →</button>
-                                ` : '<p class="no-data">Keine Aufträge vorhanden</p>'}
+                                <button class="btn btn-link" onclick="printerManager.switchTab('history')">${t('printers.showAllJobs')} →</button>
+                                ` : `<p class="no-data">${t('printers.noJobs')}</p>`}
                             </div>
                         </div>
 
@@ -788,7 +788,7 @@ class PrinterManager {
                             ${current_status ? `
                             <!-- Current Job Section -->
                             <div class="details-section current-job-section">
-                                <h3>🖨️ Aktueller Druckauftrag</h3>
+                                <h3>🖨️ ${t('printers.currentPrintJob')}</h3>
                                 ${current_status.current_job ? `
                                 <div class="current-job-card">
                                     <div class="job-header">
@@ -800,7 +800,7 @@ class PrinterManager {
                                     </div>
                                     ${current_status.remaining_time ? `
                                     <div class="job-time-info">
-                                        <span>⏱️ Verbleibend: ${this.formatMinutes(current_status.remaining_time)}</span>
+                                        <span>⏱️ ${t('printers.remaining')}: ${this.formatMinutes(current_status.remaining_time)}</span>
                                     </div>
                                     ` : ''}
 
@@ -809,46 +809,46 @@ class PrinterManager {
                                     <div class="printer-controls">
                                         ${isPrinting ? `
                                             <button class="btn btn-warning" onclick="printerManager.pausePrinter('${printer.id}')">
-                                                ⏸️ Pausieren
+                                                ⏸️ ${t('printers.pause')}
                                             </button>
                                         ` : ''}
                                         ${isPaused ? `
                                             <button class="btn btn-success" onclick="printerManager.resumePrinter('${printer.id}')">
-                                                ▶️ Fortsetzen
+                                                ▶️ ${t('printers.resume')}
                                             </button>
                                         ` : ''}
                                         <button class="btn btn-danger" onclick="printerManager.stopPrinter('${printer.id}')">
-                                            ⏹️ Abbrechen
+                                            ⏹️ ${t('common.cancel')}
                                         </button>
                                     </div>
                                     ` : ''}
                                 </div>
-                                ` : '<p class="no-active-job">Kein aktiver Druckauftrag</p>'}
+                                ` : `<p class="no-active-job">${t('printers.noActivePrintJob')}</p>`}
                             </div>
 
                             <!-- Temperature Section -->
                             ${current_status.temperatures ? `
                             <div class="details-section">
-                                <h3>🌡️ Temperaturen</h3>
+                                <h3>🌡️ ${t('printers.temperatures')}</h3>
                                 <div class="temperature-grid">
                                     <div class="temp-card">
                                         <div class="temp-icon">🛏️</div>
                                         <div class="temp-info">
-                                            <span class="temp-label">Druckbett</span>
+                                            <span class="temp-label">${t('printers.printBed')}</span>
                                             <span class="temp-value ${this.getTempClass(current_status.temperatures.bed)}">
                                                 ${current_status.temperatures.bed.current || 0}°C
                                             </span>
-                                            <span class="temp-target">Ziel: ${current_status.temperatures.bed.target || 0}°C</span>
+                                            <span class="temp-target">${t('printers.target')}: ${current_status.temperatures.bed.target || 0}°C</span>
                                         </div>
                                     </div>
                                     <div class="temp-card">
                                         <div class="temp-icon">🔥</div>
                                         <div class="temp-info">
-                                            <span class="temp-label">Düse</span>
+                                            <span class="temp-label">${t('printers.nozzle')}</span>
                                             <span class="temp-value ${this.getTempClass(current_status.temperatures.nozzle)}">
                                                 ${current_status.temperatures.nozzle.current || 0}°C
                                             </span>
-                                            <span class="temp-target">Ziel: ${current_status.temperatures.nozzle.target || 0}°C</span>
+                                            <span class="temp-target">${t('printers.target')}: ${current_status.temperatures.nozzle.target || 0}°C</span>
                                         </div>
                                     </div>
                                 </div>
@@ -865,41 +865,41 @@ class PrinterManager {
                                             <div class="filament-color" style="background-color: ${f.color || '#ccc'}"></div>
                                             <div class="filament-info">
                                                 <span class="filament-slot-num">Slot ${f.slot === 254 ? 'Ext' : f.slot + 1}</span>
-                                                <span class="filament-type">${f.type || 'Unbekannt'}</span>
+                                                <span class="filament-type">${f.type || t('common.unknown')}</span>
                                             </div>
-                                            ${f.is_active ? '<span class="filament-active-badge">Aktiv</span>' : ''}
+                                            ${f.is_active ? `<span class="filament-active-badge">${t('printers.active')}</span>` : ''}
                                         </div>
                                     `).join('')}
                                 </div>
                             </div>
                             ` : ''}
-                            ` : '<p class="no-data">Status nicht verfügbar</p>'}
+                            ` : `<p class="no-data">${t('printers.statusUnavailable')}</p>`}
                         </div>
 
                         <!-- History Tab -->
                         <div class="tab-content" data-tab="history">
                             <div class="details-section">
-                                <h3>📜 Druckverlauf</h3>
+                                <h3>📜 ${t('printers.printHistory')}</h3>
                                 ${recent_jobs.length > 0 ? `
                                 <div class="job-history-table">
                                     <div class="job-history-header">
-                                        <span>Datei</span>
+                                        <span>${t('printers.file')}</span>
                                         <span>Status</span>
-                                        <span>Dauer</span>
+                                        <span>${t('printers.duration')}</span>
                                         <span>Material</span>
-                                        <span>Datum</span>
+                                        <span>${t('printers.date')}</span>
                                     </div>
                                     ${recent_jobs.map(job => `
                                         <div class="job-history-row">
-                                            <span class="job-filename" title="${escapeHtml(job.file_name || 'Unbekannt')}">${escapeHtml(job.file_name || 'Unbekannt')}</span>
+                                            <span class="job-filename" title="${escapeHtml(job.file_name || t('common.unknown'))}">${escapeHtml(job.file_name || t('common.unknown'))}</span>
                                             <span class="job-status status-badge status-${job.status}">${this.formatJobStatus(job.status)}</span>
                                             <span>${job.print_time_minutes ? this.formatMinutes(job.print_time_minutes) : '-'}</span>
                                             <span>${job.material_used ? `${job.material_used}g` : '-'}</span>
-                                            <span>${job.started_at ? new Date(job.started_at).toLocaleString('de-DE') : '-'}</span>
+                                            <span>${job.started_at ? new Date(job.started_at).toLocaleString(getIntlLocale()) : '-'}</span>
                                         </div>
                                     `).join('')}
                                 </div>
-                                ` : '<p class="no-data">Keine Aufträge vorhanden</p>'}
+                                ` : `<p class="no-data">${t('printers.noJobs')}</p>`}
                             </div>
                         </div>
 
