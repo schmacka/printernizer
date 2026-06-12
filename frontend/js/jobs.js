@@ -71,26 +71,26 @@ class JobManager {
 
             // Validate required fields
             if (!jobData.job_name) {
-                showToast('error', 'Fehler', 'Bitte geben Sie einen Job-Namen ein');
+                showToast('error', t('common.error'), t('jobs.enterJobName'));
                 return;
             }
             if (!jobData.printer_id) {
-                showToast('error', 'Fehler', 'Bitte wählen Sie einen Drucker aus');
+                showToast('error', t('common.error'), t('jobs.selectPrinterPrompt'));
                 return;
             }
 
             // Create job via API
             const response = await api.createJob(jobData);
-            
+
             if (response) {
-                showToast('success', 'Erfolg', 'Job wurde erstellt');
+                showToast('success', t('common.success'), t('jobs.created'));
                 closeJobModal();
                 form.reset();
                 this.loadJobs();
             }
         } catch (error) {
             Logger.error('Failed to create job:', error);
-            showToast('error', 'Fehler', `Job konnte nicht erstellt werden: ${error.message}`);
+            showToast('error', t('common.error'), t('jobs.createFailed', { message: error.message }));
         }
     }
 
@@ -103,7 +103,7 @@ class JobManager {
             const fileSelect = document.getElementById('fileSelect');
             if (fileSelect) {
                 const files = await api.getFiles();
-                fileSelect.innerHTML = '<option value="">Datei auswählen...</option>';
+                fileSelect.innerHTML = `<option value="">${t('jobs.selectFile')}</option>`;
                 if (files && files.files && files.files.length > 0) {
                     files.files.forEach(file => {
                         const option = document.createElement('option');
@@ -118,7 +118,7 @@ class JobManager {
             const printerSelect = document.getElementById('printerSelect');
             if (printerSelect) {
                 const printers = await api.getPrinters();
-                printerSelect.innerHTML = '<option value="">Drucker auswählen...</option>';
+                printerSelect.innerHTML = `<option value="">${t('jobs.selectPrinter')}</option>`;
                 if (printers && printers.printers && printers.printers.length > 0) {
                     printers.printers.forEach(printer => {
                         const option = document.createElement('option');
@@ -156,7 +156,7 @@ class JobManager {
             
             // Show loading state on initial load
             if (page === 1) {
-                jobsTable.innerHTML = '<tr><td colspan="6" class="loading-placeholder"><div class="spinner"></div><p>Lade Aufträge...</p></td></tr>';
+                jobsTable.innerHTML = `<tr><td colspan="6" class="loading-placeholder"><div class="spinner"></div><p>${t('loading.jobs')}</p></td></tr>`;
             }
             
             // Prepare filters
@@ -185,7 +185,7 @@ class JobManager {
                 this.updatePagination(response.pagination);
             } else if (page === 1) {
                 // Show empty state
-                jobsTable.innerHTML = '<tr><td colspan="6" class="empty-state"><p>Keine Aufträge gefunden</p></td></tr>';
+                jobsTable.innerHTML = `<tr><td colspan="6" class="empty-state"><p>${t('jobs.noneFound')}</p></td></tr>`;
             }
 
             this.currentPage = page;
@@ -194,7 +194,7 @@ class JobManager {
             Logger.error('Failed to load jobs:', error);
             const jobsTable = document.getElementById('jobsTableBody');
             if (jobsTable && this.currentPage === 1) {
-                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>Fehler beim Laden: ${escapeHtml(error.message)}</p></td></tr>`;
+                jobsTable.innerHTML = `<tr><td colspan="6" class="error-state"><p>${t('jobs.loadError', { message: escapeHtml(error.message) })}</p></td></tr>`;
             }
         }
     }
@@ -214,8 +214,8 @@ class JobManager {
         const nameCell = document.createElement('td');
         nameCell.innerHTML = `
             <div class="job-name">
-                ${job.is_business ? '<span class="business-badge" title="Geschäftlich">🏢</span>' : ''}
-                <strong>${escapeHtml(job.job_name || 'Unbenannt')}</strong>
+                ${job.is_business ? `<span class="business-badge" title="${t('jobs.business')}">🏢</span>` : ''}
+                <strong>${escapeHtml(job.job_name || t('jobs.unnamed'))}</strong>
                 ${job.customer_name ? `<small>${escapeHtml(job.customer_name)}</small>` : ''}
                 ${orderBadge}
             </div>
@@ -259,8 +259,8 @@ class JobManager {
         actionsCell.innerHTML = `
             <div class="action-buttons">
                 ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(\'' + sanitizeAttribute(job.id) + '\')">⏸️</button>' : ''}
-                ${job.status === 'paused' ? '<button class="btn-icon" title="Fortsetzen" onclick="jobManager.resumeJob(\'' + sanitizeAttribute(job.id) + '\')">▶️</button>' : ''}
-                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="Abbrechen" onclick="jobManager.cancelJob(\'' + sanitizeAttribute(job.id) + '\')">⏹️</button>' : ''}
+                ${job.status === 'paused' ? '<button class="btn-icon" title="' + t('jobs.resume') + '" onclick="jobManager.resumeJob(\'' + sanitizeAttribute(job.id) + '\')">▶️</button>' : ''}
+                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="' + t('common.cancel') + '" onclick="jobManager.cancelJob(\'' + sanitizeAttribute(job.id) + '\')">⏹️</button>' : ''}
                 <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(\'' + sanitizeAttribute(job.id) + '\')">ℹ️</button>
             </div>
         `;
@@ -274,12 +274,12 @@ class JobManager {
      */
     getStatusBadge(status) {
         const statusMap = {
-            'printing': { label: 'Druckt', icon: '🖨️', class: 'status-printing' },
-            'queued': { label: 'Warteschlange', icon: '⏳', class: 'status-queued' },
-            'completed': { label: 'Abgeschlossen', icon: '✅', class: 'status-completed' },
-            'failed': { label: 'Fehlgeschlagen', icon: '❌', class: 'status-failed' },
-            'cancelled': { label: 'Abgebrochen', icon: '⏹️', class: 'status-cancelled' },
-            'paused': { label: 'Pausiert', icon: '⏸️', class: 'status-paused' }
+            'printing': { label: t('status.job.printing'), icon: '🖨️', class: 'status-printing' },
+            'queued': { label: t('status.job.queued'), icon: '⏳', class: 'status-queued' },
+            'completed': { label: t('status.job.completed'), icon: '✅', class: 'status-completed' },
+            'failed': { label: t('status.job.failed'), icon: '❌', class: 'status-failed' },
+            'cancelled': { label: t('status.job.cancelled'), icon: '⏹️', class: 'status-cancelled' },
+            'paused': { label: t('status.job.paused'), icon: '⏸️', class: 'status-paused' }
         };
         
         const statusInfo = statusMap[status] || { label: status, icon: '❓', class: 'status-unknown' };
@@ -343,7 +343,7 @@ class JobManager {
         const end = Math.min(start + paginationData.limit - 1, paginationData.total_items);
         
         infoContainer.innerHTML = `
-            Aufträge ${start}-${end} von ${paginationData.total_items}
+            ${t('jobs.paginationInfo', { start, end, total: paginationData.total_items })}
         `;
     }
 
@@ -414,11 +414,11 @@ class JobManager {
             return `
                 <div class="empty-state">
                     <div class="empty-state-icon">🔍</div>
-                    <h3>Keine Aufträge gefunden</h3>
-                    <p>Keine Aufträge entsprechen den aktuellen Filterkriterien.</p>
+                    <h3>${t('jobs.noneFound')}</h3>
+                    <p>${t('jobs.noneMatchFilters')}</p>
                     <button class="btn btn-secondary" onclick="jobManager.clearFilters()">
                         <span class="btn-icon">🗑️</span>
-                        Filter löschen
+                        ${t('jobs.clearFilters')}
                     </button>
                 </div>
             `;
@@ -427,8 +427,8 @@ class JobManager {
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚙️</div>
-                <h3>Keine Aufträge vorhanden</h3>
-                <p>Hier werden alle Druckaufträge angezeigt, sobald sie erstellt werden.</p>
+                <h3>${t('jobs.noneAvailable')}</h3>
+                <p>${t('jobs.emptyHint')}</p>
             </div>
         `;
     }
@@ -437,16 +437,16 @@ class JobManager {
      * Render jobs error state
      */
     renderJobsError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Aufträge';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('jobs.loadFailed');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('jobs.loadErrorTitle')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="jobManager.loadJobs()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -567,42 +567,42 @@ class JobManager {
         return `
             <div class="job-details">
                 <div class="job-header">
-                    <h3>${escapeHtml(job.filename || job.job_name || 'Unbekannter Auftrag')}</h3>
+                    <h3>${escapeHtml(job.filename || job.job_name || t('jobs.unknownJob'))}</h3>
                     <span class="status-badge ${status.class}">${status.icon} ${status.label}</span>
                 </div>
 
                 <div class="job-details-grid">
                     <div class="detail-section">
-                        <h4>Allgemeine Informationen</h4>
+                        <h4>${t('jobs.generalInfo')}</h4>
                         <div class="detail-item">
-                            <label>Dateiname:</label>
-                            <span>${escapeHtml(job.filename || 'Unbekannt')}</span>
+                            <label>${t('jobs.filename')}:</label>
+                            <span>${escapeHtml(job.filename || t('common.unknown'))}</span>
                         </div>
                         <div class="detail-item">
-                            <label>Drucker ID:</label>
-                            <span>${escapeHtml(job.printer_id || job.printer_name || 'Unbekannt')}</span>
+                            <label>${t('jobs.printerId')}:</label>
+                            <span>${escapeHtml(job.printer_id || job.printer_name || t('common.unknown'))}</span>
                         </div>
                         <div class="detail-item">
-                            <label>Erstellt:</label>
+                            <label>${t('jobs.createdAt')}:</label>
                             <span>${formatDateTime(job.created_at)}</span>
                         </div>
                         <div class="detail-item">
-                            <label>Gestartet:</label>
-                            <span>${job.started_at ? formatDateTime(job.started_at) : 'Nicht gestartet'}</span>
+                            <label>${t('jobs.startedAt')}:</label>
+                            <span>${job.started_at ? formatDateTime(job.started_at) : t('jobs.notStarted')}</span>
                         </div>
                         ${job.completed_at ? `
                             <div class="detail-item">
-                                <label>Beendet:</label>
+                                <label>${t('jobs.finishedAt')}:</label>
                                 <span>${formatDateTime(job.completed_at)}</span>
                             </div>
                         ` : ''}
                         <div class="detail-item">
-                            <label>Geschäftlich:</label>
-                            <span>${job.is_business ? 'Ja' : 'Nein'}</span>
+                            <label>${t('jobs.business')}:</label>
+                            <span>${job.is_business ? t('common.yes') : t('common.no')}</span>
                         </div>
                         ${job.customer_name ? `
                             <div class="detail-item">
-                                <label>Kunde:</label>
+                                <label>${t('jobs.customer')}:</label>
                                 <span>${escapeHtml(job.customer_name)}</span>
                             </div>
                         ` : ''}
@@ -627,9 +627,9 @@ class JobManager {
         if (job.progress_percent !== undefined && job.progress_percent > 0) {
             return `
                 <div class="detail-section">
-                    <h4>Fortschritt</h4>
+                    <h4>${t('jobs.progress')}</h4>
                     <div class="detail-item">
-                        <label>Fortschritt:</label>
+                        <label>${t('jobs.progress')}:</label>
                         <div class="progress-display">
                             <div class="progress">
                                 <div class="progress-bar" style="width: ${job.progress_percent}%"></div>
@@ -650,16 +650,16 @@ class JobManager {
         if (job.cost_eur !== undefined || job.material_used_grams !== undefined) {
             return `
                 <div class="detail-section">
-                    <h4>Ressourcen & Kosten</h4>
+                    <h4>${t('jobs.resourcesCosts')}</h4>
                     ${job.material_used_grams ? `
                         <div class="detail-item">
-                            <label>Material verbraucht:</label>
+                            <label>${t('jobs.materialUsed')}:</label>
                             <span>${formatWeight(job.material_used_grams)}</span>
                         </div>
                     ` : ''}
                     ${job.cost_eur ? `
                         <div class="detail-item">
-                            <label><strong>Gesamtkosten:</strong></label>
+                            <label><strong>${t('jobs.totalCost')}:</strong></label>
                             <span><strong>${formatCurrency(job.cost_eur)}</strong></span>
                         </div>
                     ` : ''}
@@ -676,22 +676,22 @@ class JobManager {
         if (job.estimated_time_minutes || job.elapsed_time_minutes || job.remaining_time_minutes) {
             return `
                 <div class="detail-section">
-                    <h4>Zeitschätzung</h4>
+                    <h4>${t('jobs.timeEstimate')}</h4>
                     ${job.estimated_time_minutes ? `
                         <div class="detail-item">
-                            <label>Geschätzte Zeit:</label>
+                            <label>${t('jobs.estimatedTime')}:</label>
                             <span>${formatDuration(job.estimated_time_minutes * 60)}</span>
                         </div>
                     ` : ''}
                     ${job.elapsed_time_minutes ? `
                         <div class="detail-item">
-                            <label>Vergangene Zeit:</label>
+                            <label>${t('jobs.elapsedTime')}:</label>
                             <span>${formatDuration(job.elapsed_time_minutes * 60)}</span>
                         </div>
                     ` : ''}
                     ${job.remaining_time_minutes ? `
                         <div class="detail-item">
-                            <label>Verbleibende Zeit:</label>
+                            <label>${t('jobs.remainingTime')}:</label>
                             <span>${formatDuration(job.remaining_time_minutes * 60)}</span>
                         </div>
                     ` : ''}
@@ -711,10 +711,10 @@ class JobManager {
         
         return `
             <div class="detail-section">
-                <h4>Fortschritt</h4>
+                <h4>${t('jobs.progress')}</h4>
                 ${job.progress !== undefined ? `
                     <div class="detail-item">
-                        <label>Fortschritt:</label>
+                        <label>${t('jobs.progress')}:</label>
                         <div class="progress-display">
                             <div class="progress">
                                 <div class="progress-bar" style="width: ${job.progress}%"></div>
@@ -725,19 +725,19 @@ class JobManager {
                 ` : ''}
                 ${job.layer_current && job.layer_total ? `
                     <div class="detail-item">
-                        <label>Schicht:</label>
+                        <label>${t('jobs.layer')}:</label>
                         <span>${job.layer_current} / ${job.layer_total}</span>
                     </div>
                 ` : ''}
                 ${job.estimated_completion ? `
                     <div class="detail-item">
-                        <label>Voraussichtlich fertig:</label>
+                        <label>${t('jobs.estimatedCompletion')}:</label>
                         <span>${formatDateTime(job.estimated_completion)}</span>
                     </div>
                 ` : ''}
                 ${job.estimated_remaining ? `
                     <div class="detail-item">
-                        <label>Verbleibende Zeit:</label>
+                        <label>${t('jobs.remainingTime')}:</label>
                         <span>${formatDuration(job.estimated_remaining)}</span>
                     </div>
                 ` : ''}
@@ -753,18 +753,18 @@ class JobManager {
         
         return `
             <div class="detail-section">
-                <h4>Datei</h4>
+                <h4>${t('jobs.file')}</h4>
                 <div class="detail-item">
-                    <label>Dateiname:</label>
+                    <label>${t('jobs.filename')}:</label>
                     <span>${escapeHtml(fileInfo.filename)}</span>
                 </div>
                 <div class="detail-item">
-                    <label>Größe:</label>
+                    <label>${t('jobs.size')}:</label>
                     <span>${formatBytes(fileInfo.size)}</span>
                 </div>
                 ${fileInfo.uploaded_at ? `
                     <div class="detail-item">
-                        <label>Hochgeladen:</label>
+                        <label>${t('jobs.uploadedAt')}:</label>
                         <span>${formatDateTime(fileInfo.uploaded_at)}</span>
                     </div>
                 ` : ''}
@@ -780,26 +780,26 @@ class JobManager {
         
         return `
             <div class="detail-section">
-                <h4>Material</h4>
+                <h4>${t('jobs.material')}</h4>
                 <div class="detail-item">
-                    <label>Typ:</label>
+                    <label>${t('jobs.type')}:</label>
                     <span>${materialInfo.type}${materialInfo.brand ? ` (${materialInfo.brand})` : ''}</span>
                 </div>
                 ${materialInfo.color ? `
                     <div class="detail-item">
-                        <label>Farbe:</label>
+                        <label>${t('jobs.color')}:</label>
                         <span>${materialInfo.color}</span>
                     </div>
                 ` : ''}
                 ${materialInfo.estimated_usage ? `
                     <div class="detail-item">
-                        <label>Geschätzter Verbrauch:</label>
+                        <label>${t('jobs.estimatedUsage')}:</label>
                         <span>${formatWeight(materialInfo.estimated_usage * 1000)}</span>
                     </div>
                 ` : ''}
                 ${materialInfo.actual_usage ? `
                     <div class="detail-item">
-                        <label>Tatsächlicher Verbrauch:</label>
+                        <label>${t('jobs.actualUsage')}:</label>
                         <span>${formatWeight(materialInfo.actual_usage * 1000)}</span>
                     </div>
                 ` : ''}
@@ -815,41 +815,41 @@ class JobManager {
         
         return `
             <div class="detail-section">
-                <h4>Druckeinstellungen</h4>
+                <h4>${t('jobs.printSettings')}</h4>
                 ${printSettings.layer_height ? `
                     <div class="detail-item">
-                        <label>Schichthöhe:</label>
+                        <label>${t('jobs.layerHeight')}:</label>
                         <span>${printSettings.layer_height} mm</span>
                     </div>
                 ` : ''}
                 ${printSettings.infill_percentage ? `
                     <div class="detail-item">
-                        <label>Füllung:</label>
+                        <label>${t('jobs.infill')}:</label>
                         <span>${printSettings.infill_percentage}%</span>
                     </div>
                 ` : ''}
                 ${printSettings.print_speed ? `
                     <div class="detail-item">
-                        <label>Geschwindigkeit:</label>
+                        <label>${t('jobs.speed')}:</label>
                         <span>${printSettings.print_speed} mm/min</span>
                     </div>
                 ` : ''}
                 ${printSettings.nozzle_temperature ? `
                     <div class="detail-item">
-                        <label>Düsentemperatur:</label>
+                        <label>${t('jobs.nozzleTemp')}:</label>
                         <span>${printSettings.nozzle_temperature}°C</span>
                     </div>
                 ` : ''}
                 ${printSettings.bed_temperature ? `
                     <div class="detail-item">
-                        <label>Betttemperatur:</label>
+                        <label>${t('jobs.bedTemp')}:</label>
                         <span>${printSettings.bed_temperature}°C</span>
                     </div>
                 ` : ''}
                 ${printSettings.supports_used !== undefined ? `
                     <div class="detail-item">
-                        <label>Stützmaterial:</label>
-                        <span>${printSettings.supports_used ? 'Ja' : 'Nein'}</span>
+                        <label>${t('jobs.supports')}:</label>
+                        <span>${printSettings.supports_used ? t('common.yes') : t('common.no')}</span>
                     </div>
                 ` : ''}
             </div>
@@ -864,27 +864,27 @@ class JobManager {
         
         return `
             <div class="detail-section">
-                <h4>Kosten</h4>
+                <h4>${t('jobs.costs')}</h4>
                 ${costs.material_cost ? `
                     <div class="detail-item">
-                        <label>Material:</label>
+                        <label>${t('jobs.material')}:</label>
                         <span>${formatCurrency(costs.material_cost)}</span>
                     </div>
                 ` : ''}
                 ${costs.power_cost ? `
                     <div class="detail-item">
-                        <label>Strom:</label>
+                        <label>${t('jobs.power')}:</label>
                         <span>${formatCurrency(costs.power_cost)}</span>
                     </div>
                 ` : ''}
                 ${costs.labor_cost ? `
                     <div class="detail-item">
-                        <label>Arbeit:</label>
+                        <label>${t('jobs.labor')}:</label>
                         <span>${formatCurrency(costs.labor_cost)}</span>
                     </div>
                 ` : ''}
                 <div class="detail-item">
-                    <label><strong>Gesamt:</strong></label>
+                    <label><strong>${t('jobs.total')}:</strong></label>
                     <span><strong>${formatCurrency(costs.total_cost)}</strong></span>
                 </div>
             </div>
@@ -897,16 +897,16 @@ class JobManager {
     renderJobCustomer(customerInfo) {
         return `
             <div class="detail-section">
-                <h4>Kunde</h4>
+                <h4>${t('jobs.customer')}</h4>
                 ${customerInfo.customer_name ? `
                     <div class="detail-item">
-                        <label>Name:</label>
+                        <label>${t('jobs.name')}:</label>
                         <span>${escapeHtml(customerInfo.customer_name)}</span>
                     </div>
                 ` : ''}
                 ${customerInfo.order_id ? `
                     <div class="detail-item">
-                        <label>Auftragsnummer:</label>
+                        <label>${t('jobs.orderNumber')}:</label>
                         <span>${escapeHtml(customerInfo.order_id)}</span>
                     </div>
                 ` : ''}
@@ -925,7 +925,7 @@ class JobManager {
             actions.push(`
                 <button class="btn btn-warning" onclick="jobManager.cancelJob('${job.id}')">
                     <span class="btn-icon">⏹️</span>
-                    Auftrag abbrechen
+                    ${t('jobs.cancelJob')}
                 </button>
             `);
         }
@@ -934,7 +934,7 @@ class JobManager {
         actions.push(`
             <button class="btn btn-secondary" onclick="jobManager.editJob('${job.id}')">
                 <span class="btn-icon">✏️</span>
-                Bearbeiten
+                ${t('common.edit')}
             </button>
         `);
 
@@ -942,7 +942,7 @@ class JobManager {
         actions.push(`
             <button class="btn btn-secondary" onclick="jobManager.exportJob('${job.id}')" title="${t('jobs.exportCsvTitle')}">
                 <span class="btn-icon">📊</span>
-                Export
+                ${t('common.export')}
             </button>
         `);
 
@@ -965,12 +965,12 @@ class JobManager {
      * Render job details error
      */
     renderJobDetailsError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Auftrag-Details';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('jobs.detailsLoadFailed');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('jobs.loadErrorTitle')}</h3>
                 <p>${escapeHtml(message)}</p>
             </div>
         `;
@@ -980,12 +980,12 @@ class JobManager {
      * Cancel job
      */
     async cancelJob(jobId) {
-        const confirmed = confirm('Möchten Sie diesen Auftrag wirklich abbrechen?');
+        const confirmed = confirm(t('jobs.confirmCancel'));
         if (!confirmed) return;
-        
+
         try {
             await api.cancelJob(jobId);
-            showToast('success', 'Erfolg', CONFIG.SUCCESS_MESSAGES.JOB_CANCELLED);
+            showToast('success', t('common.success'), t('success.jobCancelled'));
             
             // Close modal if open
             closeModal('jobDetailsModal');
@@ -995,8 +995,8 @@ class JobManager {
             
         } catch (error) {
             Logger.error('Failed to cancel job:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Abbrechen des Auftrags';
-            showToast('error', 'Fehler', message);
+            const message = error instanceof ApiError ? error.getUserMessage() : t('jobs.cancelFailed');
+            showToast('error', t('common.error'), message);
         }
     }
 
@@ -1013,8 +1013,8 @@ class JobManager {
 
         } catch (error) {
             Logger.error('Failed to load job for editing:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Auftrag-Daten';
-            showToast('error', 'Fehler', message);
+            const message = error instanceof ApiError ? error.getUserMessage() : t('jobs.dataLoadFailed');
+            showToast('error', t('common.error'), message);
         }
     }
 
@@ -1045,7 +1045,7 @@ class JobManager {
             <div id="editJobModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>Auftrag bearbeiten</h3>
+                        <h3>${t('jobs.editJob')}</h3>
                         <button class="modal-close" onclick="closeModal('editJobModal')">&times;</button>
                     </div>
                     <div class="modal-body">
@@ -1053,31 +1053,31 @@ class JobManager {
                             <input type="hidden" id="editJobId">
 
                             <div class="form-group">
-                                <label for="editJobFilename">Dateiname:</label>
+                                <label for="editJobFilename">${t('jobs.filename')}:</label>
                                 <input type="text" id="editJobFilename" readonly class="form-control">
-                                <small class="form-text text-muted">Dateiname kann nicht geändert werden</small>
+                                <small class="form-text text-muted">${t('jobs.filenameReadonly')}</small>
                             </div>
 
                             <div class="form-group">
                                 <label>
                                     <input type="checkbox" id="editJobBusiness">
-                                    Geschäftlicher Auftrag
+                                    ${t('jobs.businessJob')}
                                 </label>
                             </div>
 
                             <div class="form-group">
-                                <label for="editJobCustomer">Kundenname:</label>
+                                <label for="editJobCustomer">${t('jobs.customerName')}:</label>
                                 <input type="text" id="editJobCustomer" class="form-control"
-                                       placeholder="Optional - nur für geschäftliche Aufträge">
+                                       placeholder="${t('jobs.customerNamePlaceholder')}">
                             </div>
 
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-primary">
                                     <span class="btn-icon">💾</span>
-                                    Speichern
+                                    ${t('common.save')}
                                 </button>
                                 <button type="button" class="btn btn-secondary" onclick="closeModal('editJobModal')">
-                                    Abbrechen
+                                    ${t('common.cancel')}
                                 </button>
                             </div>
                         </form>
@@ -1111,7 +1111,7 @@ class JobManager {
                 updateData.customer_name = customerName;
             } else if (isBusiness) {
                 // Validate: customer name required for business jobs
-                showToast('error', 'Fehler', 'Kundenname ist für geschäftliche Aufträge erforderlich');
+                showToast('error', t('common.error'), t('jobs.customerNameRequired'));
                 return;
             } else {
                 // Clear customer name for non-business jobs
@@ -1121,7 +1121,7 @@ class JobManager {
             // Make API call to update job
             const updatedJob = await api.updateJob(jobId, updateData);
 
-            showToast('success', 'Erfolg', 'Auftrag wurde erfolgreich aktualisiert');
+            showToast('success', t('common.success'), t('jobs.updated'));
             closeModal('editJobModal');
 
             // Refresh job list to show changes
@@ -1131,8 +1131,8 @@ class JobManager {
 
         } catch (error) {
             Logger.error('Failed to update job:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : (error.message || 'Fehler beim Aktualisieren des Auftrags');
-            showToast('error', 'Fehler', message);
+            const message = error instanceof ApiError ? error.getUserMessage() : (error.message || t('jobs.updateFailed'));
+            showToast('error', t('common.error'), message);
         }
     }
 
@@ -1140,7 +1140,7 @@ class JobManager {
      * Export job data
      */
     exportJob(jobId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Auftrag-Export wird in Phase 2 implementiert');
+        showToast('info', t('jobs.exportUnavailableTitle'), t('jobs.exportUnavailableMessage'));
     }
 }
 

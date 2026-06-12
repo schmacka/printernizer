@@ -188,7 +188,7 @@ class LibraryManager {
 
         } catch (error) {
             Logger.error('Failed to load statistics:', error);
-            this.showError('Fehler beim Laden der Statistiken');
+            this.showError(t('library.statsLoadFailed'));
         }
     }
 
@@ -225,7 +225,7 @@ class LibraryManager {
 
         } catch (error) {
             Logger.error('Failed to load files:', error);
-            this.showError('Fehler beim Laden der Dateien');
+            this.showError(t('library.filesLoadFailed'));
         } finally {
             this.isLoading = false;
         }
@@ -242,8 +242,8 @@ class LibraryManager {
             grid.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">📁</div>
-                    <div class="empty-message">Keine Dateien gefunden</div>
-                    <div class="empty-hint">Passen Sie die Filter an oder fügen Sie Dateien hinzu</div>
+                    <div class="empty-message">${t('library.noFilesFound')}</div>
+                    <div class="empty-hint">${t('library.emptyHint')}</div>
                 </div>
             `;
             return;
@@ -505,7 +505,7 @@ class LibraryManager {
                 } else if (manufacturer === 'prusa_research') {
                     return `🖨️ Prusa ${model}`;
                 } else {
-                    return `🖨️ ${model || 'Drucker'}`;
+                    return `🖨️ ${model || t('library.printer')}`;
                 }
             }
             return '🖨️';
@@ -537,7 +537,7 @@ class LibraryManager {
      */
     getStatusBadge(status) {
         const badges = {
-            'available': '<span class="status-badge status-available">Verfügbar</span>',
+            'available': `<span class="status-badge status-available">${t('status.file.available')}</span>`,
             'downloaded': '<span class="status-badge status-downloaded">✓</span>',
             'local': '<span class="status-badge status-local">💾</span>',
             'error': '<span class="status-badge status-error">⚠️</span>'
@@ -571,7 +571,7 @@ class LibraryManager {
         if (infoText) {
             const start = (pagination.current_page - 1) * pagination.page_size + 1;
             const end = Math.min(pagination.current_page * pagination.page_size, pagination.total_items);
-            infoText.textContent = `${start}-${end} von ${pagination.total_items}`;
+            infoText.textContent = t('library.paginationInfo', { start, end, total: pagination.total_items });
         }
 
         // Update buttons
@@ -653,7 +653,7 @@ class LibraryManager {
         if (!modal || !content) return;
 
         // Show modal with loading state
-        content.innerHTML = '<div class="loading">Lade Details...</div>';
+        content.innerHTML = `<div class="loading">${t('library.loadingDetails')}</div>`;
         modal.style.display = 'flex';
 
         try {
@@ -673,7 +673,7 @@ class LibraryManager {
 
         } catch (error) {
             Logger.error('Failed to load file details:', error);
-            content.innerHTML = '<div class="error">Fehler beim Laden der Details</div>';
+            content.innerHTML = `<div class="error">${t('library.detailsLoadFailed')}</div>`;
         }
     }
 
@@ -748,9 +748,9 @@ class LibraryManager {
 
                 <!-- Tabs -->
                 <div class="file-detail-tabs">
-                    <button class="tab-button active" data-tab="overview">Übersicht</button>
-                    <button class="tab-button" data-tab="metadata">Metadaten</button>
-                    <button class="tab-button" data-tab="sources">Quellen</button>
+                    <button class="tab-button active" data-tab="overview">${t('library.tabOverview')}</button>
+                    <button class="tab-button" data-tab="metadata">${t('library.tabMetadata')}</button>
+                    <button class="tab-button" data-tab="sources">${t('library.tabSources')}</button>
                 </div>
 
                 <!-- Tab Content -->
@@ -779,13 +779,13 @@ class LibraryManager {
                     </button>
                     ` : ''}
                     <button class="btn btn-primary" id="reprocessFileBtn">
-                        🔄 Neu analysieren
+                        🔄 ${t('library.reanalyze')}
                     </button>
                     <button class="btn btn-secondary" id="downloadFileBtn">
-                        ⬇️ Herunterladen
+                        ⬇️ ${t('common.download')}
                     </button>
                     <button class="btn btn-danger" id="deleteFileBtn">
-                        🗑️ Löschen
+                        🗑️ ${t('common.delete')}
                     </button>
                 </div>
             </div>
@@ -802,14 +802,14 @@ class LibraryManager {
         if (file.layer_height || file.nozzle_temperature || file.print_time) {
             sections.push(`
                 <div class="metadata-section">
-                    <h3>Druckeinstellungen</h3>
+                    <h3>${t('library.printSettings')}</h3>
                     <div class="metadata-grid">
-                        ${file.layer_height ? `<div class="metadata-item"><strong>Schichthöhe:</strong> ${file.layer_height}mm</div>` : ''}
-                        ${file.nozzle_temperature ? `<div class="metadata-item"><strong>Düsentemperatur:</strong> ${file.nozzle_temperature}°C</div>` : ''}
-                        ${file.bed_temperature ? `<div class="metadata-item"><strong>Betttemperatur:</strong> ${file.bed_temperature}°C</div>` : ''}
-                        ${file.print_speed ? `<div class="metadata-item"><strong>Druckgeschwindigkeit:</strong> ${file.print_speed}mm/s</div>` : ''}
-                        ${file.print_time ? `<div class="metadata-item"><strong>Druckzeit:</strong> ${this.formatDuration(file.print_time)}</div>` : ''}
-                        ${file.total_layers ? `<div class="metadata-item"><strong>Schichten:</strong> ${file.total_layers}</div>` : ''}
+                        ${file.layer_height ? `<div class="metadata-item"><strong>${t('library.layerHeight')}:</strong> ${file.layer_height}mm</div>` : ''}
+                        ${file.nozzle_temperature ? `<div class="metadata-item"><strong>${t('library.nozzleTemp')}:</strong> ${file.nozzle_temperature}°C</div>` : ''}
+                        ${file.bed_temperature ? `<div class="metadata-item"><strong>${t('library.bedTemp')}:</strong> ${file.bed_temperature}°C</div>` : ''}
+                        ${file.print_speed ? `<div class="metadata-item"><strong>${t('library.printSpeed')}:</strong> ${file.print_speed}mm/s</div>` : ''}
+                        ${file.print_time ? `<div class="metadata-item"><strong>${t('library.printTime')}:</strong> ${this.formatDuration(file.print_time)}</div>` : ''}
+                        ${file.total_layers ? `<div class="metadata-item"><strong>${t('library.layers')}:</strong> ${file.total_layers}</div>` : ''}
                     </div>
                 </div>
             `);
@@ -819,11 +819,11 @@ class LibraryManager {
         if (file.filament_used || file.filament_type) {
             sections.push(`
                 <div class="metadata-section">
-                    <h3>Materialbedarf</h3>
+                    <h3>${t('library.materialRequirements')}</h3>
                     <div class="metadata-grid">
-                        ${file.filament_used ? `<div class="metadata-item"><strong>Filamentmenge:</strong> ${Math.round(file.filament_used)}g</div>` : ''}
-                        ${file.filament_type ? `<div class="metadata-item"><strong>Materialtyp:</strong> ${file.filament_type}</div>` : ''}
-                        ${file.estimated_cost ? `<div class="metadata-item"><strong>Geschätzte Kosten:</strong> €${file.estimated_cost.toFixed(2)}</div>` : ''}
+                        ${file.filament_used ? `<div class="metadata-item"><strong>${t('library.filamentAmount')}:</strong> ${Math.round(file.filament_used)}g</div>` : ''}
+                        ${file.filament_type ? `<div class="metadata-item"><strong>${t('library.materialType')}:</strong> ${file.filament_type}</div>` : ''}
+                        ${file.estimated_cost ? `<div class="metadata-item"><strong>${t('library.estimatedCost')}:</strong> €${file.estimated_cost.toFixed(2)}</div>` : ''}
                     </div>
                 </div>
             `);
@@ -833,19 +833,19 @@ class LibraryManager {
         if (file.model_width || file.model_height || file.model_depth) {
             sections.push(`
                 <div class="metadata-section">
-                    <h3>Modelleigenschaften</h3>
+                    <h3>${t('library.modelProperties')}</h3>
                     <div class="metadata-grid">
-                        ${file.model_width ? `<div class="metadata-item"><strong>Breite:</strong> ${file.model_width.toFixed(1)}mm</div>` : ''}
-                        ${file.model_depth ? `<div class="metadata-item"><strong>Tiefe:</strong> ${file.model_depth.toFixed(1)}mm</div>` : ''}
-                        ${file.model_height ? `<div class="metadata-item"><strong>Höhe:</strong> ${file.model_height.toFixed(1)}mm</div>` : ''}
-                        ${file.object_count ? `<div class="metadata-item"><strong>Objekte:</strong> ${file.object_count}</div>` : ''}
+                        ${file.model_width ? `<div class="metadata-item"><strong>${t('library.width')}:</strong> ${file.model_width.toFixed(1)}mm</div>` : ''}
+                        ${file.model_depth ? `<div class="metadata-item"><strong>${t('library.depth')}:</strong> ${file.model_depth.toFixed(1)}mm</div>` : ''}
+                        ${file.model_height ? `<div class="metadata-item"><strong>${t('library.height')}:</strong> ${file.model_height.toFixed(1)}mm</div>` : ''}
+                        ${file.object_count ? `<div class="metadata-item"><strong>${t('library.objects')}:</strong> ${file.object_count}</div>` : ''}
                     </div>
                 </div>
             `);
         }
 
         if (sections.length === 0) {
-            return '<div class="empty-state-small">Keine Metadaten verfügbar</div>';
+            return `<div class="empty-state-small">${t('library.noMetadata')}</div>`;
         }
 
         return sections.join('');
@@ -856,7 +856,7 @@ class LibraryManager {
      */
     renderMetadataTab(file) {
         if (!file.last_analyzed) {
-            return '<div class="empty-state-small">Datei wurde noch nicht analysiert</div>';
+            return `<div class="empty-state-small">${t('library.notAnalyzed')}</div>`;
         }
 
         const allMetadata = [];
@@ -881,7 +881,7 @@ class LibraryManager {
         });
 
         if (allMetadata.length === 0) {
-            return '<div class="empty-state-small">Keine erweiterten Metadaten verfügbar</div>';
+            return `<div class="empty-state-small">${t('library.noExtendedMetadata')}</div>`;
         }
 
         return `
@@ -894,7 +894,7 @@ class LibraryManager {
                 `).join('')}
             </div>
             <div class="metadata-info">
-                Zuletzt analysiert: ${this.formatDateTime(file.last_analyzed)}
+                ${t('library.lastAnalyzed', { time: this.formatDateTime(file.last_analyzed) })}
             </div>
         `;
     }
@@ -906,7 +906,7 @@ class LibraryManager {
         const sourceArray = this.parseSources(file.sources);
 
         if (sourceArray.length === 0) {
-            return '<div class="empty-state-small">Keine Quelleninformationen verfügbar</div>';
+            return `<div class="empty-state-small">${t('library.noSourceInfo')}</div>`;
         }
 
         return `
@@ -918,10 +918,10 @@ class LibraryManager {
                             <span class="source-type">${this.formatSourceType(source.type)}</span>
                         </div>
                         <div class="source-details">
-                            ${source.printer_name ? `<div><strong>Drucker:</strong> ${source.printer_name}</div>` : ''}
-                            ${source.folder_path ? `<div><strong>Ordner:</strong> ${source.folder_path}</div>` : ''}
-                            ${source.relative_path ? `<div><strong>Pfad:</strong> ${source.relative_path}</div>` : ''}
-                            ${source.discovered_at ? `<div><strong>Entdeckt:</strong> ${this.formatDateTime(source.discovered_at)}</div>` : ''}
+                            ${source.printer_name ? `<div><strong>${t('library.printer')}:</strong> ${source.printer_name}</div>` : ''}
+                            ${source.folder_path ? `<div><strong>${t('library.folder')}:</strong> ${source.folder_path}</div>` : ''}
+                            ${source.relative_path ? `<div><strong>${t('library.path')}:</strong> ${source.relative_path}</div>` : ''}
+                            ${source.discovered_at ? `<div><strong>${t('library.discovered')}:</strong> ${this.formatDateTime(source.discovered_at)}</div>` : ''}
                         </div>
                     </div>
                 `).join('')}
@@ -945,7 +945,7 @@ class LibraryManager {
 
         // Delete button
         document.getElementById('deleteFileBtn')?.addEventListener('click', async () => {
-            if (confirm('Möchten Sie diese Datei wirklich aus der Bibliothek löschen?')) {
+            if (confirm(t('library.confirmDelete'))) {
                 await this.deleteFile(file.checksum);
             }
         });
@@ -997,7 +997,7 @@ class LibraryManager {
             const btn = document.getElementById('reprocessFileBtn');
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-small"></span> Analysiere...';
+                btn.innerHTML = `<span class="spinner-small"></span> ${t('library.analyzing')}`;
             }
 
             // Call the reprocess API endpoint
@@ -1012,7 +1012,7 @@ class LibraryManager {
             const result = await response.json();
             Logger.debug('[reprocessFile] Reprocess triggered', result);
 
-            showToast('success', 'Analyse gestartet', 'Datei wird neu analysiert. Dies kann einige Sekunden dauern.');
+            showToast('success', t('library.analysisStartedTitle'), t('library.fileReanalyzing'));
 
             // Wait a bit for metadata extraction to complete
             await new Promise(resolve => setTimeout(resolve, 3000));
@@ -1024,10 +1024,10 @@ class LibraryManager {
             // Reset button state
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🔄 Neu analysieren';
+                btn.innerHTML = `🔄 ${t('library.reanalyze')}`;
             }
 
-            showToast('success', 'Analyse abgeschlossen', 'Metadaten wurden aktualisiert');
+            showToast('success', t('library.analysisCompletedTitle'), t('library.metadataUpdated'));
 
         } catch (error) {
             Logger.error('[reprocessFile] Failed to reprocess file:', error);
@@ -1036,10 +1036,10 @@ class LibraryManager {
             const btn = document.getElementById('reprocessFileBtn');
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🔄 Neu analysieren';
+                btn.innerHTML = `🔄 ${t('library.reanalyze')}`;
             }
 
-            showToast('error', 'Fehler', 'Fehler beim Neu-Analysieren der Datei: ' + error.message);
+            showToast('error', t('common.error'), t('library.reanalyzeFailed', { message: error.message }));
         }
     }
 
@@ -1051,11 +1051,7 @@ class LibraryManager {
             Logger.debug('[bulkReanalyze] Starting bulk re-analysis');
 
             // Ask for confirmation
-            const confirmed = confirm(
-                'Alle 3MF und G-Code Dateien in der Library neu analysieren?\n\n' +
-                'Dies kann einige Minuten dauern, je nach Anzahl der Dateien.\n' +
-                'Die Analyse läuft im Hintergrund.'
-            );
+            const confirmed = confirm(t('library.confirmBulkReanalyze'));
 
             if (!confirmed) {
                 Logger.debug('[bulkReanalyze] User cancelled');
@@ -1067,10 +1063,10 @@ class LibraryManager {
             const originalHTML = btn ? btn.innerHTML : '';
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-small"></span> Analysiere...';
+                btn.innerHTML = `<span class="spinner-small"></span> ${t('library.analyzing')}`;
             }
 
-            showToast('info', 'Analyse gestartet', 'Alle Dateien werden neu analysiert. Dies kann einige Minuten dauern.');
+            showToast('info', t('library.analysisStartedTitle'), t('library.bulkAnalyzing'));
 
             // Call bulk re-analysis API
             const response = await fetch(`${CONFIG.API_BASE_URL}/library/reanalyze-all`, {
@@ -1093,17 +1089,15 @@ class LibraryManager {
             // Show result
             showToast(
                 'success',
-                'Analyse gestartet',
-                `${result.files_scheduled} Dateien werden im Hintergrund analysiert.\n` +
-                `Dateitypen: ${result.file_types_included.join(', ')}`
+                t('library.analysisStartedTitle'),
+                t('library.bulkScheduled', { count: result.files_scheduled, types: result.file_types_included.join(', ') })
             );
 
             // Show progress info
             showToast(
                 'info',
-                'Hinweis',
-                'Die Analyse läuft im Hintergrund. Aktualisieren Sie die Seite nach einigen Minuten, ' +
-                'um die neuen Metadaten zu sehen.'
+                t('common.info'),
+                t('library.bulkBackgroundHint')
             );
 
         } catch (error) {
@@ -1113,10 +1107,10 @@ class LibraryManager {
             const btn = document.getElementById('bulkReanalyzeBtn');
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<span class="btn-icon">🔬</span> Alle neu analysieren';
+                btn.innerHTML = `<span class="btn-icon">🔬</span> ${t('library.reanalyzeAll')}`;
             }
 
-            showToast('error', 'Fehler', 'Fehler beim Starten der Bulk-Analyse: ' + error.message);
+            showToast('error', t('common.error'), t('library.bulkReanalyzeFailed', { message: error.message }));
         }
     }
 
@@ -1131,14 +1125,14 @@ class LibraryManager {
 
             if (!response.ok) throw new Error('Deletion failed');
 
-            this.showSuccess('Datei wurde gelöscht');
+            this.showSuccess(t('library.fileDeleted'));
             this.closeFileDetailModal();
             await this.loadFiles();
             await this.loadStatistics();
 
         } catch (error) {
             Logger.error('Failed to delete file:', error);
-            this.showError('Fehler beim Löschen der Datei');
+            this.showError(t('library.deleteFailed'));
         }
     }
 
@@ -1178,7 +1172,7 @@ class LibraryManager {
     showLoading() {
         const grid = document.getElementById('libraryFilesGrid');
         if (grid) {
-            grid.innerHTML = '<div class="loading-placeholder">Lädt Dateien...</div>';
+            grid.innerHTML = `<div class="loading-placeholder">${t('library.loadingFiles')}</div>`;
         }
     }
 
@@ -1225,33 +1219,33 @@ class LibraryManager {
     formatDateTime(dateStr) {
         if (!dateStr) return '-';
         const date = new Date(dateStr);
-        return date.toLocaleString('de-DE');
+        return date.toLocaleString(getIntlLocale());
     }
 
     formatFieldName(field) {
         const names = {
-            'layer_height': 'Schichthöhe',
-            'first_layer_height': 'Erste Schichthöhe',
-            'nozzle_diameter': 'Düsendurchmesser',
-            'wall_count': 'Wandanzahl',
-            'wall_thickness': 'Wanddicke',
-            'infill_density': 'Fülldichte',
-            'infill_pattern': 'Füllmuster',
-            'support_used': 'Stützen verwendet',
-            'nozzle_temperature': 'Düsentemperatur',
-            'bed_temperature': 'Betttemperatur',
-            'print_speed': 'Druckgeschwindigkeit',
-            'total_layers': 'Gesamtschichten',
-            'filament_used': 'Filament verwendet',
-            'filament_type': 'Filamenttyp',
-            'model_width': 'Modellbreite',
-            'model_height': 'Modellhöhe',
-            'model_depth': 'Modelltiefe',
-            'object_count': 'Objektanzahl',
-            'slicer_name': 'Slicer',
-            'slicer_version': 'Slicer-Version',
-            'profile_name': 'Profilname',
-            'estimated_cost': 'Geschätzte Kosten'
+            'layer_height': t('library.layerHeight'),
+            'first_layer_height': t('library.firstLayerHeight'),
+            'nozzle_diameter': t('library.nozzleDiameter'),
+            'wall_count': t('library.wallCount'),
+            'wall_thickness': t('library.wallThickness'),
+            'infill_density': t('library.infillDensity'),
+            'infill_pattern': t('library.infillPattern'),
+            'support_used': t('library.supportUsed'),
+            'nozzle_temperature': t('library.nozzleTemp'),
+            'bed_temperature': t('library.bedTemp'),
+            'print_speed': t('library.printSpeed'),
+            'total_layers': t('library.totalLayers'),
+            'filament_used': t('library.filamentUsed'),
+            'filament_type': t('library.filamentType'),
+            'model_width': t('library.modelWidth'),
+            'model_height': t('library.modelHeight'),
+            'model_depth': t('library.modelDepth'),
+            'object_count': t('library.objectCount'),
+            'slicer_name': t('library.slicerName'),
+            'slicer_version': t('library.slicerVersion'),
+            'profile_name': t('library.profileName'),
+            'estimated_cost': t('library.estimatedCost')
         };
         return names[field] || field;
     }
@@ -1267,15 +1261,15 @@ class LibraryManager {
         if (field.includes('density')) return `${value}%`;
         if (field === 'filament_used') return `${Math.round(value)}g`;
         if (field === 'estimated_cost') return `€${value.toFixed(2)}`;
-        if (field === 'support_used') return value ? 'Ja' : 'Nein';
+        if (field === 'support_used') return value ? t('common.yes') : t('common.no');
 
         return value;
     }
 
     formatSourceType(type) {
         const types = {
-            'printer': 'Drucker',
-            'watch_folder': 'Überwachter Ordner',
+            'printer': t('library.printer'),
+            'watch_folder': t('library.watchFolder'),
             'upload': 'Upload'
         };
         return types[type] || type;

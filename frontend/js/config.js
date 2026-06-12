@@ -59,8 +59,9 @@ const getApiBaseUrl = () => {
         return apiUrl;
     }
 
-    // Direct access mode: use explicit port 8000
-    const apiUrl = `${protocol}//${host}:8000/api/v1`;
+    // Direct access mode: the backend serves this frontend, so the API
+    // lives on the page's own origin (CSP connect-src 'self' also requires this)
+    const apiUrl = `${protocol}//${host}:${port}/api/v1`;
     debugLog('Direct access mode detected', { apiUrl, port });
     return apiUrl;
 };
@@ -126,8 +127,8 @@ const getWebSocketUrl = () => {
         return wsUrl;
     }
 
-    // Direct access mode: use explicit port 8000
-    const wsUrl = `${protocol}//${host}:8000/ws`;
+    // Direct access mode: same origin as the page (see getApiBaseUrl)
+    const wsUrl = `${protocol}//${host}:${port}/ws`;
     debugLog('Direct WebSocket mode', { wsUrl });
     return wsUrl;
 };
