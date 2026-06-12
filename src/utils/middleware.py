@@ -108,6 +108,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _is_exempt(self, request: Request) -> bool:
         """Check if this request is exempt from rate limiting."""
         path = request.url.path
+
+        # Only rate-limit the API and WebSocket surface. Static frontend
+        # assets (a single page load fetches 40+ files) would otherwise
+        # exhaust the per-minute budget after a few page reloads.
+        if not path.startswith("/api/") and not path.startswith("/ws"):
+            return True
+
         for exempt in self.EXEMPT_ENDPOINTS:
             if path.startswith(exempt):
                 return True
