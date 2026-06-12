@@ -1,6 +1,6 @@
-# Printernizer Documentation
+# Printernizer Documentation Archive
 
-This directory contains all project documentation organized by category.
+> **⚠️ Historical archive.** This directory contains superseded planning documents, analysis reports, and design notes kept for reference. It is **not maintained** and **not published** to the documentation site. Current documentation lives in [`docs/`](../docs/).
 
 ## 📚 Documentation Structure
 
@@ -141,17 +141,17 @@ Future feature plans and design documents.
 - [Material Integration Phase B](plans/material-integration-phase-b.md)
 - [Material NFC Phase C](plans/material-nfc-phase-c.md)
 
-### 🗄️ Archive
-**Location:** [`archive/`](archive/)
+### 🗄️ Historical
+**Location:** [`historical/`](historical/)
 
-Historical documentation and deprecated content.
+Oldest archived documentation and deprecated content.
 
-- [Project Structure](archive/PROJECT_STRUCTURE.md)
-- [Technical Debt Assessment](archive/TECHNICAL_DEBT_ASSESSMENT.md)
-- [Phase 2 Completion](archive/PHASE2_COMPLETION_SUMMARY.md)
-- [Phase 3 Prompt](archive/PHASE3_PROMPT.md)
-- [Frontend Implementation Plan](archive/FRONTEND_IMPLEMENTATION_PLAN.md)
-- See [archive/README.md](archive/README.md) for complete list
+- [Project Structure](historical/PROJECT_STRUCTURE.md)
+- [Technical Debt Assessment](historical/TECHNICAL_DEBT_ASSESSMENT.md)
+- [Phase 2 Completion](historical/PHASE2_COMPLETION_SUMMARY.md)
+- [Phase 3 Prompt](historical/PHASE3_PROMPT.md)
+- [Frontend Implementation Plan](historical/FRONTEND_IMPLEMENTATION_PLAN.md)
+- See [historical/README.md](historical/README.md) for complete list
 
 ### 🖼️ Images & Screenshots
 **Location:** [`images/`](images/), [`screenshots/`](screenshots/)

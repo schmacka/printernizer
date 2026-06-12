@@ -35,7 +35,7 @@ class MaterialsManager {
             this.render();
         } catch (error) {
             Logger.error('Failed to initialize materials manager:', error);
-            this.showError('Fehler beim Laden der Filamente');
+            this.showError(t('materials.loadFailed'));
         }
     }
 
@@ -63,7 +63,7 @@ class MaterialsManager {
             if (this.currentFilters.color) params.append('color', this.currentFilters.color);
             if (this.currentFilters.lowStock) params.append('low_stock', 'true');
 
-            const url = `/api/v1/materials${params.toString() ? '?' + params.toString() : ''}`;
+            const url = `${CONFIG.API_BASE_URL}/materials${params.toString() ? '?' + params.toString() : ''}`;
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -72,7 +72,7 @@ class MaterialsManager {
             this.applySorting();
         } catch (error) {
             Logger.error('Failed to load materials:', error);
-            this.showError('Fehler beim Laden der Filamente');
+            this.showError(t('materials.loadFailed'));
         }
     }
 
@@ -206,10 +206,10 @@ class MaterialsManager {
             return `
                 <div class="empty-state">
                     <div class="empty-state-icon">📦</div>
-                    <h3>Keine Filamente gefunden</h3>
-                    <p>Fügen Sie Ihre erste Filamentspule hinzu</p>
+                    <h3>${t('materials.noneFound')}</h3>
+                    <p>${t('materials.emptyHint')}</p>
                     <button class="btn btn-primary" onclick="materialsManager.showAddModal()">
-                        <span class="btn-icon">➕</span> Filament hinzufügen
+                        <span class="btn-icon">➕</span> ${t('materials.add')}
                     </button>
                 </div>
             `;
@@ -233,10 +233,10 @@ class MaterialsManager {
                 <div class="material-card-header">
                     <div class="material-type">${this.formatMaterialType(material.material_type)}</div>
                     <div class="material-actions">
-                        <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="Bearbeiten">
+                        <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="${t('common.edit')}">
                             ✏️
                         </button>
-                        <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="Löschen">
+                        <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="${t('common.delete')}">
                             🗑️
                         </button>
                     </div>
@@ -261,7 +261,7 @@ class MaterialsManager {
                 </div>
 
                 <div class="material-card-footer">
-                    <span class="material-date">Gekauft: ${this.formatDate(material.purchase_date)}</span>
+                    <span class="material-date">${t('materials.purchased')}: ${this.formatDate(material.purchase_date)}</span>
                     <span class="material-cost">${parseFloat(material.cost_per_kg).toFixed(2)} €/kg</span>
                 </div>
             </div>
@@ -273,10 +273,10 @@ class MaterialsManager {
             return `
                 <div class="empty-state">
                     <div class="empty-state-icon">📦</div>
-                    <h3>Keine Filamente gefunden</h3>
-                    <p>Fügen Sie Ihre erste Filamentspule hinzu</p>
+                    <h3>${t('materials.noneFound')}</h3>
+                    <p>${t('materials.emptyHint')}</p>
                     <button class="btn btn-primary" onclick="materialsManager.showAddModal()">
-                        <span class="btn-icon">➕</span> Filament hinzufügen
+                        <span class="btn-icon">➕</span> ${t('materials.add')}
                     </button>
                 </div>
             `;
@@ -287,13 +287,13 @@ class MaterialsManager {
                 <table class="materials-table">
                     <thead id="materialsTableHead">
                         <tr>
-                            <th data-sort="material_type">Typ ${this.getSortIcon('material_type')}</th>
-                            <th data-sort="brand">Marke ${this.getSortIcon('brand')}</th>
-                            <th data-sort="color">Farbe ${this.getSortIcon('color')}</th>
-                            <th data-sort="remaining_weight">Restmenge ${this.getSortIcon('remaining_weight')}</th>
-                            <th data-sort="cost_per_kg">Preis ${this.getSortIcon('cost_per_kg')}</th>
-                            <th data-sort="purchase_date">Gekauft ${this.getSortIcon('purchase_date')}</th>
-                            <th>Aktionen</th>
+                            <th data-sort="material_type">${t('materials.type')} ${this.getSortIcon('material_type')}</th>
+                            <th data-sort="brand">${t('materials.brand')} ${this.getSortIcon('brand')}</th>
+                            <th data-sort="color">${t('materials.color')} ${this.getSortIcon('color')}</th>
+                            <th data-sort="remaining_weight">${t('materials.remaining')} ${this.getSortIcon('remaining_weight')}</th>
+                            <th data-sort="cost_per_kg">${t('materials.price')} ${this.getSortIcon('cost_per_kg')}</th>
+                            <th data-sort="purchase_date">${t('materials.purchased')} ${this.getSortIcon('purchase_date')}</th>
+                            <th>${t('materials.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -327,10 +327,10 @@ class MaterialsManager {
                 <td>${parseFloat(material.cost_per_kg).toFixed(2)} €/kg</td>
                 <td>${this.formatDate(material.purchase_date)}</td>
                 <td class="actions">
-                    <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="Bearbeiten">
+                    <button class="btn-icon" onclick="materialsManager.editMaterial('${sanitizeAttribute(material.id)}')" title="${t('common.edit')}">
                         ✏️
                     </button>
-                    <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="Löschen">
+                    <button class="btn-icon" onclick="materialsManager.deleteMaterial('${sanitizeAttribute(material.id)}')" title="${t('common.delete')}">
                         🗑️
                     </button>
                 </td>
@@ -357,7 +357,7 @@ class MaterialsManager {
         const form = document.getElementById('materialForm');
         const materialId = document.getElementById('materialId');
 
-        if (modalTitle) modalTitle.textContent = 'Filament hinzufügen';
+        if (modalTitle) modalTitle.textContent = t('materials.add');
         if (form) form.reset();
         if (materialId) materialId.value = '';
 
@@ -369,7 +369,7 @@ class MaterialsManager {
         if (this.enums && this.enums.types) {
             const typeSelect = document.getElementById('materialType');
             if (typeSelect) {
-                typeSelect.innerHTML = '<option value="">Typ auswählen</option>';
+                typeSelect.innerHTML = `<option value="">${t('materials.selectType')}</option>`;
                 this.enums.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type;
@@ -391,7 +391,7 @@ class MaterialsManager {
         if (!material) return;
 
         const modalTitle = document.getElementById('materialModalTitle');
-        if (modalTitle) modalTitle.textContent = 'Filament bearbeiten';
+        if (modalTitle) modalTitle.textContent = t('materials.editTitle');
 
         document.getElementById('materialId').value = material.id;
 
@@ -399,7 +399,7 @@ class MaterialsManager {
         if (this.enums && this.enums.types) {
             const typeSelect = document.getElementById('materialType');
             if (typeSelect) {
-                typeSelect.innerHTML = '<option value="">Typ auswählen</option>';
+                typeSelect.innerHTML = `<option value="">${t('materials.selectType')}</option>`;
                 this.enums.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type;
@@ -433,17 +433,17 @@ class MaterialsManager {
 
         // Populate type dropdown
         const typeSelect = document.getElementById('materialType');
-        typeSelect.innerHTML = '<option value="">Typ wählen</option>' +
+        typeSelect.innerHTML = `<option value="">${t('materials.chooseType')}</option>` +
             this.enums.types.map(t => `<option value="${t}">${this.formatMaterialType(t)}</option>`).join('');
 
         // Populate brand dropdown
         const brandSelect = document.getElementById('brand');
-        brandSelect.innerHTML = '<option value="">Marke wählen</option>' +
+        brandSelect.innerHTML = `<option value="">${t('materials.chooseBrand')}</option>` +
             this.enums.brands.map(b => `<option value="${b}">${b}</option>`).join('');
 
         // Populate color dropdown
         const colorSelect = document.getElementById('color');
-        colorSelect.innerHTML = '<option value="">Farbe wählen</option>' +
+        colorSelect.innerHTML = `<option value="">${t('materials.chooseColor')}</option>` +
             this.enums.colors.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
@@ -468,7 +468,7 @@ class MaterialsManager {
         if (pricePerKgValue) {
             pricePerKg = parseFloat(pricePerKgValue);
             if (isNaN(pricePerKg) || pricePerKg < 0) {
-                this.showError('Preis pro kg muss eine positive Zahl oder 0 sein');
+                this.showError(t('materials.invalidPrice'));
                 return;
             }
             // Round to 2 decimal places
@@ -514,7 +514,7 @@ class MaterialsManager {
         }
 
         try {
-            const url = materialId ? `/api/v1/materials/${materialId}` : '/api/v1/materials';
+            const url = materialId ? `${CONFIG.API_BASE_URL}/materials/${materialId}` : `${CONFIG.API_BASE_URL}/materials`;
             const method = materialId ? 'PATCH' : 'POST';
 
             Logger.debug('Saving material:', { url, method, data });
@@ -534,26 +534,26 @@ class MaterialsManager {
             this.closeModal();
             await this.loadMaterials();
             this.render();
-            this.showSuccess(materialId ? 'Filament aktualisiert' : 'Filament hinzugefügt');
+            this.showSuccess(materialId ? t('materials.updated') : t('materials.added'));
         } catch (error) {
             Logger.error('Failed to save material:', error);
-            this.showError('Fehler beim Speichern: ' + error.message);
+            this.showError(t('materials.saveFailed', { message: error.message }));
         }
     }
 
     async deleteMaterial(id) {
-        if (!confirm('Filament wirklich löschen?')) return;
+        if (!confirm(t('materials.confirmDelete'))) return;
 
         try {
-            const response = await fetch(`/api/v1/materials/${id}`, { method: 'DELETE' });
+            const response = await fetch(`${CONFIG.API_BASE_URL}/materials/${id}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             await this.loadMaterials();
             this.render();
-            this.showSuccess('Filament gelöscht');
+            this.showSuccess(t('materials.deleted'));
         } catch (error) {
             Logger.error('Failed to delete material:', error);
-            this.showError('Fehler beim Löschen');
+            this.showError(t('materials.deleteFailed'));
         }
     }
 
@@ -649,7 +649,7 @@ class MaterialsManager {
             'ASA': 'ASA',
             'NYLON': 'Nylon',
             'PC': 'PC',
-            'OTHER': 'Sonstiges'
+            'OTHER': t('materials.other')
         };
         return typeMap[type] || type;
     }
@@ -675,17 +675,17 @@ class MaterialsManager {
 
     formatDate(dateStr) {
         const date = new Date(dateStr);
-        return date.toLocaleDateString('de-DE');
+        return date.toLocaleDateString(getIntlLocale());
     }
 
     showSuccess(message) {
         Logger.debug('Success:', message);
-        showToast('success', 'Erfolg', message);
+        showToast('success', t('common.success'), message);
     }
 
     showError(message) {
         Logger.error('Error:', message);
-        showToast('error', 'Fehler', message);
+        showToast('error', t('common.error'), message);
     }
 }
 

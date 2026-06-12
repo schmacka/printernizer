@@ -414,7 +414,7 @@ class AutoDownloadUI {
                 </div>
                 <div class="task-actions">
                     ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('download', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" disabled title="Retry (geplant)">Retry</button>` : ''}
+                    ${section === 'failed' ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('download', '${sanitizeAttribute(task.id)}')" title="${t('common.retry')}">Retry</button>` : ''}
                     ${section === 'failed' ? `<button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showTaskDetails('${sanitizeAttribute(task.id)}')">Details</button>` : ''}
                 </div>
             </div>
@@ -489,7 +489,7 @@ class AutoDownloadUI {
                 </div>
                 <div class="task-actions">
                     ${section === 'queued' ? `<button class="btn btn-sm btn-warning" onclick="autoDownloadUI.cancelTask('thumbnail', '${sanitizeAttribute(task.id)}')">Cancel</button>` : ''}
-                    ${section === 'failed' && task.attempts < task.maxAttempts ? `<button class="btn btn-sm btn-primary" disabled title="Retry (geplant)">Retry</button>` : ''}
+                    ${section === 'failed' ? `<button class="btn btn-sm btn-primary" onclick="autoDownloadUI.retryTask('thumbnail', '${sanitizeAttribute(task.id)}')" title="${t('common.retry')}">Retry</button>` : ''}
                 </div>
             </div>
         `;
@@ -832,8 +832,17 @@ class AutoDownloadUI {
      * Retry a failed task
      */
     retryTask(queueType, taskId) {
-        // Implementation would depend on queue structure
-        showToast('info', 'Feature Coming Soon', 'Manual retry will be available in the next update');
+        const success = this.autoDownloadManager.retryTask(queueType, taskId);
+
+        if (success) {
+            showToast('info', t('autoDownload.retryStartedTitle'), t('autoDownload.retryStartedMessage'));
+        } else {
+            showToast('error', t('autoDownload.retryFailedTitle'), t('autoDownload.retryFailedMessage'));
+        }
+
+        // Close an open details modal so the refreshed queue state is visible
+        document.querySelector('.task-details-modal')?.closest('.modal')?.remove();
+        this.updateQueueDisplay();
     }
 
     /**
@@ -863,6 +872,15 @@ class AutoDownloadUI {
             showToast('error', 'Task Not Found', 'Could not find task details');
             return;
         }
+
+        // Determine which queue the task belongs to (for the retry button)
+        const isThumbnailTask = [
+            ...thumbnailQueue.queued,
+            ...thumbnailQueue.processing,
+            ...thumbnailQueue.recentCompleted,
+            ...thumbnailQueue.recentFailed
+        ].some(t => t.id === taskId);
+        const queueType = isThumbnailTask ? 'thumbnail' : 'download';
 
         // Create details modal
         const modal = document.createElement('div');
@@ -927,8 +945,8 @@ class AutoDownloadUI {
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">Close</button>
-                    ${task.status === 'failed' && task.attempts < task.maxAttempts ?
-                        `<button class="btn btn-primary" disabled title="Retry (geplant)">Retry Task</button>` : ''}
+                    ${task.status === 'failed' ?
+                        `<button class="btn btn-primary" onclick="autoDownloadUI.retryTask('${queueType}', '${sanitizeAttribute(task.id)}'); this.closest('.modal').remove()">Retry Task</button>` : ''}
                 </div>
             </div>
         `;

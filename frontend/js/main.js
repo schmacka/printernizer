@@ -434,8 +434,17 @@ function setupKeyboardShortcuts() {
 /**
  * Application initialization
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     Logger.debug('DOM loaded, initializing application...');
+
+    // Load translations before any page renders (falls back to inline text)
+    if (window.i18n) {
+        await i18n.init();
+        const languageSelector = document.getElementById('languageSelector');
+        if (languageSelector) {
+            languageSelector.value = i18n.getLocale();
+        }
+    }
 
     // Create global app instance
     window.app = new PrinternizerApp();

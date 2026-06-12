@@ -437,11 +437,54 @@ function previewFile(fileData) {
 }
 
 /**
- * Open local file in explorer
+ * Download the locally stored file via the browser
  */
 function openLocalFile(fileId) {
-    // TODO: Implement local file opening
-    showToast('Lokale Datei-Funktion wird in einer späteren Version verfügbar sein', 'info');
+    const link = document.createElement('a');
+    link.href = `${CONFIG.API_BASE_URL}/files/${encodeURIComponent(fileId)}/content`;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
+ * Upload a locally available file to a printer
+ */
+async function uploadFileToPrinter(fileId) {
+    try {
+        const response = await api.getPrinters();
+        const printers = response.printers || response || [];
+
+        if (!printers.length) {
+            showToast('error', t('printers.noneConfigured'), t('printers.addFirstPrinter'));
+            return;
+        }
+
+        let printerId;
+        if (printers.length === 1) {
+            printerId = printers[0].id;
+        } else {
+            const choices = printers.map((p, i) => `${i + 1}: ${p.name}`).join('\n');
+            const input = prompt(`${t('files.uploadChoosePrinter')}\n${choices}`, '1');
+            if (input === null) return;
+            const index = parseInt(input, 10) - 1;
+            if (isNaN(index) || index < 0 || index >= printers.length) {
+                showToast('error', t('files.uploadInvalidChoiceTitle'), t('files.uploadInvalidChoiceMessage'));
+                return;
+            }
+            printerId = printers[index].id;
+        }
+
+        showToast('info', t('files.uploadStartedTitle'), t('files.uploadStartedMessage'));
+        await api.uploadFileToPrinter(printerId, fileId);
+        showToast('success', t('files.uploadDoneTitle'), t('files.uploadDoneMessage'));
+
+    } catch (error) {
+        Logger.error('Failed to upload file to printer:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.uploadFailedMessage');
+        showToast('error', t('files.uploadFailedTitle'), message);
+    }
 }
 
 /**

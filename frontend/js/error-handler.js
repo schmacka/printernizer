@@ -9,7 +9,7 @@ class ErrorHandler {
         this.maxErrors = 100; // Keep last 100 errors
         this.errorReporting = {
             enabled: true,
-            endpoint: '/api/v1/errors/report',
+            endpoint: '/errors/report',  // Relative to API base URL, resolved at send time
             batchSize: 10,
             batchTimeout: 5000
         };
@@ -321,7 +321,11 @@ class ErrorHandler {
         this.pendingReports = [];
 
         try {
-            await fetch(this.errorReporting.endpoint, {
+            // CONFIG loads after this file, so resolve the base URL lazily
+            const baseUrl = (typeof CONFIG !== 'undefined' && CONFIG.API_BASE_URL)
+                ? CONFIG.API_BASE_URL.replace(/\/+$/, '')
+                : '/api/v1';
+            await fetch(baseUrl + this.errorReporting.endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

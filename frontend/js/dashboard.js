@@ -99,8 +99,8 @@ class Dashboard {
 
                     // Show notification with discovered printers
                     const message = result.new_count === 1
-                        ? `1 neuer Drucker gefunden! Klicken Sie hier, um ihn anzuzeigen.`
-                        : `${result.new_count} neue Drucker gefunden! Klicken Sie hier, um sie anzuzeigen.`;
+                        ? t('dashboard.printerDiscoveredOne')
+                        : t('dashboard.printersDiscoveredMany', { count: result.new_count });
 
                     // Show persistent notification with action
                     showNotification(message, 'success', 10000, () => {
@@ -154,13 +154,13 @@ class Dashboard {
             <div class="banner-content">
                 <div class="banner-icon">🔍</div>
                 <div class="banner-text">
-                    <h4>${count === 1 ? '1 neuer Drucker gefunden' : `${count} neue Drucker gefunden`}</h4>
-                    <p>Neue Drucker wurden beim Start automatisch erkannt.</p>
+                    <h4>${count === 1 ? t('dashboard.bannerNewPrinterOne') : t('dashboard.bannerNewPrintersMany', { count })}</h4>
+                    <p>${t('dashboard.bannerAutoDetected')}</p>
                 </div>
                 <button class="btn btn-primary" onclick="app.showPage('printers')">
-                    Zur Drucker-Seite
+                    ${t('dashboard.goToPrinters')}
                 </button>
-                <button class="btn-icon-only" onclick="dashboard.dismissDiscoveredPrintersBanner()" title="Schließen">
+                <button class="btn-icon-only" onclick="dashboard.dismissDiscoveredPrintersBanner()" title="${t('common.close')}">
                     ✕
                 </button>
             </div>
@@ -234,7 +234,7 @@ class Dashboard {
             const totalCount = printersArray.length || 0;
             
             printerCountEl.textContent = `${onlineCount}/${totalCount}`;
-            printerDetailEl.textContent = `${totalCount} Drucker konfiguriert`;
+            printerDetailEl.textContent = t('dashboard.printersConfigured', { count: totalCount });
         }
 
         // Active jobs card
@@ -249,7 +249,7 @@ class Dashboard {
             const printingJobs = printersArr.filter(p => p.current_job?.status === 'printing').length;
 
             activeJobsEl.textContent = printingJobs;
-            jobsDetailEl.textContent = `${activeJobs} Aufträge heute`;
+            jobsDetailEl.textContent = t('dashboard.jobsToday', { count: activeJobs });
         }
 
         // Files card
@@ -261,7 +261,7 @@ class Dashboard {
             const downloadedCount = stats.files?.downloaded_files || 0;
             
             filesCountEl.textContent = filesCount;
-            filesDetailEl.textContent = `${downloadedCount} heruntergeladen`;
+            filesDetailEl.textContent = t('dashboard.downloadedCount', { count: downloadedCount });
         }
 
         // Today's jobs card
@@ -274,7 +274,7 @@ class Dashboard {
 
             todayJobsEl.textContent = completedToday;
             // API returns success_rate as 0-100, no need to multiply
-            todayDetailEl.textContent = `${formatPercentage(successRate)} Erfolgsrate`;
+            todayDetailEl.textContent = t('dashboard.successRate', { value: formatPercentage(successRate) });
         }
     }
 
@@ -282,7 +282,7 @@ class Dashboard {
      * Set loading state for overview cards
      */
     setOverviewCardsLoading(loading) {
-        const loadingText = loading ? 'Lade...' : '-';
+        const loadingText = loading ? t('dashboard.loading') : '-';
         
         const elements = [
             'printerCount', 'activeJobsCount', 'filesCount', 'todayJobsCount'
@@ -302,7 +302,7 @@ class Dashboard {
         detailElements.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.textContent = loading ? 'Lade...' : '-';
+                el.textContent = loading ? t('dashboard.loading') : '-';
             }
         });
     }
@@ -329,7 +329,7 @@ class Dashboard {
         detailElements.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                el.textContent = 'Ladefehler';
+                el.textContent = t('dashboard.loadError');
             }
         });
     }
@@ -387,11 +387,11 @@ class Dashboard {
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">🖨️</div>
-                <h3>Keine Drucker konfiguriert</h3>
-                <p>Fügen Sie Ihren ersten Drucker hinzu, um mit dem Drucken zu beginnen.</p>
+                <h3>${t('dashboard.noPrintersTitle')}</h3>
+                <p>${t('dashboard.noPrintersMessage')}</p>
                 <button class="btn btn-primary" onclick="showAddPrinter()">
                     <span class="btn-icon">➕</span>
-                    Drucker hinzufügen
+                    ${t('dashboard.addPrinter')}
                 </button>
             </div>
         `;
@@ -401,16 +401,16 @@ class Dashboard {
      * Render printers error state
      */
     renderPrintersError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Drucker';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('dashboard.printersLoadFailed');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('dashboard.loadError')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="dashboard.loadPrinters()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -451,7 +451,7 @@ class Dashboard {
 
             // Update section heading
             if (sectionHeader) {
-                sectionHeader.textContent = isShowingActive ? 'Aktuelle Aufträge' : 'Letzte Aufträge';
+                sectionHeader.textContent = isShowingActive ? t('dashboard.activeJobsHeading') : t('dashboard.recentJobsHeading');
             }
 
             if (response.jobs && response.jobs.length > 0) {
@@ -498,7 +498,7 @@ class Dashboard {
                 </div>
 
                 <div class="job-preview-time">
-                    ${job.start_time ? formatDateTime(job.start_time) : 'Nicht gestartet'}
+                    ${job.start_time ? formatDateTime(job.start_time) : t('dashboard.notStarted')}
                 </div>
 
                 <div class="job-preview-progress">
@@ -541,7 +541,7 @@ class Dashboard {
         return `
             <div class="job-preview-thumbnail fallback">
                 <img src="assets/placeholder-thumbnail.svg"
-                     alt="Keine Vorschau verfügbar"
+                     alt="${t('dashboard.noPreview')}"
                      class="job-thumbnail-image placeholder-image">
             </div>
         `;
@@ -581,7 +581,7 @@ class Dashboard {
         if (job.status === 'completed' && job.actual_duration) {
             return `
                 <div class="completion-time">
-                    <div class="time-label">Dauer:</div>
+                    <div class="time-label">${t('dashboard.duration')}:</div>
                     <div class="time-value">${formatDuration(job.actual_duration)}</div>
                 </div>
             `;
@@ -590,7 +590,7 @@ class Dashboard {
         if (job.estimated_duration) {
             return `
                 <div class="estimated-time">
-                    <div class="time-label">Geschätzt:</div>
+                    <div class="time-label">${t('dashboard.estimated')}:</div>
                     <div class="time-value">${formatDuration(job.estimated_duration)}</div>
                 </div>
             `;
@@ -606,8 +606,8 @@ class Dashboard {
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚙️</div>
-                <h3>Keine aktuellen Aufträge</h3>
-                <p>Hier werden Ihre neuesten Druckaufträge angezeigt.</p>
+                <h3>${t('dashboard.noJobsTitle')}</h3>
+                <p>${t('dashboard.noJobsMessage')}</p>
             </div>
         `;
     }
@@ -717,7 +717,7 @@ class Dashboard {
                          onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null;"
                          loading="lazy">` :
                     `<img src="assets/placeholder-thumbnail.svg"
-                         alt="Keine Vorschau verfügbar"
+                         alt="${t('dashboard.noPreview')}"
                          class="printed-file-thumbnail-image placeholder-image">`
                 }
             </div>
@@ -895,8 +895,8 @@ class Dashboard {
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">📁</div>
-                <h3>Keine gedruckten Dateien</h3>
-                <p>Hier werden Ihre kürzlich gedruckten Dateien mit Vorschaubildern angezeigt.</p>
+                <h3>${t('dashboard.noPrintedFilesTitle')}</h3>
+                <p>${t('dashboard.noPrintedFilesMessage')}</p>
             </div>
         `;
     }
@@ -905,16 +905,16 @@ class Dashboard {
      * Render printed files error state
      */
     renderPrintedFilesError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Dateien';
+        const message = error instanceof ApiError ? error.getUserMessage() : t('dashboard.filesLoadFailed');
 
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('dashboard.loadError')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="dashboard.loadRecentPrintedFiles()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -924,16 +924,16 @@ class Dashboard {
      * Render jobs error state
      */
     renderJobsError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Aufträge';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('dashboard.jobsLoadFailed');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('dashboard.loadError')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="dashboard.loadRecentJobs()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -943,8 +943,8 @@ class Dashboard {
      * Show dashboard error
      */
     showDashboardError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden des Dashboards';
-        showToast('error', 'Dashboard-Fehler', message);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('dashboard.loadFailed');
+        showToast('error', t('dashboard.errorTitle'), message);
     }
 
     /**
@@ -1156,7 +1156,7 @@ async function showPrinterDetails(printerId) {
         }, 500);
     } catch (error) {
         Logger.error('Failed to show printer details:', error);
-        showToast('error', 'Fehler', 'Drucker-Details konnten nicht geladen werden');
+        showToast('error', t('common.error'), t('dashboard.printerDetailsFailed'));
     }
 }
 
@@ -1203,23 +1203,23 @@ if (typeof module !== 'undefined' && module.exports) {
  */
 async function triggerCurrentJobDownload(printerId) {
     try {
-        showToast('info', 'Thumbnail', 'Lade aktuelle Druckdatei...');
+        showToast('info', t('dashboard.thumbnailTitle'), t('dashboard.loadingCurrentFile'));
         const result = await api.downloadCurrentJobFile(printerId);
-        const status = result.status || 'unbekannt';
+        const status = result.status || t('common.unknown');
         if (['exists_with_thumbnail','processed','success'].includes(status)) {
-            showToast('success', 'Thumbnail', 'Thumbnail verfügbar.');
+            showToast('success', t('dashboard.thumbnailTitle'), t('dashboard.thumbnailAvailable'));
         } else if (status === 'not_printing') {
-            showToast('warning', 'Kein Druck', 'Kein aktiver Druckauftrag.');
+            showToast('warning', t('dashboard.noPrintTitle'), t('dashboard.noActiveJob'));
         } else if (status === 'exists_no_thumbnail') {
-            showToast('info', 'Keine Vorschau', 'Datei ohne eingebettetes Thumbnail.');
+            showToast('info', t('dashboard.noPreviewTitle'), t('dashboard.noEmbeddedThumbnail'));
         } else {
-            showToast('info', 'Status', `Status: ${status}`);
+            showToast('info', t('dashboard.statusTitle'), t('dashboard.statusMessage', { status }));
         }
         // Reload dashboard section to display thumbnail if new
         refreshDashboard();
     } catch (error) {
         Logger.error('Failed to trigger current job download:', error);
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Abrufen der Druckdatei';
-        showToast('error', 'Fehler', message);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('dashboard.fetchPrintFileFailed');
+        showToast('error', t('common.error'), message);
     }
 }

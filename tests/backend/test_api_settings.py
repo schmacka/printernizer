@@ -128,6 +128,24 @@ class TestSettingsAPI:
         assert data['status'] == 'success'
         assert data['data']['updated_fields'] == []
 
+    def test_reset_application_settings(self, client, test_app):
+        """Test POST /api/v1/settings/reset - Reset settings to defaults"""
+        from unittest.mock import Mock
+
+        mock_config_service = Mock()
+        mock_config_service.reset_application_settings.return_value = [
+            'log_level', 'monitoring_interval', 'vat_rate'
+        ]
+        test_app.dependency_overrides[get_config_service] = lambda: mock_config_service
+
+        response = client.post("/api/v1/settings/reset")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['reset_fields'] == ['log_level', 'monitoring_interval', 'vat_rate']
+        mock_config_service.reset_application_settings.assert_called_once()
+
     def test_get_watch_folder_settings(self, client, test_app):
         """Test GET /api/v1/settings/watch-folders - Get watch folder settings"""
         from unittest.mock import Mock, AsyncMock

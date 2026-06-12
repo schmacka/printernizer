@@ -228,7 +228,7 @@ async function loadMyIdeas() {
         }
         if (ideasState.filters.source) queryParams.set('source_type', ideasState.filters.source);
 
-        const url = `${API_BASE_URL}/api/v1/ideas/?${queryParams}`;
+        const url = `${API_BASE_URL}/api/v1/ideas?${queryParams}`;
         Logger.debug('Fetching ideas from:', url);
 
         const response = await fetch(url);
@@ -252,7 +252,7 @@ async function loadBookmarks() {
         showLoading('bookmarksContainer');
 
         // Load ideas with external source types
-        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/?source_type=makerworld,printables`);
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas?source_type=makerworld,printables`);
         if (response.ok) {
             const data = await response.json();
             ideasState.bookmarks = data.ideas || [];
@@ -769,7 +769,7 @@ async function handleAddIdea(event) {
             delete ideaData.estimated_print_time;
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/ideas/`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/ideas`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ideaData)

@@ -85,6 +85,33 @@ class ThumbnailQueue {
     }
 
     /**
+     * Re-queue a failed task for another attempt
+     */
+    retryTask(taskId) {
+        const task = this.failed.get(taskId);
+        if (!task) {
+            Logger.warn(`Cannot retry thumbnail task ${taskId}: not in failed list`);
+            return false;
+        }
+
+        this.failed.delete(taskId);
+        // Grant a fresh set of attempts for the manual retry
+        task.attempts = 0;
+        task.status = 'queued';
+        task.failedAt = null;
+        task.lastError = null;
+
+        this.insertByPriority(task);
+        this.notifyTaskUpdate(task);
+        Logger.debug(`🔁 Manually re-queued thumbnail task: ${taskId}`);
+
+        if (!this.isProcessing) {
+            this.processNext();
+        }
+        return true;
+    }
+
+    /**
      * Get file extension from filename
      */
     getFileExtension(filename) {

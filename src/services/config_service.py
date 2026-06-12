@@ -226,6 +226,41 @@ class Settings(BaseSettings):
 class ConfigService:
     """Configuration service for managing printer and system settings."""
 
+    # Settings that can be updated at runtime
+    UPDATABLE_SETTINGS = {
+        "log_level", "monitoring_interval", "connection_timeout",
+        "max_file_size", "vat_rate", "downloads_path",
+        # Job creation settings
+        "job_creation_auto_create",
+        # G-code optimization settings
+        "gcode_optimize_print_only", "gcode_optimization_max_lines", "gcode_render_max_lines",
+        # Upload settings
+        "enable_upload", "max_upload_size_mb", "allowed_upload_extensions",
+        # Library settings
+        "library_enabled", "library_path", "library_auto_organize",
+        "library_auto_extract_metadata", "library_auto_deduplicate",
+        "library_preserve_originals", "library_checksum_algorithm",
+        "library_processing_workers", "library_search_enabled", "library_search_min_length",
+        # Timelapse settings
+        "timelapse_enabled", "timelapse_source_folder", "timelapse_output_folder",
+        "timelapse_output_strategy", "timelapse_auto_process_timeout", "timelapse_cleanup_age_days"
+    }
+
+    # Map settings keys to environment variable names for .env persistence
+    ENV_KEY_MAPPING = {
+        "log_level": "LOG_LEVEL",
+        "monitoring_interval": "MONITORING_INTERVAL",
+        "connection_timeout": "CONNECTION_TIMEOUT",
+        "max_file_size": "MAX_FILE_SIZE",
+        "vat_rate": "VAT_RATE",
+        "downloads_path": "DOWNLOADS_PATH",
+        "library_enabled": "LIBRARY_ENABLED",
+        "library_path": "LIBRARY_PATH",
+        "library_auto_organize": "LIBRARY_AUTO_ORGANIZE",
+        "library_auto_extract_metadata": "LIBRARY_AUTO_EXTRACT_METADATA",
+        "library_auto_deduplicate": "LIBRARY_AUTO_DEDUPLICATE"
+    }
+
     def __init__(self, config_path: Optional[str] = None, database = None):
         """Initialize configuration service."""
         self.settings = Settings()
@@ -668,25 +703,7 @@ class ConfigService:
         settings = get_settings()
         logger.info("Got settings object", settings_type=type(settings).__name__)
 
-        # List of settings that can be updated at runtime
-        updatable_settings = {
-            "log_level", "monitoring_interval", "connection_timeout",
-            "max_file_size", "vat_rate", "downloads_path",
-            # Job creation settings
-            "job_creation_auto_create",
-            # G-code optimization settings
-            "gcode_optimize_print_only", "gcode_optimization_max_lines", "gcode_render_max_lines",
-            # Upload settings
-            "enable_upload", "max_upload_size_mb", "allowed_upload_extensions",
-            # Library settings
-            "library_enabled", "library_path", "library_auto_organize",
-            "library_auto_extract_metadata", "library_auto_deduplicate",
-            "library_preserve_originals", "library_checksum_algorithm",
-            "library_processing_workers", "library_search_enabled", "library_search_min_length",
-            # Timelapse settings
-            "timelapse_enabled", "timelapse_source_folder", "timelapse_output_folder",
-            "timelapse_output_strategy", "timelapse_auto_process_timeout", "timelapse_cleanup_age_days"
-        }
+        updatable_settings = self.UPDATABLE_SETTINGS
 
         logger.info("Processing settings update", settings_dict=settings_dict, updatable_settings=updatable_settings)
 
@@ -718,6 +735,67 @@ class ConfigService:
 
         return len(updated_fields) > 0
 
+    def reset_application_settings(self) -> List[str]:
+        """Reset runtime-modifiable application settings to their defaults.
+
+        Restores the pydantic field defaults for all updatable settings in
+        memory and removes their overrides from the writable .env file. Note
+        that environment variables injected externally (e.g. by the Home
+        Assistant add-on) are not affected and take precedence again on
+        restart.
+
+        Returns:
+            List of setting keys that were reset.
+        """
+        settings = get_settings()
+        settings_cls = type(settings)
+
+        defaults = {}
+        for key in self.UPDATABLE_SETTINGS:
+            field = settings_cls.model_fields.get(key)
+            if field is None or not hasattr(settings, key):
+                continue
+            default_value = field.get_default(call_default_factory=True)
+            defaults[key] = default_value
+            setattr(settings, key, default_value)
+
+        try:
+            self._remove_settings_from_env(list(defaults.keys()))
+        except Exception as e:
+            logger.error("Failed to remove settings from .env file", error=str(e))
+
+        logger.info("Application settings reset to defaults", reset_fields=sorted(defaults.keys()))
+        return sorted(defaults.keys())
+
+    def _remove_settings_from_env(self, setting_keys: List[str]) -> None:
+        """Remove the given settings' environment overrides from the .env file."""
+        env_file_path = Path(__file__).parent.parent.parent / ".env"
+        if not env_file_path.exists():
+            return
+
+        env_keys_to_remove = {
+            self.ENV_KEY_MAPPING[key]
+            for key in setting_keys
+            if key in self.ENV_KEY_MAPPING
+        }
+        if not env_keys_to_remove:
+            return
+
+        kept_lines = []
+        with open(env_file_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith('#') and '=' in stripped:
+                    key = stripped.split('=', 1)[0].strip()
+                    if key in env_keys_to_remove:
+                        continue
+                kept_lines.append(line)
+
+        with open(env_file_path, 'w', encoding='utf-8') as f:
+            f.writelines(kept_lines)
+
+        logger.info("Removed settings from .env file", env_keys=sorted(env_keys_to_remove))
+
     def _persist_settings_to_env(self, settings_dict: Dict[str, Any]) -> None:
         """Persist settings to .env file."""
         import os
@@ -736,20 +814,7 @@ class ConfigService:
                         key, value = line.split('=', 1)
                         existing_env[key.strip()] = value.strip()
 
-        # Map settings keys to environment variable names
-        env_key_mapping = {
-            "log_level": "LOG_LEVEL",
-            "monitoring_interval": "MONITORING_INTERVAL",
-            "connection_timeout": "CONNECTION_TIMEOUT",
-            "max_file_size": "MAX_FILE_SIZE",
-            "vat_rate": "VAT_RATE",
-            "downloads_path": "DOWNLOADS_PATH",
-            "library_enabled": "LIBRARY_ENABLED",
-            "library_path": "LIBRARY_PATH",
-            "library_auto_organize": "LIBRARY_AUTO_ORGANIZE",
-            "library_auto_extract_metadata": "LIBRARY_AUTO_EXTRACT_METADATA",
-            "library_auto_deduplicate": "LIBRARY_AUTO_DEDUPLICATE"
-        }
+        env_key_mapping = self.ENV_KEY_MAPPING
 
         # Update environment variables
         for key, value in settings_dict.items():

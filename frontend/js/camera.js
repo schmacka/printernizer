@@ -16,7 +16,7 @@ class CameraManager {
      */
     async getCameraStatus(printerId) {
         try {
-            const response = await fetch(`/api/v1/printers/${printerId}/camera/status`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/camera/status`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -50,7 +50,7 @@ class CameraManager {
      */
     async takeSnapshot(printerId, jobId = null, trigger = 'manual', notes = null) {
         try {
-            const response = await fetch(`/api/v1/printers/${printerId}/camera/snapshot`, {
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/camera/snapshot`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ class CameraManager {
 
         // Render external webcam if configured
         if (hasExternalWebcam) {
-            const externalPreviewUrl = `/api/v1/printers/${printer.id}/camera/external-preview?t=${Date.now()}`;
+            const externalPreviewUrl = `${CONFIG.API_BASE_URL}/printers/${printer.id}/camera/external-preview?t=${Date.now()}`;
             html += `
                 <div class="camera-controls" style="margin-bottom: 12px;">
                     <div style="font-size: 0.9em; color: #6c757d; margin-bottom: 4px;">📹 External Webcam</div>
@@ -248,7 +248,7 @@ class CameraManager {
         const timestampElement = document.getElementById(`external-timestamp-${printerId}`);
 
         if (imageElement) {
-            imageElement.src = `/api/v1/printers/${printerId}/camera/external-preview?t=${Date.now()}`;
+            imageElement.src = `${CONFIG.API_BASE_URL}/printers/${printerId}/camera/external-preview?t=${Date.now()}`;
             if (timestampElement) {
                 timestampElement.textContent = `Updated: ${new Date().toLocaleTimeString('de-DE')}`;
             }
@@ -478,7 +478,7 @@ class CameraManager {
      */
     async showSnapshotHistory(printerId) {
         try {
-            const response = await fetch(`/api/v1/printers/${printerId}/snapshots`);
+            const response = await fetch(`${CONFIG.API_BASE_URL}/printers/${printerId}/snapshots`);
             const snapshots = response.ok ? await response.json() : [];
             
             const modal = document.createElement('div');

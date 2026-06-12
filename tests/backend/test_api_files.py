@@ -45,6 +45,96 @@ class TestFileAPI:
             assert 'files' in data
             assert isinstance(data['files'], list)
     
+    def test_get_file_content(self, client, test_app, tmp_path):
+        """Test GET /api/v1/files/{file_id}/content serves the local file"""
+        from src.utils.dependencies import get_file_service
+
+        local_file = tmp_path / "benchy.3mf"
+        local_file.write_bytes(b"3mf bytes")
+
+        mock_file_service = Mock()
+        mock_file_service.get_file_by_id = AsyncMock(return_value={
+            'id': 'file_001',
+            'filename': 'benchy.3mf',
+            'file_path': str(local_file)
+        })
+        test_app.dependency_overrides[get_file_service] = lambda: mock_file_service
+
+        response = client.get("/api/v1/files/file_001/content")
+
+        assert response.status_code == 200
+        assert response.content == b"3mf bytes"
+        assert 'benchy.3mf' in response.headers['content-disposition']
+
+    def test_get_file_content_not_local(self, client, test_app):
+        """Test file content returns 404 when the file is not on disk"""
+        from src.utils.dependencies import get_file_service
+
+        mock_file_service = Mock()
+        mock_file_service.get_file_by_id = AsyncMock(return_value={
+            'id': 'file_001',
+            'filename': 'benchy.3mf',
+            'file_path': '/nonexistent/benchy.3mf'
+        })
+        test_app.dependency_overrides[get_file_service] = lambda: mock_file_service
+
+        response = client.get("/api/v1/files/file_001/content")
+
+        assert response.status_code == 404
+
+    def test_get_file_content_unknown_id(self, client, test_app):
+        """Test file content returns 404 for unknown file IDs"""
+        from src.utils.dependencies import get_file_service
+
+        mock_file_service = Mock()
+        mock_file_service.get_file_by_id = AsyncMock(return_value=None)
+        test_app.dependency_overrides[get_file_service] = lambda: mock_file_service
+
+        response = client.get("/api/v1/files/missing/content")
+
+        assert response.status_code == 404
+
+    def test_get_cleanup_candidates(self, client, test_app):
+        """Test GET /api/v1/files/cleanup/candidates - dry-run cleanup preview"""
+        from src.utils.dependencies import get_file_service
+
+        mock_file_service = Mock()
+        mock_file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 3,
+            'failed_downloads_removed': 2,
+            'dry_run': True
+        })
+        test_app.dependency_overrides[get_file_service] = lambda: mock_file_service
+
+        response = client.get("/api/v1/files/cleanup/candidates?deleted_days=14&failed_days=3")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['total_candidates'] == 5
+        assert data['data']['candidates']['old_deleted'] == 3
+        assert data['data']['candidates']['failed_downloads'] == 2
+        mock_file_service.cleanup_files.assert_awaited_once_with(
+            dry_run=True, deleted_days=14, failed_days=3
+        )
+
+    def test_get_cleanup_candidates_service_error(self, client, test_app):
+        """Test GET /api/v1/files/cleanup/candidates with service error"""
+        from src.utils.dependencies import get_file_service
+
+        mock_file_service = Mock()
+        mock_file_service.cleanup_files = AsyncMock(return_value={
+            'old_deleted_removed': 0,
+            'failed_downloads_removed': 0,
+            'dry_run': True,
+            'error': 'database unavailable'
+        })
+        test_app.dependency_overrides[get_file_service] = lambda: mock_file_service
+
+        response = client.get("/api/v1/files/cleanup/candidates")
+
+        assert response.status_code == 500
+
     def test_get_files_filter_by_printer(self, client, populated_database):
         """Test GET /api/v1/files?printer_id=bambu_a1_001"""
         with patch('src.database.database.Database.get_connection') as mock_db:

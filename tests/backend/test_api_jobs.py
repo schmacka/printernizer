@@ -90,6 +90,65 @@ class TestJobAPI:
         if 'first_layer_adhesion' in completed_job:
             assert completed_job['first_layer_adhesion'] == 'good'
     
+    def test_export_jobs_csv(self, client, test_app):
+        """Test GET /api/v1/jobs/export returns CSV with header row"""
+        from unittest.mock import AsyncMock
+        sample_jobs = [
+            {
+                'id': 'job1',
+                'printer_id': 'bambu_a1_001',
+                'printer_type': 'bambu_lab',
+                'job_name': 'test_cube.3mf',
+                'status': 'completed',
+                'is_business': True,
+                'created_at': datetime.now(timezone.utc),
+                'updated_at': datetime.now(timezone.utc)
+            }
+        ]
+        test_app.state.job_service.list_jobs_with_count = AsyncMock(return_value=(sample_jobs, 1))
+
+        response = client.get("/api/v1/jobs/export")
+
+        assert response.status_code == 200
+        assert response.headers['content-type'].startswith('text/csv')
+        assert 'attachment' in response.headers['content-disposition']
+        lines = response.text.strip().splitlines()
+        assert lines[0].startswith('id,printer_id,printer_type,job_name')
+        assert 'job1' in lines[1]
+        assert 'test_cube.3mf' in lines[1]
+
+    def test_export_single_job(self, client, test_app):
+        """Test GET /api/v1/jobs/export?job_id=... exports one job"""
+        from unittest.mock import AsyncMock
+        job = {
+            'id': 'job42',
+            'printer_id': 'prusa_core_001',
+            'printer_type': 'prusa',
+            'job_name': 'model.gcode',
+            'status': 'completed',
+            'is_business': False,
+            'created_at': datetime.now(timezone.utc),
+            'updated_at': datetime.now(timezone.utc)
+        }
+        test_app.state.job_service.get_job = AsyncMock(return_value=job)
+
+        response = client.get("/api/v1/jobs/export?job_id=job42")
+
+        assert response.status_code == 200
+        lines = response.text.strip().splitlines()
+        assert len(lines) == 2  # header + one row
+        assert 'job42' in lines[1]
+        test_app.state.job_service.get_job.assert_awaited_once_with('job42')
+
+    def test_export_single_job_not_found(self, client, test_app):
+        """Test export of unknown job ID returns 404"""
+        from unittest.mock import AsyncMock
+        test_app.state.job_service.get_job = AsyncMock(return_value=None)
+
+        response = client.get("/api/v1/jobs/export?job_id=missing")
+
+        assert response.status_code == 404
+
     def test_get_jobs_filter_by_status(self, client, test_app):
         """Test GET /api/v1/jobs?status=printing"""
         from unittest.mock import AsyncMock

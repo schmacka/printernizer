@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File as FastAPIFile, Form
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse as FastAPIFileResponse
 from pydantic import BaseModel
 import structlog
 import base64
@@ -191,6 +191,47 @@ async def get_file_statistics(
     })
 
 
+@router.get("/cleanup/candidates")
+async def get_cleanup_candidates(
+    deleted_days: int = Query(30, description="Consider files marked deleted older than this many days"),
+    failed_days: int = Query(7, description="Consider files marked failed older than this many days"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """
+    Preview which file records would be removed by a cleanup run.
+
+    Performs a dry-run of the database-record cleanup (see DELETE /cleanup).
+    Only database records are considered - physical files are not touched,
+    so no disk-space estimate is available.
+    """
+    result = await file_service.cleanup_files(
+        dry_run=True,
+        deleted_days=deleted_days,
+        failed_days=failed_days
+    )
+
+    if "error" in result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result["error"]
+        )
+
+    old_deleted = result.get("old_deleted_removed", 0)
+    failed_downloads = result.get("failed_downloads_removed", 0)
+
+    return success_response({
+        "total_candidates": old_deleted + failed_downloads,
+        "candidates": {
+            "old_deleted": old_deleted,
+            "failed_downloads": failed_downloads
+        },
+        "criteria": {
+            "deleted_days": deleted_days,
+            "failed_days": failed_days
+        }
+    })
+
+
 @router.get("/downloads/{download_id}/progress")
 async def get_download_progress(
     download_id: str,
@@ -243,6 +284,37 @@ async def get_file_by_id(
     if not file_data:
         raise PrinternizerFileNotFoundError(file_id)
     return FileResponse.model_validate(file_data)
+
+
+@router.get("/{file_id}/content")
+async def get_file_content(
+    file_id: str,
+    file_service: FileService = Depends(get_file_service)
+):
+    """Serve the locally stored file as a browser download.
+
+    Only works for files that are available on local storage (downloaded
+    from a printer or discovered in a watch folder).
+    """
+    from pathlib import Path
+
+    file_data = await file_service.get_file_by_id(file_id)
+    if not file_data:
+        raise PrinternizerFileNotFoundError(file_id)
+
+    file_path = file_data.get("file_path")
+    if not file_path or not Path(file_path).resolve().is_file():
+        raise PrinternizerFileNotFoundError(
+            file_id,
+            details={"reason": "File is not available on local storage"}
+        )
+
+    resolved = Path(file_path).resolve()
+    return FastAPIFileResponse(
+        path=str(resolved),
+        filename=file_data.get("filename") or resolved.name,
+        media_type="application/octet-stream"
+    )
 
 
 @router.post("/{file_id}/download")

@@ -354,7 +354,6 @@ const CONFIG = {
 
         // Settings
         APPLICATION_SETTINGS: 'settings/application',
-        WATCH_FOLDER_SETTINGS: 'settings/watch-folders',
 
         // Printers
         PRINTERS: 'printers',
@@ -372,7 +371,7 @@ const CONFIG = {
         FILES: 'files',
         FILE_DETAIL: (id) => `files/${id}`,
         FILE_DOWNLOAD: (id) => `files/${id}/download`,
-        FILE_DOWNLOAD_STATUS: (id) => `files/${id}/download/status`,
+        FILE_DOWNLOAD_STATUS: (id) => `files/downloads/${id}/progress`,
         FILES_CLEANUP: 'files/cleanup',
         FILES_CLEANUP_CANDIDATES: 'files/cleanup/candidates',
 
@@ -394,8 +393,6 @@ const CONFIG = {
         // Enhanced File Management (Drucker-Dateien)
         PRINTER_FILES: (id) => `printers/${id}/files`,
         PRINTER_FILE_DOWNLOAD: (id, filename) => `printers/${id}/files/${filename}/download`,
-        PRINTER_FILE_DOWNLOAD_STATUS: (id, filename) => `printers/${id}/files/${filename}/status`,
-        PRINTER_DOWNLOAD_FILE: (id) => `printers/${id}/download-file`,
 	// Manual trigger to download & process currently printing job file for thumbnail extraction
 	PRINTER_DOWNLOAD_CURRENT_JOB: (id) => `printers/${id}/download-current-job`,
 

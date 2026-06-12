@@ -938,15 +938,27 @@ class JobManager {
             </button>
         `);
 
-        // Export job data (planned feature)
+        // Export job data as CSV
         actions.push(`
-            <button class="btn btn-secondary" disabled title="Export (geplant)">
+            <button class="btn btn-secondary" onclick="jobManager.exportJob('${job.id}')" title="${t('jobs.exportCsvTitle')}">
                 <span class="btn-icon">📊</span>
                 Export
             </button>
         `);
 
         return actions.join('');
+    }
+
+    /**
+     * Export a single job as CSV download
+     */
+    exportJob(jobId) {
+        const link = document.createElement('a');
+        link.href = `${CONFIG.API_BASE_URL}/jobs/export?job_id=${encodeURIComponent(jobId)}`;
+        link.download = '';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     /**

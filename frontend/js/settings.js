@@ -115,7 +115,7 @@ class SettingsManager {
 
         } catch (error) {
             Logger.error('Error in switchTab:', error);
-            showToast('error', 'Fehler', 'Tab konnte nicht gewechselt werden');
+            showToast('error', t('common.error'), t('settings.tabSwitchFailed'));
         }
     }
 
@@ -246,10 +246,10 @@ class SettingsManager {
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            showToast('success', 'Export erfolgreich', 'Einstellungen wurden exportiert');
+            showToast('success', t('settings.exportSuccessTitle'), t('settings.exportSuccessMessage'));
         } catch (error) {
             Logger.error('Failed to export settings:', error);
-            showToast('error', 'Export fehlgeschlagen', 'Einstellungen konnten nicht exportiert werden');
+            showToast('error', t('settings.exportFailedTitle'), t('settings.exportFailedMessage'));
         }
     }
 
@@ -271,8 +271,7 @@ class SettingsManager {
 
                 // Confirm import
                 const confirmed = confirm(
-                    `Einstellungen aus "${file.name}" importieren?\n\n` +
-                    `Dies wird ${Object.keys(settings).length} Einstellungen überschreiben.`
+                    t('settings.importConfirm', { filename: file.name, count: Object.keys(settings).length })
                 );
 
                 if (!confirmed) return;
@@ -281,12 +280,12 @@ class SettingsManager {
                 await api.updateApplicationSettings(settings);
                 await this.loadSettings();
 
-                showToast('success', 'Import erfolgreich',
-                         `${Object.keys(settings).length} Einstellungen wurden importiert`);
+                showToast('success', t('settings.importSuccessTitle'),
+                         t('settings.importSuccessMessage', { count: Object.keys(settings).length }));
             } catch (error) {
                 Logger.error('Failed to import settings:', error);
-                showToast('error', 'Import fehlgeschlagen',
-                         'Einstellungen konnten nicht importiert werden. Prüfen Sie das Dateiformat.');
+                showToast('error', t('settings.importFailedTitle'),
+                         t('settings.importFailedMessage'));
             }
         };
 
@@ -307,7 +306,7 @@ class SettingsManager {
      */
     async loadSettings() {
         try {
-            showToast('info', 'Lade Einstellungen', 'Aktuelle Konfiguration wird geladen');
+            showToast('info', t('settings.loadingTitle'), t('settings.loadingMessage'));
 
             this.currentSettings = await api.getApplicationSettings();
             this.populateSettingsForm();
@@ -316,7 +315,7 @@ class SettingsManager {
 
         } catch (error) {
             window.ErrorHandler?.handleSettingsError(error, { operation: 'load' });
-            showToast('error', 'Fehler beim Laden', 'Einstellungen konnten nicht geladen werden');
+            showToast('error', t('settings.loadFailedTitle'), t('settings.loadFailedMessage'));
         }
     }
 
@@ -386,7 +385,7 @@ class SettingsManager {
 
             if (!this.isDirty) {
                 Logger.warn('No changes detected - aborting save');
-                showToast('info', 'Keine Änderungen', 'Es wurden keine Änderungen vorgenommen');
+                showToast('info', t('settings.noChangesTitle'), t('settings.noChangesMessage'));
                 return;
             }
 
@@ -396,17 +395,17 @@ class SettingsManager {
 
             if (Object.keys(formData).length === 0) {
                 Logger.warn('No data collected - aborting save');
-                showToast('warning', 'Keine Daten', 'Keine Formulardaten gefunden');
+                showToast('warning', t('settings.noDataTitle'), t('settings.noDataMessage'));
                 return;
             }
 
-            showToast('info', 'Speichere Einstellungen', 'Konfiguration wird gespeichert');
+            showToast('info', t('settings.savingTitle'), t('settings.savingMessage'));
 
             const result = await api.updateApplicationSettings(formData);
             Logger.debug('Save result:', result);
 
-            showToast('success', 'Einstellungen gespeichert',
-                     `${result.updated_fields.length} Einstellungen wurden aktualisiert`);
+            showToast('success', t('settings.savedTitle'),
+                     t('settings.savedMessage', { count: result.updated_fields.length }));
 
             this.isDirty = false;
             this.updateSaveButton();
@@ -420,7 +419,7 @@ class SettingsManager {
         } catch (error) {
             Logger.error('Save settings error:', error);
             window.ErrorHandler?.handleSettingsError(error, { operation: 'save' });
-            showToast('error', 'Fehler beim Speichern', 'Einstellungen konnten nicht gespeichert werden');
+            showToast('error', t('settings.saveFailedTitle'), t('settings.saveFailedMessage'));
         }
     }
 
@@ -545,11 +544,11 @@ class SettingsManager {
             if (this.isDirty) {
                 saveButton.classList.add('btn-warning');
                 saveButton.classList.remove('btn-primary');
-                saveButton.innerHTML = '<span class="btn-icon">⚠️</span> Änderungen speichern';
+                saveButton.innerHTML = `<span class="btn-icon">⚠️</span> ${t('settings.saveChanges')}`;
             } else {
                 saveButton.classList.add('btn-primary');
                 saveButton.classList.remove('btn-warning');
-                saveButton.innerHTML = '<span class="btn-icon">💾</span> Speichern';
+                saveButton.innerHTML = `<span class="btn-icon">💾</span> ${t('common.save')}`;
             }
         }
     }
@@ -584,7 +583,7 @@ class SettingsManager {
             document.getElementById('systemInfo').innerHTML = `
                 <div class="error-message">
                     <span class="error-icon">⚠️</span>
-                    Systemdaten konnten nicht geladen werden
+                    ${t('settings.systemInfoLoadFailed')}
                 </div>
             `;
         }
@@ -598,29 +597,29 @@ class SettingsManager {
         if (!container) return;
 
         const statusIcon = health.status === 'healthy' ? '✅' : '⚠️';
-        const statusText = health.status === 'healthy' ? 'Gesund' : 'Degradiert';
+        const statusText = health.status === 'healthy' ? t('settings.healthHealthy') : t('settings.healthDegraded');
         const statusClass = health.status === 'healthy' ? 'status-healthy' : 'status-warning';
 
         container.innerHTML = `
             <div class="system-status ${statusClass}">
                 <div class="status-item">
-                    <span class="status-label">System-Status:</span>
+                    <span class="status-label">${t('settings.systemStatus')}:</span>
                     <span class="status-value">${statusIcon} ${statusText}</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Version:</span>
+                    <span class="status-label">${t('settings.version')}:</span>
                     <span class="status-value">${health.version}</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Umgebung:</span>
+                    <span class="status-label">${t('settings.environment')}:</span>
                     <span class="status-value">${health.environment}</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Letzte Prüfung:</span>
-                    <span class="status-value">${new Date(health.timestamp).toLocaleString('de-DE')}</span>
+                    <span class="status-label">${t('settings.lastCheck')}:</span>
+                    <span class="status-value">${new Date(health.timestamp).toLocaleString(getIntlLocale())}</span>
                 </div>
                 <div class="status-item">
-                    <span class="status-label">Datenbank:</span>
+                    <span class="status-label">${t('settings.database')}:</span>
                     <span class="status-value">
                         ${health.database.healthy ? '✅' : '❌'} 
                         ${health.database.type.toUpperCase()}
@@ -679,7 +678,7 @@ class SettingsManager {
             container.innerHTML = `
                 <div class="error-message">
                     <span class="error-icon">⚠️</span>
-                    QR-Code konnte nicht generiert werden
+                    ${t('settings.qrCodeFailed')}
                 </div>
             `;
         }
@@ -702,7 +701,7 @@ class SettingsManager {
             window.ErrorHandler?.handleSettingsError(error, { operation: 'load_watch_folders' });
             document.getElementById('watchFoldersList').innerHTML = `
                 <div class="error-message">
-                    Verzeichniseinstellungen konnten nicht geladen werden
+                    ${t('settings.watchFoldersLoadFailed')}
                 </div>
             `;
         }
@@ -737,27 +736,27 @@ class SettingsManager {
                     `).join('')}
                 </div>
                 <div class="watch-folder-add">
-                    <input type="text" id="newWatchFolder" placeholder="Neues Verzeichnis hinzufügen..." class="form-control">
+                    <input type="text" id="newWatchFolder" placeholder="${t('settings.addNewFolderPlaceholder')}" class="form-control">
                     <button class="btn btn-primary" onclick="addWatchFolder()">
                         <span class="btn-icon">➕</span>
-                        Hinzufügen
+                        ${t('common.add')}
                     </button>
                 </div>
                 <div class="supported-extensions">
                     <small class="form-text text-muted">
-                        Unterstützte Dateierweiterungen: ${settings.supported_extensions.join(', ')}
+                        ${t('settings.supportedExtensions')}: ${settings.supported_extensions.join(', ')}
                     </small>
                 </div>
             `;
         } else {
             container.innerHTML = `
                 <div class="empty-watch-folders">
-                    <p>Keine Verzeichnisse konfiguriert</p>
+                    <p>${t('settings.noWatchFolders')}</p>
                     <div class="watch-folder-add">
-                        <input type="text" id="newWatchFolder" placeholder="Verzeichnis hinzufügen..." class="form-control">
+                        <input type="text" id="newWatchFolder" placeholder="${t('settings.addFolderPlaceholder')}" class="form-control">
                         <button class="btn btn-primary" onclick="addWatchFolder()">
                             <span class="btn-icon">➕</span>
-                            Hinzufügen
+                            ${t('common.add')}
                         </button>
                     </div>
                 </div>
@@ -769,26 +768,20 @@ class SettingsManager {
      * Reset settings to defaults
      */
     async resetToDefaults() {
-        const confirmed = confirm('Sind Sie sicher, dass Sie alle Einstellungen auf die Standardwerte zurücksetzen möchten?');
+        const confirmed = confirm(t('settings.resetConfirm'));
         if (!confirmed) return;
 
         try {
-            showToast('info', 'Zurücksetzen', 'Einstellungen werden zurückgesetzt');
+            showToast('info', t('settings.resettingTitle'), t('settings.resettingMessage'));
 
-            const response = await fetch(`${CONFIG.API_BASE_URL}/settings/reset`, {
-                method: 'POST'
-            });
+            await api.resetApplicationSettings();
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            showToast('success', 'Zurückgesetzt', 'Einstellungen wurden auf Standardwerte zurückgesetzt');
+            showToast('success', t('settings.resetSuccessTitle'), t('settings.resetSuccessMessage'));
             await this.loadSettings();
 
         } catch (error) {
             window.ErrorHandler?.handleSettingsError(error, { operation: 'reset' });
-            showToast('error', 'Fehler', 'Einstellungen konnten nicht zurückgesetzt werden');
+            showToast('error', t('common.error'), t('settings.resetFailedMessage'));
         }
     }
 
@@ -920,16 +913,16 @@ async function addWatchFolder() {
     const folderPath = input.value.trim();
     
     try {
-        showToast('info', 'Hinzufügen', 'Verzeichnis wird zur Überwachung hinzugefügt');
-        
+        showToast('info', t('common.add'), t('settings.addingFolderMessage'));
+
         // Validate folder path first
         await api.validateWatchFolder(folderPath);
-        
+
         // Add watch folder
         const result = await api.addWatchFolder(folderPath);
-        
-        showToast('success', 'Erfolgreich hinzugefügt', 
-                 `Verzeichnis "${folderPath}" wird jetzt überwacht`);
+
+        showToast('success', t('settings.folderAddedTitle'),
+                 t('settings.folderAddedMessage', { path: folderPath }));
         
         input.value = '';
         
@@ -939,25 +932,25 @@ async function addWatchFolder() {
     } catch (error) {
         window.ErrorHandler?.handleSettingsError(error, { operation: 'add_watch_folder', path: folderPath });
         if (error instanceof ApiError) {
-            showToast('error', 'Fehler beim Hinzufügen', error.getUserMessage());
+            showToast('error', t('settings.addFailedTitle'), error.getUserMessage());
         } else {
-            showToast('error', 'Fehler', 'Verzeichnis konnte nicht hinzugefügt werden');
+            showToast('error', t('common.error'), t('settings.addFolderFailedMessage'));
         }
     }
 }
 
 async function removeWatchFolderFromSettings(folderPath) {
-    const confirmed = confirm(`Verzeichnis "${folderPath}" aus der Überwachung entfernen?`);
+    const confirmed = confirm(t('settings.removeFolderConfirm', { path: folderPath }));
     if (!confirmed) return;
 
     try {
-        showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
+        showToast('info', t('settings.removingFolderTitle'), t('settings.removingFolderMessage'));
 
         // Remove watch folder
         const result = await api.removeWatchFolder(folderPath);
 
-        showToast('success', 'Erfolgreich entfernt',
-                 `Verzeichnis "${folderPath}" wird nicht mehr überwacht`);
+        showToast('success', t('settings.folderRemovedTitle'),
+                 t('settings.folderRemovedMessage', { path: folderPath }));
 
         // Reload watch folder settings to reflect changes
         await settingsManager.loadWatchFolderSettings();
@@ -965,36 +958,33 @@ async function removeWatchFolderFromSettings(folderPath) {
     } catch (error) {
         window.ErrorHandler?.handleSettingsError(error, { operation: 'remove_watch_folder', path: folderPath });
         if (error instanceof ApiError) {
-            showToast('error', 'Fehler beim Entfernen', error.getUserMessage());
+            showToast('error', t('settings.removeFailedTitle'), error.getUserMessage());
         } else {
-            showToast('error', 'Fehler', 'Verzeichnis konnte nicht entfernt werden');
+            showToast('error', t('common.error'), t('settings.removeFolderFailedMessage'));
         }
     }
 }
 
 async function shutdownServer() {
-    const confirmed = confirm(
-        'Sind Sie sicher, dass Sie den Server herunterfahren möchten?\n\n' +
-        'Der Server wird ordnungsgemäß heruntergefahren und alle aktiven Verbindungen werden geschlossen.'
-    );
+    const confirmed = confirm(t('settings.shutdownConfirm'));
     if (!confirmed) return;
 
     try {
-        showToast('warning', 'Server wird heruntergefahren', 'Bitte warten Sie...', 3000);
+        showToast('warning', t('settings.shutdownInProgressTitle'), t('settings.shutdownInProgressMessage'), 3000);
 
         // Call shutdown API
         await api.shutdownServer();
 
-        showToast('success', 'Server heruntergefahren',
-                 'Der Server wurde erfolgreich heruntergefahren.', 5000);
+        showToast('success', t('settings.shutdownSuccessTitle'),
+                 t('settings.shutdownSuccessMessage'), 5000);
 
         // Optionally disable UI or show a message that server is down
         setTimeout(() => {
             document.body.innerHTML = `
                 <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; font-family: system-ui;">
-                    <h1 style="color: #ef4444;">⏹️ Server wurde heruntergefahren</h1>
-                    <p style="color: #6b7280; margin-top: 10px;">Der Server wurde ordnungsgemäß heruntergefahren.</p>
-                    <p style="color: #6b7280;">Sie können dieses Fenster jetzt schließen.</p>
+                    <h1 style="color: #ef4444;">⏹️ ${t('settings.shutdownPageTitle')}</h1>
+                    <p style="color: #6b7280; margin-top: 10px;">${t('settings.shutdownPageMessage')}</p>
+                    <p style="color: #6b7280;">${t('settings.shutdownPageClose')}</p>
                 </div>
             `;
         }, 2000);
@@ -1002,9 +992,9 @@ async function shutdownServer() {
     } catch (error) {
         window.ErrorHandler?.handleSettingsError(error, { operation: 'shutdown' });
         if (error instanceof ApiError) {
-            showToast('error', 'Fehler beim Herunterfahren', error.getUserMessage());
+            showToast('error', t('settings.shutdownFailedTitle'), error.getUserMessage());
         } else {
-            showToast('error', 'Fehler', 'Server konnte nicht heruntergefahren werden');
+            showToast('error', t('common.error'), t('settings.shutdownFailedMessage'));
         }
     }
 }
@@ -1025,23 +1015,23 @@ async function validateDownloadsPath() {
         // Show loading state
         validationResult.style.display = 'block';
         validationResult.className = 'validation-result loading';
-        validationResult.innerHTML = '<span class="spinner-small"></span> Validiere...';
+        validationResult.innerHTML = `<span class="spinner-small"></span> ${t('settings.validating')}`;
 
         // Validate path
         const response = await api.validateDownloadsPath(folderPath);
 
         if (response.valid) {
             validationResult.className = 'validation-result success';
-            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || 'Download-Verzeichnis ist gültig und beschreibbar');
+            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || t('settings.downloadsPathValid'));
         } else {
             validationResult.className = 'validation-result error';
-            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || 'Download-Verzeichnis ist ungültig');
+            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || t('settings.downloadsPathInvalid'));
         }
 
     } catch (error) {
         Logger.error('Failed to validate downloads path:', error);
         validationResult.className = 'validation-result error';
-        validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
+        validationResult.innerHTML = `<span class="icon">✗</span> ${t('settings.validationFailed')}`;
     }
 }
 
@@ -1061,23 +1051,23 @@ async function validateLibraryPath() {
         // Show loading state
         validationResult.style.display = 'block';
         validationResult.className = 'validation-result loading';
-        validationResult.innerHTML = '<span class="spinner-small"></span> Validiere...';
+        validationResult.innerHTML = `<span class="spinner-small"></span> ${t('settings.validating')}`;
 
         // Validate path
         const response = await api.validateLibraryPath(folderPath);
 
         if (response.valid) {
             validationResult.className = 'validation-result success';
-            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || 'Bibliothek-Verzeichnis ist gültig und beschreibbar');
+            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || t('settings.libraryPathValid'));
         } else {
             validationResult.className = 'validation-result error';
-            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || 'Bibliothek-Verzeichnis ist ungültig');
+            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || t('settings.libraryPathInvalid'));
         }
 
     } catch (error) {
         Logger.error('Failed to validate library path:', error);
         validationResult.className = 'validation-result error';
-        validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
+        validationResult.innerHTML = `<span class="icon">✗</span> ${t('settings.validationFailed')}`;
     }
 }
 
@@ -1093,7 +1083,7 @@ async function checkFfmpegInstallation() {
         // Show loading state
         resultDiv.style.display = 'block';
         resultDiv.className = 'validation-result loading';
-        resultDiv.innerHTML = '<span class="spinner-small"></span> Prüfe FFmpeg-Installation...';
+        resultDiv.innerHTML = `<span class="spinner-small"></span> ${t('settings.ffmpegChecking')}`;
 
         // Check ffmpeg availability
         const response = await fetch(`${CONFIG.API_BASE_URL}/settings/ffmpeg-check`);
@@ -1108,25 +1098,25 @@ async function checkFfmpegInstallation() {
             resultDiv.className = 'validation-result success';
             resultDiv.innerHTML = `
                 <span class="icon">✓</span>
-                <strong>FFmpeg ist installiert!</strong><br>
-                <small style="margin-top: 0.25rem; display: block;">${result.version || 'Version unbekannt'}</small>
+                <strong>${t('settings.ffmpegInstalled')}</strong><br>
+                <small style="margin-top: 0.25rem; display: block;">${result.version || t('settings.ffmpegVersionUnknown')}</small>
             `;
-            showToast('success', 'FFmpeg gefunden', 'FFmpeg ist installiert und einsatzbereit');
+            showToast('success', t('settings.ffmpegFoundTitle'), t('settings.ffmpegFoundMessage'));
         } else {
             resultDiv.className = 'validation-result error';
             resultDiv.innerHTML = `
                 <span class="icon">✗</span>
-                <strong>FFmpeg nicht gefunden</strong><br>
-                <small style="margin-top: 0.25rem; display: block;">${result.error || 'FFmpeg ist nicht installiert oder nicht im PATH'}</small>
+                <strong>${t('settings.ffmpegNotFound')}</strong><br>
+                <small style="margin-top: 0.25rem; display: block;">${result.error || t('settings.ffmpegNotInPath')}</small>
             `;
-            showToast('warning', 'FFmpeg fehlt', 'FFmpeg ist nicht installiert. Timelapse-Funktion wird nicht funktionieren.');
+            showToast('warning', t('settings.ffmpegMissingTitle'), t('settings.ffmpegMissingMessage'));
         }
 
     } catch (error) {
         Logger.error('Failed to check ffmpeg:', error);
         resultDiv.className = 'validation-result error';
-        resultDiv.innerHTML = '<span class="icon">✗</span> Prüfung fehlgeschlagen';
-        showToast('error', 'Fehler', 'FFmpeg-Prüfung konnte nicht durchgeführt werden');
+        resultDiv.innerHTML = `<span class="icon">✗</span> ${t('settings.checkFailed')}`;
+        showToast('error', t('common.error'), t('settings.ffmpegCheckFailedMessage'));
     }
 }
 

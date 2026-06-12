@@ -165,8 +165,8 @@ class ApiClient {
         return this.put(CONFIG.ENDPOINTS.APPLICATION_SETTINGS, settingsData);
     }
 
-    async getWatchFolderSettings() {
-        return this.get(CONFIG.ENDPOINTS.WATCH_FOLDER_SETTINGS);
+    async resetApplicationSettings() {
+        return this.post('settings/reset');
     }
 
     // Setup Wizard Endpoints
@@ -265,12 +265,11 @@ class ApiClient {
         return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_CURRENT_JOB(printerId));
     }
 
-    async downloadPrinterFile(printerId, filename) {
-        return this.post(CONFIG.ENDPOINTS.PRINTER_DOWNLOAD_FILE(printerId), { filename });
-    }
-
-    async getPrinterFiles(printerId) {
-        return this.get(CONFIG.ENDPOINTS.PRINTER_FILES(printerId));
+    async uploadFileToPrinter(printerId, fileId, remoteName = null) {
+        return this.post(`printers/${printerId}/files/upload`, {
+            file_id: fileId,
+            remote_name: remoteName
+        });
     }
 
     // Thumbnail Processing Endpoints
@@ -348,11 +347,13 @@ class ApiClient {
         return this.get(CONFIG.ENDPOINTS.FILES_CLEANUP_CANDIDATES, filters);
     }
 
-    async performCleanup(fileIds) {
-        return this.post(CONFIG.ENDPOINTS.FILES_CLEANUP, {
-            file_ids: fileIds,
-            confirm: true
+    async performCleanup(options = {}) {
+        const params = new URLSearchParams({
+            dry_run: 'false',
+            deleted_days: options.deletedDays ?? 30,
+            failed_days: options.failedDays ?? 7
         });
+        return this.delete(`${CONFIG.ENDPOINTS.FILES_CLEANUP}?${params.toString()}`);
     }
 
     // Watch Folder Management Endpoints
@@ -433,10 +434,6 @@ class ApiClient {
         }
         
         return this.post(endpoint);
-    }
-
-    async getPrinterFileDownloadStatus(printerId, filename) {
-        return this.get(CONFIG.ENDPOINTS.PRINTER_FILE_DOWNLOAD_STATUS(printerId, filename));
     }
 
     // Search Endpoints
@@ -548,7 +545,7 @@ class ApiClient {
         if (filters.offset) params.append('offset', filters.offset);
 
         const queryString = params.toString();
-        const endpoint = queryString ? `/api/v1/timelapses?${queryString}` : '/api/v1/timelapses';
+        const endpoint = queryString ? `timelapses?${queryString}` : 'timelapses';
 
         return this.request(endpoint);
     }
@@ -557,21 +554,21 @@ class ApiClient {
      * Get timelapse statistics
      */
     async getTimelapseStats() {
-        return this.request('/api/v1/timelapses/stats');
+        return this.request('timelapses/stats');
     }
 
     /**
      * Get specific timelapse by ID
      */
     async getTimelapse(timelapseId) {
-        return this.request(`/api/v1/timelapses/${timelapseId}`);
+        return this.request(`timelapses/${timelapseId}`);
     }
 
     /**
      * Trigger manual processing for a timelapse
      */
     async triggerTimelapseProcessing(timelapseId) {
-        return this.request(`/api/v1/timelapses/${timelapseId}/process`, {
+        return this.request(`timelapses/${timelapseId}/process`, {
             method: 'POST'
         });
     }
@@ -580,7 +577,7 @@ class ApiClient {
      * Delete timelapse
      */
     async deleteTimelapse(timelapseId) {
-        return this.request(`/api/v1/timelapses/${timelapseId}`, {
+        return this.request(`timelapses/${timelapseId}`, {
             method: 'DELETE'
         });
     }
@@ -589,7 +586,7 @@ class ApiClient {
      * Link timelapse to job
      */
     async linkTimelapseToJob(timelapseId, jobId) {
-        return this.request(`/api/v1/timelapses/${timelapseId}/link`, {
+        return this.request(`timelapses/${timelapseId}/link`, {
             method: 'PATCH',
             body: JSON.stringify({ job_id: jobId })
         });
@@ -599,7 +596,7 @@ class ApiClient {
      * Toggle pin status for timelapse
      */
     async toggleTimelapsePin(timelapseId) {
-        return this.request(`/api/v1/timelapses/${timelapseId}/pin`, {
+        return this.request(`timelapses/${timelapseId}/pin`, {
             method: 'PATCH'
         });
     }
@@ -607,15 +604,15 @@ class ApiClient {
     /**
      * Get cleanup candidates
      */
-    async getCleanupCandidates() {
-        return this.request('/api/v1/timelapses/cleanup/candidates');
+    async getTimelapseCleanupCandidates() {
+        return this.request('timelapses/cleanup/candidates');
     }
 
     /**
      * Bulk delete timelapses
      */
     async bulkDeleteTimelapses(timelapseIds) {
-        return this.request('/api/v1/timelapses/bulk-delete', {
+        return this.request('timelapses/bulk-delete', {
             method: 'POST',
             body: JSON.stringify({ timelapse_ids: timelapseIds })
         });
@@ -661,30 +658,34 @@ class ApiError extends Error {
      * Get user-friendly error message
      */
     getUserMessage() {
+        // Prefer i18n translations; CONFIG.ERROR_MESSAGES remains the German fallback
+        const msg = (key, fallback) =>
+            (typeof t === 'function' && i18n?.has?.(key)) ? t(key) : fallback;
+
         if (this.isNetworkError()) {
-            return CONFIG.ERROR_MESSAGES.NETWORK_ERROR;
+            return msg('errors.network', CONFIG.ERROR_MESSAGES.NETWORK_ERROR);
         }
-        
+
         if (this.isPrinterOffline()) {
-            return CONFIG.ERROR_MESSAGES.PRINTER_OFFLINE;
+            return msg('errors.printerOffline', CONFIG.ERROR_MESSAGES.PRINTER_OFFLINE);
         }
-        
+
         if (this.isNotFound()) {
             if (this.details?.endpoint && String(this.details.endpoint).includes('/printers/')) {
-                return CONFIG.ERROR_MESSAGES.PRINTER_NOT_FOUND || 'Drucker wurde nicht gefunden.';
+                return msg('errors.printerNotFound', CONFIG.ERROR_MESSAGES.PRINTER_NOT_FOUND || 'Drucker wurde nicht gefunden.');
             }
-            return CONFIG.ERROR_MESSAGES.FILE_NOT_FOUND;
+            return msg('errors.fileNotFound', CONFIG.ERROR_MESSAGES.FILE_NOT_FOUND);
         }
-        
+
         if (this.status === 422) {
-            return CONFIG.ERROR_MESSAGES.INVALID_INPUT;
+            return msg('errors.invalidInput', CONFIG.ERROR_MESSAGES.INVALID_INPUT);
         }
-        
+
         if (this.status === 403) {
-            return CONFIG.ERROR_MESSAGES.PERMISSION_DENIED;
+            return msg('errors.permissionDenied', CONFIG.ERROR_MESSAGES.PERMISSION_DENIED);
         }
-        
-        return this.message || CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR;
+
+        return this.message || msg('errors.unknown', CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR);
     }
 }
 

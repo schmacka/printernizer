@@ -182,6 +182,59 @@ async def create_job(
         )
 
 
+# NOTE: must be registered before GET /{job_id}, otherwise "export" is
+# matched as a job ID.
+@router.get("/export")
+async def export_jobs(
+    job_id: Optional[str] = Query(None, description="Export a single job by ID"),
+    printer_id: Optional[str] = Query(None, description="Filter by printer ID"),
+    job_status: Optional[str] = Query(None, description="Filter by job status"),
+    is_business: Optional[bool] = Query(None, description="Filter business/private jobs"),
+    job_service: JobService = Depends(get_job_service)
+):
+    """Export jobs as CSV with optional filtering."""
+    import csv
+    import io
+
+    if job_id:
+        job = await job_service.get_job(job_id)
+        if not job:
+            raise JobNotFoundError(job_id)
+        jobs = [job]
+    else:
+        jobs, _ = await job_service.list_jobs_with_count(
+            printer_id=printer_id,
+            status=job_status,
+            is_business=is_business,
+            limit=10000,
+            offset=0
+        )
+
+    fieldnames = list(JobResponse.model_fields.keys())
+
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    for job in jobs:
+        row = _transform_job_to_response(job)
+        for key, value in row.items():
+            if isinstance(value, datetime):
+                row[key] = value.isoformat()
+        writer.writerow(row)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filename = f"printernizer_jobs_{timestamp}.csv"
+
+    from fastapi import Response
+    return Response(
+        content=buffer.getvalue(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
+
+
 @router.get("/{job_id}", response_model=JobResponse)
 async def get_job(
     job_id: str,

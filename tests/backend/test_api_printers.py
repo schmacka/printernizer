@@ -17,9 +17,90 @@ def client(test_app):
     return TestClient(test_app)
 
 
+class TestPrinterFileUpload:
+    """Test POST /api/v1/printers/{printer_id}/files/upload"""
+
+    def test_upload_file_success(self, client, test_app, tmp_path):
+        """Uploads a locally available file to the printer"""
+        from unittest.mock import AsyncMock
+
+        local_file = tmp_path / "benchy.3mf"
+        local_file.write_bytes(b"3mf bytes")
+
+        test_app.state.file_service.get_file_by_id = AsyncMock(return_value={
+            'id': 'file_001',
+            'filename': 'benchy.3mf',
+            'file_path': str(local_file)
+        })
+        test_app.state.printer_service.upload_file_to_printer = AsyncMock(return_value=True)
+
+        response = client.post(
+            "/api/v1/printers/bambu_001/files/upload",
+            json={"file_id": "file_001"}
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['status'] == 'success'
+        assert data['data']['status'] == 'uploaded'
+        assert data['data']['remote_name'] == 'benchy.3mf'
+        test_app.state.printer_service.upload_file_to_printer.assert_awaited_once()
+
+    def test_upload_file_not_local(self, client, test_app):
+        """Files without a local copy cannot be uploaded"""
+        from unittest.mock import AsyncMock
+
+        test_app.state.file_service.get_file_by_id = AsyncMock(return_value={
+            'id': 'file_001',
+            'filename': 'benchy.3mf',
+            'file_path': None
+        })
+
+        response = client.post(
+            "/api/v1/printers/bambu_001/files/upload",
+            json={"file_id": "file_001"}
+        )
+
+        assert response.status_code == 400
+
+    def test_upload_unknown_file(self, client, test_app):
+        """Unknown file IDs return 404"""
+        from unittest.mock import AsyncMock
+
+        test_app.state.file_service.get_file_by_id = AsyncMock(return_value=None)
+
+        response = client.post(
+            "/api/v1/printers/bambu_001/files/upload",
+            json={"file_id": "missing"}
+        )
+
+        assert response.status_code == 404
+
+    def test_upload_transfer_failure(self, client, test_app, tmp_path):
+        """A driver-level upload failure surfaces as an error response"""
+        from unittest.mock import AsyncMock
+
+        local_file = tmp_path / "benchy.3mf"
+        local_file.write_bytes(b"3mf bytes")
+
+        test_app.state.file_service.get_file_by_id = AsyncMock(return_value={
+            'id': 'file_001',
+            'filename': 'benchy.3mf',
+            'file_path': str(local_file)
+        })
+        test_app.state.printer_service.upload_file_to_printer = AsyncMock(return_value=False)
+
+        response = client.post(
+            "/api/v1/printers/bambu_001/files/upload",
+            json={"file_id": "file_001"}
+        )
+
+        assert response.status_code >= 400
+
+
 class TestPrinterAPI:
     """Test printer management API endpoints"""
-    
+
     def test_get_printers_empty_database(self, client, test_app):
         """Test GET /api/v1/printers with empty database"""
         from unittest.mock import AsyncMock

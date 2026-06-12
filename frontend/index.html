@@ -42,62 +42,62 @@
                 <a href="#dashboard" class="nav-link active" data-page="dashboard" 
                    role="button" aria-current="page" aria-describedby="nav-dashboard-desc">
                     <span class="nav-icon" aria-hidden="true">📊</span>
-                    Dashboard
+                    <span data-i18n="nav.dashboard">Dashboard</span>
                 </a>
                 <a href="#printers" class="nav-link" data-page="printers" 
                    role="button" aria-describedby="nav-printers-desc">
                     <span class="nav-icon" aria-hidden="true">🖨️</span>
-                    Drucker
+                    <span data-i18n="nav.printers">Drucker</span>
                 </a>
                 <a href="#jobs" class="nav-link" data-page="jobs"
                    role="button" aria-describedby="nav-jobs-desc">
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
-                    Aufträge
+                    <span data-i18n="nav.jobs">Aufträge</span>
                 </a>
                 <a href="#orders" class="nav-link" data-page="orders"
                    role="button" aria-describedby="nav-orders-desc">
                     <span class="nav-icon" aria-hidden="true">📋</span>
-                    Orders
+                    <span data-i18n="nav.orders">Orders</span>
                 </a>
                 <a href="#timelapses" class="nav-link" data-page="timelapses"
                    role="button" aria-describedby="nav-timelapses-desc">
                     <span class="nav-icon" aria-hidden="true">🎬</span>
-                    Zeitraffer
+                    <span data-i18n="nav.timelapses">Zeitraffer</span>
                 </a>
                 <a href="#files" class="nav-link" data-page="files"
                    role="button" aria-describedby="nav-files-desc">
                     <span class="nav-icon" aria-hidden="true">📁</span>
-                    Dateien
+                    <span data-i18n="nav.files">Dateien</span>
                 </a>
                 <a href="#library" class="nav-link" data-page="library"
                    role="button" aria-describedby="nav-library-desc">
                     <span class="nav-icon" aria-hidden="true">🗄️</span>
-                    Bibliothek
+                    <span data-i18n="nav.library">Bibliothek</span>
                 </a>
                 <a href="#materials" class="nav-link" data-page="materials"
                    role="button" aria-describedby="nav-materials-desc">
                     <span class="nav-icon" aria-hidden="true">🧵</span>
-                    Filamente
+                    <span data-i18n="nav.materials">Filamente</span>
                 </a>
                 <a href="#ideas" class="nav-link" data-page="ideas"
                    role="button" aria-describedby="nav-ideas-desc">
                     <span class="nav-icon" aria-hidden="true">💡</span>
-                    Ideen
+                    <span data-i18n="nav.ideas">Ideen</span>
                 </a>
                 <a href="#tools" class="nav-link" data-page="tools"
                    role="button" aria-describedby="nav-tools-desc">
                     <span class="nav-icon" aria-hidden="true">🛠️</span>
-                    Tools
+                    <span data-i18n="nav.tools">Tools</span>
                 </a>
                 <a href="#settings" class="nav-link" data-page="settings"
                    role="button" aria-describedby="nav-settings-desc">
                     <span class="nav-icon" aria-hidden="true">⚙️</span>
-                    Einstellungen
+                    <span data-i18n="nav.settings">Einstellungen</span>
                 </a>
                 <a href="#debug" class="nav-link" data-page="debug" 
                    role="button" aria-describedby="nav-debug-desc">
                     <span class="nav-icon" aria-hidden="true">🐛</span>
-                    Debug
+                    <span data-i18n="nav.debug">Debug</span>
                 </a>
             </div>
             <!-- Screen reader descriptions -->
@@ -1975,6 +1975,21 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3>🌐 <span data-i18n="settings.language">Sprache</span></h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted" style="margin-bottom: 20px;" data-i18n="settings.languageDescription">
+                                    Sprache der Benutzeroberfläche. Die Seite wird nach dem Wechsel neu geladen.
+                                </p>
+                                <select id="languageSelector" class="form-control" style="max-width: 240px;"
+                                        onchange="i18n.setLocale(this.value)">
+                                    <option value="de" data-i18n="settings.german">Deutsch</option>
+                                    <option value="en" data-i18n="settings.english">Englisch</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Orders Settings -->
@@ -2961,6 +2976,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script src="js/error-handler.js"></script>
     <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="js/api.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/utils.js"></script>

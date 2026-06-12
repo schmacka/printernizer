@@ -238,7 +238,7 @@ class SetupWizardManager {
         // Update step indicator
         const indicator = document.getElementById('wizardStepIndicator');
         if (indicator) {
-            indicator.textContent = `Schritt ${step} von ${this.totalSteps}`;
+            indicator.textContent = t('wizard.stepIndicator', { step, total: this.totalSteps });
         }
         
         // Update navigation buttons
@@ -382,7 +382,7 @@ class SetupWizardManager {
                 if (skipAllBtn) skipAllBtn.style.display = 'inline-flex';
                 if (nextBtn) {
                     nextBtn.style.display = 'inline-flex';
-                    nextBtn.innerHTML = '<span>Einrichtung starten</span> <span>→</span>';
+                    nextBtn.innerHTML = `<span>${t('wizard.startSetup')}</span> <span>→</span>`;
                 }
                 break;
             case 2:
@@ -393,7 +393,7 @@ class SetupWizardManager {
                 if (skipBtn) skipBtn.style.display = 'inline-flex';
                 if (nextBtn) {
                     nextBtn.style.display = 'inline-flex';
-                    nextBtn.innerHTML = '<span>Weiter</span> <span>→</span>';
+                    nextBtn.innerHTML = `<span>${t('wizard.next')}</span> <span>→</span>`;
                 }
                 break;
             case 5:
@@ -446,10 +446,10 @@ class SetupWizardManager {
         try {
             await api.completeSetup(true);
             this.hide();
-            showToast('info', 'Setup übersprungen', 'Du kannst den Setup-Assistenten jederzeit in den Einstellungen erneut starten.');
+            showToast('info', t('wizard.skippedTitle'), t('wizard.skippedMessage'));
         } catch (error) {
             Logger.error('Failed to skip wizard', error);
-            showToast('error', 'Fehler', 'Konnte Setup nicht überspringen');
+            showToast('error', t('common.error'), t('wizard.skipFailed'));
         }
     }
 
@@ -502,19 +502,19 @@ class SetupWizardManager {
         
         // If partially filled, validate required fields
         if (!name) {
-            this.showFieldError('wizardPrinterName', 'Bitte gib einen Namen für den Drucker ein');
+            this.showFieldError('wizardPrinterName', t('wizard.errorPrinterName'));
             return false;
         }
         
         if (!ip) {
-            this.showFieldError('wizardPrinterIp', 'Bitte gib die IP-Adresse ein');
+            this.showFieldError('wizardPrinterIp', t('wizard.errorPrinterIp'));
             return false;
         }
         
         // Validate IP format
         const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
         if (!ipRegex.test(ip)) {
-            this.showFieldError('wizardPrinterIp', 'Ungültiges IP-Adressformat');
+            this.showFieldError('wizardPrinterIp', t('wizard.errorIpFormat'));
             return false;
         }
         
@@ -522,17 +522,17 @@ class SetupWizardManager {
         if (type === 'bambu_lab') {
             const accessCode = document.getElementById('wizardBambuAccessCode')?.value.trim();
             if (!accessCode) {
-                this.showFieldError('wizardBambuAccessCode', 'Bitte gib den Zugangscode ein');
+                this.showFieldError('wizardBambuAccessCode', t('wizard.errorAccessCode'));
                 return false;
             }
             if (accessCode.length !== 8) {
-                this.showFieldError('wizardBambuAccessCode', 'Der Zugangscode muss 8 Zeichen lang sein');
+                this.showFieldError('wizardBambuAccessCode', t('wizard.errorAccessCodeLength'));
                 return false;
             }
         } else if (type === 'prusa') {
             const apiKey = document.getElementById('wizardPrusaApiKey')?.value.trim();
             if (!apiKey) {
-                this.showFieldError('wizardPrusaApiKey', 'Bitte gib den API-Key ein');
+                this.showFieldError('wizardPrusaApiKey', t('wizard.errorApiKey'));
                 return false;
             }
         }
@@ -593,7 +593,7 @@ class SetupWizardManager {
             const mqttPort = document.getElementById('wizardMqttPort')?.value.trim();
             
             if (!mqttHost) {
-                this.showFieldError('wizardMqttHost', 'Bitte gib den MQTT-Host ein');
+                this.showFieldError('wizardMqttHost', t('wizard.errorMqttHost'));
                 return false;
             }
             
@@ -731,7 +731,7 @@ class SetupWizardManager {
         
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="wizard-spinner" style="width:16px;height:16px;margin-right:8px;"></span> Suche...';
+            btn.innerHTML = `<span class="wizard-spinner" style="width:16px;height:16px;margin-right:8px;"></span> ${t('wizard.searching')}`;
         }
         
         try {
@@ -757,27 +757,27 @@ class SetupWizardManager {
                                         data-name="${escapeHtml(printer.name || '')}"
                                         data-ip="${escapeHtml(printer.ip)}"
                                         data-serial="${escapeHtml(printer.serial || '')}">
-                                    Auswählen
+                                    ${t('wizard.select')}
                                 </button>
                             </div>
                         `).join('');
                     } else {
                         // All discovered printers are already added
-                        list.innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:1rem;">Alle gefundenen Drucker sind bereits hinzugefügt. Du kannst die Daten manuell eingeben.</p>';
+                        list.innerHTML = `<p style="text-align:center;color:var(--gray-500);padding:1rem;">${t('wizard.allPrintersAdded')}</p>`;
                     }
                 } else {
-                    list.innerHTML = '<p style="text-align:center;color:var(--gray-500);padding:1rem;">Keine Drucker gefunden. Du kannst die Daten manuell eingeben.</p>';
+                    list.innerHTML = `<p style="text-align:center;color:var(--gray-500);padding:1rem;">${t('wizard.noPrintersFound')}</p>`;
                 }
             }
         } catch (error) {
             Logger.error('Printer discovery failed', error);
             if (list) {
-                list.innerHTML = '<p style="text-align:center;color:var(--error-color);padding:1rem;">Drucker-Suche fehlgeschlagen. Bitte gib die Daten manuell ein.</p>';
+                list.innerHTML = `<p style="text-align:center;color:var(--error-color);padding:1rem;">${t('wizard.discoveryFailed')}</p>`;
             }
         } finally {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🔍 Netzwerk durchsuchen';
+                btn.innerHTML = `🔍 ${t('wizard.discoverNetwork')}`;
             }
         }
     }
@@ -809,7 +809,7 @@ class SetupWizardManager {
             if (serialInput) serialInput.value = serial;
         }
         
-        showToast('success', 'Drucker ausgewählt', `${name || ip} wurde übernommen`);
+        showToast('success', t('wizard.printerSelectedTitle'), t('wizard.printerSelectedMessage', { name: name || ip }));
     }
 
     /**
@@ -825,19 +825,19 @@ class SetupWizardManager {
         if (!this.wizardData.printer) {
             if (result) {
                 result.className = 'connection-test-result error';
-                result.innerHTML = '<span>❌</span> Bitte fülle zuerst alle Pflichtfelder aus';
+                result.innerHTML = `<span>❌</span> ${t('wizard.fillRequiredFields')}`;
             }
             return;
         }
         
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="wizard-spinner" style="width:16px;height:16px;margin-right:8px;"></span> Teste...';
+            btn.innerHTML = `<span class="wizard-spinner" style="width:16px;height:16px;margin-right:8px;"></span> ${t('wizard.testing')}`;
         }
         
         if (result) {
             result.className = 'connection-test-result pending';
-            result.innerHTML = '<span>⏳</span> Verbindung wird getestet...';
+            result.innerHTML = `<span>⏳</span> ${t('wizard.testingConnection')}`;
         }
         
         try {
@@ -862,22 +862,22 @@ class SetupWizardManager {
             if (result) {
                 if (testResult.success) {
                     result.className = 'connection-test-result success';
-                    result.innerHTML = '<span>✅</span> Verbindung erfolgreich!';
+                    result.innerHTML = `<span>✅</span> ${t('wizard.connectionSuccess')}`;
                 } else {
                     result.className = 'connection-test-result error';
-                    result.innerHTML = `<span>❌</span> ${escapeHtml(testResult.message || 'Verbindung fehlgeschlagen')}`;
+                    result.innerHTML = `<span>❌</span> ${escapeHtml(testResult.message || t('wizard.connectionFailed'))}`;
                 }
             }
         } catch (error) {
             Logger.error('Connection test failed', error);
             if (result) {
                 result.className = 'connection-test-result error';
-                result.innerHTML = '<span>❌</span> Verbindungstest fehlgeschlagen';
+                result.innerHTML = `<span>❌</span> ${t('wizard.connectionTestFailed')}`;
             }
         } finally {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '🔌 Verbindung testen';
+                btn.innerHTML = `🔌 ${t('wizard.testConnection')}`;
             }
         }
     }
@@ -901,10 +901,10 @@ class SetupWizardManager {
             if (validationEl) {
                 if (result.valid) {
                     validationEl.className = 'path-validation valid';
-                    validationEl.innerHTML = '<span>✓</span> Pfad ist gültig und beschreibbar';
+                    validationEl.innerHTML = `<span>✓</span> ${t('wizard.pathValid')}`;
                 } else {
                     validationEl.className = 'path-validation invalid';
-                    validationEl.innerHTML = `<span>✗</span> ${escapeHtml(result.message || 'Ungültiger Pfad')}`;
+                    validationEl.innerHTML = `<span>✗</span> ${escapeHtml(result.message || t('wizard.pathInvalid'))}`;
                 }
             }
             
@@ -913,7 +913,7 @@ class SetupWizardManager {
             Logger.error('Path validation failed', error);
             if (validationEl) {
                 validationEl.className = 'path-validation invalid';
-                validationEl.innerHTML = '<span>✗</span> Pfadvalidierung fehlgeschlagen';
+                validationEl.innerHTML = `<span>✗</span> ${t('wizard.pathValidationFailed')}`;
             }
             return false;
         }

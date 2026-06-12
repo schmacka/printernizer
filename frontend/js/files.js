@@ -96,23 +96,23 @@ class FileManager {
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value">${summary.available_count || 0}</div>
-                    <div class="stat-label">📁 Verfügbar</div>
+                    <div class="stat-label">📁 ${t('status.file.available')}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${summary.downloaded_count || 0}</div>
-                    <div class="stat-label">✓ Heruntergeladen</div>
+                    <div class="stat-label">✓ ${t('status.file.downloaded')}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${summary.local_count || 0}</div>
-                    <div class="stat-label">💾 Lokal</div>
+                    <div class="stat-label">💾 ${t('status.file.local')}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${formatBytes(summary.total_size || 0)}</div>
-                    <div class="stat-label">Gesamtgröße</div>
+                    <div class="stat-label">${t('files.totalSize')}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${formatPercentage((summary.download_success_rate || 0) * 100)}</div>
-                    <div class="stat-label">Erfolgsrate</div>
+                    <div class="stat-label">${t('files.successRate')}</div>
                 </div>
             </div>
         `;
@@ -124,8 +124,8 @@ class FileManager {
     renderFileStatisticsError() {
         return `
             <div class="alert alert-warning">
-                <strong>Statistiken nicht verfügbar</strong><br>
-                Fehler beim Laden der Datei-Statistiken.
+                <strong>${t('files.statsUnavailable')}</strong><br>
+                ${t('files.statsLoadError')}
             </div>
         `;
     }
@@ -246,7 +246,7 @@ class FileManager {
         const end = Math.min(start + paginationData.limit - 1, paginationData.total_items);
         
         infoContainer.innerHTML = `
-            Dateien ${start}-${end} von ${paginationData.total_items}
+            ${t('files.paginationInfo', { start: start, end: end, total: paginationData.total_items })}
         `;
     }
 
@@ -373,11 +373,11 @@ class FileManager {
             return `
                 <div class="empty-state">
                     <div class="empty-state-icon">🔍</div>
-                    <h3>Keine Dateien gefunden</h3>
-                    <p>Keine Dateien entsprechen den aktuellen Filterkriterien.</p>
+                    <h3>${t('files.noFilesFound')}</h3>
+                    <p>${t('files.noFilesMatchFilters')}</p>
                     <button class="btn btn-secondary" onclick="fileManager.clearFilters()">
                         <span class="btn-icon">🗑️</span>
-                        Filter löschen
+                        ${t('files.clearFilters')}
                     </button>
                 </div>
             `;
@@ -386,8 +386,8 @@ class FileManager {
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">📁</div>
-                <h3>Keine Dateien verfügbar</h3>
-                <p>Hier werden alle verfügbaren Dateien von Ihren Druckern angezeigt.</p>
+                <h3>${t('files.noFilesAvailable')}</h3>
+                <p>${t('files.emptyHint')}</p>
             </div>
         `;
     }
@@ -396,16 +396,16 @@ class FileManager {
      * Render files error state
      */
     renderFilesError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der Dateien';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.loadError');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('files.loadErrorTitle')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="fileManager.loadFiles()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -521,7 +521,7 @@ class FileManager {
             const response = await api.downloadFile(fileId);
             
             if (response.status === 'downloading') {
-                showToast('info', 'Download gestartet', `Download von "${fileItem.file.filename}" wurde gestartet`);
+                showToast('info', t('files.downloadStartedTitle'), t('files.downloadStartedMessage', { name: fileItem.file.filename }));
                 
                 // Update file status immediately
                 fileItem.file.status = 'downloading';
@@ -534,7 +534,7 @@ class FileManager {
         } catch (error) {
             Logger.error('Failed to start download:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : CONFIG.ERROR_MESSAGES.DOWNLOAD_FAILED;
-            showToast('error', 'Download-Fehler', message);
+            showToast('error', t('files.downloadErrorTitle'), message);
         }
     }
 
@@ -547,12 +547,13 @@ class FileManager {
         
         const checkProgress = async () => {
             try {
-                const progress = await api.getDownloadStatus(fileId);
-                
-                if (progress.status === 'downloading') {
+                const response = await api.getDownloadStatus(downloadId || fileId);
+                const progress = response?.data || response;
+
+                if (progress.status === 'downloading' || progress.status === 'starting') {
                     // Update progress display
                     this.updateDownloadProgress(fileId, progress);
-                    
+
                     // Continue monitoring
                     if (attempts < maxAttempts) {
                         attempts++;
@@ -560,7 +561,7 @@ class FileManager {
                     }
                 } else if (progress.status === 'completed') {
                     // Download completed
-                    showToast('success', 'Download abgeschlossen', CONFIG.SUCCESS_MESSAGES.FILE_DOWNLOADED);
+                    showToast('success', t('files.downloadCompleted'), CONFIG.SUCCESS_MESSAGES.FILE_DOWNLOADED);
                     
                     // Update file item
                     const fileItem = this.files.get(fileId);
@@ -572,9 +573,9 @@ class FileManager {
                     // Refresh statistics
                     this.loadFileStatistics();
                     
-                } else if (progress.error) {
+                } else if (progress.status === 'failed') {
                     // Download failed
-                    showToast('error', 'Download fehlgeschlagen', progress.error);
+                    showToast('error', t('files.downloadFailed'), progress.error || CONFIG.ERROR_MESSAGES.DOWNLOAD_FAILED);
                     
                     // Reset file status
                     const fileItem = this.files.get(fileId);
@@ -589,7 +590,7 @@ class FileManager {
                 
                 // Stop monitoring on persistent errors
                 if (attempts > 5) {
-                    showToast('error', 'Download-Fehler', 'Download-Fortschritt kann nicht überwacht werden');
+                    showToast('error', t('files.downloadErrorTitle'), t('files.downloadProgressMonitorError'));
                     return;
                 }
                 
@@ -646,7 +647,7 @@ class FileManager {
         content.innerHTML = `
             <div class="loading-placeholder">
                 <div class="spinner"></div>
-                <p>Lade Vorschau...</p>
+                <p>${t('files.loadingPreview')}</p>
             </div>
         `;
         
@@ -747,13 +748,13 @@ class FileManager {
                 <img src="${thumbnailUrl}" alt="3D Preview" class="thumbnail-image"
                      onerror="this.src='assets/placeholder-thumbnail.svg'; this.onerror=null; this.classList.add('placeholder-image');" />
                 <div class="thumbnail-overlay">
-                    <span class="thumbnail-format">3D Vorschau</span>
+                    <span class="thumbnail-format">${t('files.preview3d')}</span>
                 </div>
             </div>
         ` : `
             <div class="preview-placeholder">
-                <img src="assets/placeholder-thumbnail.svg" alt="Keine Vorschau verfügbar" class="placeholder-image" style="max-width: 200px; max-height: 200px;" />
-                <p>Keine Vorschau verfügbar</p>
+                <img src="assets/placeholder-thumbnail.svg" alt="${t('files.noPreviewAvailable')}" class="placeholder-image" style="max-width: 200px; max-height: 200px;" />
+                <p>${t('files.noPreviewAvailable')}</p>
             </div>
         `;
         
@@ -794,7 +795,7 @@ class FileManager {
                     <div class="preview-icon">${fileItem.getFileIcon()}</div>
                     <div>
                         <h3>${escapeHtml(file.filename)}</h3>
-                        <div class="file-type-badge">${file.file_type?.toUpperCase() || 'UNBEKANNT'}</div>
+                        <div class="file-type-badge">${file.file_type?.toUpperCase() || t('common.unknown').toUpperCase()}</div>
                     </div>
                 </div>
                 
@@ -811,31 +812,31 @@ class FileManager {
     renderBasicFileInfo(file) {
         return `
             <div class="file-info-section">
-                <h4>Datei-Informationen</h4>
+                <h4>${t('files.fileInformation')}</h4>
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">Größe:</span>
+                        <span class="info-label">${t('files.size')}:</span>
                         <span class="info-value">${formatBytes(file.file_size)}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Typ:</span>
-                        <span class="info-value">${file.file_type || 'Unbekannt'}</span>
+                        <span class="info-label">${t('files.type')}:</span>
+                        <span class="info-value">${file.file_type || t('common.unknown')}</span>
                     </div>
                     ${file.printer_name ? `
                         <div class="info-item">
-                            <span class="info-label">Drucker:</span>
+                            <span class="info-label">${t('files.printer')}:</span>
                             <span class="info-value">${escapeHtml(file.printer_name)}</span>
                         </div>
                     ` : ''}
                     ${file.created_at ? `
                         <div class="info-item">
-                            <span class="info-label">Erstellt:</span>
+                            <span class="info-label">${t('files.created')}:</span>
                             <span class="info-value">${formatDateTime(file.created_at)}</span>
                         </div>
                     ` : ''}
                     ${file.modified_time ? `
                         <div class="info-item">
-                            <span class="info-label">Geändert:</span>
+                            <span class="info-label">${t('files.modified')}:</span>
                             <span class="info-value">${formatDateTime(file.modified_time)}</span>
                         </div>
                     ` : ''}
@@ -851,9 +852,9 @@ class FileManager {
         if (!metadata || Object.keys(metadata).length === 0) {
             return `
                 <div class="metadata-section">
-                    <h4>3D-Modell Informationen</h4>
-                    <p class="no-metadata">Keine Metadaten verfügbar</p>
-                    <small>Metadaten werden beim ersten Laden extrahiert</small>
+                    <h4>${t('files.modelInformation')}</h4>
+                    <p class="no-metadata">${t('files.noMetadata')}</p>
+                    <small>${t('files.metadataExtractHint')}</small>
                 </div>
             `;
         }
@@ -863,35 +864,35 @@ class FileManager {
         // Print settings
         if (metadata.layer_height) {
             metadataItems.push({
-                label: 'Schichthöhe',
+                label: t('files.layerHeight'),
                 value: `${metadata.layer_height} mm`
             });
         }
         
         if (metadata.infill_density) {
             metadataItems.push({
-                label: 'Füllung',
+                label: t('files.infill'),
                 value: `${metadata.infill_density}%`
             });
         }
         
         if (metadata.print_speed) {
             metadataItems.push({
-                label: 'Druckgeschwindigkeit',
+                label: t('files.printSpeed'),
                 value: `${metadata.print_speed} mm/s`
             });
         }
         
         if (metadata.nozzle_temperature) {
             metadataItems.push({
-                label: 'Düsentemperatur',
+                label: t('files.nozzleTemp'),
                 value: `${metadata.nozzle_temperature}°C`
             });
         }
         
         if (metadata.bed_temperature) {
             metadataItems.push({
-                label: 'Betttemperatur',
+                label: t('files.bedTemp'),
                 value: `${metadata.bed_temperature}°C`
             });
         }
@@ -899,14 +900,14 @@ class FileManager {
         // Time and material estimates
         if (metadata.estimated_print_time) {
             metadataItems.push({
-                label: 'Geschätzte Druckzeit',
+                label: t('files.estimatedPrintTime'),
                 value: formatDuration(metadata.estimated_print_time)
             });
         }
         
         if (metadata.filament_used) {
             metadataItems.push({
-                label: 'Filament verbraucht',
+                label: t('files.filamentUsed'),
                 value: `${metadata.filament_used} g`
             });
         }
@@ -914,7 +915,7 @@ class FileManager {
         // Model dimensions
         if (metadata.model_width && metadata.model_depth && metadata.model_height) {
             metadataItems.push({
-                label: 'Modellgröße',
+                label: t('files.modelSize'),
                 value: `${metadata.model_width} × ${metadata.model_depth} × ${metadata.model_height} mm`
             });
         }
@@ -929,7 +930,7 @@ class FileManager {
         
         return `
             <div class="metadata-section">
-                <h4>3D-Modell Informationen</h4>
+                <h4>${t('files.modelInformation')}</h4>
                 ${metadataItems.length > 0 ? `
                     <div class="info-grid">
                         ${metadataItems.map(item => `
@@ -940,7 +941,7 @@ class FileManager {
                         `).join('')}
                     </div>
                 ` : `
-                    <p class="no-metadata">Keine Metadaten verfügbar</p>
+                    <p class="no-metadata">${t('files.noMetadata')}</p>
                 `}
             </div>
         `;
@@ -953,15 +954,15 @@ class FileManager {
         return `
             <div class="preview-error">
                 <div class="error-icon">⚠️</div>
-                <h3>Fehler beim Laden der Vorschau</h3>
-                <p>Die Vorschau für "${escapeHtml(fileItem.file.filename)}" konnte nicht geladen werden.</p>
+                <h3>${t('files.previewLoadError')}</h3>
+                <p>${t('files.previewLoadErrorMessage', { name: escapeHtml(fileItem.file.filename) })}</p>
                 <details>
-                    <summary>Fehlerdetails</summary>
+                    <summary>${t('files.errorDetails')}</summary>
                     <pre>${escapeHtml(error.toString())}</pre>
                 </details>
                 <div class="preview-actions">
                     <button class="btn btn-secondary" onclick="closeModal('filePreviewModal')">
-                        Schließen
+                        ${t('common.close')}
                     </button>
                 </div>
             </div>
@@ -969,17 +970,17 @@ class FileManager {
     }
 
     /**
-     * Open local file
+     * Open local file (delegates to the global browser-download helper)
      */
     openLocalFile(fileId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Lokale Datei-Anzeige wird in Phase 2 implementiert');
+        window.openLocalFile(fileId);
     }
 
     /**
-     * Upload file to printer
+     * Upload file to printer (delegates to the global helper)
      */
     uploadToPrinter(fileId) {
-        showToast('info', 'Funktion nicht verfügbar', 'Upload zu Drucker wird in Phase 2 implementiert');
+        window.uploadFileToPrinter(fileId);
     }
 
     /**
@@ -989,12 +990,12 @@ class FileManager {
         const fileItem = this.files.get(fileId);
         if (!fileItem) return;
         
-        const confirmed = confirm(`Möchten Sie die lokale Datei "${fileItem.file.filename}" wirklich löschen?`);
+        const confirmed = confirm(t('files.deleteLocalConfirm', { name: fileItem.file.filename }));
         if (!confirmed) return;
-        
+
         try {
             await api.deleteFile(fileId);
-            showToast('success', 'Erfolg', 'Lokale Datei wurde gelöscht');
+            showToast('success', t('common.success'), t('files.localFileDeleted'));
             
             // Update file item
             fileItem.file.status = 'available';
@@ -1006,8 +1007,8 @@ class FileManager {
             
         } catch (error) {
             Logger.error('Failed to delete local file:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Löschen der lokalen Datei';
-            showToast('error', 'Fehler', message);
+            const message = error instanceof ApiError ? error.getUserMessage() : t('files.deleteLocalError');
+            showToast('error', t('common.error'), message);
         }
     }
 
@@ -1016,25 +1017,26 @@ class FileManager {
      */
     async showCleanupCandidates() {
         try {
-            const candidates = await api.getCleanupCandidates({
-                older_than_days: 30,
-                min_size_mb: 1,
-                unused_only: true
+            const response = await api.getCleanupCandidates({
+                deleted_days: 30,
+                failed_days: 7
             });
-            
-            if (candidates.cleanup_candidates && candidates.cleanup_candidates.length > 0) {
-                const message = `
-                    ${candidates.total_candidates} Dateien können bereinigt werden
-                    Speicherplatz-Ersparnis: ${candidates.total_space_savings_mb} MB
-                `;
-                showToast('info', 'Bereinigung möglich', message);
+            const result = response?.data || response;
+
+            if (result.total_candidates > 0) {
+                const message = t('files.cleanupCandidates', {
+                    count: result.total_candidates,
+                    deleted: result.candidates.old_deleted,
+                    failed: result.candidates.failed_downloads
+                });
+                showToast('info', t('files.cleanupPossible'), message);
             } else {
-                showToast('info', 'Bereinigung', 'Keine Dateien zur Bereinigung gefunden');
+                showToast('info', t('files.cleanup'), t('files.noCleanupCandidates'));
             }
-            
+
         } catch (error) {
             Logger.error('Failed to load cleanup candidates:', error);
-            showToast('error', 'Fehler', 'Bereinigungs-Kandidaten konnten nicht geladen werden');
+            showToast('error', t('common.error'), t('files.cleanupLoadError'));
         }
     }
 
@@ -1080,19 +1082,19 @@ class FileManager {
             return `
                 <div class="empty-state">
                     <div class="empty-state-icon">📂</div>
-                    <h3>Keine überwachten Verzeichnisse</h3>
-                    <p>Fügen Sie Verzeichnisse hinzu, um automatisch neue 3D-Dateien zu erkennen.</p>
+                    <h3>${t('files.noWatchFolders')}</h3>
+                    <p>${t('files.watchFoldersHint')}</p>
                     <button class="btn btn-primary" onclick="showAddWatchFolderDialog()">
                         <span class="btn-icon">📂</span>
-                        Erstes Verzeichnis hinzufügen
+                        ${t('files.addFirstFolder')}
                     </button>
                 </div>
             `;
         }
 
-        const statusBadge = isRunning 
-            ? '<span class="badge badge-success">Aktiv</span>'
-            : '<span class="badge badge-danger">Inaktiv</span>';
+        const statusBadge = isRunning
+            ? `<span class="badge badge-success">${t('files.active')}</span>`
+            : `<span class="badge badge-danger">${t('files.inactive')}</span>`;
 
         const settingsInfo = `
             <div class="watch-folders-info">
@@ -1100,13 +1102,13 @@ class FileManager {
                     <strong>Status:</strong> ${statusBadge}
                 </div>
                 <div class="info-item">
-                    <strong>Überwachung:</strong> ${isEnabled ? 'Aktiviert' : 'Deaktiviert'}
+                    <strong>${t('files.monitoring')}:</strong> ${isEnabled ? t('files.enabled') : t('files.disabled')}
                 </div>
                 <div class="info-item">
-                    <strong>Rekursiv:</strong> ${isRecursive ? 'Ja' : 'Nein'}
+                    <strong>${t('files.recursive')}:</strong> ${isRecursive ? t('common.yes') : t('common.no')}
                 </div>
                 <div class="info-item">
-                    <strong>Lokale Dateien:</strong> ${status.local_files_count || 0}
+                    <strong>${t('files.localFiles')}:</strong> ${status.local_files_count || 0}
                 </div>
             </div>
         `;
@@ -1116,17 +1118,17 @@ class FileManager {
                 ${watchFolders.map(folder => {
                     const folderPath = typeof folder === 'string' ? folder : folder.folder_path;
                     const isActive = typeof folder === 'object' ? folder.is_active : true;
-                    const statusBadge = isActive 
-                        ? '<span class="status-badge active">Aktiv</span>'
-                        : '<span class="status-badge inactive">Inaktiv</span>';
-                    
+                    const statusBadge = isActive
+                        ? `<span class="status-badge active">${t('files.active')}</span>`
+                        : `<span class="status-badge inactive">${t('files.inactive')}</span>`;
+
                     const toggleButton = isActive
-                        ? `<button class="btn btn-warning btn-sm" onclick="deactivateWatchFolder('${escapeHtml(folderPath)}')" 
-                               title="Verzeichnis deaktivieren">
+                        ? `<button class="btn btn-warning btn-sm" onclick="deactivateWatchFolder('${escapeHtml(folderPath)}')"
+                               title="${t('files.deactivateFolder')}">
                                <span class="btn-icon">⏸️</span>
                            </button>`
-                        : `<button class="btn btn-success btn-sm" onclick="activateWatchFolder('${escapeHtml(folderPath)}')" 
-                               title="Verzeichnis aktivieren">
+                        : `<button class="btn btn-success btn-sm" onclick="activateWatchFolder('${escapeHtml(folderPath)}')"
+                               title="${t('files.activateFolder')}">
                                <span class="btn-icon">▶️</span>
                            </button>`;
                     
@@ -1139,8 +1141,8 @@ class FileManager {
                             </div>
                             <div class="folder-actions">
                                 ${toggleButton}
-                                <button class="btn btn-danger btn-sm" onclick="removeWatchFolder('${escapeHtml(folderPath)}')" 
-                                        title="Verzeichnis entfernen">
+                                <button class="btn btn-danger btn-sm" onclick="removeWatchFolder('${escapeHtml(folderPath)}')"
+                                        title="${t('files.removeFolder')}">
                                     <span class="btn-icon">🗑️</span>
                                 </button>
                             </div>
@@ -1157,16 +1159,16 @@ class FileManager {
      * Render watch folders error state
      */
     renderWatchFoldersError(error) {
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Laden der überwachten Verzeichnisse';
-        
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.watchFoldersLoadError');
+
         return `
             <div class="empty-state">
                 <div class="empty-state-icon">⚠️</div>
-                <h3>Ladefehler</h3>
+                <h3>${t('files.loadErrorTitle')}</h3>
                 <p>${escapeHtml(message)}</p>
                 <button class="btn btn-primary" onclick="fileManager.loadWatchFolders()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -1198,7 +1200,7 @@ class FileManager {
                 container.innerHTML = `
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade entdeckte Dateien...</p>
+                        <p>${t('files.loadingDiscovered')}</p>
                     </div>
                 `;
             }
@@ -1216,8 +1218,8 @@ class FileManager {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">📂</div>
-                        <h3>Keine Dateien entdeckt</h3>
-                        <p>Keine Dateien in den überwachten Verzeichnissen gefunden.</p>
+                        <h3>${t('files.noFilesDiscovered')}</h3>
+                        <p>${t('files.noFilesInWatchFolders')}</p>
                     </div>
                 `;
                 return;
@@ -1231,11 +1233,11 @@ class FileManager {
             container.innerHTML = `
                 <div class="error-state">
                     <div class="error-icon">⚠️</div>
-                    <h3>Fehler beim Laden</h3>
-                    <p>Entdeckte Dateien konnten nicht geladen werden.</p>
+                    <h3>${t('files.loadingFailed')}</h3>
+                    <p>${t('files.discoveredLoadError')}</p>
                     <button class="btn btn-secondary" onclick="fileManager.loadDiscoveredFiles()">
                         <span class="btn-icon">🔄</span>
-                        Erneut versuchen
+                        ${t('common.retry')}
                     </button>
                 </div>
             `;
@@ -1253,18 +1255,18 @@ class FileManager {
         const paginationHtml = pagination && pagination.total_pages > 1 ? `
             <div class="discovered-files-pagination">
                 <div class="pagination-info">
-                    Seite ${pagination.page} von ${pagination.total_pages} (${totalItems} Dateien insgesamt)
+                    ${t('files.pageInfo', { page: pagination.page, total: pagination.total_pages, count: totalItems })}
                 </div>
                 <div class="pagination-controls">
                     ${pagination.page > 1 ? `
                         <button class="btn btn-small btn-secondary" onclick="fileManager.loadDiscoveredFiles(${pagination.page - 1})">
                             <span class="btn-icon">◀</span>
-                            Zurück
+                            ${t('common.back')}
                         </button>
                     ` : ''}
                     ${pagination.page < pagination.total_pages ? `
                         <button class="btn btn-small btn-secondary" onclick="fileManager.loadDiscoveredFiles(${pagination.page + 1})">
-                            Weiter
+                            ${t('common.next')}
                             <span class="btn-icon">▶</span>
                         </button>
                     ` : ''}
@@ -1277,15 +1279,15 @@ class FileManager {
                 <div class="summary-stats">
                     <div class="stat-item">
                         <span class="stat-value">${totalItems}</span>
-                        <span class="stat-label">Dateien gesamt</span>
+                        <span class="stat-label">${t('files.totalFiles')}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-value">${currentPageSize}</span>
-                        <span class="stat-label">Auf dieser Seite</span>
+                        <span class="stat-label">${t('files.onThisPage')}</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-value">${formatBytes(totalSize)}</span>
-                        <span class="stat-label">Größe (Seite)</span>
+                        <span class="stat-label">${t('files.sizePage')}</span>
                     </div>
                 </div>
             </div>
@@ -1296,12 +1298,12 @@ class FileManager {
                 <table class="files-table">
                     <thead>
                         <tr>
-                            <th>📄 Dateiname</th>
-                            <th>📐 Größe</th>
-                            <th>📁 Quelle</th>
-                            <th>📁 Verzeichnis</th>
-                            <th>📅 Geändert</th>
-                            <th>🔧 Aktionen</th>
+                            <th>📄 ${t('files.filename')}</th>
+                            <th>📐 ${t('files.size')}</th>
+                            <th>📁 ${t('files.source')}</th>
+                            <th>📁 ${t('files.folder')}</th>
+                            <th>📅 ${t('files.modified')}</th>
+                            <th>🔧 ${t('files.actions')}</th>
                         </tr>
                     </thead>
                     <tbody>

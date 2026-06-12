@@ -202,7 +202,7 @@ class OrdersManager {
     async submitCreateOrder() {
         const title = document.getElementById('orderTitle').value.trim();
         if (!title) {
-            showToast('error', 'Error', 'Title is required');
+            showToast('error', t('common.error'), t('orders.titleRequired'));
             return;
         }
 
@@ -237,11 +237,11 @@ class OrdersManager {
             }
 
             closeModal('createOrderModal');
-            showToast('success', 'Order Created', `Order "${title}" created`);
+            showToast('success', t('orders.createdTitle'), t('orders.createdMessage', { title }));
             await this.load();
         } catch (error) {
             Logger.error('Failed to create order:', error);
-            showToast('error', 'Error', 'Failed to create order');
+            showToast('error', t('common.error'), t('orders.createFailed'));
         }
     }
 
@@ -276,15 +276,15 @@ class OrdersManager {
     }
 
     showCreateCustomerModal() {
-        const name = prompt('Customer name:');
+        const name = prompt(t('orders.promptCustomerName'));
         if (!name) return;
-        const email = prompt('Email (optional):') || null;
-        const phone = prompt('Phone (optional):') || null;
+        const email = prompt(t('orders.promptEmail')) || null;
+        const phone = prompt(t('orders.promptPhone')) || null;
         this.createCustomer({ name, email, phone });
     }
 
     showCreateSourceModal() {
-        const name = prompt('Source name (e.g. "Instagram DM"):');
+        const name = prompt(t('orders.promptSourceName'));
         if (!name) return;
         this.createSource({ name });
     }
@@ -347,7 +347,7 @@ class OrdersManager {
             showModal('orderDetailModal');
         } catch (error) {
             Logger.error('Failed to load order detail:', error);
-            showToast('error', 'Error', 'Failed to load order details');
+            showToast('error', t('common.error'), t('orders.detailLoadFailed'));
         }
     }
 
@@ -363,18 +363,18 @@ class OrdersManager {
                 body: JSON.stringify({ status: nextStatus })
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Updated', `Order marked as ${nextStatus}`);
+            showToast('success', t('orders.updatedTitle'), t('orders.markedAs', { status: nextStatus }));
             closeModal('orderDetailModal');
             await this.load();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to update order status');
+            showToast('error', t('common.error'), t('orders.statusUpdateFailed'));
         }
     }
 
     async cancelOrder() {
         const order = this._currentOrderDetail;
         if (!order) return;
-        if (!confirm('Cancel this order?')) return;
+        if (!confirm(t('orders.confirmCancel'))) return;
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${order.id}`, {
                 method: 'PUT',
@@ -382,11 +382,11 @@ class OrdersManager {
                 body: JSON.stringify({ status: 'cancelled' })
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Cancelled', 'Order cancelled');
+            showToast('success', t('orders.cancelledTitle'), t('orders.cancelled'));
             closeModal('orderDetailModal');
             await this.load();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to cancel order');
+            showToast('error', t('common.error'), t('orders.cancelFailed'));
         }
     }
 
@@ -394,10 +394,10 @@ class OrdersManager {
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Unlinked', 'Job unlinked from order');
+            showToast('success', t('orders.unlinkedTitle'), t('orders.jobUnlinked'));
             await this.showOrderDetail(orderId);
         } catch (error) {
-            showToast('error', 'Error', 'Failed to unlink job');
+            showToast('error', t('common.error'), t('orders.unlinkFailed'));
         }
     }
 
@@ -405,24 +405,24 @@ class OrdersManager {
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Removed', 'File detached from order');
+            showToast('success', t('orders.removedTitle'), t('orders.fileDetached'));
             await this.showOrderDetail(orderId);
         } catch (error) {
-            showToast('error', 'Error', 'Failed to detach file');
+            showToast('error', t('common.error'), t('orders.detachFailed'));
         }
     }
 
     // ---- CRUD operations ----
 
     async deleteOrder(orderId) {
-        if (!confirm('Delete this order? Linked jobs will be unlinked.')) return;
+        if (!confirm(t('orders.confirmDelete'))) return;
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Deleted', 'Order deleted');
+            showToast('success', t('orders.deletedTitle'), t('orders.deleted'));
             await this.load();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to delete order');
+            showToast('error', t('common.error'), t('orders.deleteFailed'));
         }
     }
 
@@ -434,22 +434,22 @@ class OrdersManager {
                 body: JSON.stringify(data)
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Customer Created', `Customer "${data.name}" created`);
+            showToast('success', t('orders.customerCreatedTitle'), t('orders.customerCreated', { name: data.name }));
             await this.loadCustomers();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to create customer');
+            showToast('error', t('common.error'), t('orders.customerCreateFailed'));
         }
     }
 
     async deleteCustomer(customerId) {
-        if (!confirm('Delete this customer? Their orders will be kept but unlinked.')) return;
+        if (!confirm(t('orders.confirmDeleteCustomer'))) return;
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/customers/${customerId}`, { method: 'DELETE' });
             if (response.status === 404) throw new Error('Not found');
-            showToast('success', 'Deleted', 'Customer deleted');
+            showToast('success', t('orders.deletedTitle'), t('orders.customerDeleted'));
             await this.loadCustomers();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to delete customer');
+            showToast('error', t('common.error'), t('orders.customerDeleteFailed'));
         }
     }
 
@@ -461,10 +461,10 @@ class OrdersManager {
                 body: JSON.stringify(data)
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Source Created', `Source "${data.name}" created`);
+            showToast('success', t('orders.sourceCreatedTitle'), t('orders.sourceCreated', { name: data.name }));
             await this.loadSources();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to create source');
+            showToast('error', t('common.error'), t('orders.sourceCreateFailed'));
         }
     }
 
@@ -478,23 +478,23 @@ class OrdersManager {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             await this.loadSources();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to update source');
+            showToast('error', t('common.error'), t('orders.sourceUpdateFailed'));
         }
     }
 
     async deleteSource(sourceId) {
-        if (!confirm('Delete this source?')) return;
+        if (!confirm(t('orders.confirmDeleteSource'))) return;
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/order-sources/${sourceId}`, { method: 'DELETE' });
             if (response.status === 409) {
-                showToast('error', 'Cannot Delete', 'Source is used by existing orders');
+                showToast('error', t('orders.cannotDeleteTitle'), t('orders.sourceInUse'));
                 return;
             }
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Deleted', 'Source deleted');
+            showToast('success', t('orders.deletedTitle'), t('orders.sourceDeleted'));
             await this.loadSources();
         } catch (error) {
-            showToast('error', 'Error', 'Failed to delete source');
+            showToast('error', t('common.error'), t('orders.sourceDeleteFailed'));
         }
     }
 
@@ -502,9 +502,9 @@ class OrdersManager {
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/jobs/${jobId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Unlinked', 'Job unlinked from order');
+            showToast('success', t('orders.unlinkedTitle'), t('orders.jobUnlinked'));
         } catch (error) {
-            showToast('error', 'Error', 'Failed to unlink job');
+            showToast('error', t('common.error'), t('orders.unlinkFailed'));
         }
     }
 
@@ -512,9 +512,9 @@ class OrdersManager {
         try {
             const response = await fetch(`${CONFIG.API_BASE_URL}/orders/${orderId}/files/${orderFileId}`, { method: 'DELETE' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            showToast('success', 'Removed', 'File detached from order');
+            showToast('success', t('orders.removedTitle'), t('orders.fileDetached'));
         } catch (error) {
-            showToast('error', 'Error', 'Failed to detach file');
+            showToast('error', t('common.error'), t('orders.detachFailed'));
         }
     }
 

@@ -92,7 +92,7 @@ class TimelapseManager {
             Logger.error('Failed to load timelapses:', error);
             const timelapsesList = document.getElementById('timelapsesList');
             if (timelapsesList) {
-                timelapsesList.innerHTML = '<div class="error-message">Fehler beim Laden der Zeitraffer-Videos</div>';
+                timelapsesList.innerHTML = `<div class="error-message">${t('timelapses.loadFailed')}</div>`;
             }
         }
     }
@@ -224,12 +224,12 @@ class TimelapseManager {
     async triggerProcessing(timelapseId) {
         try {
             await api.triggerTimelapseProcessing(timelapseId);
-            showToast('Verarbeitung gestartet', 'success');
+            showToast(t('timelapses.processingStarted'), 'success');
             this.loadTimelapses();
             this.loadStats();
         } catch (error) {
             Logger.error('Failed to trigger processing:', error);
-            showToast('Fehler beim Starten der Verarbeitung', 'error');
+            showToast(t('timelapses.processingFailed'), 'error');
         }
     }
 
@@ -237,13 +237,13 @@ class TimelapseManager {
      * Delete timelapse
      */
     async deleteTimelapse(timelapseId) {
-        if (!confirm('Möchten Sie dieses Zeitraffer-Video wirklich löschen?')) {
+        if (!confirm(t('timelapses.confirmDelete'))) {
             return;
         }
 
         try {
             await api.deleteTimelapse(timelapseId);
-            showToast('Zeitraffer gelöscht', 'success');
+            showToast(t('timelapses.deleted'), 'success');
 
             // Remove from display
             const card = this.timelapses.get(timelapseId);
@@ -255,7 +255,7 @@ class TimelapseManager {
             this.loadStats();
         } catch (error) {
             Logger.error('Failed to delete timelapse:', error);
-            showToast('Fehler beim Löschen', 'error');
+            showToast(t('timelapses.deleteFailed'), 'error');
         }
     }
 
@@ -268,7 +268,7 @@ class TimelapseManager {
             this.loadTimelapses();
         } catch (error) {
             Logger.error('Failed to toggle pin:', error);
-            showToast('Fehler beim Ändern des Pin-Status', 'error');
+            showToast(t('timelapses.pinFailed'), 'error');
         }
     }
 
@@ -289,10 +289,10 @@ class TimelapseManager {
         return `
             <div class="empty-state">
                 <div class="empty-icon">🎬</div>
-                <h3>Keine Zeitraffer-Videos</h3>
-                <p>Es wurden noch keine Zeitraffer-Videos gefunden.</p>
+                <h3>${t('timelapses.noneTitle')}</h3>
+                <p>${t('timelapses.noneFound')}</p>
                 <p class="text-muted">
-                    Zeitraffer werden automatisch erkannt, wenn Bilder in konfigurierten Ordnern gefunden werden.
+                    ${t('timelapses.autoDetectHint')}
                 </p>
             </div>
         `;
@@ -360,11 +360,11 @@ class TimelapseCard {
         };
 
         const statusLabels = {
-            'discovered': 'Entdeckt',
-            'pending': 'Wartend',
-            'processing': 'Verarbeitung',
-            'completed': 'Fertig',
-            'failed': 'Fehlgeschlagen'
+            'discovered': t('timelapses.statusDiscovered'),
+            'pending': t('timelapses.statusPending'),
+            'processing': t('timelapses.statusProcessing'),
+            'completed': t('timelapses.statusCompleted'),
+            'failed': t('status.job.failed')
         };
 
         const icon = statusIcons[this.timelapse.status] || '❓';
@@ -392,7 +392,7 @@ class TimelapseCard {
             return `
                 <div class="card-thumbnail placeholder-thumbnail">
                     <div class="thumbnail-icon">🎬</div>
-                    <div class="thumbnail-text">${this.timelapse.image_count || 0} Bilder</div>
+                    <div class="thumbnail-text">${t('timelapses.imageCount', { count: this.timelapse.image_count || 0 })}</div>
                 </div>
             `;
         }
@@ -406,7 +406,7 @@ class TimelapseCard {
 
         // Image count
         if (this.timelapse.image_count) {
-            parts.push(`<span>📷 ${this.timelapse.image_count} Bilder</span>`);
+            parts.push(`<span>📷 ${t('timelapses.imageCount', { count: this.timelapse.image_count })}</span>`);
         }
 
         // File size
@@ -423,7 +423,7 @@ class TimelapseCard {
 
         // Pinned status
         if (this.timelapse.pinned) {
-            parts.push(`<span>📌 Angepinnt</span>`);
+            parts.push(`<span>📌 ${t('timelapses.pinned')}</span>`);
         }
 
         // Error message
@@ -444,7 +444,7 @@ class TimelapseCard {
         if (this.timelapse.status === 'completed') {
             buttons.push(`
                 <button class="btn btn-primary btn-sm" onclick="timelapseManager.playVideo(${JSON.stringify(this.timelapse).replace(/"/g, '&quot;')})">
-                    ▶️ Abspielen
+                    ▶️ ${t('timelapses.play')}
                 </button>
             `);
         }
@@ -453,14 +453,14 @@ class TimelapseCard {
         if (this.timelapse.status === 'discovered' || this.timelapse.status === 'failed') {
             buttons.push(`
                 <button class="btn btn-secondary btn-sm" onclick="timelapseManager.triggerProcessing('${this.timelapse.id}')">
-                    ⚙️ Verarbeiten
+                    ⚙️ ${t('timelapses.process')}
                 </button>
             `);
         }
 
         // Pin/Unpin button
         const pinIcon = this.timelapse.pinned ? '📍' : '📌';
-        const pinLabel = this.timelapse.pinned ? 'Lösen' : 'Anpinnen';
+        const pinLabel = this.timelapse.pinned ? t('timelapses.unpin') : t('timelapses.pin');
         buttons.push(`
             <button class="btn btn-secondary btn-sm" onclick="timelapseManager.togglePin('${this.timelapse.id}')">
                 ${pinIcon} ${pinLabel}
@@ -470,7 +470,7 @@ class TimelapseCard {
         // Delete button
         buttons.push(`
             <button class="btn btn-danger btn-sm" onclick="timelapseManager.deleteTimelapse('${this.timelapse.id}')">
-                🗑️ Löschen
+                🗑️ ${t('common.delete')}
             </button>
         `);
 
@@ -500,7 +500,7 @@ class TimelapseCard {
      * Format date
      */
     formatDate(date) {
-        return date.toLocaleDateString('de-DE', {
+        return date.toLocaleDateString(getIntlLocale(), {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric'
@@ -539,23 +539,23 @@ class VideoPlayerModal {
                 <div class="modal-backdrop" onclick="videoPlayerModal.hide()"></div>
                 <div class="modal-content modal-video">
                     <div class="modal-header">
-                        <h2 id="videoPlayerTitle">Zeitraffer-Video</h2>
+                        <h2 id="videoPlayerTitle">${t('timelapses.videoTitle')}</h2>
                         <button class="modal-close" onclick="videoPlayerModal.hide()">✕</button>
                     </div>
                     <div class="modal-body">
                         <div class="video-player-container">
                             <video id="videoPlayer" controls autoplay>
-                                Ihr Browser unterstützt keine HTML5 Videos.
+                                ${t('timelapses.noHtml5')}
                             </video>
                         </div>
                         <div id="videoPlayerMetadata" class="video-metadata"></div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" id="downloadVideoBtn">
-                            💾 Herunterladen
+                            💾 ${t('common.download')}
                         </button>
                         <button class="btn btn-secondary" onclick="videoPlayerModal.hide()">
-                            Schließen
+                            ${t('common.close')}
                         </button>
                     </div>
                 </div>
@@ -579,7 +579,7 @@ class VideoPlayerModal {
         // Set video source
         if (timelapse.output_video_path) {
             // Build video URL
-            const videoUrl = `/api/v1/timelapses/${timelapse.id}/video`;
+            const videoUrl = `${CONFIG.API_BASE_URL}/timelapses/${timelapse.id}/video`;
             this.video.src = videoUrl;
         }
 
@@ -622,26 +622,26 @@ class VideoPlayerModal {
         const metadata = [];
 
         if (timelapse.image_count) {
-            metadata.push(`<div class="metadata-item"><strong>Bilder:</strong> ${timelapse.image_count}</div>`);
+            metadata.push(`<div class="metadata-item"><strong>${t('timelapses.images')}:</strong> ${timelapse.image_count}</div>`);
         }
 
         if (timelapse.video_duration) {
             const duration = this.formatDuration(timelapse.video_duration);
-            metadata.push(`<div class="metadata-item"><strong>Dauer:</strong> ${duration}</div>`);
+            metadata.push(`<div class="metadata-item"><strong>${t('timelapses.duration')}:</strong> ${duration}</div>`);
         }
 
         if (timelapse.file_size_bytes) {
             const sizeMB = (timelapse.file_size_bytes / (1024 * 1024)).toFixed(1);
-            metadata.push(`<div class="metadata-item"><strong>Größe:</strong> ${sizeMB} MB</div>`);
+            metadata.push(`<div class="metadata-item"><strong>${t('timelapses.size')}:</strong> ${sizeMB} MB</div>`);
         }
 
         if (timelapse.created_at) {
             const date = new Date(timelapse.created_at);
-            metadata.push(`<div class="metadata-item"><strong>Erstellt:</strong> ${date.toLocaleString('de-DE')}</div>`);
+            metadata.push(`<div class="metadata-item"><strong>${t('timelapses.createdAt')}:</strong> ${date.toLocaleString(getIntlLocale())}</div>`);
         }
 
         if (timelapse.job_id) {
-            metadata.push(`<div class="metadata-item"><strong>Verknüpft:</strong> <a href="#jobs/${sanitizeAttribute(timelapse.job_id)}">Auftrag anzeigen</a></div>`);
+            metadata.push(`<div class="metadata-item"><strong>${t('timelapses.linked')}:</strong> <a href="#jobs/${sanitizeAttribute(timelapse.job_id)}">${t('timelapses.viewJob')}</a></div>`);
         }
 
         document.getElementById('videoPlayerMetadata').innerHTML = metadata.join('');
@@ -652,7 +652,7 @@ class VideoPlayerModal {
      */
     downloadVideo() {
         if (this.timelapse && this.timelapse.id) {
-            const downloadUrl = `/api/v1/timelapses/${this.timelapse.id}/video?download=true`;
+            const downloadUrl = `${CONFIG.API_BASE_URL}/timelapses/${this.timelapse.id}/video?download=true`;
             window.open(downloadUrl, '_blank');
         }
     }

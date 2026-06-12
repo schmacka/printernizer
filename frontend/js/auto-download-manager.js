@@ -205,6 +205,18 @@ class AutoDownloadManager {
     }
 
     /**
+     * Retry a failed task in the download or thumbnail queue
+     */
+    retryTask(type, taskId) {
+        const queue = type === 'thumbnail' ? this.thumbnailQueue : this.downloadQueue;
+        const success = queue.retryTask(taskId);
+        if (success) {
+            this.logger.log('system', `Manually retried ${type} task ${taskId}`);
+        }
+        return success;
+    }
+
+    /**
      * Update system status in UI
      */
     updateSystemStatus() {
