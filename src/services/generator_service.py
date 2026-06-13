@@ -62,15 +62,36 @@ class GeneratorService:
         self.templates_dir = Path(__file__).parent.parent / "scad_templates"
 
         self._templates: Dict[str, ScadTemplate] = {}
+        self._dirs_ready = False
 
     async def initialize(self) -> None:
-        """Create working directories and load bundled templates."""
-        for folder in (self.output_dir, self.uploads_dir, self.renders_dir):
-            folder.mkdir(parents=True, exist_ok=True)
+        """
+        Load bundled templates and prepare working directories.
+
+        Directory creation is best-effort: the generator is an optional feature,
+        so a non-writable output directory must never crash application startup.
+        Directories are (re)created lazily when a render or upload runs.
+        """
+        self._ensure_dirs()
         self._load_templates()
         logger.info("Generator service initialized",
                     templates=len(self._templates),
+                    output_dir=str(self.output_dir),
+                    output_writable=self._dirs_ready,
                     openscad_available=self.openscad.available)
+
+    def _ensure_dirs(self) -> bool:
+        """Create the working directories if possible. Returns success."""
+        try:
+            for folder in (self.output_dir, self.uploads_dir, self.renders_dir):
+                folder.mkdir(parents=True, exist_ok=True)
+            self._dirs_ready = True
+        except OSError as e:
+            self._dirs_ready = False
+            logger.warning("Generator output directory is not writable; "
+                           "rendering/upload will be unavailable",
+                           output_dir=str(self.output_dir), error=str(e))
+        return self._dirs_ready
 
     # ---- Status ------------------------------------------------------------
 
@@ -123,6 +144,8 @@ class GeneratorService:
 
     def store_upload(self, source: str, filename: Optional[str] = None) -> ScadTemplate:
         """Persist an uploaded .scad source and return it as a template."""
+        if not self._ensure_dirs():
+            raise OpenSCADRenderError("Generator storage is not available")
         upload_id = uuid.uuid4().hex[:12]
         path = self.uploads_dir / f"{upload_id}.scad"
         path.write_text(source, encoding="utf-8")
@@ -156,6 +179,8 @@ class GeneratorService:
     async def render(self, source_ref: str, parameters: Dict[str, Any],
                      fmt: str = "stl") -> RenderResult:
         """Render a template/upload to STL or PNG and record the artifact."""
+        if not self._ensure_dirs():
+            raise OpenSCADRenderError("Generator storage is not available")
         source, default_camera = self._resolve_source(source_ref)
         render_id = uuid.uuid4().hex[:16]
         work_dir = self.renders_dir / render_id
