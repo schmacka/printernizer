@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.32.0] - 2026-06-13
+
 ### Added
 - OpenSCAD model generator module: a new **Generator** page that renders parametric OpenSCAD models to STL with an interactive 3D viewer (three.js) and PNG preview.
   - Ships with bundled parametric generators (vase, box) exposing sliders, dropdowns and toggles auto-discovered from the OpenSCAD Customizer syntax.
