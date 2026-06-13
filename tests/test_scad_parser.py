@@ -116,6 +116,24 @@ def test_ignores_includes():
     assert list(params.keys()) == ["height"]
 
 
+def test_assignment_without_spaces():
+    params = _by_name(parse_parameters('style="smooth"; // [smooth, faceted]'))
+    p = params["style"]
+    assert p.type == ScadParameterType.ENUM
+    assert p.options == ["smooth", "faceted"]
+
+
+def test_redos_inputs_return_quickly():
+    import time
+    for evil in ("A=" + " " * 30000 + ";",
+                 "/*[" + "a" * 30000,
+                 "/*" + "a/*" * 15000,
+                 "[" + "a" * 30000):
+        start = time.time()
+        parse_parameters(evil)
+        assert time.time() - start < 1.0
+
+
 def test_block_comment_braces_ignored():
     src = """
 /* a comment with { braces } that should not change depth */

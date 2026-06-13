@@ -207,8 +207,13 @@ class GeneratorService:
             raise OpenSCADRenderError("No STL artifact to save", details={"render_id": render_id})
 
         name = display_name or f"{render['source_ref']}_{render_id[:8]}"
-        named_path = Path(model_path).parent / f"{_safe_filename(name)}.stl"
-        if named_path != Path(model_path):
+        # _safe_filename strips path separators; resolve + containment check
+        # ensures a crafted display name can never escape the render directory.
+        base_dir = Path(model_path).parent.resolve()
+        named_path = (base_dir / f"{_safe_filename(name)}.stl").resolve()
+        if not named_path.is_relative_to(base_dir):
+            raise OpenSCADRenderError("Invalid output filename", details={"render_id": render_id})
+        if named_path != Path(model_path).resolve():
             shutil.copy2(model_path, named_path)
 
         source_info = {
