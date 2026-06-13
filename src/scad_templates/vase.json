@@ -1,0 +1,6 @@
+{
+  "name": "Parametric Vase",
+  "description": "A round vase with configurable taper, twist, faceting and wall thickness.",
+  "category": "Containers",
+  "default_camera": "0,0,60,60,0,30,420"
+}

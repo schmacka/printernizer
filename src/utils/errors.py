@@ -515,6 +515,74 @@ class LibraryItemNotFoundError(PrinternizerError):
 
 
 # =============================================================================
+# OpenSCAD Generator Errors
+# =============================================================================
+
+class OpenSCADNotAvailableError(PrinternizerError):
+    """OpenSCAD binary is not installed or could not be found."""
+
+    def __init__(self, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize OpenSCADNotAvailableError.
+
+        Args:
+            details: Additional context (e.g. configured path)
+        """
+        super().__init__(
+            message="OpenSCAD is not available. Install OpenSCAD or set OPENSCAD_BINARY_PATH "
+                    "to enable the model generator.",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            error_code="OPENSCAD_NOT_AVAILABLE",
+            details=details or {}
+        )
+
+
+class OpenSCADRenderError(PrinternizerError):
+    """OpenSCAD render operation failed."""
+
+    def __init__(self, reason: str, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize OpenSCADRenderError.
+
+        Args:
+            reason: Failure reason (often captured from OpenSCAD stderr)
+            details: Additional context
+        """
+        error_details = {"reason": reason}
+        if details:
+            error_details.update(details)
+
+        super().__init__(
+            message=f"OpenSCAD render failed: {reason}",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error_code="OPENSCAD_RENDER_FAILED",
+            details=error_details
+        )
+
+
+class GeneratorTemplateNotFoundError(PrinternizerError):
+    """Requested generator template does not exist."""
+
+    def __init__(self, template_id: str, details: Optional[Dict[str, Any]] = None):
+        """
+        Initialize GeneratorTemplateNotFoundError.
+
+        Args:
+            template_id: ID of the template that wasn't found
+            details: Additional context
+        """
+        error_details = {"template_id": template_id}
+        if details:
+            error_details.update(details)
+
+        super().__init__(
+            message=f"Generator template not found: {template_id}",
+            status_code=status.HTTP_404_NOT_FOUND,
+            details=error_details
+        )
+
+
+# =============================================================================
 # General Errors
 # =============================================================================
 

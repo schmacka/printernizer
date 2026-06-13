@@ -10,9 +10,28 @@
     "materials": "Filaments",
     "ideas": "Ideas",
     "tools": "Tools",
+    "generator": "Generator",
     "settings": "Settings",
     "debug": "Debug",
     "connectionStatus": "Connection status"
+  },
+  "generator": {
+    "pageTitle": "Model Generator",
+    "subtitle": "Generate parametric OpenSCAD models, render them and save into the library",
+    "unavailable": "OpenSCAD is not installed. Install OpenSCAD or set OPENSCAD_BINARY_PATH to enable the generator.",
+    "templates": "Templates",
+    "upload": "Upload .scad",
+    "preview": "Preview",
+    "render": "Render (STL)",
+    "saveToLibrary": "Save to library",
+    "selectTemplate": "Select a template to get started.",
+    "rendering": "Rendering…",
+    "loadFailed": "Failed to load templates",
+    "renderFailed": "Render failed",
+    "saved": "Saved to library",
+    "saveFailed": "Save failed",
+    "uploaded": "File uploaded",
+    "viewerUnavailable": "3D viewer unavailable, showing image"
   },
   "common": {
     "save": "Save",
