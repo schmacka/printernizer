@@ -97,6 +97,14 @@ async def test_unsafe_render_id_rejected(service):
         await service.save_to_library("../../etc/passwd")
 
 
+async def test_upload_ref_traversal_rejected(service):
+    import pytest as _pytest
+    from src.utils.errors import GeneratorTemplateNotFoundError
+    # A crafted upload ref must not be able to read files outside uploads_dir.
+    with _pytest.raises(GeneratorTemplateNotFoundError):
+        await service.render("upload:../../etc/passwd", {}, fmt="stl")
+
+
 async def test_presets_roundtrip(service):
     preset = await service.save_preset("vase", "Tall", {"height": 250})
     presets = await service.list_presets("vase")

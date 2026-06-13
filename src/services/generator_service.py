@@ -7,6 +7,7 @@ tracks render artifacts, hands finished models off to the Library, and stores
 named parameter presets.
 """
 import json
+import os
 import re
 import shutil
 import uuid
@@ -138,7 +139,11 @@ class GeneratorService:
     def _resolve_source(self, source_ref: str) -> tuple[str, Optional[str]]:
         """Return (source, default_camera) for a template id or upload ref."""
         if source_ref.startswith(UPLOAD_PREFIX):
-            upload_id = source_ref[len(UPLOAD_PREFIX):]
+            # basename strips any directory components and the alphanumeric check
+            # rejects traversal, so the request value cannot escape uploads_dir.
+            upload_id = os.path.basename(source_ref[len(UPLOAD_PREFIX):])
+            if not re.fullmatch(r"[A-Za-z0-9]+", upload_id):
+                raise GeneratorTemplateNotFoundError(source_ref)
             path = self.uploads_dir / f"{upload_id}.scad"
             if not path.exists():
                 raise GeneratorTemplateNotFoundError(source_ref)
