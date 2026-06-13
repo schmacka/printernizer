@@ -88,6 +88,15 @@ async def test_render_and_save_to_library(service):
     assert service.event_service.emit_event.await_count >= 2
 
 
+async def test_unsafe_render_id_rejected(service):
+    # Path-traversal style ids must never reach the filesystem.
+    assert await service.get_artifact_path("../../etc/passwd", "model") is None
+    import pytest as _pytest
+    from src.utils.errors import GeneratorTemplateNotFoundError
+    with _pytest.raises(GeneratorTemplateNotFoundError):
+        await service.save_to_library("../../etc/passwd")
+
+
 async def test_presets_roundtrip(service):
     preset = await service.save_preset("vase", "Tall", {"height": 250})
     presets = await service.list_presets("vase")

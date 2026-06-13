@@ -7,6 +7,8 @@ tracks render artifacts, hands finished models off to the Library, and stores
 named parameter presets.
 """
 import json
+import os
+import re
 import shutil
 import uuid
 from datetime import datetime
@@ -31,6 +33,15 @@ from src.utils.errors import GeneratorTemplateNotFoundError, OpenSCADRenderError
 logger = structlog.get_logger(__name__)
 
 UPLOAD_PREFIX = "upload:"
+
+# Render/upload ids are server-generated uuid hex tokens. Validating the
+# character set up front prevents any path traversal via these identifiers.
+_SAFE_TOKEN_RE = re.compile(r"[A-Za-z0-9]{1,64}")
+
+
+def _is_safe_token(value: Optional[str]) -> bool:
+    """Return True if value is a safe identifier (alphanumeric, no separators)."""
+    return bool(value) and _SAFE_TOKEN_RE.fullmatch(value) is not None
 
 
 class GeneratorService:
@@ -181,16 +192,31 @@ class GeneratorService:
             preview_url=f"/api/v1/generator/render/{render_id}/preview.png" if fmt == "png" else None,
         )
 
+    def _confined_artifact(self, path_str: Optional[str]) -> Optional[Path]:
+        """
+        Resolve a stored artifact path and confine it to the renders directory.
+
+        Uses realpath + prefix check so a path can never escape the renders
+        root, regardless of how it was stored.
+        """
+        if not path_str:
+            return None
+        renders_root = os.path.realpath(self.renders_dir)
+        candidate = os.path.realpath(path_str)
+        within = candidate == renders_root or candidate.startswith(renders_root + os.sep)
+        if within and os.path.exists(candidate):
+            return Path(candidate)
+        return None
+
     async def get_artifact_path(self, render_id: str, kind: str) -> Optional[Path]:
         """Return the filesystem path to a render artifact ('model' or 'preview')."""
+        if not _is_safe_token(render_id):
+            return None
         render = await self.repo.get_render(render_id)
         if not render:
             return None
         key = "model_path" if kind == "model" else "preview_path"
-        path_str = render.get(key)
-        if path_str and Path(path_str).exists():
-            return Path(path_str)
-        return None
+        return self._confined_artifact(render.get(key))
 
     # ---- Library hand-off --------------------------------------------------
 
@@ -199,22 +225,28 @@ class GeneratorService:
         """Copy a completed STL render into the Library so it can be sliced."""
         if not self.library_service:
             raise OpenSCADRenderError("Library service unavailable")
+        if not _is_safe_token(render_id):
+            raise GeneratorTemplateNotFoundError(render_id)
         render = await self.repo.get_render(render_id)
         if not render:
             raise GeneratorTemplateNotFoundError(render_id)
-        model_path = render.get("model_path")
-        if not model_path or not Path(model_path).exists():
+        # Confine the source artifact to the renders directory before using it.
+        source_path = self._confined_artifact(render.get("model_path"))
+        if source_path is None:
             raise OpenSCADRenderError("No STL artifact to save", details={"render_id": render_id})
 
         name = display_name or f"{render['source_ref']}_{render_id[:8]}"
-        # _safe_filename strips path separators; resolve + containment check
-        # ensures a crafted display name can never escape the render directory.
-        base_dir = Path(model_path).parent.resolve()
-        named_path = (base_dir / f"{_safe_filename(name)}.stl").resolve()
-        if not named_path.is_relative_to(base_dir):
+        # Use only a sanitized basename so user input cannot influence the
+        # directory, then verify the result stays within the renders root.
+        safe_name = os.path.basename(f"{_safe_filename(name)}.stl")
+        renders_root = os.path.realpath(self.renders_dir)
+        named_path = os.path.realpath(os.path.join(str(source_path.parent), safe_name))
+        within = named_path == renders_root or named_path.startswith(renders_root + os.sep)
+        if not within:
             raise OpenSCADRenderError("Invalid output filename", details={"render_id": render_id})
-        if named_path != Path(model_path).resolve():
-            shutil.copy2(model_path, named_path)
+        if named_path != str(source_path):
+            shutil.copy2(str(source_path), named_path)
+        named_path = Path(named_path)
 
         source_info = {
             "type": "upload",
