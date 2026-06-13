@@ -1,0 +1,166 @@
+/* OpenSCAD Generator page styles */
+
+.generator-unavailable {
+    margin: 1rem 0;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border-color, #d0d0d8);
+    border-radius: 8px;
+    background: var(--surface-alt, #f7f7fa);
+    color: var(--text-secondary, #555);
+}
+
+.generator-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.generator-sidebar {
+    position: sticky;
+    top: 1rem;
+}
+
+.generator-section h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+}
+
+.generator-templates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.generator-template-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border-color, #d0d0d8);
+    border-radius: 8px;
+    background: var(--surface, #fff);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.generator-template-card:hover {
+    border-color: var(--primary, #4a9eda);
+}
+
+.generator-template-card.active {
+    border-color: var(--primary, #4a9eda);
+    background: var(--primary-soft, rgba(74, 158, 218, 0.12));
+}
+
+.generator-template-card span {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666);
+}
+
+.generator-upload-btn {
+    width: 100%;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.generator-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.generator-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.generator-fieldset {
+    border: 1px solid var(--border-color, #d0d0d8);
+    border-radius: 8px;
+    padding: 0.75rem 1rem 1rem;
+}
+
+.generator-fieldset legend {
+    padding: 0 0.4rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.generator-field {
+    display: grid;
+    grid-template-columns: 1fr minmax(120px, 200px);
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
+}
+
+.generator-field label {
+    font-size: 0.875rem;
+}
+
+.generator-input {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border-color, #d0d0d8);
+    border-radius: 6px;
+}
+
+.generator-input[type="checkbox"] {
+    width: auto;
+    justify-self: start;
+}
+
+.generator-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.generator-viewer-wrap {
+    position: relative;
+    min-height: 400px;
+    border: 1px solid var(--border-color, #d0d0d8);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #1e1e24;
+}
+
+.generator-viewer {
+    width: 100%;
+    height: 400px;
+}
+
+.generator-preview-image {
+    display: block;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.generator-viewer-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c9c9d4;
+    text-align: center;
+    padding: 1rem;
+    pointer-events: none;
+}
+
+@media (max-width: 900px) {
+    .generator-layout {
+        grid-template-columns: 1fr;
+    }
+    .generator-sidebar {
+        position: static;
+    }
+    .generator-field {
+        grid-template-columns: 1fr;
+        gap: 0.3rem;
+    }
+}

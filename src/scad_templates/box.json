@@ -1,0 +1,6 @@
+{
+  "name": "Parametric Box",
+  "description": "A rectangular box with configurable dimensions, wall thickness and rounded corners.",
+  "category": "Containers",
+  "default_camera": "40,30,20,60,0,30,360"
+}
