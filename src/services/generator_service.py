@@ -7,7 +7,6 @@ tracks render artifacts, hands finished models off to the Library, and stores
 named parameter presets.
 """
 import json
-import os
 import re
 import shutil
 import uuid
@@ -192,31 +191,24 @@ class GeneratorService:
             preview_url=f"/api/v1/generator/render/{render_id}/preview.png" if fmt == "png" else None,
         )
 
-    def _confined_artifact(self, path_str: Optional[str]) -> Optional[Path]:
+    def _artifact_path(self, render_id: str, fmt: str) -> Path:
         """
-        Resolve a stored artifact path and confine it to the renders directory.
+        Build the deterministic artifact path for a render.
 
-        Uses realpath + prefix check so a path can never escape the renders
-        root, regardless of how it was stored.
+        The path is composed only of trusted inputs: the configured renders
+        directory, the validated alphanumeric ``render_id`` token, and a literal
+        filename. No user- or database-supplied path data is involved, so it
+        cannot be used for path traversal.
         """
-        if not path_str:
-            return None
-        renders_root = os.path.realpath(self.renders_dir)
-        candidate = os.path.realpath(path_str)
-        within = candidate == renders_root or candidate.startswith(renders_root + os.sep)
-        if within and os.path.exists(candidate):
-            return Path(candidate)
-        return None
+        filename = "model.stl" if fmt == "stl" else "preview.png"
+        return self.renders_dir / render_id / filename
 
     async def get_artifact_path(self, render_id: str, kind: str) -> Optional[Path]:
         """Return the filesystem path to a render artifact ('model' or 'preview')."""
         if not _is_safe_token(render_id):
             return None
-        render = await self.repo.get_render(render_id)
-        if not render:
-            return None
-        key = "model_path" if kind == "model" else "preview_path"
-        return self._confined_artifact(render.get(key))
+        candidate = self._artifact_path(render_id, "stl" if kind == "model" else "png")
+        return candidate if candidate.exists() else None
 
     # ---- Library hand-off --------------------------------------------------
 
@@ -230,23 +222,14 @@ class GeneratorService:
         render = await self.repo.get_render(render_id)
         if not render:
             raise GeneratorTemplateNotFoundError(render_id)
-        # Confine the source artifact to the renders directory before using it.
-        source_path = self._confined_artifact(render.get("model_path"))
-        if source_path is None:
+        # Deterministic source path (trusted components only).
+        artifact = self._artifact_path(render_id, "stl")
+        if not artifact.exists():
             raise OpenSCADRenderError("No STL artifact to save", details={"render_id": render_id})
 
-        name = display_name or f"{render['source_ref']}_{render_id[:8]}"
-        # Use only a sanitized basename so user input cannot influence the
-        # directory, then verify the result stays within the renders root.
-        safe_name = os.path.basename(f"{_safe_filename(name)}.stl")
-        renders_root = os.path.realpath(self.renders_dir)
-        named_path = os.path.realpath(os.path.join(str(source_path.parent), safe_name))
-        within = named_path == renders_root or named_path.startswith(renders_root + os.sep)
-        if not within:
-            raise OpenSCADRenderError("Invalid output filename", details={"render_id": render_id})
-        if named_path != str(source_path):
-            shutil.copy2(str(source_path), named_path)
-        named_path = Path(named_path)
+        # Stage a copy with a generated name so no user input reaches the path.
+        staged = self.renders_dir / f"library_{uuid.uuid4().hex}.stl"
+        shutil.copy2(artifact, staged)
 
         source_info = {
             "type": "upload",
@@ -254,10 +237,19 @@ class GeneratorService:
             "source_ref": render["source_ref"],
             "parameters": render.get("parameters", {}),
         }
-        return await self.library_service.add_file_to_library(
-            source_path=named_path, source_info=source_info,
-            copy_file=True, calculate_hash=True,
-        )
+        # The user's chosen name is recorded as library metadata only - it never
+        # touches a filesystem path.
+        if display_name:
+            safe_label = _safe_filename(display_name)
+            if safe_label:
+                source_info["display_name"] = f"{safe_label}.stl"
+        try:
+            return await self.library_service.add_file_to_library(
+                source_path=staged, source_info=source_info,
+                copy_file=True, calculate_hash=True,
+            )
+        finally:
+            staged.unlink(missing_ok=True)
 
     # ---- Presets -----------------------------------------------------------
 
