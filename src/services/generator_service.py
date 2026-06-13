@@ -191,24 +191,32 @@ class GeneratorService:
             preview_url=f"/api/v1/generator/render/{render_id}/preview.png" if fmt == "png" else None,
         )
 
-    def _artifact_path(self, render_id: str, fmt: str) -> Path:
+    def _confined_artifact(self, path_str: Optional[str]) -> Optional[Path]:
         """
-        Build the deterministic artifact path for a render.
+        Return the stored artifact path if it lies within the renders directory.
 
-        The path is composed only of trusted inputs: the configured renders
-        directory, the validated alphanumeric ``render_id`` token, and a literal
-        filename. No user- or database-supplied path data is involved, so it
-        cannot be used for path traversal.
+        ``path_str`` is read from the render's database record (server-written
+        at render time), never from request input. The containment check is
+        defence-in-depth so a path can never point outside the renders root.
         """
-        filename = "model.stl" if fmt == "stl" else "preview.png"
-        return self.renders_dir / render_id / filename
+        if not path_str:
+            return None
+        path = Path(path_str)
+        try:
+            path.resolve().relative_to(self.renders_dir.resolve())
+        except ValueError:
+            return None
+        return path if path.exists() else None
 
     async def get_artifact_path(self, render_id: str, kind: str) -> Optional[Path]:
         """Return the filesystem path to a render artifact ('model' or 'preview')."""
         if not _is_safe_token(render_id):
             return None
-        candidate = self._artifact_path(render_id, "stl" if kind == "model" else "png")
-        return candidate if candidate.exists() else None
+        render = await self.repo.get_render(render_id)
+        if not render:
+            return None
+        key = "model_path" if kind == "model" else "preview_path"
+        return self._confined_artifact(render.get(key))
 
     # ---- Library hand-off --------------------------------------------------
 
@@ -222,9 +230,9 @@ class GeneratorService:
         render = await self.repo.get_render(render_id)
         if not render:
             raise GeneratorTemplateNotFoundError(render_id)
-        # Deterministic source path (trusted components only).
-        artifact = self._artifact_path(render_id, "stl")
-        if not artifact.exists():
+        # Source path comes from the stored render record (server-written).
+        artifact = self._confined_artifact(render.get("model_path"))
+        if artifact is None:
             raise OpenSCADRenderError("No STL artifact to save", details={"render_id": render_id})
 
         # Stage a copy with a generated name so no user input reaches the path.
