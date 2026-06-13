@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.32.1] - 2026-06-13
+
+### Fixed
+- CI: Security Scan job failed to start because `aquasecurity/trivy-action@0.28.0` (and the interim `@v0.30.0`, which pinned the deleted `setup-trivy@v0.2.2` tag) no longer resolved. Pinned to `@v0.36.0`, which references its `setup-trivy` dependency by immutable commit SHA.
+- CI: Hardened the E2E (Playwright) job against an application startup crash so the suite runs reliably.
+
 ## [2.32.0] - 2026-06-13
 
 ### Added
