@@ -36,30 +36,30 @@ class NavigationPreferencesUIManager {
                  data-section-id="${sanitizeAttribute(section.id)}"
                  data-index="${index}"
                  draggable="true">
-                <div class="navigation-section-handle" title="Ziehen zum Verschieben">
+                <div class="navigation-section-handle" title="${t('navPreferences.dragToMove')}">
                     <span class="handle-icon">☰</span>
                 </div>
                 <div class="navigation-section-content">
                     <div class="navigation-section-icon">${section.icon}</div>
                     <div class="navigation-section-info">
-                        <div class="navigation-section-label">${escapeHtml(section.label)}</div>
-                        <div class="navigation-section-description">${escapeHtml(section.description)}</div>
+                        <div class="navigation-section-label">${escapeHtml(section.labelKey ? t(section.labelKey) : (section.label || section.id))}</div>
+                        <div class="navigation-section-description">${escapeHtml(section.descriptionKey ? t(section.descriptionKey) : (section.description || ''))}</div>
                     </div>
                 </div>
                 <div class="navigation-section-controls">
                     <button class="btn-icon-small"
                             onclick="navigationPreferencesManager.moveSectionUp('${sanitizeAttribute(section.id)}')"
-                            title="Nach oben"
+                            title="${t('navPreferences.moveUp')}"
                             ${index === 0 ? 'disabled' : ''}>
                         ⬆️
                     </button>
                     <button class="btn-icon-small"
                             onclick="navigationPreferencesManager.moveSectionDown('${sanitizeAttribute(section.id)}')"
-                            title="Nach unten"
+                            title="${t('navPreferences.moveDown')}"
                             ${index === sections.length - 1 ? 'disabled' : ''}>
                         ⬇️
                     </button>
-                    <label class="toggle-switch" title="${section.required ? 'Erforderliches Element kann nicht ausgeblendet werden' : 'Sichtbarkeit umschalten'}">
+                    <label class="toggle-switch" title="${section.required ? t('navPreferences.requiredCannotHide') : t('navPreferences.toggleVisibility')}">
                         <input type="checkbox"
                                ${section.visible ? 'checked' : ''}
                                ${section.required ? 'disabled' : ''}
@@ -172,7 +172,7 @@ class NavigationPreferencesUIManager {
      */
     moveSectionUp(sectionId) {
         if (window.navigationPreferences.moveSectionUp(sectionId)) {
-            this.showSuccess('Abschnitt nach oben verschoben');
+            this.showSuccess(t('navPreferences.movedUp'));
         }
     }
 
@@ -181,7 +181,7 @@ class NavigationPreferencesUIManager {
      */
     moveSectionDown(sectionId) {
         if (window.navigationPreferences.moveSectionDown(sectionId)) {
-            this.showSuccess('Abschnitt nach unten verschoben');
+            this.showSuccess(t('navPreferences.movedDown'));
         }
     }
 
@@ -190,7 +190,7 @@ class NavigationPreferencesUIManager {
      */
     toggleSectionVisibility(sectionId) {
         if (window.navigationPreferences.toggleVisibility(sectionId)) {
-            this.showSuccess('Sichtbarkeit aktualisiert');
+            this.showSuccess(t('navPreferences.visibilityUpdated'));
         }
     }
 
@@ -198,9 +198,9 @@ class NavigationPreferencesUIManager {
      * Reset navigation preferences
      */
     resetNavigationPreferences() {
-        if (confirm('Möchten Sie die Navigationsleiste auf die Standardeinstellungen zurücksetzen?')) {
+        if (confirm(t('navPreferences.resetConfirm'))) {
             if (window.navigationPreferences.resetToDefaults()) {
-                this.showSuccess('Navigation auf Standardeinstellungen zurückgesetzt');
+                this.showSuccess(t('navPreferences.resetSuccess'));
             }
         }
     }
@@ -252,7 +252,7 @@ class NavigationPreferencesUIManager {
             labelSpan.setAttribute('data-i18n', i18nKey);
             labelSpan.textContent = (typeof i18n !== 'undefined' && i18n.has?.(i18nKey))
                 ? t(i18nKey)
-                : section.label;
+                : (section.labelKey ? t(section.labelKey) : (section.label || section.id));
             link.appendChild(labelSpan);
 
             navMenu.appendChild(link);

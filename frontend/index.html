@@ -102,14 +102,14 @@
             </div>
             <!-- Screen reader descriptions -->
             <div class="sr-only">
-                <div id="nav-dashboard-desc">Übersichtsseite mit Druckerstatus und aktuellen Aufträgen</div>
+                <div id="nav-dashboard-desc" data-i18n="navDescriptions.dashboard">Übersichtsseite mit Druckerstatus und aktuellen Aufträgen</div>
                 <div id="nav-printers-desc">Verwaltung und Konfiguration der 3D-Drucker</div>
-                <div id="nav-jobs-desc">Übersicht und Verwaltung der Druckaufträge</div>
+                <div id="nav-jobs-desc" data-i18n="navDescriptions.jobs">Übersicht und Verwaltung der Druckaufträge</div>
                 <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
-                <div id="nav-library-desc">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
-                <div id="nav-materials-desc">Filament-Verwaltung und Bestandsübersicht</div>
+                <div id="nav-library-desc" data-i18n="navDescriptions.library">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
+                <div id="nav-materials-desc" data-i18n="navDescriptions.materials">Filament-Verwaltung und Bestandsübersicht</div>
                 <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
-                <div id="nav-tools-desc">Externe Tools und Helfer für den 3D-Druck</div>
+                <div id="nav-tools-desc" data-i18n="navDescriptions.tools">Externe Tools und Helfer für den 3D-Druck</div>
                 <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
                 <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
             </div>
@@ -120,7 +120,7 @@
                 </div>
                 <div class="support-button">
                     <a href="https://buymeacoffee.com/porcus3d" target="_blank" class="btn btn-support"
-                       title="Unterstütze die Entwicklung">
+                       data-i18n-title="settings.supportHeading" title="Unterstütze die Entwicklung">
                         <span class="support-icon">☕</span><span class="support-text">Support</span>
                     </a>
                 </div>
@@ -163,12 +163,12 @@
 
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Aktive Aufträge</h3>
+                        <h3 data-i18n="dashboard.activeJobsHeading">Aktive Aufträge</h3>
                         <span class="card-icon">⚙️</span>
                     </div>
                     <div class="card-body">
                         <div class="stat-number" id="activeJobsCount">-</div>
-                        <div class="stat-label">Druckaufträge</div>
+                        <div class="stat-label" data-i18n="dashboard.activeJobsLabel">Druckaufträge</div>
                         <div class="stat-detail" id="jobsDetail">Lade...</div>
                     </div>
                 </div>
@@ -180,7 +180,7 @@
                     </div>
                     <div class="card-body">
                         <div class="stat-number" id="filesCount">-</div>
-                        <div class="stat-label">Verfügbare Dateien</div>
+                        <div class="stat-label" data-i18n="dashboard.availableFilesLabel">Verfügbare Dateien</div>
                         <div class="stat-detail" id="filesDetail">Lade...</div>
                     </div>
                 </div>
@@ -192,7 +192,7 @@
                     </div>
                     <div class="card-body">
                         <div class="stat-number" id="todayJobsCount">-</div>
-                        <div class="stat-label">Aufträge heute</div>
+                        <div class="stat-label" data-i18n="dashboard.jobsTodayLabel">Aufträge heute</div>
                         <div class="stat-detail" id="todayDetail">Lade...</div>
                     </div>
                 </div>
@@ -204,13 +204,13 @@
                     <h2>Drucker Status</h2>
                     <button class="btn btn-primary" id="addPrinterBtnDashboard" data-action="add-printer" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
-                        Drucker hinzufügen
+                        <span data-i18n="printers.addPrinter">Drucker hinzufügen</span>
                     </button>
                 </div>
                 <div class="printer-grid" id="printerGrid">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Drucker...</p>
+                        <p data-i18n="printers.loadingPrinters">Lade Drucker...</p>
                     </div>
                 </div>
             </div>
@@ -218,7 +218,7 @@
             <!-- Recent Jobs -->
             <div class="section">
                 <div class="section-header">
-                    <h2>Aktuelle Aufträge</h2>
+                    <h2 data-i18n="dashboard.recentJobsHeading">Aktuelle Aufträge</h2>
                     <a href="#jobs" class="btn btn-secondary" onclick="showPage('jobs')">
                         Alle anzeigen
                     </a>
@@ -226,7 +226,7 @@
                 <div class="jobs-preview" id="recentJobs">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Aufträge...</p>
+                        <p data-i18n="jobs.loading">Lade Aufträge...</p>
                     </div>
                 </div>
             </div>
@@ -234,7 +234,7 @@
             <!-- Recent Printed Files -->
             <div class="section">
                 <div class="section-header">
-                    <h2>Kürzlich gedruckte Dateien</h2>
+                    <h2 data-i18n="dashboard.recentPrintedFilesHeading">Kürzlich gedruckte Dateien</h2>
                     <a href="#files" class="btn btn-secondary" onclick="showPage('files')">
                         Alle anzeigen
                     </a>
@@ -242,7 +242,7 @@
                 <div class="printed-files-preview" id="recentPrintedFiles">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade gedruckte Dateien...</p>
+                        <p data-i18n="dashboard.loadingPrintedFiles">Lade gedruckte Dateien...</p>
                     </div>
                 </div>
             </div>
@@ -251,15 +251,15 @@
         <!-- Printers Page -->
         <div id="printers" class="page">
             <div class="page-header">
-                <h1>Drucker Verwaltung</h1>
+                <h1 data-i18n="printers.pageTitle">Drucker Verwaltung</h1>
                 <div class="header-actions">
                     <button class="btn btn-secondary" onclick="discoverPrinters()" id="discoverButton">
                         <span class="btn-icon">🔍</span>
-                        Drucker suchen
+                        <span data-i18n="printers.discover">Drucker suchen</span>
                     </button>
                     <button class="btn btn-primary" id="addPrinterBtn" data-action="add-printer" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
-                        Drucker hinzufügen
+                        <span data-i18n="printers.addPrinter">Drucker hinzufügen</span>
                     </button>
                 </div>
             </div>
@@ -267,28 +267,28 @@
             <!-- Discovered Printers Section -->
             <div id="discoveredPrintersSection" class="section" style="display: none;">
                 <div class="section-header">
-                    <h2>Gefundene Drucker</h2>
+                    <h2 data-i18n="printers.discoveredSection">Gefundene Drucker</h2>
                     <div class="header-actions">
                         <select id="networkInterfaceSelect" class="form-select" style="margin-right: 10px;">
-                            <option value="">Auto-Erkennung</option>
+                            <option value="" data-i18n="printers.autoDetect">Auto-Erkennung</option>
                         </select>
                         <button class="btn btn-secondary btn-sm" onclick="discoverPrinters()">
                             <span class="btn-icon">🔄</span>
-                            Erneut suchen
+                            <span data-i18n="printers.rescan">Erneut suchen</span>
                         </button>
                     </div>
                 </div>
                 <div class="discovered-printers-list" id="discoveredPrintersList">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Suche nach Druckern im Netzwerk...</p>
+                        <p data-i18n="printers.searchingNetwork">Suche nach Druckern im Netzwerk...</p>
                     </div>
                 </div>
             </div>
 
             <div class="printers-container">
                 <div class="section-header">
-                    <h2>Konfigurierte Drucker</h2>
+                    <h2 data-i18n="printers.configuredSection">Konfigurierte Drucker</h2>
                 </div>
                 <div class="printers-list" id="printersList">
                     <div class="loading-placeholder">
@@ -302,19 +302,19 @@
         <!-- Jobs Page -->
         <div id="page-jobs" class="page">
             <div class="page-header">
-                <h1>Druckaufträge</h1>
+                <h1 data-i18n="jobs.pageTitle">Druckaufträge</h1>
                 <div class="header-actions">
                     <div class="filter-controls">
                         <select id="jobStatusFilter" class="filter-select">
-                            <option value="">Alle Status</option>
-                            <option value="printing">Druckt</option>
-                            <option value="queued">Warteschlange</option>
-                            <option value="completed">Abgeschlossen</option>
-                            <option value="failed">Fehlgeschlagen</option>
-                            <option value="cancelled">Abgebrochen</option>
+                            <option value="" data-i18n="jobs.allStatuses">Alle Status</option>
+                            <option value="printing" data-i18n="jobs.statusPrinting">Druckt</option>
+                            <option value="queued" data-i18n="jobs.statusQueued">Warteschlange</option>
+                            <option value="completed" data-i18n="jobs.statusCompleted">Abgeschlossen</option>
+                            <option value="failed" data-i18n="jobs.statusFailed">Fehlgeschlagen</option>
+                            <option value="cancelled" data-i18n="jobs.statusCancelled">Abgebrochen</option>
                         </select>
                         <select id="jobPrinterFilter" class="filter-select">
-                            <option value="">Alle Drucker</option>
+                            <option value="" data-i18n="jobs.allPrinters">Alle Drucker</option>
                         </select>
                     </div>
                     <button class="btn btn-secondary btn-sm" onclick="openPageSettings('jobs', 'Druckaufträge')">
@@ -336,19 +336,19 @@
                 <table class="jobs-table" id="jobsTable" style="width: 100%; display: table;">
                     <thead>
                         <tr>
-                            <th>Auftrag</th>
+                            <th data-i18n="jobs.colJob">Auftrag</th>
                             <th>Drucker</th>
-                            <th>Status</th>
-                            <th>Datei</th>
-                            <th>Fortschritt</th>
-                            <th>Aktionen</th>
+                            <th data-i18n="jobs.colStatus">Status</th>
+                            <th data-i18n="jobs.colFile">Datei</th>
+                            <th data-i18n="jobs.colProgress">Fortschritt</th>
+                            <th data-i18n="jobs.colActions">Aktionen</th>
                         </tr>
                     </thead>
                     <tbody id="jobsTableBody">
                         <tr>
                             <td colspan="6" class="loading-placeholder">
                                 <div class="spinner"></div>
-                                <p>Lade Aufträge...</p>
+                                <p data-i18n="jobs.loading">Lade Aufträge...</p>
                             </td>
                         </tr>
                     </tbody>
@@ -356,7 +356,7 @@
                 <div class="jobs-list" id="jobsList" style="display: none;">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Aufträge...</p>
+                        <p data-i18n="jobs.loading">Lade Aufträge...</p>
                     </div>
                 </div>
             </div>
@@ -449,20 +449,20 @@
         <!-- Timelapses Page -->
         <div id="timelapses" class="page">
             <div class="page-header">
-                <h1>Zeitraffer-Videos</h1>
+                <h1 data-i18n="timelapses.pageTitle">Zeitraffer-Videos</h1>
                 <div class="header-actions">
                     <div class="filter-controls">
                         <select id="timelapseStatusFilter" class="filter-select">
-                            <option value="">Alle Status</option>
-                            <option value="discovered">Entdeckt</option>
-                            <option value="pending">Wartend</option>
-                            <option value="processing">Verarbeitung</option>
-                            <option value="completed">Fertig</option>
-                            <option value="failed">Fehlgeschlagen</option>
+                            <option value="" data-i18n="timelapses.allStatuses">Alle Status</option>
+                            <option value="discovered" data-i18n="timelapses.statusDiscovered">Entdeckt</option>
+                            <option value="pending" data-i18n="timelapses.statusPending">Wartend</option>
+                            <option value="processing" data-i18n="timelapses.statusProcessing">Verarbeitung</option>
+                            <option value="completed" data-i18n="timelapses.statusCompleted">Fertig</option>
+                            <option value="failed" data-i18n="timelapses.statusFailed">Fehlgeschlagen</option>
                         </select>
                         <label class="filter-checkbox">
                             <input type="checkbox" id="timelapseLinkedOnly">
-                            <span>Nur verknüpfte</span>
+                            <span data-i18n="timelapses.linkedOnly">Nur verknüpfte</span>
                         </label>
                     </div>
                     <button class="btn btn-secondary btn-sm" onclick="openPageSettings('timelapse', 'Zeitraffer-Videos')">
@@ -479,23 +479,23 @@
             <!-- Stats Bar -->
             <div id="timelapseStats" class="stats-bar">
                 <div class="stat-item">
-                    <span class="stat-label">Gesamt:</span>
+                    <span class="stat-label" data-i18n="timelapses.statTotal">Gesamt:</span>
                     <span class="stat-value" id="statTotalVideos">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Verarbeitung:</span>
+                    <span class="stat-label" data-i18n="timelapses.statProcessing">Verarbeitung:</span>
                     <span class="stat-value" id="statProcessing">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Fertig:</span>
+                    <span class="stat-label" data-i18n="timelapses.statCompleted">Fertig:</span>
                     <span class="stat-value" id="statCompleted">0</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Speicher:</span>
+                    <span class="stat-label" data-i18n="timelapses.statStorage">Speicher:</span>
                     <span class="stat-value" id="statStorageSize">0 MB</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Bereinigung:</span>
+                    <span class="stat-label" data-i18n="timelapses.statCleanup">Bereinigung:</span>
                     <span class="stat-value" id="statCleanupCandidates">0</span>
                 </div>
             </div>
@@ -504,7 +504,7 @@
             <div id="processingQueue" class="processing-queue" style="display: none;">
                 <div class="queue-header">
                     <span class="queue-icon">⚙️</span>
-                    <span class="queue-title">Verarbeitung läuft...</span>
+                    <span class="queue-title" data-i18n="timelapses.processingRunning">Verarbeitung läuft...</span>
                 </div>
                 <div id="queueItem" class="queue-item"></div>
             </div>
@@ -514,7 +514,7 @@
                 <div class="timelapses-grid" id="timelapsesList">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Zeitraffer-Videos...</p>
+                        <p data-i18n="timelapses.loading">Lade Zeitraffer-Videos...</p>
                     </div>
                 </div>
             </div>
@@ -523,30 +523,30 @@
         <!-- Files Page -->
         <div id="files" class="page">
             <div class="page-header">
-                <h1>Drucker-Dateien</h1>
+                <h1 data-i18n="files.pageTitle">Drucker-Dateien</h1>
                 <div class="header-actions">
                     <div class="search-controls">
                         <div class="search-input-wrapper">
                             <span class="search-icon">🔍</span>
                             <input type="text" id="fileSearchInput" class="search-input"
-                                   placeholder="Nach Dateinamen suchen..."
+                                   data-i18n-placeholder="files.searchPlaceholder" placeholder="Nach Dateinamen suchen..."
                                    autocomplete="off"
                                    aria-label="Nach Dateinamen suchen">
                             <button class="search-clear-btn" id="fileSearchClear"
                                     onclick="clearFileSearch()"
                                     style="display: none;"
-                                    aria-label="Suche löschen">✕</button>
+                                    data-i18n-title="files.clearSearch" aria-label="Suche löschen">✕</button>
                         </div>
                     </div>
                     <div class="filter-controls">
                         <select id="fileStatusFilter" class="filter-select">
-                            <option value="">Alle Status</option>
-                            <option value="available">📁 Verfügbar</option>
-                            <option value="downloaded">✓ Heruntergeladen</option>
-                            <option value="local">💾 Lokal</option>
+                            <option value="" data-i18n="files.allStatuses">Alle Status</option>
+                            <option value="available" data-i18n="files.statusAvailable">📁 Verfügbar</option>
+                            <option value="downloaded" data-i18n="files.statusDownloaded">✓ Heruntergeladen</option>
+                            <option value="local" data-i18n="files.statusLocal">💾 Lokal</option>
                         </select>
                         <select id="filePrinterFilter" class="filter-select">
-                            <option value="">Alle Drucker</option>
+                            <option value="" data-i18n="files.allPrinters">Alle Drucker</option>
                         </select>
                     </div>
                     <button class="btn btn-secondary btn-sm" onclick="openPageSettings('files', 'Drucker-Dateien')">
@@ -563,14 +563,14 @@
             <div class="files-stats" id="filesStats">
                 <div class="loading-placeholder">
                     <div class="spinner"></div>
-                    <p>Lade Dateien-Statistiken...</p>
+                    <p data-i18n="files.loadingStats">Lade Dateien-Statistiken...</p>
                 </div>
             </div>
 
             <!-- Watch Folders Section -->
             <div class="section">
                 <div class="section-header">
-                    <h2>Überwachte Verzeichnisse</h2>
+                    <h2 data-i18n="files.watchedFolders">Überwachte Verzeichnisse</h2>
                     <div class="header-actions">
                         <button class="btn btn-secondary" onclick="refreshWatchFolders()">
                             <span class="btn-icon">🔄</span>
@@ -578,14 +578,14 @@
                         </button>
                         <button class="btn btn-primary" onclick="showAddWatchFolderDialog()">
                             <span class="btn-icon">📂</span>
-                            Verzeichnis hinzufügen
+                            <span data-i18n="files.addFolder">Verzeichnis hinzufügen</span>
                         </button>
                     </div>
                 </div>
                 <div class="watch-folders-container" id="watchFoldersContainer">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade überwachte Verzeichnisse...</p>
+                        <p data-i18n="files.loadingWatchFolders">Lade überwachte Verzeichnisse...</p>
                     </div>
                 </div>
             </div>
@@ -595,7 +595,7 @@
                 <div class="section-header">
                     <h2>
                         <span class="section-icon">📁</span>
-                        Entdeckte Dateien
+                        <span data-i18n="files.discoveredFiles">Entdeckte Dateien</span>
                     </h2>
                     <div class="header-actions">
                         <button class="btn btn-secondary" onclick="loadDiscoveredFiles()">
@@ -607,7 +607,7 @@
                 <div class="discovered-files-container" id="discoveredFilesContainer">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade entdeckte Dateien...</p>
+                        <p data-i18n="files.loadingDiscoveredFiles">Lade entdeckte Dateien...</p>
                     </div>
                 </div>
             </div>
@@ -616,7 +616,7 @@
                 <div class="files-list" id="filesList">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Dateien...</p>
+                        <p data-i18n="files.loadingFiles">Lade Dateien...</p>
                     </div>
                 </div>
             </div>
@@ -626,19 +626,19 @@
         <div id="library" class="page">
             <div class="page-header">
                 <h1>🗄️ Bibliothek</h1>
-                <div class="header-subtitle">Zentrale Dateiverwaltung mit Metadaten und Quellenverfolgung</div>
+                <div class="header-subtitle" data-i18n="library.subtitle">Zentrale Dateiverwaltung mit Metadaten und Quellenverfolgung</div>
                 <div class="header-actions">
                     <div class="search-controls">
                         <div class="search-input-wrapper">
                             <span class="search-icon">🔍</span>
                             <input type="text" id="librarySearchInput" class="search-input"
-                                   placeholder="Nach Dateinamen suchen..."
+                                   data-i18n-placeholder="library.searchPlaceholder" placeholder="Nach Dateinamen suchen..."
                                    autocomplete="off"
                                    aria-label="Suche in Bibliothek">
                             <button class="search-clear-btn" id="librarySearchClear"
                                     onclick="clearLibrarySearch()"
                                     style="display: none;"
-                                    aria-label="Suche löschen">✕</button>
+                                    data-i18n-title="library.clearSearch" aria-label="Suche löschen">✕</button>
                         </div>
                     </div>
                     <button class="btn btn-secondary btn-sm" onclick="openPageSettings('library', 'Bibliothek')">
@@ -669,37 +669,37 @@
             <div class="library-stats-container" id="libraryStats">
                 <div class="stat-card">
                     <div class="stat-value" id="statTotalFiles">--</div>
-                    <div class="stat-label">Dateien</div>
+                    <div class="stat-label" data-i18n="library.statFiles">Dateien</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="statTotalSize">--</div>
-                    <div class="stat-label">Gesamt</div>
+                    <div class="stat-label" data-i18n="library.statTotal">Gesamt</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="statWithThumbnails">--</div>
-                    <div class="stat-label">Mit Vorschau</div>
+                    <div class="stat-label" data-i18n="library.statWithThumbnails">Mit Vorschau</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="statAnalyzed">--</div>
-                    <div class="stat-label">Analysiert</div>
+                    <div class="stat-label" data-i18n="library.statAnalyzed">Analysiert</div>
                 </div>
             </div>
 
             <!-- Filter Bar -->
             <div class="filter-bar">
                 <div class="filter-group">
-                    <label for="filterSourceType">Quelle:</label>
+                    <label for="filterSourceType" data-i18n="library.filterSource">Quelle:</label>
                     <select id="filterSourceType" class="filter-select" onchange="applyLibraryFilters()">
-                        <option value="">Alle</option>
-                        <option value="printer">🖨️ Drucker</option>
-                        <option value="watch_folder">📁 Überwacht</option>
-                        <option value="upload">⬆️ Hochgeladen</option>
+                        <option value="" data-i18n="library.filterAll">Alle</option>
+                        <option value="printer" data-i18n="library.filterPrinter">🖨️ Drucker</option>
+                        <option value="watch_folder" data-i18n="library.filterWatchFolder">📁 Überwacht</option>
+                        <option value="upload" data-i18n="library.filterUpload">⬆️ Hochgeladen</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterFileType">Typ:</label>
+                    <label for="filterFileType" data-i18n="library.filterType">Typ:</label>
                     <select id="filterFileType" class="filter-select" onchange="applyLibraryFilters()">
-                        <option value="">Alle Dateitypen</option>
+                        <option value="" data-i18n="library.filterAllTypes">Alle Dateitypen</option>
                         <option value=".3mf">.3MF</option>
                         <option value=".stl">.STL</option>
                         <option value=".gcode">.GCODE</option>
@@ -707,41 +707,41 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterStatus">Status:</label>
+                    <label for="filterStatus" data-i18n="library.filterStatus">Status:</label>
                     <select id="filterStatus" class="filter-select" onchange="applyLibraryFilters()">
-                        <option value="">Alle Status</option>
-                        <option value="available">✅ Verfügbar</option>
-                        <option value="processing">⏳ Verarbeitung</option>
-                        <option value="ready">✓ Bereit</option>
-                        <option value="error">❌ Fehler</option>
+                        <option value="" data-i18n="library.filterAllStatuses">Alle Status</option>
+                        <option value="available" data-i18n="library.filterStatusAvailable">✅ Verfügbar</option>
+                        <option value="processing" data-i18n="library.filterStatusProcessing">⏳ Verarbeitung</option>
+                        <option value="ready" data-i18n="library.filterStatusReady">✓ Bereit</option>
+                        <option value="error" data-i18n="library.filterStatusError">❌ Fehler</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterMetadata">Metadaten:</label>
+                    <label for="filterMetadata" data-i18n="library.filterMetadata">Metadaten:</label>
                     <select id="filterMetadata" class="filter-select" onchange="applyLibraryFilters()">
-                        <option value="">Alle</option>
-                        <option value="has_thumbnail">🖼️ Mit Vorschau</option>
-                        <option value="has_metadata">📊 Mit Metadaten</option>
+                        <option value="" data-i18n="library.filterMetadataAll">Alle</option>
+                        <option value="has_thumbnail" data-i18n="library.filterWithThumbnail">🖼️ Mit Vorschau</option>
+                        <option value="has_metadata" data-i18n="library.filterWithMetadata">📊 Mit Metadaten</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterTag">Tag:</label>
+                    <label for="filterTag" data-i18n="library.filterTag">Tag:</label>
                     <select id="filterTag" class="filter-select" onchange="applyLibraryFilters()">
-                        <option value="">🏷️ Alle Tags</option>
+                        <option value="" data-i18n="library.filterAllTags">🏷️ Alle Tags</option>
                         <!-- Dynamically populated by TagsManager -->
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="sortBy">Sortierung:</label>
+                    <label for="sortBy" data-i18n="library.sortBy">Sortierung:</label>
                     <select id="sortBy" class="filter-select">
-                        <option value="created_at:desc">Neueste zuerst</option>
-                        <option value="created_at:asc">Älteste zuerst</option>
+                        <option value="created_at:desc" data-i18n="library.sortNewest">Neueste zuerst</option>
+                        <option value="created_at:asc" data-i18n="library.sortOldest">Älteste zuerst</option>
                         <option value="filename:asc">Name (A-Z)</option>
                         <option value="filename:desc">Name (Z-A)</option>
-                        <option value="file_size:desc">Größe (groß→klein)</option>
-                        <option value="file_size:asc">Größe (klein→groß)</option>
-                        <option value="last_modified:desc">Zuletzt geändert (neu→alt)</option>
-                        <option value="last_modified:asc">Zuletzt geändert (alt→neu)</option>
+                        <option value="file_size:desc" data-i18n="library.sortSizeBig">Größe (groß→klein)</option>
+                        <option value="file_size:asc" data-i18n="library.sortSizeSmall">Größe (klein→groß)</option>
+                        <option value="last_modified:desc" data-i18n="library.sortModifiedNew">Zuletzt geändert (neu→alt)</option>
+                        <option value="last_modified:asc" data-i18n="library.sortModifiedOld">Zuletzt geändert (alt→neu)</option>
                     </select>
                 </div>
             </div>
@@ -751,7 +751,7 @@
                 <div class="library-files-grid" id="libraryFilesGrid">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Bibliothek...</p>
+                        <p data-i18n="library.loading">Lade Bibliothek...</p>
                     </div>
                 </div>
             </div>
@@ -759,7 +759,7 @@
             <!-- Pagination Controls -->
             <div class="pagination-container">
                 <div class="page-size-selector">
-                    <label for="pageSizeSelect">Dateien pro Seite:</label>
+                    <label for="pageSizeSelect" data-i18n="library.perPage">Dateien pro Seite:</label>
                     <select id="pageSizeSelect">
                         <option value="25">25</option>
                         <option value="50" selected>50</option>
@@ -778,7 +778,7 @@
                     </button>
                     <span id="currentPageInfo">Seite 1 von 1</span>
                     <button id="nextPageBtn" disabled>
-                        Nächste →
+                        <span data-i18n="library.nextPage">Nächste →</span>
                     </button>
                 </div>
             </div>
@@ -788,8 +788,8 @@
         <!-- Materials Page -->
         <div id="page-materials" class="page">
             <div class="page-header">
-                <h1>🧵 Filament-Verwaltung</h1>
-                <div class="header-subtitle">Bestandsverwaltung und Verbrauchstracking</div>
+                <h1 data-i18n="materials.pageTitle">🧵 Filament-Verwaltung</h1>
+                <div class="header-subtitle" data-i18n="materials.subtitle">Bestandsverwaltung und Verbrauchstracking</div>
                 <div class="header-actions">
                     <button class="btn btn-secondary" onclick="materialsManager.loadMaterials()">
                         <span class="btn-icon">🔄</span>
@@ -797,7 +797,7 @@
                     </button>
                     <button class="btn btn-primary" id="addMaterialBtn" onclick="materialsManager.showAddMaterialModal()">
                         <span class="btn-icon">➕</span>
-                        Filament hinzufügen
+                        <span data-i18n="materials.addFilament">Filament hinzufügen</span>
                     </button>
                 </div>
             </div>
@@ -806,42 +806,42 @@
             <div class="materials-stats-container" id="materialsStats">
                 <div class="stat-card">
                     <div class="stat-value" id="statTotalSpools">--</div>
-                    <div class="stat-label">Spulen</div>
+                    <div class="stat-label" data-i18n="materials.statSpools">Spulen</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="statTotalWeight">--</div>
-                    <div class="stat-label">Gesamt (kg)</div>
+                    <div class="stat-label" data-i18n="materials.statTotal">Gesamt (kg)</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="statLowStock">--</div>
-                    <div class="stat-label">Niedrig</div>
+                    <div class="stat-label" data-i18n="materials.statLow">Niedrig</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="statTotalValue">--</div>
-                    <div class="stat-label">Wert (€)</div>
+                    <div class="stat-label" data-i18n="materials.statValue">Wert (€)</div>
                 </div>
             </div>
 
             <!-- Filter and Search Bar -->
             <div class="filter-bar">
                 <div class="filter-group">
-                    <label for="filterMaterialType">Typ:</label>
+                    <label for="filterMaterialType" data-i18n="materials.filterType">Typ:</label>
                     <select id="filterMaterialType" class="filter-select" onchange="materialsManager.applyFilters()">
-                        <option value="">Alle Typen</option>
+                        <option value="" data-i18n="materials.filterAllTypes">Alle Typen</option>
                         <!-- Populated by JS -->
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterMaterialBrand">Marke:</label>
+                    <label for="filterMaterialBrand" data-i18n="materials.filterBrand">Marke:</label>
                     <select id="filterMaterialBrand" class="filter-select" onchange="materialsManager.applyFilters()">
-                        <option value="">Alle Marken</option>
+                        <option value="" data-i18n="materials.filterAllBrands">Alle Marken</option>
                         <!-- Populated by JS -->
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label for="filterMaterialColor">Farbe:</label>
+                    <label for="filterMaterialColor" data-i18n="materials.filterColor">Farbe:</label>
                     <select id="filterMaterialColor" class="filter-select" onchange="materialsManager.applyFilters()">
-                        <option value="">Alle Farben</option>
+                        <option value="" data-i18n="materials.filterAllColors">Alle Farben</option>
                         <!-- Populated by JS -->
                     </select>
                 </div>
@@ -849,21 +849,21 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="filterLowStock" onchange="materialsManager.applyFilters()">
                         <span class="checkbox-custom"></span>
-                        Nur niedrige Bestände
+                        <span data-i18n="materials.filterLowStock">Nur niedrige Bestände</span>
                     </label>
                 </div>
                 <div class="filter-group search-group">
                     <div class="search-input-wrapper">
                         <span class="search-icon">🔍</span>
                         <input type="text" id="materialSearchInput" class="search-input"
-                               placeholder="Suchen..."
+                               data-i18n-placeholder="materials.searchPlaceholder" placeholder="Suchen..."
                                autocomplete="off"
                                oninput="materialsManager.applyFilters()"
                                aria-label="Nach Material suchen">
                         <button class="search-clear-btn" id="materialSearchClear"
                                 onclick="materialsManager.clearSearch()"
                                 style="display: none;"
-                                aria-label="Suche löschen">✕</button>
+                                data-i18n-title="materials.clearSearch" aria-label="Suche löschen">✕</button>
                     </div>
                 </div>
             </div>
@@ -873,24 +873,24 @@
                 <div class="view-mode-toggle">
                     <button class="btn btn-small" id="cardsViewBtn" onclick="materialsManager.setViewMode('cards')">
                         <span class="btn-icon">⊞</span>
-                        Karten
+                        <span data-i18n="materials.viewCards">Karten</span>
                     </button>
                     <button class="btn btn-small" id="tableViewBtn" onclick="materialsManager.setViewMode('table')">
                         <span class="btn-icon">☰</span>
-                        Tabelle
+                        <span data-i18n="materials.viewTable">Tabelle</span>
                     </button>
                 </div>
                 <div class="sort-controls">
-                    <label for="sortMaterialsBy">Sortierung:</label>
+                    <label for="sortMaterialsBy" data-i18n="materials.sortBy">Sortierung:</label>
                     <select id="sortMaterialsBy" class="filter-select" onchange="materialsManager.setSorting()">
-                        <option value="created_at:desc">Neueste zuerst</option>
-                        <option value="created_at:asc">Älteste zuerst</option>
+                        <option value="created_at:desc" data-i18n="materials.sortNewest">Neueste zuerst</option>
+                        <option value="created_at:asc" data-i18n="materials.sortOldest">Älteste zuerst</option>
                         <option value="name:asc">Name (A-Z)</option>
                         <option value="name:desc">Name (Z-A)</option>
-                        <option value="remaining_weight:asc">Bestand (niedrig→hoch)</option>
-                        <option value="remaining_weight:desc">Bestand (hoch→niedrig)</option>
-                        <option value="price_per_kg:asc">Preis (niedrig→hoch)</option>
-                        <option value="price_per_kg:desc">Preis (hoch→niedrig)</option>
+                        <option value="remaining_weight:asc" data-i18n="materials.sortStockLow">Bestand (niedrig→hoch)</option>
+                        <option value="remaining_weight:desc" data-i18n="materials.sortStockHigh">Bestand (hoch→niedrig)</option>
+                        <option value="price_per_kg:asc" data-i18n="materials.sortPriceLow">Preis (niedrig→hoch)</option>
+                        <option value="price_per_kg:desc" data-i18n="materials.sortPriceHigh">Preis (hoch→niedrig)</option>
                     </select>
                 </div>
             </div>
@@ -900,29 +900,29 @@
                 <div id="materialsCardsView" class="materials-cards-grid" style="display: none;">
                     <div class="loading-placeholder">
                         <div class="spinner"></div>
-                        <p>Lade Filamente...</p>
+                        <p data-i18n="materials.loadingCards">Lade Filamente...</p>
                     </div>
                 </div>
                 <div id="materialsTableView" class="materials-table-wrapper">
                     <table class="materials-table" id="materialsTable">
                         <thead>
                             <tr>
-                                <th>Typ</th>
-                                <th>Marke</th>
-                                <th>Farbe</th>
-                                <th>Bestand</th>
-                                <th>Gewicht</th>
-                                <th>Preis/kg</th>
-                                <th>Wert</th>
-                                <th>Standort</th>
-                                <th>Aktionen</th>
+                                <th data-i18n="materials.colType">Typ</th>
+                                <th data-i18n="materials.colBrand">Marke</th>
+                                <th data-i18n="materials.colColor">Farbe</th>
+                                <th data-i18n="materials.colStock">Bestand</th>
+                                <th data-i18n="materials.colWeight">Gewicht</th>
+                                <th data-i18n="materials.colPriceKg">Preis/kg</th>
+                                <th data-i18n="materials.colValue">Wert</th>
+                                <th data-i18n="materials.colLocation">Standort</th>
+                                <th data-i18n="materials.colActions">Aktionen</th>
                             </tr>
                         </thead>
                         <tbody id="materialsTableBody">
                             <tr>
                                 <td colspan="9" class="loading-placeholder">
                                     <div class="spinner"></div>
-                                    <p>Lade Filamente...</p>
+                                    <p data-i18n="materials.loadingTable">Lade Filamente...</p>
                                 </td>
                             </tr>
                         </tbody>
@@ -936,7 +936,7 @@
             <div class="modal-content">
                 <button id="closeFileDetailModal" class="modal-close">✕</button>
                 <div id="fileDetailContent">
-                    <div class="loading">Lädt...</div>
+                    <div class="loading" data-i18n="modals.fileDetailLoading">Lädt...</div>
                 </div>
             </div>
         </div>
@@ -944,27 +944,27 @@
         <!-- Ideas Page -->
         <div id="ideas" class="page">
             <div class="page-header">
-                <h1>Ideen</h1>
+                <h1 data-i18n="ideas.pageTitle">Ideen</h1>
                 <div class="header-actions">
                     <div class="filter-controls">
                         <select id="ideaStatusFilter" class="filter-select">
-                            <option value="">Alle Status</option>
-                            <option value="idea">💡 Idee</option>
-                            <option value="planned">📅 Geplant</option>
-                            <option value="printing">🖨️ Wird gedruckt</option>
-                            <option value="completed">✅ Abgeschlossen</option>
-                            <option value="archived">📦 Archiviert</option>
+                            <option value="" data-i18n="ideas.allStatuses">Alle Status</option>
+                            <option value="idea" data-i18n="ideas.statusIdea">💡 Idee</option>
+                            <option value="planned" data-i18n="ideas.statusPlanned">📅 Geplant</option>
+                            <option value="printing" data-i18n="ideas.statusPrinting">🖨️ Wird gedruckt</option>
+                            <option value="completed" data-i18n="ideas.statusCompleted">✅ Abgeschlossen</option>
+                            <option value="archived" data-i18n="ideas.statusArchived">📦 Archiviert</option>
                         </select>
                         <select id="ideaTypeFilter" class="filter-select">
-                            <option value="">Alle Typen</option>
-                            <option value="business">🏢 Geschäftlich</option>
-                            <option value="personal">👤 Privat</option>
+                            <option value="" data-i18n="ideas.allTypes">Alle Typen</option>
+                            <option value="business" data-i18n="ideas.typeBusiness">🏢 Geschäftlich</option>
+                            <option value="personal" data-i18n="ideas.typePersonal">👤 Privat</option>
                         </select>
                         <select id="ideaSourceFilter" class="filter-select">
-                            <option value="">Alle Quellen</option>
-                            <option value="manual">✍️ Manuell</option>
-                            <option value="makerworld">🌍 Makerworld</option>
-                            <option value="printables">🔧 Printables</option>
+                            <option value="" data-i18n="ideas.allSources">Alle Quellen</option>
+                            <option value="manual" data-i18n="ideas.sourceManual">✍️ Manuell</option>
+                            <option value="makerworld" data-i18n="ideas.sourceMakerworld">🌍 Makerworld</option>
+                            <option value="printables" data-i18n="ideas.sourcePrintables">🔧 Printables</option>
                         </select>
                     </div>
                     <div class="action-buttons">
@@ -974,7 +974,7 @@
                         </button>
                         <button class="btn btn-secondary" onclick="showImportDialog()">
                             <span class="btn-icon">🔗</span>
-                            Aus URL importieren
+                            <span data-i18n="ideas.importUrl">Aus URL importieren</span>
                         </button>
                         <button class="btn btn-primary" onclick="showAddIdeaDialog()">
                             <span class="btn-icon">➕</span>
@@ -1005,7 +1005,7 @@
             <div class="ideas-stats" id="ideasStats">
                 <div class="loading-placeholder">
                     <div class="spinner"></div>
-                    <p>Lade Ideen-Statistiken...</p>
+                    <p data-i18n="ideas.loadingStats">Lade Ideen-Statistiken...</p>
                 </div>
             </div>
 
@@ -1020,18 +1020,18 @@
                         <div class="ideas-view-controls">
                             <button class="btn btn-small" onclick="setIdeasView('grid')" id="gridViewBtn">
                                 <span class="btn-icon">⊞</span>
-                                Raster
+                                <span data-i18n="ideas.viewGrid">Raster</span>
                             </button>
                             <button class="btn btn-small" onclick="setIdeasView('list')" id="listViewBtn">
                                 <span class="btn-icon">☰</span>
-                                Liste
+                                <span data-i18n="ideas.viewList">Liste</span>
                             </button>
                         </div>
                     </div>
                     <div class="ideas-container" id="myIdeasContainer">
                         <div class="loading-placeholder">
                             <div class="spinner"></div>
-                            <p>Lade Ideen...</p>
+                            <p data-i18n="ideas.loadingMyIdeas">Lade Ideen...</p>
                         </div>
                     </div>
                 </div>
@@ -1048,7 +1048,7 @@
                         <div class="header-actions">
                             <button class="btn btn-secondary" onclick="showImportDialog('bookmarks')">
                                 <span class="btn-icon">🔗</span>
-                                Aus URL importieren
+                                <span data-i18n="ideas.importUrl">Aus URL importieren</span>
                             </button>
                         </div>
                     </div>
@@ -1066,7 +1066,7 @@
                     <div class="bookmarks-container" id="bookmarksContainer">
                         <div class="loading-placeholder">
                             <div class="spinner"></div>
-                            <p>Lade Lesezeichen...</p>
+                            <p data-i18n="ideas.loadingBookmarks">Lade Lesezeichen...</p>
                         </div>
                     </div>
                 </div>
@@ -1081,7 +1081,7 @@
         <div id="settings" class="page">
             <!-- Settings Breadcrumb -->
             <div id="settingsBreadcrumb" class="settings-breadcrumb" style="display: none;">
-                <button class="breadcrumb-back" onclick="navigateBackFromSettings()">
+                <button class="breadcrumb-back" onclick="navigateBackFromSettings()" data-i18n="settings.back">
                     ← Zurück
                 </button>
             </div>
@@ -1091,11 +1091,11 @@
                 <div class="header-actions">
                     <button class="btn btn-secondary" onclick="settingsManager.exportSettings()">
                         <span class="btn-icon">📤</span>
-                        Exportieren
+                        <span data-i18n="settings.export">Exportieren</span>
                     </button>
                     <button class="btn btn-secondary" onclick="settingsManager.importSettings()">
                         <span class="btn-icon">📥</span>
-                        Importieren
+                        <span data-i18n="settings.import">Importieren</span>
                     </button>
                     <button class="btn btn-secondary" onclick="loadSettings()">
                         <span class="btn-icon">🔄</span>
@@ -1103,14 +1103,14 @@
                     </button>
                     <button class="btn btn-primary" onclick="saveSettings()">
                         <span class="btn-icon">💾</span>
-                        Speichern
+                        <span data-i18n="settings.save">Speichern</span>
                     </button>
                 </div>
             </div>
 
             <!-- Settings Search -->
             <div class="settings-search-container" style="margin: 0 2rem 1.5rem 2rem;">
-                <input type="text" id="settingsSearch" class="form-control" placeholder="🔍 Einstellungen durchsuchen..."
+                <input type="text" id="settingsSearch" class="form-control" data-i18n-placeholder="settings.searchPlaceholder" placeholder="🔍 Einstellungen durchsuchen..."
                        oninput="settingsManager.filterSettings(this.value)" style="max-width: 400px;">
             </div>
 
@@ -1119,27 +1119,27 @@
                 <div class="settings-tabs">
                     <button class="settings-tab active" data-tab="general" onclick="settingsManager.switchTab('general')">
                         <span class="tab-icon">⚙️</span>
-                        <span class="tab-label">Allgemein</span>
+                        <span class="tab-label" data-i18n="settings.tabGeneral">Allgemein</span>
                     </button>
                     <button class="settings-tab" data-tab="jobs" onclick="settingsManager.switchTab('jobs')">
                         <span class="tab-icon">🖨️</span>
-                        <span class="tab-label">Aufträge & G-Code</span>
+                        <span class="tab-label" data-i18n="settings.tabJobs">Aufträge & G-Code</span>
                     </button>
                     <button class="settings-tab" data-tab="library" onclick="settingsManager.switchTab('library')">
                         <span class="tab-icon">🗄️</span>
-                        <span class="tab-label">Bibliothek</span>
+                        <span class="tab-label" data-i18n="settings.tabLibrary">Bibliothek</span>
                     </button>
                     <button class="settings-tab" data-tab="files" onclick="settingsManager.switchTab('files')">
                         <span class="tab-icon">📁</span>
-                        <span class="tab-label">Uploads & Downloads</span>
+                        <span class="tab-label" data-i18n="settings.tabFiles">Uploads & Downloads</span>
                     </button>
                     <button class="settings-tab" data-tab="timelapse" onclick="settingsManager.switchTab('timelapse')">
                         <span class="tab-icon">🎬</span>
-                        <span class="tab-label">Timelapse</span>
+                        <span class="tab-label" data-i18n="settings.tabTimelapse">Timelapse</span>
                     </button>
                     <button class="settings-tab" data-tab="watch" onclick="settingsManager.switchTab('watch')">
                         <span class="tab-icon">👁️</span>
-                        <span class="tab-label">Überwachung</span>
+                        <span class="tab-label" data-i18n="settings.tabWatch">Überwachung</span>
                     </button>
                     <button class="settings-tab" data-tab="system" onclick="settingsManager.switchTab('system')">
                         <span class="tab-icon">💻</span>
@@ -1147,7 +1147,7 @@
                     </button>
                     <button class="settings-tab" data-tab="privacy" onclick="settingsManager.switchTab('privacy')">
                         <span class="tab-icon">🔒</span>
-                        <span class="tab-label">Datenschutz</span>
+                        <span class="tab-label" data-i18n="settings.tabPrivacy">Datenschutz</span>
                     </button>
                     <button class="settings-tab" data-tab="notifications" onclick="settingsManager.switchTab('notifications')">
                         <span class="tab-icon">🔔</span>
@@ -1168,7 +1168,7 @@
                     <div class="tab-pane active" id="general-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>⚙️ Allgemeine Einstellungen</h3>
+                                <h3 data-i18n="settings.generalHeading">⚙️ Allgemeine Einstellungen</h3>
                             </div>
                             <div class="card-body">
                                 <form id="applicationSettingsForm" class="settings-form">
@@ -1212,7 +1212,7 @@
                     <div class="tab-pane" id="jobs-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🖨️ Auftrags-Verwaltung</h3>
+                                <h3 data-i18n="settings.jobsHeading">🖨️ Auftrags-Verwaltung</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1235,7 +1235,7 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🎨 G-Code Optimierung</h3>
+                                <h3 data-i18n="settings.gcodeHeading">🎨 G-Code Optimierung</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1276,7 +1276,7 @@
                     <div class="tab-pane" id="library-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🗄️ Bibliothek-System</h3>
+                                <h3 data-i18n="settings.libraryHeading">🗄️ Bibliothek-System</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1321,7 +1321,7 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>⚙️ Automatisierung</h3>
+                                <h3 data-i18n="settings.automationHeading">⚙️ Automatisierung</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1374,7 +1374,7 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🔧 Erweiterte Einstellungen</h3>
+                                <h3 data-i18n="settings.advancedHeading">🔧 Erweiterte Einstellungen</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1421,7 +1421,7 @@
                     <div class="tab-pane" id="files-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>📥 Downloads</h3>
+                                <h3 data-i18n="settings.downloadsHeading">📥 Downloads</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1455,7 +1455,7 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>📤 Uploads</h3>
+                                <h3 data-i18n="settings.uploadsHeading">📤 Uploads</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1497,7 +1497,7 @@
                     <div class="tab-pane" id="timelapse-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🎬 Timelapse-Verarbeitung</h3>
+                                <h3 data-i18n="settings.timelapseHeading">🎬 Timelapse-Verarbeitung</h3>
                             </div>
                             <div class="card-body">
                                 <div class="settings-form">
@@ -1578,7 +1578,7 @@
                     <div class="tab-pane" id="watch-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>👁️ Überwachte Verzeichnisse</h3>
+                                <h3 data-i18n="settings.watchHeading">👁️ Überwachte Verzeichnisse</h3>
                             </div>
                             <div class="card-body">
                                 <form id="watchFolderSettingsForm" class="settings-form">
@@ -1623,21 +1623,21 @@
                     <div class="tab-pane" id="system-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>📊 System-Informationen</h3>
+                                <h3 data-i18n="settings.systemHeading">📊 System-Informationen</h3>
                             </div>
                             <div class="card-body">
                                 <div class="system-info" id="systemInfo">
                                     <div class="loading-placeholder">
                                         <div class="spinner"></div>
-                                        <p>Lade System-Informationen...</p>
+                                        <p data-i18n="settings.loadingSystemInfo">Lade System-Informationen...</p>
                                     </div>
                                 </div>
                                 <div class="system-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                                     <button class="btn btn-danger" onclick="shutdownServer()">
                                         <span class="btn-icon">⏹️</span>
-                                        Server herunterfahren
+                                        <span data-i18n="settings.shutdownServer">Server herunterfahren</span>
                                     </button>
-                                    <p class="text-muted" style="margin-top: 10px; font-size: 0.875rem;">
+                                    <p class="text-muted" style="margin-top: 10px; font-size: 0.875rem;" data-i18n="settings.shutdownWarning">
                                         ⚠️ Der Server wird ordnungsgemäß heruntergefahren. Alle Dienste werden gestoppt.
                                     </p>
                                 </div>
@@ -1646,26 +1646,26 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🧙 Setup-Assistent</h3>
+                                <h3 data-i18n="settings.setupWizardHeading">🧙 Setup-Assistent</h3>
                             </div>
                             <div class="card-body">
-                                <p class="text-muted" style="margin-bottom: 15px;">
+                                <p class="text-muted" style="margin-bottom: 15px;" data-i18n="settings.setupWizardDescription">
                                     Führe den Setup-Assistenten erneut aus, um deine Grundeinstellungen anzupassen.
                                 </p>
                                 <button id="rerunSetupWizard" class="btn btn-secondary">
                                     <span class="btn-icon">🔄</span>
-                                    Setup-Assistent erneut starten
+                                    <span data-i18n="settings.setupWizardRerun">Setup-Assistent erneut starten</span>
                                 </button>
                             </div>
                         </div>
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🧭 Navigationsleiste</h3>
+                                <h3 data-i18n="settings.navHeading">🧭 Navigationsleiste</h3>
                             </div>
                             <div class="card-body">
                                 <div class="form-group">
-                                    <p class="text-muted">
+                                    <p class="text-muted" data-i18n="settings.navDescription">
                                         Passen Sie die Reihenfolge und Sichtbarkeit der Navigationselemente an.
                                     </p>
                                 </div>
@@ -1677,7 +1677,7 @@
                                 <div class="navigation-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
                                     <button class="btn btn-secondary" onclick="navigationPreferencesManager.resetNavigationPreferences()">
                                         <span class="btn-icon">🔄</span>
-                                        Auf Standardeinstellungen zurücksetzen
+                                        <span data-i18n="settings.navReset">Auf Standardeinstellungen zurücksetzen</span>
                                     </button>
                                 </div>
                             </div>
@@ -1685,7 +1685,7 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>📱 iOS App verbinden</h3>
+                                <h3 data-i18n="settings.iosHeading">📱 iOS App verbinden</h3>
                             </div>
                             <div class="card-body">
                                 <div class="ios-app-section">
@@ -1705,7 +1705,7 @@
 
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>☕ Entwicklung unterstützen</h3>
+                                <h3 data-i18n="settings.supportHeading">☕ Entwicklung unterstützen</h3>
                             </div>
                             <div class="card-body">
                                 <div class="support-section">
@@ -1732,7 +1732,7 @@
                     <div class="tab-pane" id="privacy-tab">
                         <div class="card settings-section">
                             <div class="card-header">
-                                <h3>🔒 Datenschutz & Nutzungsstatistiken</h3>
+                                <h3 data-i18n="settings.privacyHeading">🔒 Datenschutz & Nutzungsstatistiken</h3>
                             </div>
                             <div class="card-body">
                                 <div class="privacy-intro">
@@ -1790,7 +1790,7 @@
                         <!-- Local Statistics Viewer -->
                         <div class="card settings-section" id="usageStatsLocalCard">
                             <div class="card-header">
-                                <h3>📊 Ihre lokalen Statistiken</h3>
+                                <h3 data-i18n="settings.localStatsHeading">📊 Ihre lokalen Statistiken</h3>
                                 <button class="btn btn-sm btn-secondary" onclick="usageStatistics.refreshLocalStats()">
                                     <span class="btn-icon">🔄</span>
                                     Aktualisieren
@@ -1800,18 +1800,18 @@
                                 <div id="usageStatsLocalData">
                                     <div class="loading-placeholder">
                                         <div class="spinner"></div>
-                                        <p>Lade Statistiken...</p>
+                                        <p data-i18n="settings.loadingStats">Lade Statistiken...</p>
                                     </div>
                                 </div>
 
                                 <div class="stats-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
                                     <button class="btn btn-secondary" onclick="usageStatistics.exportData()">
                                         <span class="btn-icon">📤</span>
-                                        Daten exportieren
+                                        <span data-i18n="settings.exportData">Daten exportieren</span>
                                     </button>
                                     <button class="btn btn-danger" onclick="usageStatistics.deleteAllData()">
                                         <span class="btn-icon">🗑️</span>
-                                        Alle Daten löschen
+                                        <span data-i18n="settings.deleteAllData">Alle Daten löschen</span>
                                     </button>
                                 </div>
                             </div>
@@ -2101,7 +2101,7 @@
         <!-- Debug Page -->
         <div id="debug" class="page">
             <div class="page-header">
-                <h1>Debug & Systemprotokoll</h1>
+                <h1 data-i18n="debug.pageTitle">Debug & Systemprotokoll</h1>
                 <div class="header-actions">
                     <button class="btn btn-secondary" onclick="refreshDebugInfo()">
                         <span class="btn-icon">🔄</span>
@@ -2109,11 +2109,11 @@
                     </button>
                     <button class="btn btn-secondary" onclick="clearLogs()">
                         <span class="btn-icon">🗑️</span>
-                        Logs löschen
+                        <span data-i18n="debug.clearLogs">Logs löschen</span>
                     </button>
                     <button class="btn btn-primary" onclick="downloadLogs()">
                         <span class="btn-icon">💾</span>
-                        Logs herunterladen
+                        <span data-i18n="debug.downloadLogs">Logs herunterladen</span>
                     </button>
                 </div>
             </div>
@@ -2122,14 +2122,14 @@
                 <!-- System Health -->
                 <div class="card debug-section">
                     <div class="card-header">
-                        <h3>System-Status</h3>
+                        <h3 data-i18n="debug.systemStatusHeading">System-Status</h3>
                         <span class="card-icon">❤️</span>
                     </div>
                     <div class="card-body">
                         <div class="health-info" id="healthInfo">
                             <div class="loading-placeholder">
                                 <div class="spinner"></div>
-                                <p>Lade System-Status...</p>
+                                <p data-i18n="debug.loadingSystemStatus">Lade System-Status...</p>
                             </div>
                         </div>
                     </div>
@@ -2138,20 +2138,20 @@
                 <!-- Application Logs -->
                 <div class="card debug-section">
                     <div class="card-header">
-                        <h3>Anwendungsprotokolle</h3>
+                        <h3 data-i18n="debug.appLogsHeading">Anwendungsprotokolle</h3>
                         <span class="card-icon">📝</span>
                         <div class="log-controls">
                             <select id="logLevelFilter" class="filter-select">
-                                <option value="">Alle Level</option>
-                                <option value="ERROR">Nur Fehler</option>
-                                <option value="WARNING">Warnungen +</option>
+                                <option value="" data-i18n="debug.allLevels">Alle Level</option>
+                                <option value="ERROR" data-i18n="debug.errorsOnly">Nur Fehler</option>
+                                <option value="WARNING" data-i18n="debug.warningsPlus">Warnungen +</option>
                                 <option value="INFO">Info +</option>
                                 <option value="DEBUG">Debug</option>
                             </select>
                             <label class="checkbox-label">
                                 <input type="checkbox" id="autoRefreshLogs" checked>
                                 <span class="checkbox-custom"></span>
-                                Auto-Aktualisierung
+                                <span data-i18n="debug.autoRefresh">Auto-Aktualisierung</span>
                             </label>
                         </div>
                     </div>
@@ -2159,7 +2159,7 @@
                         <div class="log-viewer" id="logViewer">
                             <div class="loading-placeholder">
                                 <div class="spinner"></div>
-                                <p>Lade Protokolle...</p>
+                                <p data-i18n="debug.loadingLogs">Lade Protokolle...</p>
                             </div>
                         </div>
                     </div>
@@ -2168,14 +2168,14 @@
                 <!-- Performance Metrics -->
                 <div class="card debug-section">
                     <div class="card-header">
-                        <h3>Performance-Metriken</h3>
+                        <h3 data-i18n="debug.performanceHeading">Performance-Metriken</h3>
                         <span class="card-icon">📈</span>
                     </div>
                     <div class="card-body">
                         <div class="metrics-grid" id="performanceMetrics">
                             <div class="loading-placeholder">
                                 <div class="spinner"></div>
-                                <p>Lade Metriken...</p>
+                                <p data-i18n="debug.loadingMetrics">Lade Metriken...</p>
                             </div>
                         </div>
                     </div>
@@ -2193,15 +2193,15 @@
                                 🔄 Aktualisieren
                             </button>
                             <select id="thumbnailLogLimit" onchange="debugManager.refreshThumbnailLog()">
-                                <option value="10">10 Einträge</option>
-                                <option value="20" selected>20 Einträge</option>
-                                <option value="50">50 Einträge</option>
+                                <option value="10" data-i18n="debug.thumbnailEntries10">10 Einträge</option>
+                                <option value="20" selected data-i18n="debug.thumbnailEntries20">20 Einträge</option>
+                                <option value="50" data-i18n="debug.thumbnailEntries50">50 Einträge</option>
                             </select>
                         </div>
                         <div id="thumbnailProcessingLog">
                             <div class="loading-placeholder">
                                 <div class="spinner"></div>
-                                <p>Lade Thumbnail-Verarbeitung...</p>
+                                <p data-i18n="debug.loadingThumbnails">Lade Thumbnail-Verarbeitung...</p>
                             </div>
                         </div>
                     </div>
@@ -2217,7 +2217,7 @@
                         <div class="api-test-grid" id="apiTests">
                             <div class="loading-placeholder">
                                 <div class="spinner"></div>
-                                <p>Lade API-Tests...</p>
+                                <p data-i18n="debug.loadingApiTests">Lade API-Tests...</p>
                             </div>
                         </div>
                     </div>
@@ -2231,14 +2231,14 @@
     <div id="addPrinterModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Drucker hinzufügen</h3>
+                <h3 data-i18n="modals.addPrinter">Drucker hinzufügen</h3>
                 <button class="modal-close" onclick="closeModal('addPrinterModal')">&times;</button>
             </div>
             <form id="addPrinterForm" class="modal-body">
                 <div class="form-group">
-                    <label for="printerType">Drucker Typ</label>
+                    <label for="printerType" data-i18n="modals.printerType">Drucker Typ</label>
                     <select id="printerType" name="printerType" class="form-control" required>
-                        <option value="">Typ auswählen</option>
+                        <option value="" data-i18n="modals.selectType">Typ auswählen</option>
                         <option value="bambu_lab">Bambu Lab A1</option>
                         <option value="prusa_core">Prusa Core One</option>
                     </select>
@@ -2254,7 +2254,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="printerName">Name</label>
+                    <label for="printerName" data-i18n="modals.printerName">Name</label>
                     <input type="text" id="printerName" name="printerName" class="form-control" required 
                            data-validate="printer-name"
                            placeholder="Mein Drucker" 
@@ -2263,7 +2263,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="printerIP">IP-Adresse</label>
+                    <label for="printerIP" data-i18n="modals.printerIp">IP-Adresse</label>
                     <input type="text" id="printerIP" name="printerIP" class="form-control" required 
                            data-validate="ip"
                            placeholder="192.168.1.100" 
@@ -2309,18 +2309,18 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="printerActive" name="printerActive" checked>
                         <span class="checkbox-custom"></span>
-                        Drucker aktivieren
+                        <span data-i18n="modals.printerActive">Drucker aktivieren</span>
                     </label>
-                    <small class="form-text text-muted">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
+                    <small class="form-text text-muted" data-i18n="modals.printerActiveHelp">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
                 </div>
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('addPrinterModal')">
-                    Abbrechen
+                    <span data-i18n="modals.cancel">Abbrechen</span>
                 </button>
                 <button type="submit" form="addPrinterForm" class="btn btn-primary">
                     <span class="btn-icon">➕</span>
-                    Hinzufügen
+                    <span data-i18n="modals.add">Hinzufügen</span>
                 </button>
             </div>
         </div>
@@ -2330,16 +2330,16 @@
     <div id="editPrinterModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Drucker bearbeiten</h3>
+                <h3 data-i18n="modals.editPrinter">Drucker bearbeiten</h3>
                 <button class="modal-close" onclick="closeModal('editPrinterModal')">&times;</button>
             </div>
             <form id="editPrinterForm" class="modal-body">
                 <input type="hidden" id="editPrinterId" name="printerId">
                 
                 <div class="form-group">
-                    <label for="editPrinterType">Drucker Typ</label>
+                    <label for="editPrinterType" data-i18n="modals.printerType">Drucker Typ</label>
                     <select id="editPrinterType" name="printerType" class="form-control" required>
-                        <option value="">Typ auswählen</option>
+                        <option value="" data-i18n="modals.selectType">Typ auswählen</option>
                         <option value="bambu_lab">Bambu Lab A1</option>
                         <option value="prusa_core">Prusa Core One</option>
                     </select>
@@ -2355,7 +2355,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="editPrinterName">Name</label>
+                    <label for="editPrinterName" data-i18n="modals.printerName">Name</label>
                     <input type="text" id="editPrinterName" name="printerName" class="form-control" required 
                            data-validate="printer-name"
                            placeholder="Mein Drucker" 
@@ -2364,7 +2364,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="editPrinterIP">IP-Adresse</label>
+                    <label for="editPrinterIP" data-i18n="modals.printerIp">IP-Adresse</label>
                     <input type="text" id="editPrinterIP" name="printerIP" class="form-control" required 
                            data-validate="ip"
                            placeholder="192.168.1.100" 
@@ -2410,18 +2410,18 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="editPrinterActive" name="printerActive" checked>
                         <span class="checkbox-custom"></span>
-                        Drucker aktivieren
+                        <span data-i18n="modals.printerActive">Drucker aktivieren</span>
                     </label>
-                    <small class="form-text text-muted">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
+                    <small class="form-text text-muted" data-i18n="modals.printerActiveHelp">Aktivierte Drucker werden überwacht und können Aufträge empfangen</small>
                 </div>
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editPrinterModal')">
-                    Abbrechen
+                    <span data-i18n="modals.cancel">Abbrechen</span>
                 </button>
                 <button type="submit" form="editPrinterForm" class="btn btn-primary">
                     <span class="btn-icon">💾</span>
-                    Speichern
+                    <span data-i18n="modals.save">Speichern</span>
                 </button>
             </div>
         </div>
@@ -2431,7 +2431,7 @@
     <div id="jobDetailsModal" class="modal">
         <div class="modal-content large">
             <div class="modal-header">
-                <h3>Auftrag Details</h3>
+                <h3 data-i18n="modals.jobDetails">Auftrag Details</h3>
                 <button class="modal-close" onclick="closeModal('jobDetailsModal')">&times;</button>
             </div>
             <div class="modal-body" id="jobDetailsContent">
@@ -2447,13 +2447,13 @@
     <div id="filePreviewModal" class="modal">
         <div class="modal-content large">
             <div class="modal-header">
-                <h3>Datei Vorschau</h3>
+                <h3 data-i18n="modals.filePreview">Datei Vorschau</h3>
                 <button class="modal-close" onclick="closeModal('filePreviewModal')">&times;</button>
             </div>
             <div class="modal-body" id="filePreviewContent">
                 <div class="loading-placeholder">
                     <div class="spinner"></div>
-                    <p>Lade Vorschau...</p>
+                    <p data-i18n="modals.loadingPreview">Lade Vorschau...</p>
                 </div>
             </div>
         </div>
@@ -2463,12 +2463,12 @@
     <div id="addWatchFolderModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Überwachtes Verzeichnis hinzufügen</h3>
+                <h3 data-i18n="modals.addWatchFolder">Überwachtes Verzeichnis hinzufügen</h3>
                 <button class="modal-close" onclick="closeModal('addWatchFolderModal')">&times;</button>
             </div>
             <form id="addWatchFolderForm" class="modal-body">
                 <div class="form-group">
-                    <label for="watchFolderPath">Verzeichnispfad</label>
+                    <label for="watchFolderPath" data-i18n="modals.watchFolderPath">Verzeichnispfad</label>
                     <input type="text" id="watchFolderPath" name="folderPath" class="form-control" required 
                            placeholder="C:\Benutzer\Ihr Name\3D-Modelle"
                            data-validate="folder-path">
@@ -2491,11 +2491,11 @@
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('addWatchFolderModal')">
-                    Abbrechen
+                    <span data-i18n="modals.cancel">Abbrechen</span>
                 </button>
                 <button type="submit" form="addWatchFolderForm" class="btn btn-primary" id="addWatchFolderSubmit">
                     <span class="btn-icon">📂</span>
-                    Hinzufügen
+                    <span data-i18n="modals.add">Hinzufügen</span>
                 </button>
             </div>
         </div>
@@ -2505,19 +2505,19 @@
     <div id="addIdeaModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Neue Idee hinzufügen</h3>
+                <h3 data-i18n="modals.addIdea">Neue Idee hinzufügen</h3>
                 <button class="modal-close" onclick="closeModal('addIdeaModal')">&times;</button>
             </div>
             <form id="addIdeaForm" class="modal-body">
                 <div class="form-group">
-                    <label for="ideaTitle">Titel <span class="required">*</span></label>
+                    <label for="ideaTitle"><span data-i18n="modals.ideaTitle">Titel</span> <span class="required">*</span></label>
                     <input type="text" id="ideaTitle" name="title" class="form-control" required
                            placeholder="Meine neue Druckidee"
                            minlength="1" maxlength="255">
                 </div>
 
                 <div class="form-group">
-                    <label for="ideaDescription">Beschreibung</label>
+                    <label for="ideaDescription" data-i18n="modals.ideaDescription">Beschreibung</label>
                     <textarea id="ideaDescription" name="description" class="form-control"
                               placeholder="Detaillierte Beschreibung der Idee..."
                               maxlength="2000" rows="4"></textarea>
@@ -2525,14 +2525,14 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="ideaCategory">Kategorie</label>
+                        <label for="ideaCategory" data-i18n="modals.ideaCategory">Kategorie</label>
                         <input type="text" id="ideaCategory" name="category" class="form-control"
                                placeholder="z.B. Geschenk, Prototyp, Dekoration"
                                maxlength="100">
                     </div>
 
                     <div class="form-group">
-                        <label for="ideaPriority">Priorität</label>
+                        <label for="ideaPriority" data-i18n="modals.ideaPriority">Priorität</label>
                         <select id="ideaPriority" name="priority" class="form-control">
                             <option value="1">1 - Niedrig</option>
                             <option value="2">2 - Gering</option>
@@ -2545,26 +2545,26 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="ideaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
+                        <label for="ideaEstimatedTime" data-i18n="modals.ideaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
                         <input type="number" id="ideaEstimatedTime" name="estimated_print_time"
                                class="form-control" min="0" placeholder="120">
                     </div>
 
                     <div class="form-group">
-                        <label for="ideaPlannedDate">Geplantes Datum</label>
+                        <label for="ideaPlannedDate" data-i18n="modals.ideaPlannedDate">Geplantes Datum</label>
                         <input type="date" id="ideaPlannedDate" name="planned_date" class="form-control">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="ideaMaterialNotes">Material-Notizen</label>
+                    <label for="ideaMaterialNotes" data-i18n="modals.ideaMaterialNotes">Material-Notizen</label>
                     <textarea id="ideaMaterialNotes" name="material_notes" class="form-control"
                               placeholder="PLA Rot, 0.2mm Schichthöhe..."
                               maxlength="500" rows="2"></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label for="ideaTags">Tags (durch Komma getrennt)</label>
+                    <label for="ideaTags" data-i18n="modals.ideaTags">Tags (durch Komma getrennt)</label>
                     <input type="text" id="ideaTags" name="tags" class="form-control"
                            placeholder="geschenk, weihnachten, personalisiert">
                 </div>
@@ -2573,12 +2573,12 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="ideaIsBusiness" name="is_business">
                         <span class="checkbox-custom"></span>
-                        Geschäftlicher Auftrag
+                        <span data-i18n="modals.ideaIsBusiness">Geschäftlicher Auftrag</span>
                     </label>
                 </div>
 
                 <div class="form-group" id="customerInfoGroup" style="display: none;">
-                    <label for="ideaCustomerInfo">Kunden-Informationen</label>
+                    <label for="ideaCustomerInfo" data-i18n="modals.ideaCustomerInfo">Kunden-Informationen</label>
                     <textarea id="ideaCustomerInfo" name="customer_info" class="form-control"
                               placeholder="Kundenname, Kontakt, spezielle Anforderungen..."
                               maxlength="500" rows="2"></textarea>
@@ -2586,11 +2586,11 @@
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('addIdeaModal')">
-                    Abbrechen
+                    <span data-i18n="modals.cancel">Abbrechen</span>
                 </button>
                 <button type="submit" form="addIdeaForm" class="btn btn-primary">
                     <span class="btn-icon">💡</span>
-                    Idee speichern
+                    <span data-i18n="modals.saveIdea">Idee speichern</span>
                 </button>
             </div>
         </div>
@@ -2600,33 +2600,33 @@
     <div id="editIdeaModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Idee bearbeiten</h3>
+                <h3 data-i18n="modals.editIdea">Idee bearbeiten</h3>
                 <button class="modal-close" onclick="closeModal('editIdeaModal')">&times;</button>
             </div>
             <form id="editIdeaForm" class="modal-body">
                 <input type="hidden" id="editIdeaId" name="ideaId">
 
                 <div class="form-group">
-                    <label for="editIdeaTitle">Titel <span class="required">*</span></label>
+                    <label for="editIdeaTitle"><span data-i18n="modals.ideaTitle">Titel</span> <span class="required">*</span></label>
                     <input type="text" id="editIdeaTitle" name="title" class="form-control" required
                            minlength="1" maxlength="255">
                 </div>
 
                 <div class="form-group">
-                    <label for="editIdeaDescription">Beschreibung</label>
+                    <label for="editIdeaDescription" data-i18n="modals.ideaDescription">Beschreibung</label>
                     <textarea id="editIdeaDescription" name="description" class="form-control"
                               maxlength="2000" rows="4"></textarea>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="editIdeaCategory">Kategorie</label>
+                        <label for="editIdeaCategory" data-i18n="modals.ideaCategory">Kategorie</label>
                         <input type="text" id="editIdeaCategory" name="category" class="form-control"
                                maxlength="100">
                     </div>
 
                     <div class="form-group">
-                        <label for="editIdeaPriority">Priorität</label>
+                        <label for="editIdeaPriority" data-i18n="modals.ideaPriority">Priorität</label>
                         <select id="editIdeaPriority" name="priority" class="form-control">
                             <option value="1">1 - Niedrig</option>
                             <option value="2">2 - Gering</option>
@@ -2639,7 +2639,7 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="editIdeaStatus">Status</label>
+                        <label for="editIdeaStatus" data-i18n="modals.ideaStatus">Status</label>
                         <select id="editIdeaStatus" name="status" class="form-control">
                             <option value="idea">💡 Idee</option>
                             <option value="planned">📅 Geplant</option>
@@ -2650,7 +2650,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="editIdeaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
+                        <label for="editIdeaEstimatedTime" data-i18n="modals.ideaEstimatedTime">Geschätzte Druckzeit (Minuten)</label>
                         <input type="number" id="editIdeaEstimatedTime" name="estimated_print_time"
                                class="form-control" min="0">
                     </div>
@@ -2658,24 +2658,24 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="editIdeaPlannedDate">Geplantes Datum</label>
+                        <label for="editIdeaPlannedDate" data-i18n="modals.ideaPlannedDate">Geplantes Datum</label>
                         <input type="date" id="editIdeaPlannedDate" name="planned_date" class="form-control">
                     </div>
 
                     <div class="form-group">
-                        <label for="editIdeaCompletedDate">Abgeschlossen am</label>
+                        <label for="editIdeaCompletedDate" data-i18n="modals.ideaCompleted">Abgeschlossen am</label>
                         <input type="date" id="editIdeaCompletedDate" name="completed_date" class="form-control" readonly>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="editIdeaMaterialNotes">Material-Notizen</label>
+                    <label for="editIdeaMaterialNotes" data-i18n="modals.ideaMaterialNotes">Material-Notizen</label>
                     <textarea id="editIdeaMaterialNotes" name="material_notes" class="form-control"
                               maxlength="500" rows="2"></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label for="editIdeaTags">Tags (durch Komma getrennt)</label>
+                    <label for="editIdeaTags" data-i18n="modals.ideaTags">Tags (durch Komma getrennt)</label>
                     <input type="text" id="editIdeaTags" name="tags" class="form-control">
                 </div>
 
@@ -2683,23 +2683,23 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="editIdeaIsBusiness" name="is_business">
                         <span class="checkbox-custom"></span>
-                        Geschäftlicher Auftrag
+                        <span data-i18n="modals.ideaIsBusiness">Geschäftlicher Auftrag</span>
                     </label>
                 </div>
 
                 <div class="form-group" id="editCustomerInfoGroup" style="display: none;">
-                    <label for="editIdeaCustomerInfo">Kunden-Informationen</label>
+                    <label for="editIdeaCustomerInfo" data-i18n="modals.ideaCustomerInfo">Kunden-Informationen</label>
                     <textarea id="editIdeaCustomerInfo" name="customer_info" class="form-control"
                               maxlength="500" rows="2"></textarea>
                 </div>
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('editIdeaModal')">
-                    Abbrechen
+                    <span data-i18n="modals.cancel">Abbrechen</span>
                 </button>
                 <button type="submit" form="editIdeaForm" class="btn btn-primary">
                     <span class="btn-icon">💾</span>
-                    Änderungen speichern
+                    <span data-i18n="modals.saveChanges">Änderungen speichern</span>
                 </button>
             </div>
         </div>
@@ -2709,7 +2709,7 @@
     <div id="importIdeaModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Modell aus URL importieren</h3>
+                <h3 data-i18n="modals.importIdea">Modell aus URL importieren</h3>
                 <button class="modal-close" onclick="closeModal('importIdeaModal')">&times;</button>
             </div>
             <form id="importIdeaForm" class="modal-body">
@@ -2725,7 +2725,7 @@
                 <div class="form-group">
                     <button type="button" class="btn btn-secondary" onclick="previewImportUrl()">
                         <span class="btn-icon">👁️</span>
-                        URL-Vorschau laden
+                        <span data-i18n="modals.loadUrlPreview">URL-Vorschau laden</span>
                     </button>
                 </div>
 
@@ -2747,14 +2747,14 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="importCategory">Kategorie</label>
+                        <label for="importCategory" data-i18n="modals.ideaCategory">Kategorie</label>
                         <input type="text" id="importCategory" name="category" class="form-control"
                                placeholder="z.B. Dekoration, Werkzeug"
                                maxlength="100">
                     </div>
 
                     <div class="form-group">
-                        <label for="importPriority">Priorität</label>
+                        <label for="importPriority" data-i18n="modals.ideaPriority">Priorität</label>
                         <select id="importPriority" name="priority" class="form-control">
                             <option value="1">1 - Niedrig</option>
                             <option value="2">2 - Gering</option>
@@ -2766,7 +2766,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="importTags">Tags (durch Komma getrennt)</label>
+                    <label for="importTags" data-i18n="modals.ideaTags">Tags (durch Komma getrennt)</label>
                     <input type="text" id="importTags" name="tags" class="form-control"
                            placeholder="makerworld, dekoration, miniatur">
                 </div>
@@ -2775,17 +2775,17 @@
                     <label class="checkbox-label">
                         <input type="checkbox" id="importIsBusiness" name="is_business">
                         <span class="checkbox-custom"></span>
-                        Geschäftlicher Auftrag
+                        <span data-i18n="modals.ideaIsBusiness">Geschäftlicher Auftrag</span>
                     </label>
                 </div>
             </form>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('importIdeaModal')">
-                    Abbrechen
+                    <span data-i18n="modals.cancel">Abbrechen</span>
                 </button>
                 <button type="submit" form="importIdeaForm" class="btn btn-primary">
                     <span class="btn-icon">🔗</span>
-                    Importieren
+                    <span data-i18n="modals.importBtn">Importieren</span>
                 </button>
             </div>
         </div>
@@ -2795,7 +2795,7 @@
     <div id="ideaDetailsModal" class="modal">
         <div class="modal-content large">
             <div class="modal-header">
-                <h3>Idee Details</h3>
+                <h3 data-i18n="modals.ideaDetails">Idee Details</h3>
                 <button class="modal-close" onclick="closeModal('ideaDetailsModal')">&times;</button>
             </div>
             <div class="modal-body" id="ideaDetailsContent">
@@ -2811,7 +2811,7 @@
     <div id="materialModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="materialModalTitle">Filament hinzufügen</h3>
+                <h3 id="materialModalTitle" data-i18n="modals.addFilament">Filament hinzufügen</h3>
                 <button class="modal-close" onclick="materialsManager.closeModal()">&times;</button>
             </div>
             <form id="materialForm" class="modal-body">
@@ -2819,15 +2819,15 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="materialType">Typ <span class="required">*</span></label>
+                        <label for="materialType"><span data-i18n="modals.filamentType">Typ</span> <span class="required">*</span></label>
                         <select id="materialType" name="material_type" class="form-control" required>
-                            <option value="">Typ auswählen</option>
+                            <option value="" data-i18n="modals.selectType">Typ auswählen</option>
                             <!-- Populated by JS -->
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="materialBrand">Marke <span class="required">*</span></label>
+                        <label for="materialBrand"><span data-i18n="modals.filamentBrand">Marke</span> <span class="required">*</span></label>
                         <input type="text" id="materialBrand" name="brand" class="form-control" required
                                placeholder="z.B. OVERTURE, Prusament"
                                maxlength="100">
@@ -2836,21 +2836,21 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="materialColor">Farbe <span class="required">*</span></label>
+                        <label for="materialColor"><span data-i18n="modals.filamentColor">Farbe</span> <span class="required">*</span></label>
                         <input type="text" id="materialColor" name="color" class="form-control" required
                                placeholder="z.B. Rot, Blau, Transparent"
                                maxlength="50">
                     </div>
 
                     <div class="form-group">
-                        <label for="materialColorHex">Farbcode (Hex)</label>
+                        <label for="materialColorHex" data-i18n="modals.filamentColorHex">Farbcode (Hex)</label>
                         <input type="color" id="materialColorHex" name="color_hex" class="form-control">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="materialSpoolWeight">Spulengewicht (g) <span class="required">*</span></label>
+                        <label for="materialSpoolWeight"><span data-i18n="modals.spoolWeight">Spulengewicht (g)</span> <span class="required">*</span></label>
                         <input type="number" id="materialSpoolWeight" name="spool_weight_g"
                                class="form-control" required min="0" step="1"
                                placeholder="1000">

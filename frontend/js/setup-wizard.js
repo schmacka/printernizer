@@ -943,11 +943,11 @@ class SetupWizardManager {
                         <span class="summary-item-value">${escapeHtml(this.wizardData.printer.name)}</span>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-item-label">Typ</span>
+                        <span class="summary-item-label">${t('wizard.summaryType')}</span>
                         <span class="summary-item-value">${this.wizardData.printer.type === 'bambu_lab' ? 'Bambu Lab' : 'Prusa Core One'}</span>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-item-label">IP-Adresse</span>
+                        <span class="summary-item-label">${t('wizard.summaryIpAddress')}</span>
                         <span class="summary-item-value">${escapeHtml(this.wizardData.printer.ip)}</span>
                     </div>
                 `;
@@ -955,7 +955,7 @@ class SetupWizardManager {
                 printerSummary.innerHTML = `
                     <div class="summary-item">
                         <span class="summary-item-label">Status</span>
-                        <span class="summary-item-value warning">Später konfigurieren</span>
+                        <span class="summary-item-value warning">${t('wizard.configureLater')}</span>
                     </div>
                 `;
             }
@@ -967,11 +967,11 @@ class SetupWizardManager {
             pathsSummary.innerHTML = `
                 <div class="summary-item">
                     <span class="summary-item-label">Downloads</span>
-                    <span class="summary-item-value">${escapeHtml(this.wizardData.paths.downloads || this.defaults?.paths?.downloads || 'Standard')}</span>
+                    <span class="summary-item-value">${escapeHtml(this.wizardData.paths.downloads || this.defaults?.paths?.downloads || t('wizard.defaultValue'))}</span>
                 </div>
                 <div class="summary-item">
-                    <span class="summary-item-label">Bibliothek</span>
-                    <span class="summary-item-value">${escapeHtml(this.wizardData.paths.library || this.defaults?.paths?.library || 'Standard')}</span>
+                    <span class="summary-item-label">${t('nav.library')}</span>
+                    <span class="summary-item-value">${escapeHtml(this.wizardData.paths.library || this.defaults?.paths?.library || t('wizard.defaultValue'))}</span>
                 </div>
             `;
         }
@@ -980,22 +980,22 @@ class SetupWizardManager {
         const featuresSummary = document.getElementById('wizardSummaryFeatures');
         if (featuresSummary) {
             const enabledFeatures = [];
-            if (this.wizardData.features.timelapse) enabledFeatures.push('Zeitraffer');
-            if (this.wizardData.features.watchFolders) enabledFeatures.push('Watch-Ordner');
+            if (this.wizardData.features.timelapse) enabledFeatures.push(t('wizard.featureTimelapse'));
+            if (this.wizardData.features.watchFolders) enabledFeatures.push(t('wizard.featureWatchFolders'));
             if (this.wizardData.features.mqtt) enabledFeatures.push('MQTT');
             
             if (enabledFeatures.length > 0) {
                 featuresSummary.innerHTML = enabledFeatures.map(f => `
                     <div class="summary-item">
                         <span class="summary-item-label">${escapeHtml(f)}</span>
-                        <span class="summary-item-value success">Aktiviert</span>
+                        <span class="summary-item-value success">${t('wizard.enabled')}</span>
                     </div>
                 `).join('');
             } else {
                 featuresSummary.innerHTML = `
                     <div class="summary-item">
                         <span class="summary-item-label">Status</span>
-                        <span class="summary-item-value">Keine optionalen Features aktiviert</span>
+                        <span class="summary-item-value">${t('wizard.noOptionalFeatures')}</span>
                     </div>
                 `;
             }
@@ -1010,7 +1010,7 @@ class SetupWizardManager {
         
         if (finishBtn) {
             finishBtn.disabled = true;
-            finishBtn.innerHTML = '<span class="wizard-spinner" style="width:16px;height:16px;margin-right:8px;"></span> Speichere...';
+            finishBtn.innerHTML = `<span class="wizard-spinner" style="width:16px;height:16px;margin-right:8px;"></span> ${t('wizard.saving')}`;
         }
         
         try {
@@ -1024,7 +1024,7 @@ class SetupWizardManager {
             this.hide();
             
             // Show success toast
-            showToast('success', 'Einrichtung abgeschlossen', 'Willkommen bei Printernizer! 🎉');
+            showToast('success', t('wizard.setupCompleteTitle'), t('wizard.setupCompleteMessage'));
             
             // Refresh the current page to show new data
             if (window.app) {
@@ -1032,11 +1032,11 @@ class SetupWizardManager {
             }
         } catch (error) {
             Logger.error('Failed to finish wizard', error);
-            showToast('error', 'Fehler', 'Einrichtung konnte nicht abgeschlossen werden');
+            showToast('error', t('common.error'), t('wizard.finishFailed'));
         } finally {
             if (finishBtn) {
                 finishBtn.disabled = false;
-                finishBtn.innerHTML = '✓ Einrichtung abschließen';
+                finishBtn.innerHTML = `✓ ${t('wizard.finishSetup')}`;
             }
         }
     }
@@ -1165,7 +1165,7 @@ class SetupWizardManager {
             await this.show();
         } catch (error) {
             Logger.error('Failed to reset wizard', error);
-            showToast('error', 'Fehler', 'Konnte Setup-Assistenten nicht zurücksetzen');
+            showToast('error', t('common.error'), t('wizard.resetFailed'));
         }
     }
 

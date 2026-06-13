@@ -119,7 +119,7 @@ class EnhancedFileMetadata {
                 cards.push({
                     icon: '📐',
                     value: `${props.width}×${props.depth}×${props.height}`,
-                    label: 'Abmessungen (mm)',
+                    label: t('metadata.dimensions'),
                     unit: ''
                 });
             }
@@ -130,7 +130,7 @@ class EnhancedFileMetadata {
             cards.push({
                 icon: '💰',
                 value: this.metadata.cost_breakdown.total_cost.toFixed(2),
-                label: 'Gesamtkosten',
+                label: t('metadata.totalCost'),
                 unit: '€'
             });
         }
@@ -140,7 +140,7 @@ class EnhancedFileMetadata {
             cards.push({
                 icon: '⭐',
                 value: this.metadata.quality_metrics.complexity_score,
-                label: 'Qualitätsscore',
+                label: t('metadata.qualityScore'),
                 unit: '/10'
             });
         }
@@ -150,7 +150,7 @@ class EnhancedFileMetadata {
             cards.push({
                 icon: '🧩',
                 value: this.metadata.physical_properties.object_count,
-                label: 'Objekte',
+                label: t('metadata.objects'),
                 unit: ''
             });
         }
@@ -223,22 +223,22 @@ class EnhancedFileMetadata {
         const items = [];
 
         if (props.width) {
-            items.push({ label: 'Breite', value: `${props.width.toFixed(1)} mm` });
+            items.push({ label: t('metadata.width'), value: `${props.width.toFixed(1)} mm` });
         }
         if (props.depth) {
-            items.push({ label: 'Tiefe', value: `${props.depth.toFixed(1)} mm` });
+            items.push({ label: t('metadata.depth'), value: `${props.depth.toFixed(1)} mm` });
         }
         if (props.height) {
-            items.push({ label: 'Höhe', value: `${props.height.toFixed(1)} mm` });
+            items.push({ label: t('metadata.height'), value: `${props.height.toFixed(1)} mm` });
         }
         if (props.volume) {
-            items.push({ label: 'Volumen', value: `${props.volume.toFixed(2)} cm³` });
+            items.push({ label: t('metadata.volume'), value: `${props.volume.toFixed(2)} cm³` });
         }
         if (props.surface_area) {
-            items.push({ label: 'Oberfläche', value: `${props.surface_area.toFixed(2)} cm²` });
+            items.push({ label: t('metadata.surfaceArea'), value: `${props.surface_area.toFixed(2)} cm²` });
         }
         if (props.object_count) {
-            items.push({ label: 'Anzahl Objekte', value: props.object_count });
+            items.push({ label: t('metadata.objectCount'), value: props.object_count });
         }
 
         if (items.length === 0) return null;
@@ -247,7 +247,7 @@ class EnhancedFileMetadata {
             <div class="metadata-section">
                 <div class="metadata-section-header">
                     <span class="metadata-section-icon">📋</span>
-                    <h4 class="metadata-section-title">Modell-Informationen</h4>
+                    <h4 class="metadata-section-title">${t('metadata.modelInformationTitle')}</h4>
                 </div>
                 <div class="metadata-items">
                     ${items.map(item => `
@@ -271,38 +271,38 @@ class EnhancedFileMetadata {
         const items = [];
 
         if (settings.layer_height) {
-            let label = `Schichthöhe: ${settings.layer_height} mm`;
+            let label = t('metadata.layerHeightValue', { value: settings.layer_height });
             if (settings.total_layer_count) {
-                label += ` (${settings.total_layer_count} Schichten)`;
+                label += ` ${t('metadata.layerCountSuffix', { count: settings.total_layer_count })}`;
             }
-            items.push({ label: 'Schichthöhe', value: label });
+            items.push({ label: t('metadata.layerHeight'), value: label });
         }
         if (settings.nozzle_diameter) {
-            items.push({ label: 'Düsendurchmesser', value: `${settings.nozzle_diameter} mm` });
+            items.push({ label: t('metadata.nozzleDiameter'), value: `${settings.nozzle_diameter} mm` });
         }
         if (settings.wall_count || settings.wall_thickness) {
-            const value = settings.wall_thickness 
-                ? `${settings.wall_thickness} mm${settings.wall_count ? ` (${settings.wall_count} Wände)` : ''}`
-                : `${settings.wall_count} Wände`;
-            items.push({ label: 'Wandstärke', value });
+            const value = settings.wall_thickness
+                ? `${settings.wall_thickness} mm${settings.wall_count ? ` (${t('metadata.wallsCount', { count: settings.wall_count })})` : ''}`
+                : t('metadata.wallsCount', { count: settings.wall_count });
+            items.push({ label: t('metadata.wallThickness'), value });
         }
         if (settings.infill_density !== null && settings.infill_density !== undefined) {
-            const value = settings.infill_pattern 
+            const value = settings.infill_pattern
                 ? `${settings.infill_density}% (${settings.infill_pattern})`
                 : `${settings.infill_density}%`;
-            items.push({ label: 'Füllung', value });
+            items.push({ label: t('metadata.infill'), value });
         }
         if (settings.support_used !== null && settings.support_used !== undefined) {
-            items.push({ label: 'Stützen', value: settings.support_used ? 'Ja' : 'Nicht erforderlich' });
+            items.push({ label: t('metadata.supports'), value: settings.support_used ? t('common.yes') : t('metadata.notRequired') });
         }
         if (settings.nozzle_temperature) {
-            items.push({ label: 'Düsentemperatur', value: `${settings.nozzle_temperature}°C` });
+            items.push({ label: t('metadata.nozzleTemperature'), value: `${settings.nozzle_temperature}°C` });
         }
         if (settings.bed_temperature) {
-            items.push({ label: 'Betttemperatur', value: `${settings.bed_temperature}°C` });
+            items.push({ label: t('metadata.bedTemperature'), value: `${settings.bed_temperature}°C` });
         }
         if (settings.print_speed) {
-            items.push({ label: 'Druckgeschwindigkeit', value: `${settings.print_speed} mm/s` });
+            items.push({ label: t('metadata.printSpeed'), value: `${settings.print_speed} mm/s` });
         }
 
         if (items.length === 0) return null;
@@ -311,7 +311,7 @@ class EnhancedFileMetadata {
             <div class="metadata-section">
                 <div class="metadata-section-header">
                     <span class="metadata-section-icon">⚙️</span>
-                    <h4 class="metadata-section-title">Druckeinstellungen</h4>
+                    <h4 class="metadata-section-title">${t('metadata.printSettingsTitle')}</h4>
                 </div>
                 <div class="metadata-items">
                     ${items.map(item => `
@@ -335,19 +335,19 @@ class EnhancedFileMetadata {
         const items = [];
 
         if (material.total_weight) {
-            items.push({ label: 'Gesamtgewicht', value: `${material.total_weight.toFixed(1)} g` });
+            items.push({ label: t('metadata.totalWeight'), value: `${material.total_weight.toFixed(1)} g` });
         }
         if (material.filament_length) {
-            items.push({ label: 'Filamentlänge', value: `${material.filament_length.toFixed(2)} m` });
+            items.push({ label: t('metadata.filamentLength'), value: `${material.filament_length.toFixed(2)} m` });
         }
         if (material.material_types && material.material_types.length > 0) {
-            items.push({ label: 'Material', value: material.material_types.join(', ') });
+            items.push({ label: t('metadata.material'), value: material.material_types.join(', ') });
         }
         if (material.waste_weight) {
-            items.push({ label: 'Abfall (geschätzt)', value: `${material.waste_weight.toFixed(1)} g` });
+            items.push({ label: t('metadata.wasteEstimated'), value: `${material.waste_weight.toFixed(1)} g` });
         }
         if (material.multi_material) {
-            items.push({ label: 'Multi-Material', value: 'Ja' });
+            items.push({ label: t('metadata.multiMaterial'), value: t('common.yes') });
         }
 
         // Color tags
@@ -368,7 +368,7 @@ class EnhancedFileMetadata {
             <div class="metadata-section">
                 <div class="metadata-section-header">
                     <span class="metadata-section-icon">🧵</span>
-                    <h4 class="metadata-section-title">Materialanforderungen</h4>
+                    <h4 class="metadata-section-title">${t('metadata.materialRequirementsTitle')}</h4>
                 </div>
                 <div class="metadata-items">
                     ${items.map(item => `
@@ -393,13 +393,13 @@ class EnhancedFileMetadata {
         const items = [];
 
         if (cost.material_cost) {
-            items.push({ label: 'Materialkosten', value: `€${cost.material_cost.toFixed(2)}` });
+            items.push({ label: t('metadata.materialCost'), value: `€${cost.material_cost.toFixed(2)}` });
         }
         if (cost.energy_cost) {
-            items.push({ label: 'Energiekosten', value: `€${cost.energy_cost.toFixed(2)}` });
+            items.push({ label: t('metadata.energyCost'), value: `€${cost.energy_cost.toFixed(2)}` });
         }
         if (cost.cost_per_gram) {
-            items.push({ label: 'Kosten pro Gramm', value: `€${cost.cost_per_gram.toFixed(3)}` });
+            items.push({ label: t('metadata.costPerGram'), value: `€${cost.cost_per_gram.toFixed(3)}` });
         }
 
         // Add detailed breakdown if available
@@ -420,7 +420,7 @@ class EnhancedFileMetadata {
             <div class="metadata-section">
                 <div class="metadata-section-header">
                     <span class="metadata-section-icon">💰</span>
-                    <h4 class="metadata-section-title">Kostenaufschlüsselung</h4>
+                    <h4 class="metadata-section-title">${t('metadata.costBreakdownTitle')}</h4>
                 </div>
                 <div class="cost-breakdown">
                     ${items.map(item => `
@@ -431,7 +431,7 @@ class EnhancedFileMetadata {
                     `).join('')}
                     ${cost.total_cost ? `
                         <div class="cost-item">
-                            <span class="cost-label">Gesamtkosten</span>
+                            <span class="cost-label">${t('metadata.totalCost')}</span>
                             <span class="cost-value">€${cost.total_cost.toFixed(2)}</span>
                         </div>
                     ` : ''}
@@ -453,8 +453,8 @@ class EnhancedFileMetadata {
             const scoreClass = quality.complexity_score >= 8 ? 'excellent' : 
                              quality.complexity_score >= 6 ? 'good' : 
                              quality.complexity_score >= 4 ? 'moderate' : 'low';
-            items.push({ 
-                label: 'Komplexitätsscore', 
+            items.push({
+                label: t('metadata.complexityScore'),
                 value: `<span class="quality-score ${scoreClass}">${quality.complexity_score}/10</span>`,
                 raw: true
             });
@@ -463,13 +463,13 @@ class EnhancedFileMetadata {
         if (quality.difficulty_level) {
             const difficultyClass = quality.difficulty_level.toLowerCase();
             const difficultyMap = {
-                'beginner': 'Anfänger',
-                'intermediate': 'Fortgeschritten',
-                'advanced': 'Experte',
-                'expert': 'Profi'
+                'beginner': t('metadata.difficultyBeginner'),
+                'intermediate': t('metadata.difficultyIntermediate'),
+                'advanced': t('metadata.difficultyAdvanced'),
+                'expert': t('metadata.difficultyExpert')
             };
-            items.push({ 
-                label: 'Schwierigkeitsgrad', 
+            items.push({
+                label: t('metadata.difficultyLevel'),
                 value: `<span class="difficulty-badge ${difficultyClass}">${difficultyMap[difficultyClass] || quality.difficulty_level}</span>`,
                 raw: true
             });
@@ -478,8 +478,8 @@ class EnhancedFileMetadata {
         if (quality.success_probability !== null && quality.success_probability !== undefined) {
             const probability = quality.success_probability;
             const progressClass = probability >= 80 ? '' : probability >= 60 ? 'warning' : 'danger';
-            items.push({ 
-                label: 'Erfolgswahrscheinlichkeit', 
+            items.push({
+                label: t('metadata.successProbability'),
                 value: `
                     <div>
                         ${probability.toFixed(0)}%
@@ -493,7 +493,7 @@ class EnhancedFileMetadata {
         }
 
         if (quality.overhang_percentage) {
-            items.push({ label: 'Überhang-Anteil', value: `${quality.overhang_percentage.toFixed(1)}%` });
+            items.push({ label: t('metadata.overhangPercentage'), value: `${quality.overhang_percentage.toFixed(1)}%` });
         }
 
         if (items.length === 0) return null;
@@ -502,7 +502,7 @@ class EnhancedFileMetadata {
             <div class="metadata-section">
                 <div class="metadata-section-header">
                     <span class="metadata-section-icon">⭐</span>
-                    <h4 class="metadata-section-title">Qualitätsmetriken</h4>
+                    <h4 class="metadata-section-title">${t('metadata.qualityMetricsTitle')}</h4>
                 </div>
                 <div class="metadata-items">
                     ${items.map(item => `
@@ -529,15 +529,15 @@ class EnhancedFileMetadata {
             const value = compat.slicer_version 
                 ? `${compat.slicer_name} ${compat.slicer_version}`
                 : compat.slicer_name;
-            items.push({ label: 'Slicer', value });
+            items.push({ label: t('library.slicerName'), value });
         }
 
         if (compat.profile_name) {
-            items.push({ label: 'Profil', value: compat.profile_name });
+            items.push({ label: t('metadata.profile'), value: compat.profile_name });
         }
 
         if (compat.bed_type) {
-            items.push({ label: 'Druckbett-Typ', value: compat.bed_type });
+            items.push({ label: t('metadata.bedType'), value: compat.bed_type });
         }
 
         // Compatible printers
@@ -573,7 +573,7 @@ class EnhancedFileMetadata {
             <div class="metadata-section">
                 <div class="metadata-section-header">
                     <span class="metadata-section-icon">🖨️</span>
-                    <h4 class="metadata-section-title">Kompatibilität</h4>
+                    <h4 class="metadata-section-title">${t('metadata.compatibilityTitle')}</h4>
                 </div>
                 <div class="metadata-items">
                     ${items.map(item => `
@@ -596,7 +596,7 @@ class EnhancedFileMetadata {
         return `
             <div class="metadata-loading">
                 <div class="metadata-loading-spinner"></div>
-                <p>Lade erweiterte Metadaten...</p>
+                <p>${t('metadata.loadingMetadata')}</p>
             </div>
         `;
     }
@@ -608,8 +608,8 @@ class EnhancedFileMetadata {
         return `
             <div class="metadata-empty">
                 <div class="metadata-empty-icon">⚠️</div>
-                <p class="metadata-empty-text">Fehler beim Laden der Metadaten</p>
-                <small class="metadata-empty-hint">${escapeHtml(this.error || 'Unbekannter Fehler')}</small>
+                <p class="metadata-empty-text">${t('metadata.loadError')}</p>
+                <small class="metadata-empty-hint">${escapeHtml(this.error || t('files.unknownError'))}</small>
             </div>
         `;
     }
@@ -621,8 +621,8 @@ class EnhancedFileMetadata {
         return `
             <div class="metadata-empty">
                 <div class="metadata-empty-icon">📋</div>
-                <p class="metadata-empty-text">Keine erweiterten Metadaten verfügbar</p>
-                <small class="metadata-empty-hint">Metadaten werden beim ersten Laden extrahiert</small>
+                <p class="metadata-empty-text">${t('metadata.noMetadataAvailable')}</p>
+                <small class="metadata-empty-hint">${t('metadata.extractedOnFirstLoad')}</small>
             </div>
         `;
     }
