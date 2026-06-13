@@ -244,7 +244,7 @@ function validateForm(form) {
         if (!value) {
             errors.push({
                 field: field.name || field.id,
-                message: `${label} ist erforderlich`
+                message: t('common.fieldRequired', { field: label })
             });
             field.classList.add('error');
         } else {
@@ -258,7 +258,7 @@ function validateForm(form) {
         if (field.value && !isValidIP(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'Ungültige IP-Adresse (Format: xxx.xxx.xxx.xxx)'
+                message: t('printerForm.invalidIpAddress')
             });
             field.classList.add('error');
         }
@@ -270,7 +270,7 @@ function validateForm(form) {
         if (field.value && !isValidPrinterName(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'Druckername muss 3-50 Zeichen lang sein (Buchstaben, Zahlen, Leerzeichen)'
+                message: t('printerForm.invalidPrinterName')
             });
             field.classList.add('error');
         }
@@ -282,7 +282,7 @@ function validateForm(form) {
         if (field.value && !isValidAccessCode(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'Access Code muss genau 8 Ziffern enthalten'
+                message: t('printerForm.invalidAccessCode')
             });
             field.classList.add('error');
         }
@@ -294,7 +294,7 @@ function validateForm(form) {
         if (field.value && !isValidSerialNumber(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'Seriennummer muss 8-20 Zeichen (Buchstaben und Zahlen) enthalten'
+                message: t('printerForm.invalidSerialNumber')
             });
             field.classList.add('error');
         }
@@ -306,7 +306,7 @@ function validateForm(form) {
         if (field.value && !isValidApiKey(field.value)) {
             errors.push({
                 field: field.name || field.id,
-                message: 'API Key muss zwischen 16 und 64 Zeichen lang sein'
+                message: t('printerForm.invalidApiKey')
             });
             field.classList.add('error');
         }
@@ -326,7 +326,7 @@ function getFieldLabel(field) {
     }
     
     // Use placeholder or field name/id as fallback
-    return field.placeholder || field.name || field.id || 'Feld';
+    return field.placeholder || field.name || field.id || t('common.field');
 }
 
 /**
@@ -377,7 +377,7 @@ function setLoadingState(element, loading = true) {
             element.innerHTML = `
                 <div class="loading-placeholder">
                     <div class="spinner"></div>
-                    <p>Laden...</p>
+                    <p>${t('common.loading')}</p>
                 </div>
             `;
         }
@@ -646,10 +646,10 @@ function showSettingsModal(settingsTab, sourcePage) {
     if (modalTitle && sourcePage) {
         modalTitle.innerHTML = `
             <button class="breadcrumb-back" onclick="closeSettingsModal()">
-                ← Zurück zu ${escapeHtml(sourcePage)}
+                ${t('common.backTo', { page: escapeHtml(sourcePage) })}
             </button>
             <span class="breadcrumb-separator">/</span>
-            <span>Einstellungen</span>
+            <span>${t('nav.settings')}</span>
         `;
     }
 
@@ -695,13 +695,13 @@ function updateModalTabSelector(activeTab) {
     if (!tabSelector) return;
 
     const tabs = [
-        { id: 'general', icon: '⚙️', label: 'Allgemein' },
-        { id: 'jobs', icon: '🖨️', label: 'Aufträge & G-Code' },
-        { id: 'library', icon: '🗄️', label: 'Bibliothek' },
-        { id: 'files', icon: '📁', label: 'Uploads & Downloads' },
-        { id: 'timelapse', icon: '🎬', label: 'Timelapse' },
-        { id: 'watch', icon: '👁️', label: 'Überwachung' },
-        { id: 'system', icon: '💻', label: 'System' }
+        { id: 'general', icon: '⚙️', label: t('settings.tabGeneral') },
+        { id: 'jobs', icon: '🖨️', label: t('settings.tabJobs') },
+        { id: 'library', icon: '🗄️', label: t('settings.tabLibrary') },
+        { id: 'files', icon: '📁', label: t('settings.tabFiles') },
+        { id: 'timelapse', icon: '🎬', label: t('settings.tabTimelapse') },
+        { id: 'watch', icon: '👁️', label: t('settings.tabWatch') },
+        { id: 'system', icon: '💻', label: t('settings.tabSystem') }
     ];
 
     const options = tabs.map(tab => {
@@ -772,7 +772,7 @@ function updateSettingsBreadcrumb() {
     if (sourcePage) {
         const backButton = breadcrumb.querySelector('.breadcrumb-back');
         if (backButton) {
-            backButton.innerHTML = `← Zurück zu ${escapeHtml(sourcePage)}`;
+            backButton.innerHTML = t('common.backTo', { page: escapeHtml(sourcePage) });
         }
         breadcrumb.style.display = 'block';
     } else {

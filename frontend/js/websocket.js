@@ -351,7 +351,7 @@ class PrinternizerWebSocketHandler {
 
         // Connection events with deduplication
         this.ws.on('connected', () => {
-            showToast('success', 'Verbindung hergestellt', 'WebSocket-Verbindung ist aktiv', CONFIG.TOAST_DURATION, {
+            showToast('success', t('websocket.connected'), t('websocket.connectedDetail'), CONFIG.TOAST_DURATION, {
                 uniqueKey: CONFIG.NOTIFICATION_KEYS.WS_CONNECTED,
                 deduplicateMode: 'update',
                 cooldown: 5000 // 5 seconds cooldown
@@ -359,7 +359,7 @@ class PrinternizerWebSocketHandler {
         });
 
         this.ws.on('disconnected', () => {
-            showToast('warning', 'Verbindung getrennt', 'Live-Updates sind nicht verfügbar', CONFIG.TOAST_DURATION, {
+            showToast('warning', t('websocket.disconnected'), t('websocket.disconnectedDetail'), CONFIG.TOAST_DURATION, {
                 uniqueKey: CONFIG.NOTIFICATION_KEYS.WS_DISCONNECTED,
                 deduplicateMode: 'update',
                 cooldown: 5000 // 5 seconds cooldown
@@ -409,9 +409,9 @@ class PrinternizerWebSocketHandler {
 
         // Show notifications for important job events
         if (data.status === 'completed') {
-            showToast('success', 'Druck abgeschlossen', `${data.job_name} wurde erfolgreich gedruckt`);
+            showToast('success', t('websocket.printCompleted'), t('websocket.printCompletedDetail', {jobName: data.job_name}));
         } else if (data.status === 'failed') {
-            showToast('error', 'Druck fehlgeschlagen', `${data.job_name} ist fehlgeschlagen`);
+            showToast('error', t('websocket.printFailed'), t('websocket.printFailedDetail', {jobName: data.job_name}));
         }
 
         // Emit custom event
@@ -427,18 +427,18 @@ class PrinternizerWebSocketHandler {
         Logger.debug('Auto-created job:', data);
 
         // Extract job details
-        const jobName = data.job_name || data.filename || 'Unbenannter Auftrag';
-        const printerName = data.printer_id || 'Unbekannter Drucker';
+        const jobName = data.job_name || data.filename || t('websocket.unnamedJob');
+        const printerName = data.printer_id || t('printers.unknownPrinter');
         const isStartup = data.customer_info?.discovered_on_startup;
 
         // Build notification message
         let message = `${jobName} auf ${printerName}`;
         if (isStartup) {
-            message += ' (beim Start entdeckt)';
+            message += ' (' + t('websocket.discoveredOnStartup') + ')';
         }
 
         // Show toast notification
-        showToast('info', '⚡ Auftrag automatisch erstellt', message, 5000, {
+        showToast('info', t('websocket.autoJobCreated'), message, 5000, {
             uniqueKey: `auto_job_${data.id}`,
             deduplicateMode: 'ignore', // Don't show duplicate for same job
             cooldown: 60000 // 1 minute cooldown per job
@@ -476,13 +476,9 @@ class PrinternizerWebSocketHandler {
         localStorage.setItem(tipKey, 'true');
 
         // Show informative banner with longer duration
-        const tipMessage = `
-            Aufträge werden jetzt automatisch erstellt!
-            Sie finden sie mit dem ⚡ Auto Badge in der Auftragsliste.
-            Diese Funktion kann in den Einstellungen deaktiviert werden.
-        `;
+        const tipMessage = t('websocket.autoJobTipMessage');
 
-        showToast('info', 'ℹ️ Automatische Auftrags-Erstellung', tipMessage, 10000, {
+        showToast('info', t('websocket.autoJobTipTitle'), tipMessage, 10000, {
             uniqueKey: 'auto_job_first_tip',
             deduplicateMode: 'ignore'
         });

@@ -21,14 +21,14 @@ async function togglePrinterMonitoring(printerId) {
     try {
         if (printerCard.isMonitoring) {
             await printerCard.stopRealtimeMonitoring();
-            showToast('Überwachung gestoppt', 'success');
+            showToast('success', t('files.monitoringStopped'), '');
         } else {
             await printerCard.startRealtimeMonitoring();
-            showToast('Überwachung gestartet', 'success');
+            showToast('success', t('files.monitoringStarted'), '');
         }
     } catch (error) {
         Logger.error('Failed to toggle monitoring:', error);
-        showToast(`Fehler: ${error.message}`, 'error');
+        showToast('error', t('common.error'), error.message);
     }
 }
 
@@ -43,7 +43,7 @@ async function showPrinterFiles(printerId) {
         modal.innerHTML = `
             <div class="modal-content large">
                 <div class="modal-header">
-                    <h3>📁 Drucker-Dateien</h3>
+                    <h3>${t('files.printerFilesModal')}</h3>
                     <button class="modal-close" onclick="closeDynamicModal(this)">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0; max-height: 80vh;">
@@ -63,7 +63,7 @@ async function showPrinterFiles(printerId) {
 
     } catch (error) {
         Logger.error('Failed to show printer files:', error);
-        showToast('Fehler beim Laden der Dateien', 'error');
+        showToast('error', t('common.error'), t('files.loadFilesError'));
     }
 }
 
@@ -78,7 +78,7 @@ async function showDruckerDateienManager() {
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 95vw; max-height: 95vh;">
                 <div class="modal-header">
-                    <h3>📁 Drucker-Dateien - Alle Drucker</h3>
+                    <h3>${t('files.printerFilesAllModal')}</h3>
                     <button class="modal-close" onclick="closeDynamicModal(this)">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0; max-height: 85vh;">
@@ -98,7 +98,7 @@ async function showDruckerDateienManager() {
 
     } catch (error) {
         Logger.error('Failed to show file manager:', error);
-        showToast('Fehler beim Laden des Datei-Managers', 'error');
+        showToast('error', t('common.error'), t('files.fileManagerLoadError'));
     }
 }
 
@@ -136,7 +136,7 @@ async function showPrinterStatusHistory(printerId) {
         modal.innerHTML = `
             <div class="modal-content large">
                 <div class="modal-header">
-                    <h3>📊 Statusverlauf - ${escapeHtml(printer.name)}</h3>
+                    <h3>${t('files.statusHistoryTitle', {name: escapeHtml(printer.name)})}</h3>
                     <button class="modal-close" onclick="closeDynamicModal(this)">×</button>
                 </div>
                 <div class="modal-body" style="padding: 0;">
@@ -155,7 +155,7 @@ async function showPrinterStatusHistory(printerId) {
 
     } catch (error) {
         Logger.error('Failed to show status history:', error);
-        showToast('Fehler beim Laden der Verlaufsdaten', 'error');
+        showToast('error', t('common.error'), t('files.loadError'));
     }
 }
 
@@ -185,7 +185,7 @@ async function downloadFile(fileId) {
         await druckerDateienManager.downloadFile(fileId);
     } else {
         Logger.error('DruckerDateienManager not initialized');
-        showToast('Datei-Manager nicht verfügbar', 'error');
+        showToast('error', t('common.error'), t('files.fileManagerUnavailable'));
     }
 }
 
@@ -201,11 +201,11 @@ async function downloadAllAvailable() {
     const availableFiles = druckerDateienManager.files.filter(f => f.status === 'available');
 
     if (availableFiles.length === 0) {
-        showToast('Keine Dateien zum Herunterladen verfügbar', 'info');
+        showToast('info', t('common.info'), t('files.noFilesToDownload'));
         return;
     }
 
-    const confirmed = confirm(`${availableFiles.length} Dateien herunterladen?`);
+    const confirmed = confirm(t('files.downloadConfirm', {count: availableFiles.length}));
     if (!confirmed) return;
 
     let successCount = 0;
@@ -221,9 +221,10 @@ async function downloadAllAvailable() {
         }
     }
 
-    const message = `${successCount} Dateien erfolgreich heruntergeladen` +
-                   (errorCount > 0 ? `, ${errorCount} Fehler` : '');
-    showToast(message, errorCount > 0 ? 'warning' : 'success');
+    const message = errorCount > 0
+        ? t('files.downloadSummaryWithErrors', {successCount, errorCount})
+        : t('files.downloadSummary', {successCount});
+    showToast(errorCount > 0 ? 'warning' : 'success', message, '');
 }
 
 /**
@@ -234,7 +235,7 @@ async function downloadSelected() {
     const activeModal = document.querySelector('.modal.show');
     if (!activeModal || !activeModal.fileManager) {
         Logger.error('DruckerDateienManager not initialized');
-        showToast('Datei-Manager nicht verfügbar', 'error');
+        showToast('error', t('common.error'), t('files.fileManagerUnavailable'));
         return;
     }
 
@@ -258,7 +259,7 @@ async function downloadSelected() {
     console.log('Selected IDs:', selectedFileIds);
 
     if (selectedFileIds.length === 0) {
-        showToast('Keine Dateien ausgewählt', 'info');
+        showToast('info', t('common.info'), t('files.noFilesSelected'));
         return;
     }
 
@@ -283,20 +284,20 @@ async function downloadSelected() {
 
         console.error('No files can be downloaded. Statuses:', allStatuses);
 
-        let message = 'Keine der ausgewählten Dateien kann heruntergeladen werden';
+        let message = t('files.cannotDownloadSelected');
         if (allStatuses.some(s => s === 'downloaded')) {
-            message += ' (bereits heruntergeladen)';
+            message += t('files.alreadyDownloadedSuffix');
         } else if (allStatuses.some(s => s === 'downloading')) {
-            message += ' (Download läuft bereits)';
+            message += t('files.downloadingAlreadySuffix');
         }
 
-        showToast(message, 'warning');
+        showToast('warning', t('common.warning'), message);
         return;
     }
 
     // Show confirmation dialog
     const confirmed = confirm(
-        `${selectedFiles.length} ausgewählte Dateien herunterladen?\n\n` +
+        t('files.downloadConfirm', {count: selectedFiles.length}) + '\n\n' +
         selectedFiles.map(f => f.filename).join('\n')
     );
     if (!confirmed) return;
@@ -327,7 +328,7 @@ async function downloadSelected() {
                 error_object: error
             });
             errorCount++;
-            errors.push(`${file.filename}: ${error.message || 'Unbekannter Fehler'}`);
+            errors.push(`${file.filename}: ${error.message || t('files.unknownError')}`);
         }
     }
 
@@ -336,13 +337,14 @@ async function downloadSelected() {
     fileManager.updateBulkActions();
 
     // Show summary message
-    let message = `${successCount} Dateien erfolgreich heruntergeladen`;
+    const message = errorCount > 0
+        ? t('files.downloadSummaryWithErrors', {successCount, errorCount})
+        : t('files.downloadSummary', {successCount});
     if (errorCount > 0) {
-        message += `, ${errorCount} Fehler`;
         Logger.error('Download errors:', errors);
     }
 
-    showToast(message, errorCount > 0 ? 'warning' : 'success');
+    showToast(errorCount > 0 ? 'warning' : 'success', message, '');
 }
 
 /**
@@ -351,7 +353,7 @@ async function downloadSelected() {
 async function refreshFiles() {
     if (druckerDateienManager) {
         await druckerDateienManager.loadFiles();
-        showToast('Dateien aktualisiert', 'success');
+        showToast('success', t('files.filesRefreshed'), '');
     }
 }
 
@@ -491,7 +493,7 @@ async function uploadFileToPrinter(fileId) {
  * Delete local file
  */
 async function deleteLocalFile(fileId) {
-    const confirmed = confirm('Lokale Datei wirklich löschen?');
+    const confirmed = confirm(t('files.deleteLocalConfirmSimple'));
     if (!confirmed) return;
 
     try {
@@ -499,10 +501,10 @@ async function deleteLocalFile(fileId) {
         if (druckerDateienManager) {
             await druckerDateienManager.loadFiles();
         }
-        showToast('Datei erfolgreich gelöscht', 'success');
+        showToast('success', t('common.success'), t('files.localFileDeleted'));
     } catch (error) {
         Logger.error('Failed to delete file:', error);
-        showToast('Fehler beim Löschen der Datei', 'error');
+        showToast('error', t('common.error'), t('files.deleteLocalError'));
     }
 }
 

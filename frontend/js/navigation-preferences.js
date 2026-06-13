@@ -8,92 +8,94 @@ class NavigationPreferences {
         this.storageKey = 'printernizer-navigation-preferences';
 
         // Default navigation sections in their default order
+        // Labels/descriptions are stored as i18n keys and resolved lazily via t()
+        // at render time, because this array is evaluated before i18n.init() completes.
         this.defaultSections = [
             {
                 id: 'dashboard',
                 icon: '📊',
-                label: 'Dashboard',
-                description: 'Übersichtsseite mit Druckerstatus und aktuellen Aufträgen',
+                labelKey: 'nav.dashboard',
+                descriptionKey: 'navDescriptions.dashboard',
                 visible: true,
                 required: true // Cannot be hidden
             },
             {
                 id: 'library',
                 icon: '🗄️',
-                label: 'Bibliothek',
-                description: 'Zentrale Bibliothek für alle 3D-Dateien mit Metadaten',
+                labelKey: 'nav.library',
+                descriptionKey: 'navDescriptions.library',
                 visible: true,
                 required: false
             },
             {
                 id: 'printers',
                 icon: '🖨️',
-                label: 'Drucker',
-                description: 'Verwaltung und Konfiguration der 3D-Drucker',
+                labelKey: 'nav.printers',
+                descriptionKey: 'navDescriptions.printers',
                 visible: true,
                 required: false
             },
             {
                 id: 'jobs',
                 icon: '⚙️',
-                label: 'Aufträge',
-                description: 'Übersicht und Verwaltung der Druckaufträge',
+                labelKey: 'nav.jobs',
+                descriptionKey: 'navDescriptions.jobs',
                 visible: true,
                 required: false
             },
             {
                 id: 'timelapses',
                 icon: '🎬',
-                label: 'Zeitraffer',
-                description: 'Zeitraffer-Videos von Druckaufträgen',
+                labelKey: 'nav.timelapses',
+                descriptionKey: 'navDescriptions.timelapses',
                 visible: true,
                 required: false
             },
             {
                 id: 'files',
                 icon: '📁',
-                label: 'Dateien',
-                description: 'Dateiverwaltung und Downloads von den Druckern',
+                labelKey: 'nav.files',
+                descriptionKey: 'navDescriptions.files',
                 visible: true,
                 required: false
             },
             {
                 id: 'materials',
                 icon: '🧵',
-                label: 'Filamente',
-                description: 'Filament-Verwaltung und Bestandsübersicht',
+                labelKey: 'nav.materials',
+                descriptionKey: 'navDescriptions.materials',
                 visible: true,
                 required: false
             },
             {
                 id: 'ideas',
                 icon: '💡',
-                label: 'Ideen',
-                description: 'Ideenverwaltung, Lesezeichen und Modell-Entdeckung',
+                labelKey: 'nav.ideas',
+                descriptionKey: 'navDescriptions.ideas',
                 visible: true,
                 required: false
             },
             {
                 id: 'tools',
                 icon: '🛠️',
-                label: 'Tools',
-                description: 'Externe Tools und Helfer für den 3D-Druck',
+                labelKey: 'nav.tools',
+                descriptionKey: 'navDescriptions.tools',
                 visible: true,
                 required: false
             },
             {
                 id: 'settings',
                 icon: '⚙️',
-                label: 'Einstellungen',
-                description: 'Anwendungseinstellungen und Konfiguration',
+                labelKey: 'nav.settings',
+                descriptionKey: 'navDescriptions.settings',
                 visible: true,
                 required: true // Cannot be hidden
             },
             {
                 id: 'debug',
                 icon: '🐛',
-                label: 'Debug',
-                description: 'Debug-Informationen und Systemprotokolle',
+                labelKey: 'nav.debug',
+                descriptionKey: 'navDescriptions.debug',
                 visible: true,
                 required: false
             }

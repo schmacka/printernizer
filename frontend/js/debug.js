@@ -156,42 +156,42 @@ class DebugManager {
             <div class="health-overview ${statusClass}">
                 <div class="health-header">
                     <span class="health-icon">${statusIcon}</span>
-                    <h4>System-Status: ${this.healthData.status.toUpperCase()}</h4>
+                    <h4>${t('debug.systemStatus', { status: this.healthData.status.toUpperCase() })}</h4>
                     <span class="health-timestamp">
-                        Letzte Aktualisierung: ${new Date(this.healthData.timestamp).toLocaleString('de-DE')}
+                        ${t('debug.lastUpdate', { time: new Date(this.healthData.timestamp).toLocaleString('de-DE') })}
                     </span>
                 </div>
                 
                 <div class="health-grid">
                     <div class="health-card">
-                        <h5>🎯 Anwendung</h5>
+                        <h5>🎯 ${t('debug.application')}</h5>
                         <div class="health-details">
                             <div class="detail-item">
                                 <span class="label">Version:</span>
                                 <span class="value">${this.healthData.version}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="label">Umgebung:</span>
+                                <span class="label">${t('settings.environment')}:</span>
                                 <span class="value">${this.healthData.environment}</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="health-card">
-                        <h5>🗄️ Datenbank</h5>
+                        <h5>🗄️ ${t('settings.database')}</h5>
                         <div class="health-details">
                             <div class="detail-item">
                                 <span class="label">Status:</span>
                                 <span class="value ${this.healthData.database.healthy ? 'healthy' : 'unhealthy'}">
-                                    ${this.healthData.database.healthy ? '✅ Gesund' : '❌ Problematisch'}
+                                    ${this.healthData.database.healthy ? `✅ ${t('settings.healthHealthy')}` : `❌ ${t('debug.unhealthy')}`}
                                 </span>
                             </div>
                             <div class="detail-item">
-                                <span class="label">Typ:</span>
+                                <span class="label">${t('files.type')}:</span>
                                 <span class="value">${this.healthData.database.type.toUpperCase()}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="label">Verbindungen:</span>
+                                <span class="label">${t('debug.connections')}:</span>
                                 <span class="value">${this.healthData.database.connection_count || 0}</span>
                             </div>
                         </div>
@@ -225,11 +225,11 @@ class DebugManager {
         container.innerHTML = `
             <div class="health-error">
                 <div class="error-icon">❌</div>
-                <h4>System-Status nicht verfügbar</h4>
-                <p>Die Gesundheitsinformationen konnten nicht abgerufen werden.</p>
+                <h4>${t('debug.healthUnavailableTitle')}</h4>
+                <p>${t('debug.healthUnavailableMessage')}</p>
                 <button class="btn btn-secondary" onclick="debugManager.refreshHealthInfo()">
                     <span class="btn-icon">🔄</span>
-                    Erneut versuchen
+                    ${t('common.retry')}
                 </button>
             </div>
         `;
@@ -330,8 +330,8 @@ class DebugManager {
             container.innerHTML = `
                 <div class="logs-empty">
                     <div class="empty-icon">📄</div>
-                    <h4>Keine Protokolle gefunden</h4>
-                    <p>Keine Protokolleinträge entsprechen dem aktuellen Filter.</p>
+                    <h4>${t('debug.noLogsFoundTitle')}</h4>
+                    <p>${t('debug.noLogsFoundMessage')}</p>
                 </div>
             `;
             return;
@@ -339,17 +339,17 @@ class DebugManager {
 
         container.innerHTML = `
             <div class="logs-header">
-                <span class="logs-count">${logs.length} Einträge gefunden</span>
-                <span class="logs-updated">Letzte Aktualisierung: ${new Date().toLocaleString('de-DE')}</span>
+                <span class="logs-count">${t('debug.entriesFound', { count: logs.length })}</span>
+                <span class="logs-updated">${t('debug.lastUpdate', { time: new Date().toLocaleString('de-DE') })}</span>
             </div>
             <div class="logs-table-wrapper">
                 <table class="logs-table">
                     <thead>
                         <tr>
-                            <th class="col-timestamp">Zeitstempel</th>
+                            <th class="col-timestamp">${t('debug.timestamp')}</th>
                             <th class="col-level">Level</th>
-                            <th class="col-source">Quelle</th>
-                            <th class="col-message">Nachricht</th>
+                            <th class="col-source">${t('debug.source')}</th>
+                            <th class="col-message">${t('debug.message')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -429,30 +429,30 @@ class DebugManager {
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-icon">📊</span>
-                        <h5>Anfragen</h5>
+                        <h5>${t('debug.requests')}</h5>
                     </div>
                     <div class="metric-value">${this.metricsData.requests_total.toLocaleString()}</div>
-                    <div class="metric-label">Gesamt</div>
-                    <div class="metric-detail">${this.metricsData.requests_per_minute}/min aktuell</div>
+                    <div class="metric-label">${t('files.total')}</div>
+                    <div class="metric-detail">${t('debug.requestsPerMinute', { count: this.metricsData.requests_per_minute })}</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-icon">⚡</span>
-                        <h5>Antwortzeit</h5>
+                        <h5>${t('debug.responseTime')}</h5>
                     </div>
                     <div class="metric-value">${this.metricsData.response_time_avg}ms</div>
-                    <div class="metric-label">Durchschnitt</div>
-                    <div class="metric-detail">${this.metricsData.active_connections} aktive Verbindungen</div>
+                    <div class="metric-label">${t('debug.average')}</div>
+                    <div class="metric-detail">${t('debug.activeConnections', { count: this.metricsData.active_connections })}</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-icon">🧠</span>
-                        <h5>Speicher</h5>
+                        <h5>${t('debug.memory')}</h5>
                     </div>
                     <div class="metric-value">${this.metricsData.memory_usage}%</div>
-                    <div class="metric-label">Verbrauch</div>
+                    <div class="metric-label">${t('debug.usage')}</div>
                     <div class="metric-progress">
                         <div class="progress-bar" style="width: ${this.metricsData.memory_usage}%"></div>
                     </div>
@@ -464,7 +464,7 @@ class DebugManager {
                         <h5>CPU</h5>
                     </div>
                     <div class="metric-value">${this.metricsData.cpu_usage}%</div>
-                    <div class="metric-label">Auslastung</div>
+                    <div class="metric-label">${t('debug.load')}</div>
                     <div class="metric-progress">
                         <div class="progress-bar" style="width: ${this.metricsData.cpu_usage}%"></div>
                     </div>
@@ -473,10 +473,10 @@ class DebugManager {
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-icon">💾</span>
-                        <h5>Festplatte</h5>
+                        <h5>${t('debug.disk')}</h5>
                     </div>
                     <div class="metric-value">${this.metricsData.disk_usage}%</div>
-                    <div class="metric-label">Belegt</div>
+                    <div class="metric-label">${t('debug.used')}</div>
                     <div class="metric-progress">
                         <div class="progress-bar" style="width: ${this.metricsData.disk_usage}%"></div>
                     </div>
@@ -485,11 +485,11 @@ class DebugManager {
                 <div class="metric-card">
                     <div class="metric-header">
                         <span class="metric-icon">⏰</span>
-                        <h5>Betriebszeit</h5>
+                        <h5>${t('debug.uptime')}</h5>
                     </div>
                     <div class="metric-value">${uptimeFormatted.value}</div>
                     <div class="metric-label">${uptimeFormatted.unit}</div>
-                    <div class="metric-detail">Seit letztem Neustart</div>
+                    <div class="metric-detail">${t('debug.sinceLastRestart')}</div>
                 </div>
             </div>
         `;
@@ -551,10 +551,10 @@ class DebugManager {
 
         container.innerHTML = `
             <div class="api-tests-header">
-                <h4>Endpoint-Tests</h4>
+                <h4>${t('debug.endpointTests')}</h4>
                 <button class="btn btn-small btn-secondary" onclick="debugManager.runAPITests()">
                     <span class="btn-icon">🔄</span>
-                    Tests ausführen
+                    ${t('debug.runTests')}
                 </button>
             </div>
             <div class="api-tests-list">
@@ -605,13 +605,13 @@ class DebugManager {
 
     formatUptime(seconds) {
         if (seconds < 60) {
-            return { value: Math.round(seconds), unit: 'Sekunden' };
+            return { value: Math.round(seconds), unit: t('debug.unitSeconds') };
         } else if (seconds < 3600) {
-            return { value: Math.round(seconds / 60), unit: 'Minuten' };
+            return { value: Math.round(seconds / 60), unit: t('debug.unitMinutes') };
         } else if (seconds < 86400) {
-            return { value: Math.round(seconds / 3600), unit: 'Stunden' };
+            return { value: Math.round(seconds / 3600), unit: t('debug.unitHours') };
         } else {
-            return { value: Math.round(seconds / 86400), unit: 'Tage' };
+            return { value: Math.round(seconds / 86400), unit: t('debug.unitDays') };
         }
     }
 
@@ -654,8 +654,8 @@ class DebugManager {
             container.innerHTML = `
                 <div class="thumbnail-log-empty">
                     <div class="empty-icon">📷</div>
-                    <h4>Keine Thumbnail-Verarbeitungsaktivität</h4>
-                    <p>Es wurden noch keine Thumbnails verarbeitet.</p>
+                    <h4>${t('debug.noThumbnailActivityTitle')}</h4>
+                    <p>${t('debug.noThumbnailActivityMessage')}</p>
                 </div>
             `;
             return;
@@ -666,19 +666,19 @@ class DebugManager {
         const statsHtml = `
             <div class="thumbnail-stats">
                 <div class="stat-item">
-                    <span class="stat-label">Gesamt:</span>
+                    <span class="stat-label">${t('files.total')}:</span>
                     <span class="stat-value">${stats.total_entries}</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Erfolgreich:</span>
+                    <span class="stat-label">${t('debug.successful')}:</span>
                     <span class="stat-value success">${stats.successful}</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Fehlgeschlagen:</span>
+                    <span class="stat-label">${t('debug.failed')}:</span>
                     <span class="stat-value error">${stats.failed}</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Erfolgsrate:</span>
+                    <span class="stat-label">${t('files.successRate')}:</span>
                     <span class="stat-value">${stats.success_rate}%</span>
                 </div>
             </div>
@@ -692,7 +692,7 @@ class DebugManager {
                 .join('');
             fileTypesHtml = `
                 <div class="file-types">
-                    <span class="file-types-label">Dateitypen:</span>
+                    <span class="file-types-label">${t('debug.fileTypes')}:</span>
                     ${fileTypesList}
                 </div>
             `;
@@ -711,7 +711,7 @@ class DebugManager {
                         <span class="entry-timestamp">${timestamp}</span>
                         <span class="entry-status">
                             <span class="status-icon">${statusIcon}</span>
-                            ${entry.success ? 'Erfolgreich' : 'Fehlgeschlagen'}
+                            ${entry.success ? t('debug.successful') : t('debug.failed')}
                         </span>
                     </div>
                     <div class="entry-details">
@@ -745,8 +745,8 @@ class DebugManager {
         container.innerHTML = `
             <div class="thumbnail-log-error">
                 <div class="error-icon">⚠️</div>
-                <h4>Thumbnail-Protokoll nicht verfügbar</h4>
-                <p>Das Thumbnail-Verarbeitungsprotokoll konnte nicht geladen werden.</p>
+                <h4>${t('debug.thumbnailLogUnavailableTitle')}</h4>
+                <p>${t('debug.thumbnailLogUnavailableMessage')}</p>
             </div>
         `;
     }
@@ -758,8 +758,8 @@ class DebugManager {
         container.innerHTML = `
             <div class="logs-error">
                 <div class="error-icon">⚠️</div>
-                <h4>Protokolle nicht verfügbar</h4>
-                <p>Die Anwendungsprotokolle konnten nicht geladen werden.</p>
+                <h4>${t('debug.logsUnavailableTitle')}</h4>
+                <p>${t('debug.logsUnavailableMessage')}</p>
             </div>
         `;
     }
@@ -771,8 +771,8 @@ class DebugManager {
         container.innerHTML = `
             <div class="metrics-error">
                 <div class="error-icon">📊</div>
-                <h4>Metriken nicht verfügbar</h4>
-                <p>Die Performance-Metriken konnten nicht geladen werden.</p>
+                <h4>${t('debug.metricsUnavailableTitle')}</h4>
+                <p>${t('debug.metricsUnavailableMessage')}</p>
             </div>
         `;
     }
@@ -795,17 +795,17 @@ function refreshThumbnailLog() {
 }
 
 function clearLogs() {
-    const confirmed = confirm('Sind Sie sicher, dass Sie alle Protokolle löschen möchten?');
+    const confirmed = confirm(t('debug.clearLogsConfirm'));
     if (confirmed) {
         debugManager.logs = [];
         debugManager.filterAndDisplayLogs();
-        showToast('success', 'Protokolle gelöscht', 'Alle Protokolleinträge wurden entfernt');
+        showToast('success', t('debug.logsClearedTitle'), t('debug.logsClearedMessage'));
     }
 }
 
 function downloadLogs() {
     if (debugManager.logs.length === 0) {
-        showToast('info', 'Keine Protokolle', 'Es sind keine Protokolle zum Herunterladen verfügbar');
+        showToast('info', t('debug.noLogsTitle'), t('debug.noLogsMessage'));
         return;
     }
 
@@ -824,7 +824,7 @@ function downloadLogs() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showToast('success', 'Protokolle heruntergeladen', 'Protokolldatei wurde gespeichert');
+    showToast('success', t('debug.logsDownloadedTitle'), t('debug.logsDownloadedMessage'));
 }
 
 // Export for use in main.js

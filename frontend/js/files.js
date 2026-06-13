@@ -1320,14 +1320,14 @@ class FileManager {
      * Render individual discovered file row
      */
     renderDiscoveredFileRow(file) {
-        const fileName = file.filename || file.name || 'Unbekannt';
+        const fileName = file.filename || file.name || t('common.unknown');
         const fileSize = formatBytes(file.file_size || 0);
-        const watchFolderPath = file.watch_folder_path || 'Unbekannt';
+        const watchFolderPath = file.watch_folder_path || t('common.unknown');
         const modifiedTime = file.modified_time ?
-            new Date(file.modified_time).toLocaleString('de-DE') : 'Unbekannt';
+            new Date(file.modified_time).toLocaleString('de-DE') : t('common.unknown');
 
         // Determine source display (printer or watch folder)
-        let sourceDisplay = 'Lokal';
+        let sourceDisplay = t('status.file.local');
         if (file.source === 'printer' && file.printer_name) {
             sourceDisplay = file.printer_name;
         } else if (file.source === 'local_watch') {
@@ -1365,7 +1365,7 @@ class FileManager {
                     <div class="action-buttons">
                         <button class="btn btn-small btn-secondary"
                                 onclick="openFileLocation('${escapeHtml(filePath)}')"
-                                title="Im Explorer öffnen">
+                                title="${t('files.openInExplorer')}">
                             <span class="btn-icon">📂</span>
                         </button>
                     </div>
@@ -1421,20 +1421,20 @@ class FileManager {
 
         const folderPath = folderPathInput.value.trim();
         if (!folderPath) {
-            showToast('error', 'Fehler', 'Bitte geben Sie einen Verzeichnispfad an');
+            showToast('error', t('common.error'), t('files.enterFolderPath'));
             return;
         }
 
         try {
             // Disable submit button
             submitButton.disabled = true;
-            submitButton.innerHTML = '<span class="spinner-small"></span> Hinzufügen...';
+            submitButton.innerHTML = `<span class="spinner-small"></span> ${t('files.adding')}`;
 
             // Add the watch folder
             const response = await api.addWatchFolder(folderPath);
 
             if (response.status === 'added') {
-                showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde hinzugefügt`);
+                showToast('success', t('common.success'), t('files.folderAdded', { path: folderPath }));
 
                 // Reset form
                 folderPathInput.value = '';
@@ -1458,13 +1458,13 @@ class FileManager {
 
         } catch (error) {
             Logger.error('Failed to add watch folder:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Hinzufügen des Verzeichnisses';
-            showToast('error', 'Fehler', message);
+            const message = error instanceof ApiError ? error.getUserMessage() : t('files.addFolderError');
+            showToast('error', t('common.error'), message);
             // Don't close modal on error so user can see the error and try again
         } finally {
             // Re-enable submit button
             submitButton.disabled = false;
-            submitButton.innerHTML = '<span class="btn-icon">📂</span> Hinzufügen';
+            submitButton.innerHTML = `<span class="btn-icon">📂</span> ${t('common.add')}`;
         }
     }
 
@@ -1474,7 +1474,7 @@ class FileManager {
     async removeWatchFolder(folderPath) {
         Logger.debug('[removeWatchFolder] Called with folderPath:', folderPath);
 
-        const confirmed = confirm(`Möchten Sie das Verzeichnis "${folderPath}" wirklich aus der Überwachung entfernen?`);
+        const confirmed = confirm(t('files.removeFolderConfirm', { path: folderPath }));
         if (!confirmed) {
             Logger.debug('[removeWatchFolder] User cancelled');
             return;
@@ -1482,13 +1482,13 @@ class FileManager {
 
         try {
             Logger.debug('[removeWatchFolder] Calling API to remove folder');
-            showToast('info', 'Entfernen', 'Verzeichnis wird aus der Überwachung entfernt');
+            showToast('info', t('settings.removingFolderTitle'), t('files.removingFromWatch'));
 
             const response = await api.removeWatchFolder(folderPath);
             Logger.debug('[removeWatchFolder] API response:', response);
 
             if (response.status === 'removed') {
-                showToast('success', 'Erfolgreich entfernt', `Verzeichnis "${folderPath}" wurde entfernt und zugehörige Dateien werden aktualisiert`);
+                showToast('success', t('files.folderRemovedTitle'), t('files.folderRemoved', { path: folderPath }));
 
                 // Reload watch folders and discovered files
                 try {
@@ -1500,7 +1500,7 @@ class FileManager {
                     Logger.debug('[removeWatchFolder] UI reload completed');
                 } catch (reloadError) {
                     Logger.warn('Error reloading after folder removal:', reloadError);
-                    showToast('warning', 'Hinweis', 'Verzeichnis wurde entfernt, aber Anzeige konnte nicht aktualisiert werden. Bitte Seite neu laden.');
+                    showToast('warning', t('common.info'), t('files.folderRemovedReloadHint'));
                 }
             } else {
                 Logger.warn('[removeWatchFolder] Unexpected response status:', response.status);
@@ -1508,8 +1508,8 @@ class FileManager {
 
         } catch (error) {
             Logger.error('[removeWatchFolder] Failed to remove watch folder:', error);
-            const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Entfernen des Verzeichnisses';
-            showToast('error', 'Fehler beim Entfernen', message);
+            const message = error instanceof ApiError ? error.getUserMessage() : t('files.removeFolderError');
+            showToast('error', t('files.removeFolderErrorTitle'), message);
         }
     }
 }
@@ -1613,13 +1613,13 @@ async function activateWatchFolder(folderPath) {
         const response = await api.updateWatchFolder(folderPath, true);
         
         if (response.success) {
-            showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde aktiviert`);
+            showToast('success', t('common.success'), t('files.folderActivated', { path: folderPath }));
             fileManager.loadWatchFolders();
         }
     } catch (error) {
         Logger.error('Failed to activate watch folder:', error);
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Aktivieren des Verzeichnisses';
-        showToast('error', 'Fehler', message);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.activateFolderError');
+        showToast('error', t('common.error'), message);
     }
 }
 
@@ -1627,20 +1627,20 @@ async function activateWatchFolder(folderPath) {
  * Deactivate watch folder (called from template)
  */
 async function deactivateWatchFolder(folderPath) {
-    const confirmed = confirm(`Möchten Sie das Verzeichnis "${folderPath}" wirklich deaktivieren? Es wird nicht mehr überwacht.`);
+    const confirmed = confirm(t('files.deactivateFolderConfirm', { path: folderPath }));
     if (!confirmed) return;
     
     try {
         const response = await api.updateWatchFolder(folderPath, false);
         
         if (response.success) {
-            showToast('success', 'Erfolg', `Verzeichnis "${folderPath}" wurde deaktiviert`);
+            showToast('success', t('common.success'), t('files.folderDeactivated', { path: folderPath }));
             fileManager.loadWatchFolders();
         }
     } catch (error) {
         Logger.error('Failed to deactivate watch folder:', error);
-        const message = error instanceof ApiError ? error.getUserMessage() : 'Fehler beim Deaktivieren des Verzeichnisses';
-        showToast('error', 'Fehler', message);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.deactivateFolderError');
+        showToast('error', t('common.error'), message);
     }
 }
 
@@ -1663,23 +1663,23 @@ async function validateWatchFolderPath() {
         // Show loading state
         validationResult.style.display = 'block';
         validationResult.className = 'validation-result loading';
-        validationResult.innerHTML = '<span class="spinner-small"></span> Validiere...';
+        validationResult.innerHTML = `<span class="spinner-small"></span> ${t('settings.validating')}`;
 
         // Validate path
         const response = await api.validateWatchFolder(folderPath);
         
         if (response.valid) {
             validationResult.className = 'validation-result success';
-            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || 'Verzeichnis ist gültig');
+            validationResult.innerHTML = '<span class="icon">✓</span> ' + (response.message || t('files.folderValid'));
         } else {
             validationResult.className = 'validation-result error';
-            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || 'Verzeichnis ist ungültig');
+            validationResult.innerHTML = '<span class="icon">✗</span> ' + (response.error || t('files.folderInvalid'));
         }
 
     } catch (error) {
         Logger.error('Failed to validate watch folder:', error);
         validationResult.className = 'validation-result error';
-        validationResult.innerHTML = '<span class="icon">✗</span> Validierung fehlgeschlagen';
+        validationResult.innerHTML = `<span class="icon">✗</span> ${t('settings.validationFailed')}`;
     }
 }
 
@@ -1691,7 +1691,7 @@ function openFileLocation(filePath) {
 
     // Note: This would typically require a desktop app or system integration
     // For now, we'll just show the path
-    showToast('info', 'Dateipfad', filePath);
+    showToast('info', t('files.filePath'), filePath);
 }
 
 // Export for use in other modules

@@ -197,28 +197,28 @@ class PrinterFormHandler {
             case 'ip':
                 if (!isValidIP(value)) {
                     isValid = false;
-                    errorMessage = 'Ungültige IP-Adresse (Format: xxx.xxx.xxx.xxx)';
+                    errorMessage = t('printerForm.invalidIpAddress');
                 }
                 break;
 
             case 'printer-name':
                 if (!isValidPrinterName(value)) {
                     isValid = false;
-                    errorMessage = 'Druckername muss 3-50 Zeichen lang sein (Buchstaben, Zahlen, Leerzeichen)';
+                    errorMessage = t('printerForm.invalidPrinterName');
                 }
                 break;
 
             case 'access-code':
                 if (!isValidAccessCode(value)) {
                     isValid = false;
-                    errorMessage = 'Access Code muss genau 8 Ziffern enthalten';
+                    errorMessage = t('printerForm.invalidAccessCode');
                 }
                 break;
 
             case 'serial-number':
                 if (!isValidSerialNumber(value)) {
                     isValid = false;
-                    errorMessage = 'Seriennummer muss 8-20 Zeichen (Buchstaben und Zahlen) enthalten';
+                    errorMessage = t('printerForm.invalidSerialNumber');
                 }
                 break;
 
@@ -347,7 +347,7 @@ class PrinterFormHandler {
 
         // Validate form
         if (!this.validateForm()) {
-            showToast('warning', 'Validierungsfehler', 'Bitte korrigieren Sie die Eingabefehler');
+            showToast('warning', t('printerForm.validationError'), t('printerForm.validationErrorMessage'));
             return;
         }
 
@@ -357,15 +357,15 @@ class PrinterFormHandler {
         try {
             // Collect form data
             const formData = this.collectFormData();
-            
+
             // Validate printer connectivity before saving
             const connectivityCheck = await this.validatePrinterConnectivity(formData);
             if (!connectivityCheck.success) {
-                showToast('warning', 'Verbindungswarnung', 
-                    `Drucker ist nicht erreichbar: ${connectivityCheck.error}. Trotzdem hinzufügen?`);
-                
+                showToast('warning', t('printerForm.connectionWarning'),
+                    t('printerForm.notReachableAdd', {error: connectivityCheck.error}));
+
                 // Give user choice to continue or cancel
-                const continueAnyway = confirm('Drucker ist nicht erreichbar. Trotzdem hinzufügen?');
+                const continueAnyway = confirm(t('printerForm.notReachableConfirmAdd'));
                 if (!continueAnyway) {
                     return;
                 }
@@ -373,11 +373,11 @@ class PrinterFormHandler {
 
             // Submit form data
             const response = await api.addPrinter(formData);
-            
+
             // Backend returns printer object directly on successful creation (201 status)
             // If we get a response with an id, it was successful
             if (response && response.id) {
-                showToast('success', 'Erfolg', CONFIG.SUCCESS_MESSAGES.PRINTER_ADDED);
+                showToast('success', t('common.success'), CONFIG.SUCCESS_MESSAGES.PRINTER_ADDED);
                 closeModal('addPrinterModal');
                 
                 // Refresh printer lists
@@ -391,13 +391,13 @@ class PrinterFormHandler {
                 // Reset form
                 this.resetForm();
             } else {
-                throw new Error('Unbekannter Fehler - Keine gültige Antwort vom Server erhalten');
+                throw new Error(t('printerForm.unknownServerError'));
             }
 
         } catch (error) {
             Logger.error('Failed to add printer:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : error.message;
-            showToast('error', 'Fehler beim Hinzufügen', message);
+            showToast('error', t('printerForm.addError'), message);
         } finally {
             this.isSubmitting = false;
             this.setSubmitButtonState(false);
@@ -457,8 +457,8 @@ class PrinterFormHandler {
             return { success: true };
         } catch (error) {
             return { 
-                success: false, 
-                error: error.message || 'Verbindung fehlgeschlagen' 
+                success: false,
+                error: error.message || t('printerForm.connectionFailed')
             };
         }
     }
@@ -473,13 +473,13 @@ class PrinterFormHandler {
                 submitButton.disabled = true;
                 submitButton.innerHTML = `
                     <div class="spinner" style="width: 16px; height: 16px; margin-right: 8px;"></div>
-                    Wird hinzugefügt...
+                    ${t('printerForm.adding')}
                 `;
             } else {
                 submitButton.disabled = false;
                 submitButton.innerHTML = `
                     <span class="btn-icon">➕</span>
-                    Hinzufügen
+                    ${t('printerForm.addButton')}
                 `;
             }
         }
@@ -566,7 +566,7 @@ class PrinterFormHandler {
 
         // Validate form
         if (!this.validateEditForm()) {
-            showToast('warning', 'Validierungsfehler', 'Bitte korrigieren Sie die Eingabefehler');
+            showToast('warning', t('printerForm.validationError'), t('printerForm.validationErrorMessage'));
             return;
         }
 
@@ -576,15 +576,15 @@ class PrinterFormHandler {
         try {
             // Collect form data
             const formData = this.collectEditFormData();
-            
+
             // Validate printer connectivity before saving
             const connectivityCheck = await this.validatePrinterConnectivity(formData);
             if (!connectivityCheck.success) {
-                showToast('warning', 'Verbindungswarnung', 
-                    `Drucker ist nicht erreichbar: ${connectivityCheck.error}. Trotzdem speichern?`);
-                
+                showToast('warning', t('printerForm.connectionWarning'),
+                    t('printerForm.notReachableSave', {error: connectivityCheck.error}));
+
                 // Give user choice to continue or cancel
-                const continueAnyway = confirm('Drucker ist nicht erreichbar. Trotzdem speichern?');
+                const continueAnyway = confirm(t('printerForm.notReachableConfirmSave'));
                 if (!continueAnyway) {
                     return;
                 }
@@ -593,10 +593,10 @@ class PrinterFormHandler {
             // Submit form data
             const printerId = document.getElementById('editPrinterId').value;
             const response = await api.updatePrinter(printerId, formData);
-            
+
             // Backend returns printer object directly on successful update
             if (response && response.id) {
-                showToast('success', 'Erfolg', 'Drucker wurde erfolgreich aktualisiert');
+                showToast('success', t('common.success'), t('printerForm.updateSuccess'));
                 closeModal('editPrinterModal');
                 
                 // Refresh printer lists
@@ -607,13 +607,13 @@ class PrinterFormHandler {
                     dashboard.loadPrinters();
                 }
             } else {
-                throw new Error('Unbekannter Fehler - Keine gültige Antwort vom Server erhalten');
+                throw new Error(t('printerForm.unknownServerError'));
             }
 
         } catch (error) {
             Logger.error('Failed to update printer:', error);
             const message = error instanceof ApiError ? error.getUserMessage() : error.message;
-            showToast('error', 'Fehler beim Aktualisieren', message);
+            showToast('error', t('printerForm.updateError'), message);
         } finally {
             this.isSubmitting = false;
             this.setEditSubmitButtonState(false);
@@ -689,13 +689,13 @@ class PrinterFormHandler {
                 submitButton.disabled = true;
                 submitButton.innerHTML = `
                     <div class="spinner" style="width: 16px; height: 16px; margin-right: 8px;"></div>
-                    Wird gespeichert...
+                    ${t('printerForm.saving')}
                 `;
             } else {
                 submitButton.disabled = false;
                 submitButton.innerHTML = `
                     <span class="btn-icon">💾</span>
-                    Speichern
+                    ${t('printerForm.saveButton')}
                 `;
             }
         }

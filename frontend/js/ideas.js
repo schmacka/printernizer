@@ -294,19 +294,19 @@ function displayIdeasStatistics(stats) {
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number">${stats.total_ideas || stats.idea_count || 0}</div>
-                <div class="stat-label">Gesamt Ideen</div>
+                <div class="stat-label">${t('ideas.totalIdeas')}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">${stats.active_ideas || 0}</div>
-                <div class="stat-label">Aktive Ideen</div>
+                <div class="stat-label">${t('ideas.activeIdeas')}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">${stats.business_ideas || 0}</div>
-                <div class="stat-label">Geschäftlich</div>
+                <div class="stat-label">${t('ideas.business')}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">${stats.completed_ideas || 0}</div>
-                <div class="stat-label">Abgeschlossen</div>
+                <div class="stat-label">${t('ideas.statsCompleted')}</div>
             </div>
         </div>
     `;
@@ -327,11 +327,11 @@ function displayMyIdeas(ideas) {
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">💡</div>
-                    <h3>Keine Ideen gefunden</h3>
-                    <p>Erstellen Sie Ihre erste Idee oder passen Sie die Filter an.</p>
+                    <h3>${t('ideas.noIdeasFound')}</h3>
+                    <p>${t('ideas.noIdeasHint')}</p>
                     <button class="btn btn-primary" onclick="showAddIdeaDialog()">
                         <span class="btn-icon">➕</span>
-                        Neue Idee
+                        ${t('ideas.newIdea')}
                     </button>
                 </div>
             `;
@@ -356,7 +356,7 @@ function displayMyIdeas(ideas) {
         Logger.debug('Ideas displayed successfully');
     } catch (error) {
         Logger.error('Error displaying ideas:', error);
-        showErrorInContainer('myIdeasContainer', 'Fehler beim Anzeigen der Ideen');
+        showErrorInContainer('myIdeasContainer', t('ideas.displayError'));
     }
 }
 
@@ -368,11 +368,11 @@ function displayBookmarks(bookmarks) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">🔖</div>
-                <h3>Keine Lesezeichen gefunden</h3>
-                <p>Importieren Sie Modelle aus externen Plattformen.</p>
+                <h3>${t('ideas.noBookmarksFound')}</h3>
+                <p>${t('ideas.noBookmarksHint')}</p>
                 <button class="btn btn-primary" onclick="showImportDialog()">
                     <span class="btn-icon">🔗</span>
-                    Aus URL importieren
+                    ${t('ideas.importFromUrl')}
                 </button>
             </div>
         `;
@@ -391,11 +391,11 @@ function displayTrending(trending) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">📈</div>
-                <h3>Keine Trending-Modelle gefunden</h3>
-                <p>Aktualisieren Sie die Trending-Daten oder überprüfen Sie Ihre Internetverbindung.</p>
+                <h3>${t('ideas.noTrendingFound')}</h3>
+                <p>${t('ideas.trendingRefreshHint')}</p>
                 <button class="btn btn-secondary" onclick="refreshTrending()">
                     <span class="btn-icon">🔄</span>
-                    Aktualisieren
+                    ${t('common.refresh')}
                 </button>
             </div>
         `;
@@ -432,7 +432,7 @@ function createIdeaCard(idea) {
                 <div class="card-meta">
                     <div class="meta-item">
                         <span class="meta-icon">${businessIcon}</span>
-                        <span class="meta-text">${idea.is_business ? 'Geschäftlich' : 'Privat'}</span>
+                        <span class="meta-text">${idea.is_business ? t('ideas.business') : t('ideas.private')}</span>
                     </div>
 
                     ${idea.category ? `
@@ -465,22 +465,22 @@ function createIdeaCard(idea) {
             <div class="card-actions">
                 <button class="btn btn-small btn-secondary" onclick="viewIdeaDetails('${sanitizeAttribute(idea.id)}')">
                     <span class="btn-icon">👁️</span>
-                    Details
+                    ${t('common.details')}
                 </button>
                 <button class="btn btn-small btn-secondary" onclick="editIdea('${sanitizeAttribute(idea.id)}')">
                     <span class="btn-icon">✏️</span>
-                    Bearbeiten
+                    ${t('common.edit')}
                 </button>
                 ${idea.status === 'idea' ? `
                     <button class="btn btn-small btn-primary" onclick="planIdea('${sanitizeAttribute(idea.id)}')">
                         <span class="btn-icon">📅</span>
-                        Planen
+                        ${t('ideas.plan')}
                     </button>
                 ` : ''}
                 ${idea.status === 'planned' ? `
                     <button class="btn btn-small btn-primary" onclick="startPrint('${sanitizeAttribute(idea.id)}')">
                         <span class="btn-icon">🖨️</span>
-                        Drucken
+                        ${t('ideas.print')}
                     </button>
                 ` : ''}
             </div>
@@ -514,7 +514,7 @@ function createBookmarkCard(bookmark) {
                     </div>
                     <div class="meta-item">
                         <span class="meta-icon">${businessIcon}</span>
-                        <span class="meta-text">${bookmark.is_business ? 'Geschäftlich' : 'Privat'}</span>
+                        <span class="meta-text">${bookmark.is_business ? t('ideas.business') : t('ideas.private')}</span>
                     </div>
                 </div>
 
@@ -528,15 +528,15 @@ function createBookmarkCard(bookmark) {
             <div class="card-actions">
                 <button class="btn btn-small btn-secondary" onclick="openExternalUrl('${sanitizeAttribute(bookmark.source_url)}')">
                     <span class="btn-icon">🔗</span>
-                    Öffnen
+                    ${t('ideas.open')}
                 </button>
                 <button class="btn btn-small btn-secondary" onclick="editIdea('${sanitizeAttribute(bookmark.id)}')">
                     <span class="btn-icon">✏️</span>
-                    Bearbeiten
+                    ${t('common.edit')}
                 </button>
                 <button class="btn btn-small btn-primary" onclick="planIdea('${sanitizeAttribute(bookmark.id)}')">
                     <span class="btn-icon">📅</span>
-                    Planen
+                    ${t('ideas.plan')}
                 </button>
             </div>
         </div>
@@ -590,11 +590,11 @@ function createTrendingCard(item) {
             <div class="card-actions">
                 <button class="btn btn-small btn-secondary" onclick="openExternalUrl('${sanitizeAttribute(item.url)}')">
                     <span class="btn-icon">🔗</span>
-                    Öffnen
+                    ${t('ideas.open')}
                 </button>
                 <button class="btn btn-small btn-primary" onclick="saveTrendingAsIdea('${sanitizeAttribute(item.id)}')">
                     <span class="btn-icon">💾</span>
-                    Speichern
+                    ${t('common.save')}
                 </button>
             </div>
         </div>
@@ -671,7 +671,7 @@ async function viewIdeaDetails(ideaId) {
         }
     } catch (error) {
         Logger.error('Error loading idea details:', error);
-        showError('ideaDetailsContent', 'Fehler beim Laden der Details');
+        showError('ideaDetailsContent', t('ideas.loadDetailsError'));
     }
 }
 
@@ -691,7 +691,7 @@ async function planIdea(ideaId) {
         }
     } catch (error) {
         Logger.error('Error planning idea:', error);
-        showNotification('Fehler beim Planen der Idee', 'error');
+        showNotification(t('ideas.planError'), 'error');
     }
 }
 
@@ -736,7 +736,7 @@ async function saveTrendingAsIdea(trendingId) {
         }
     } catch (error) {
         Logger.error('Error saving trending as idea:', error);
-        showNotification('Fehler beim Speichern', 'error');
+        showNotification(t('ideas.saveError'), 'error');
     }
 }
 
@@ -799,9 +799,9 @@ async function handleAddIdea(event) {
         Logger.error('Error creating idea:', error);
         try {
             if (typeof showNotification === 'function') {
-                showNotification('Fehler beim Erstellen der Idee: ' + error.message, 'error');
+                showNotification(t('ideas.createError') + ': ' + error.message, 'error');
             } else {
-                alert('Fehler beim Erstellen der Idee: ' + error.message);
+                alert(t('ideas.createError') + ': ' + error.message);
             }
         } catch (notifError) {
             Logger.error('Error showing notification:', notifError);
@@ -856,7 +856,7 @@ async function handleEditIdea(event) {
         }
     } catch (error) {
         Logger.error('Error updating idea:', error);
-        showNotification('Fehler beim Aktualisieren der Idee: ' + error.message, 'error');
+        showNotification(t('ideas.updateError') + ': ' + error.message, 'error');
     }
 }
 
@@ -977,14 +977,14 @@ function displayIdeaDetails(idea) {
                 <h2>${escapeHtml(idea.title)}</h2>
                 <div class="details-meta">
                     <span class="status-badge status-${idea.status}">${statusEmoji} ${idea.status}</span>
-                    <span class="business-badge">${businessIcon} ${idea.is_business ? 'Geschäftlich' : 'Privat'}</span>
+                    <span class="business-badge">${businessIcon} ${idea.is_business ? t('ideas.business') : t('ideas.private')}</span>
                     <span class="source-badge">${sourceIcon} ${formatSource(idea.source_type)}</span>
                 </div>
             </div>
 
             ${idea.description ? `
                 <div class="details-section">
-                    <h3>Beschreibung</h3>
+                    <h3>${t('common.description')}</h3>
                     <p>${escapeHtml(idea.description)}</p>
                 </div>
             ` : ''}
@@ -992,53 +992,53 @@ function displayIdeaDetails(idea) {
             <div class="details-grid">
                 ${idea.category ? `
                     <div class="detail-item">
-                        <label>Kategorie</label>
+                        <label>${t('ideas.category')}</label>
                         <span>${escapeHtml(idea.category)}</span>
                     </div>
                 ` : ''}
 
                 <div class="detail-item">
-                    <label>Priorität</label>
+                    <label>${t('ideas.priority')}</label>
                     <span>${'★'.repeat(idea.priority || 1)} (${idea.priority || 1}/5)</span>
                 </div>
 
                 ${idea.estimated_print_time ? `
                     <div class="detail-item">
-                        <label>Geschätzte Druckzeit</label>
+                        <label>${t('ideas.estimatedPrintTime')}</label>
                         <span>${formatPrintTime(idea.estimated_print_time)}</span>
                     </div>
                 ` : ''}
 
                 ${idea.planned_date ? `
                     <div class="detail-item">
-                        <label>Geplantes Datum</label>
+                        <label>${t('ideas.plannedDate')}</label>
                         <span>${formatDate(idea.planned_date)}</span>
                     </div>
                 ` : ''}
 
                 ${idea.completed_date ? `
                     <div class="detail-item">
-                        <label>Abgeschlossen am</label>
+                        <label>${t('ideas.completedDate')}</label>
                         <span>${formatDate(idea.completed_date)}</span>
                     </div>
                 ` : ''}
 
                 <div class="detail-item">
-                    <label>Erstellt am</label>
+                    <label>${t('ideas.createdDate')}</label>
                     <span>${formatDateTime(idea.created_at)}</span>
                 </div>
             </div>
 
             ${idea.material_notes ? `
                 <div class="details-section">
-                    <h3>Material-Notizen</h3>
+                    <h3>${t('ideas.materialNotes')}</h3>
                     <p>${escapeHtml(idea.material_notes)}</p>
                 </div>
             ` : ''}
 
             ${idea.customer_info ? `
                 <div class="details-section">
-                    <h3>Kunden-Informationen</h3>
+                    <h3>${t('ideas.customerInfo')}</h3>
                     <p>${escapeHtml(idea.customer_info)}</p>
                 </div>
             ` : ''}
@@ -1054,7 +1054,7 @@ function displayIdeaDetails(idea) {
 
             ${idea.source_url ? `
                 <div class="details-section">
-                    <h3>Externe Quelle</h3>
+                    <h3>${t('ideas.externalSource')}</h3>
                     <a href="${idea.source_url}" target="_blank" class="external-link">
                         ${idea.source_url}
                         <span class="external-icon">🔗</span>
@@ -1065,24 +1065,24 @@ function displayIdeaDetails(idea) {
             <div class="details-actions">
                 <button class="btn btn-secondary" onclick="editIdea('${idea.id}')">
                     <span class="btn-icon">✏️</span>
-                    Bearbeiten
+                    ${t('common.edit')}
                 </button>
                 ${idea.source_url ? `
                     <button class="btn btn-secondary" onclick="openExternalUrl('${idea.source_url}')">
                         <span class="btn-icon">🔗</span>
-                        Quelle öffnen
+                        ${t('ideas.openSource')}
                     </button>
                 ` : ''}
                 ${idea.status === 'idea' ? `
                     <button class="btn btn-primary" onclick="planIdea('${idea.id}')">
                         <span class="btn-icon">📅</span>
-                        Planen
+                        ${t('ideas.plan')}
                     </button>
                 ` : ''}
                 ${idea.status === 'planned' ? `
                     <button class="btn btn-primary" onclick="startPrint('${idea.id}')">
                         <span class="btn-icon">🖨️</span>
-                        Drucken
+                        ${t('ideas.print')}
                     </button>
                 ` : ''}
             </div>
@@ -1173,10 +1173,10 @@ async function refreshTrending() {
         // Load fresh trending data
         await loadTrending();
 
-        showNotification('Trending-Daten aktualisiert', 'success');
+        showNotification(t('ideas.trendingRefreshed'), 'success');
     } catch (error) {
         Logger.error('Error refreshing trending:', error);
-        showNotification('Fehler beim Aktualisieren der Trending-Daten', 'error');
+        showNotification(t('ideas.trendingRefreshError'), 'error');
     }
 }
 
@@ -1206,7 +1206,7 @@ async function previewImportUrl() {
         // In a real implementation, this would fetch metadata from the URL
         setTimeout(() => {
             document.getElementById('previewTitle').textContent = 'Modell von externem Link';
-            document.getElementById('previewDescription').textContent = 'Vorschau wird in zukünftigen Versionen verfügbar sein.';
+            document.getElementById('previewDescription').textContent = t('ideas.previewComingSoon');
             document.getElementById('previewCreator').textContent = 'Ersteller: Unbekannt';
             document.getElementById('previewPlatform').textContent = 'Plattform: ' + extractPlatformFromUrl(urlInput.value);
         }, 1000);

@@ -72,7 +72,7 @@ class CameraManager {
             Logger.debug('Snapshot captured:', snapshot);
             
             // Show success notification
-            showNotification('Snapshot erfolgreich aufgenommen', 'success');
+            showNotification(t('camera.snapshotSuccess'), 'success');
             
             return snapshot;
         } catch (error) {
@@ -83,7 +83,7 @@ class CameraManager {
             } else {
                 console.error(errorMsg, error);
             }
-            showNotification(`Snapshot-Fehler: ${error.message}`, 'error');
+            showNotification(t('camera.snapshotError', { message: error.message }), 'error');
             throw error;
         }
     }
@@ -106,9 +106,9 @@ class CameraManager {
         if (!cameraStatus) {
             return `
                 <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
+                    <h4>📷 ${t('camera.title')}</h4>
                     <div class="info-item">
-                        <span class="text-muted">Wird geladen...</span>
+                        <span class="text-muted">${t('common.loading')}</span>
                     </div>
                 </div>
             `;
@@ -124,9 +124,9 @@ class CameraManager {
         if (!hasBuiltinCamera && !hasExternalWebcam) {
             return `
                 <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
+                    <h4>📷 ${t('camera.title')}</h4>
                     <div class="info-item">
-                        <span class="text-muted">Keine Kamera verfügbar</span>
+                        <span class="text-muted">${t('camera.noCameraAvailable')}</span>
                     </div>
                 </div>
             `;
@@ -138,9 +138,9 @@ class CameraManager {
             const isFfmpegIssue = ffmpegRequired && !ffmpegAvailable;
             return `
                 <div class="info-section camera-section">
-                    <h4>📷 Kamera</h4>
+                    <h4>📷 ${t('camera.title')}</h4>
                     <div class="info-item">
-                        <span class="text-warning">${isFfmpegIssue ? '⚠️ RTSP Stream nicht verfügbar' : 'Kamera nicht verfügbar'}</span>
+                        <span class="text-warning">${isFfmpegIssue ? '⚠️ ' + t('camera.rtspUnavailable') : t('camera.notAvailable')}</span>
                         ${cameraStatus.error_message ? `<br><small class="text-muted">${escapeHtml(cameraStatus.error_message)}</small>` : ''}
                         ${isFfmpegIssue ? `<br><code style="font-size: 0.8em; background: #f8f9fa; padding: 2px 6px; border-radius: 3px;">apt-get install ffmpeg</code>` : ''}
                     </div>
@@ -148,7 +148,7 @@ class CameraManager {
             `;
         }
 
-        let html = '<div class="info-section camera-section"><h4>📷 Kamera</h4>';
+        let html = `<div class="info-section camera-section"><h4>📷 ${t('camera.title')}</h4>`;
 
         // Render external webcam if configured
         if (hasExternalWebcam) {
@@ -168,7 +168,7 @@ class CameraManager {
                             <span class="text-muted">External webcam not available</span>
                         </div>
                         <div class="camera-timestamp" id="external-timestamp-${printer.id}" style="font-size: 0.85em; color: #6c757d; text-align: center; margin-top: 4px;">
-                            Updated: ${new Date().toLocaleTimeString('de-DE')}
+                            ${t('camera.updatedAt')} ${new Date().toLocaleTimeString(getIntlLocale())}
                         </div>
                     </div>
                     <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
@@ -199,36 +199,36 @@ class CameraManager {
                             <img id="camera-stream-${printer.id}"
                                  class="camera-stream"
                                  src="${imageUrl}"
-                                 alt="Kamera Vorschau"
+                                 alt="${t('camera.previewAlt')}"
                                  onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
                                  onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
                                  style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
                             <div class="stream-error" style="display: none;">
-                                <span class="text-muted">Bild nicht verfügbar</span>
+                                <span class="text-muted">${t('camera.imageUnavailable')}</span>
                             </div>
                             ${isPreview ? `
                                 <div class="camera-timestamp" id="camera-timestamp-${printer.id}" style="font-size: 0.85em; color: #6c757d; text-align: center; margin-top: 4px;">
-                                    Aktualisiert: ${new Date().toLocaleTimeString('de-DE')}
+                                    ${t('camera.updatedAt')} ${new Date().toLocaleTimeString(getIntlLocale())}
                                 </div>
                             ` : ''}
                         </div>
                         <div class="camera-actions" style="display: flex; gap: 8px; margin-top: 8px;">
                             <button class="btn btn-sm btn-primary"
                                     onclick="cameraManager.takeSnapshotFromCard('${printer.id}')"
-                                    title="Snapshot aufnehmen">
+                                    title="${t('camera.takeSnapshot')}">
                                 📸 Snapshot
                             </button>
                             ${isPreview ? `
                                 <button class="btn btn-sm btn-secondary"
                                         onclick="cameraManager.refreshPreview('${printer.id}', true)"
-                                        title="Vorschau aktualisieren">
-                                    🔄 Aktualisieren
+                                        title="${t('camera.refreshPreviewTitle')}">
+                                    🔄 ${t('common.refresh')}
                                 </button>
                             ` : ''}
                             <button class="btn btn-sm btn-secondary"
                                     onclick="cameraManager.showCameraModal('${printer.id}')"
-                                    title="Vollbild anzeigen">
-                                🔍 Vollbild
+                                    title="${t('camera.fullscreenTitle')}">
+                                🔍 ${t('camera.fullscreen')}
                             </button>
                         </div>
                     </div>
@@ -250,7 +250,7 @@ class CameraManager {
         if (imageElement) {
             imageElement.src = `${CONFIG.API_BASE_URL}/printers/${printerId}/camera/external-preview?t=${Date.now()}`;
             if (timestampElement) {
-                timestampElement.textContent = `Updated: ${new Date().toLocaleTimeString('de-DE')}`;
+                timestampElement.textContent = `${t('camera.updatedAt')} ${new Date().toLocaleTimeString(getIntlLocale())}`;
             }
         }
     }
@@ -303,13 +303,13 @@ class CameraManager {
             // Update timestamp display
             if (timestampElement) {
                 const now = new Date();
-                timestampElement.textContent = `Aktualisiert: ${now.toLocaleTimeString('de-DE')}`;
+                timestampElement.textContent = `${t('camera.updatedAt')} ${now.toLocaleTimeString(getIntlLocale())}`;
             }
 
             this.lastRefreshTime.set(printerId, Date.now());
 
             if (showFeedback) {
-                showNotification('Vorschau aktualisiert', 'success');
+                showNotification(t('camera.previewRefreshed'), 'success');
             }
         }
     }
@@ -352,12 +352,12 @@ class CameraManager {
 
         // Validate camera status
         if (!cameraStatus) {
-            showNotification('Kamerastatus nicht verfügbar', 'error');
+            showNotification(t('camera.statusUnavailable'), 'error');
             return;
         }
 
         if (!cameraStatus.is_available || !cameraStatus.stream_url) {
-            showNotification('Kamera nicht verfügbar', 'error');
+            showNotification(t('camera.notAvailable'), 'error');
             return;
         }
 
@@ -365,7 +365,7 @@ class CameraManager {
         if (cameraStatus.stream_url === 'null' ||
             cameraStatus.stream_url === 'undefined' ||
             !cameraStatus.stream_url) {
-            showNotification('Kamera-URL ungültig', 'error');
+            showNotification(t('camera.invalidUrl'), 'error');
             return;
         }
 
@@ -383,10 +383,10 @@ class CameraManager {
         modal.innerHTML = `
             <div class="modal-content camera-modal-content">
                 <div class="modal-header">
-                    <h3>📷 ${escapeHtml(printerName)} - Kamera</h3>
+                    <h3>📷 ${escapeHtml(printerName)} - ${t('camera.title')}</h3>
                     ${isPreview ? `
                         <span class="badge badge-secondary" id="modal-timestamp" style="margin-left: 10px;">
-                            Aktualisiert: ${new Date().toLocaleTimeString('de-DE')}
+                            ${t('camera.updatedAt')} ${new Date().toLocaleTimeString(getIntlLocale())}
                         </span>
                     ` : ''}
                     <button class="btn btn-sm btn-secondary" onclick="this.closest('.modal').remove()">
@@ -398,26 +398,26 @@ class CameraManager {
                         <img id="modal-camera-stream"
                              class="camera-stream-full"
                              src="${imageUrl}"
-                             alt="Kamera"
+                             alt="${t('camera.title')}"
                              style="width: 100%; height: auto;">
                     </div>
                     <div class="camera-modal-controls" style="margin-top: 16px; display: flex; gap: 8px; justify-content: center;">
                         ${isPreview ? `
                             <button class="btn btn-secondary"
                                     onclick="cameraManager.refreshModalPreview('${printerId}')">
-                                🔄 Aktualisieren
+                                🔄 ${t('common.refresh')}
                             </button>
                         ` : ''}
                         <button class="btn btn-primary"
                                 onclick="cameraManager.takeSnapshotFromCard('${printerId}')">
-                            📸 Snapshot aufnehmen
+                            📸 ${t('camera.takeSnapshot')}
                         </button>
                         <button class="btn btn-secondary"
                                 onclick="cameraManager.showSnapshotHistory('${printerId}')">
-                            🖼️ Snapshot-Historie
+                            🖼️ ${t('camera.snapshotHistory')}
                         </button>
                         <button class="btn btn-secondary" onclick="this.closest('.modal').remove()">
-                            Schließen
+                            ${t('common.close')}
                         </button>
                     </div>
                 </div>
@@ -468,7 +468,7 @@ class CameraManager {
 
             if (timestampElement) {
                 const now = new Date();
-                timestampElement.textContent = `Aktualisiert: ${now.toLocaleTimeString('de-DE')}`;
+                timestampElement.textContent = `${t('camera.updatedAt')} ${now.toLocaleTimeString(getIntlLocale())}`;
             }
         }
     }
@@ -486,13 +486,13 @@ class CameraManager {
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3>🖼️ Snapshot-Historie</h3>
+                        <h3>🖼️ ${t('camera.snapshotHistory')}</h3>
                         <button class="btn btn-sm btn-secondary" onclick="this.closest('.modal').remove()">
                             ✕
                         </button>
                     </div>
                     <div class="modal-body">
-                        ${snapshots.length > 0 ? this.renderSnapshotGrid(snapshots) : '<p class="text-muted">Keine Snapshots vorhanden</p>'}
+                        ${snapshots.length > 0 ? this.renderSnapshotGrid(snapshots) : `<p class="text-muted">${t('camera.noSnapshots')}</p>`}
                     </div>
                 </div>
             `;
@@ -505,7 +505,7 @@ class CameraManager {
             } else {
                 console.error('Failed to load snapshot history:', error);
             }
-            showNotification('Fehler beim Laden der Snapshot-Historie', 'error');
+            showNotification(t('camera.historyLoadError'), 'error');
         }
     }
 
@@ -532,7 +532,7 @@ class CameraManager {
                             <a href="${api.baseURL}/snapshots/${snapshot.id}/download"
                                class="btn btn-sm btn-secondary"
                                download="${snapshot.filename}"
-                               title="Herunterladen">
+                               title="${t('common.download')}">
                                 💾
                             </a>
                         </div>
@@ -547,11 +547,11 @@ class CameraManager {
      */
     formatTrigger(trigger) {
         const triggers = {
-            'manual': '👆 Manuell',
-            'auto': '🤖 Automatisch',
-            'job_start': '▶️ Auftrag gestartet',
-            'job_complete': '✅ Auftrag fertig',
-            'job_failed': '❌ Auftrag fehlgeschlagen'
+            'manual': '👆 ' + t('camera.triggerManual'),
+            'auto': '🤖 ' + t('camera.triggerAuto'),
+            'job_start': '▶️ ' + t('camera.triggerJobStart'),
+            'job_complete': '✅ ' + t('camera.triggerJobComplete'),
+            'job_failed': '❌ ' + t('camera.triggerJobFailed')
         };
         return triggers[trigger] || trigger;
     }

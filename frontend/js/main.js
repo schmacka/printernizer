@@ -235,13 +235,13 @@ class PrinternizerApp {
         // Handle uncaught errors
         window.addEventListener('error', (e) => {
             Logger.error('Global error:', e.error);
-            showToast('error', 'Anwendungsfehler', 'Ein unerwarteter Fehler ist aufgetreten');
+            showToast('error', t('errors.appErrorTitle'), t('errors.appErrorMessage'));
         });
         
         // Handle unhandled promise rejections
         window.addEventListener('unhandledrejection', (e) => {
             Logger.error('Unhandled promise rejection:', e.reason);
-            showToast('error', 'Anwendungsfehler', 'Ein unerwarteter Fehler ist aufgetreten');
+            showToast('error', t('errors.appErrorTitle'), t('errors.appErrorMessage'));
         });
     }
 
@@ -261,7 +261,7 @@ class PrinternizerApp {
             } else {
                 window.printernizer = window.printernizer || {};
                 window.printernizer.backendHealthy = false;
-                showToast('warning', 'System-Warnung', 'System ist möglicherweise nicht voll funktionsfähig', CONFIG.TOAST_DURATION, {
+                showToast('warning', t('errors.systemWarningTitle'), t('errors.systemWarningMessage'), CONFIG.TOAST_DURATION, {
                     uniqueKey: CONFIG.NOTIFICATION_KEYS.SYSTEM_WARNING,
                     deduplicateMode: 'update'
                 });
@@ -270,7 +270,7 @@ class PrinternizerApp {
             Logger.error('Health check failed:', error);
             window.printernizer = window.printernizer || {};
             window.printernizer.backendHealthy = false;
-            showToast('error', 'Verbindungsfehler', 'Backend-Server ist nicht erreichbar', CONFIG.TOAST_DURATION, {
+            showToast('error', t('errors.backendOfflineTitle'), t('errors.backendOfflineMessage'), CONFIG.TOAST_DURATION, {
                 uniqueKey: CONFIG.NOTIFICATION_KEYS.BACKEND_OFFLINE,
                 deduplicateMode: 'update'
             });
@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Show welcome message
     setTimeout(() => {
-        showToast('info', 'Willkommen', 'Printernizer wurde erfolgreich geladen', CONFIG.TOAST_DURATION, {
+        showToast('info', t('common.welcomeTitle'), t('common.welcomeMessage'), CONFIG.TOAST_DURATION, {
             uniqueKey: CONFIG.NOTIFICATION_KEYS.APP_WELCOME,
             deduplicateMode: 'prevent' // Don't show duplicate welcome messages
         });
