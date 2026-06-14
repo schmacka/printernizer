@@ -7,6 +7,8 @@ tracks render artifacts, hands finished models off to the Library, and stores
 named parameter presets.
 """
 import json
+import os
+import re
 import shutil
 import uuid
 from datetime import datetime
@@ -32,6 +34,15 @@ logger = structlog.get_logger(__name__)
 
 UPLOAD_PREFIX = "upload:"
 
+# Render/upload ids are server-generated uuid hex tokens. Validating the
+# character set up front prevents any path traversal via these identifiers.
+_SAFE_TOKEN_RE = re.compile(r"[A-Za-z0-9]{1,64}")
+
+
+def _is_safe_token(value: Optional[str]) -> bool:
+    """Return True if value is a safe identifier (alphanumeric, no separators)."""
+    return bool(value) and _SAFE_TOKEN_RE.fullmatch(value) is not None
+
 
 class GeneratorService:
     """Coordinator for OpenSCAD template rendering and management."""
@@ -51,15 +62,36 @@ class GeneratorService:
         self.templates_dir = Path(__file__).parent.parent / "scad_templates"
 
         self._templates: Dict[str, ScadTemplate] = {}
+        self._dirs_ready = False
 
     async def initialize(self) -> None:
-        """Create working directories and load bundled templates."""
-        for folder in (self.output_dir, self.uploads_dir, self.renders_dir):
-            folder.mkdir(parents=True, exist_ok=True)
+        """
+        Load bundled templates and prepare working directories.
+
+        Directory creation is best-effort: the generator is an optional feature,
+        so a non-writable output directory must never crash application startup.
+        Directories are (re)created lazily when a render or upload runs.
+        """
+        self._ensure_dirs()
         self._load_templates()
         logger.info("Generator service initialized",
                     templates=len(self._templates),
+                    output_dir=str(self.output_dir),
+                    output_writable=self._dirs_ready,
                     openscad_available=self.openscad.available)
+
+    def _ensure_dirs(self) -> bool:
+        """Create the working directories if possible. Returns success."""
+        try:
+            for folder in (self.output_dir, self.uploads_dir, self.renders_dir):
+                folder.mkdir(parents=True, exist_ok=True)
+            self._dirs_ready = True
+        except OSError as e:
+            self._dirs_ready = False
+            logger.warning("Generator output directory is not writable; "
+                           "rendering/upload will be unavailable",
+                           output_dir=str(self.output_dir), error=str(e))
+        return self._dirs_ready
 
     # ---- Status ------------------------------------------------------------
 
@@ -112,6 +144,8 @@ class GeneratorService:
 
     def store_upload(self, source: str, filename: Optional[str] = None) -> ScadTemplate:
         """Persist an uploaded .scad source and return it as a template."""
+        if not self._ensure_dirs():
+            raise OpenSCADRenderError("Generator storage is not available")
         upload_id = uuid.uuid4().hex[:12]
         path = self.uploads_dir / f"{upload_id}.scad"
         path.write_text(source, encoding="utf-8")
@@ -128,7 +162,11 @@ class GeneratorService:
     def _resolve_source(self, source_ref: str) -> tuple[str, Optional[str]]:
         """Return (source, default_camera) for a template id or upload ref."""
         if source_ref.startswith(UPLOAD_PREFIX):
-            upload_id = source_ref[len(UPLOAD_PREFIX):]
+            # basename strips any directory components and the alphanumeric check
+            # rejects traversal, so the request value cannot escape uploads_dir.
+            upload_id = os.path.basename(source_ref[len(UPLOAD_PREFIX):])
+            if not re.fullmatch(r"[A-Za-z0-9]+", upload_id):
+                raise GeneratorTemplateNotFoundError(source_ref)
             path = self.uploads_dir / f"{upload_id}.scad"
             if not path.exists():
                 raise GeneratorTemplateNotFoundError(source_ref)
@@ -141,6 +179,8 @@ class GeneratorService:
     async def render(self, source_ref: str, parameters: Dict[str, Any],
                      fmt: str = "stl") -> RenderResult:
         """Render a template/upload to STL or PNG and record the artifact."""
+        if not self._ensure_dirs():
+            raise OpenSCADRenderError("Generator storage is not available")
         source, default_camera = self._resolve_source(source_ref)
         render_id = uuid.uuid4().hex[:16]
         work_dir = self.renders_dir / render_id
@@ -181,16 +221,32 @@ class GeneratorService:
             preview_url=f"/api/v1/generator/render/{render_id}/preview.png" if fmt == "png" else None,
         )
 
+    def _confined_artifact(self, path_str: Optional[str]) -> Optional[Path]:
+        """
+        Return the stored artifact path if it lies within the renders directory.
+
+        ``path_str`` is read from the render's database record (server-written
+        at render time), never from request input. The containment check is
+        defence-in-depth so a path can never point outside the renders root.
+        """
+        if not path_str:
+            return None
+        path = Path(path_str)
+        try:
+            path.resolve().relative_to(self.renders_dir.resolve())
+        except ValueError:
+            return None
+        return path if path.exists() else None
+
     async def get_artifact_path(self, render_id: str, kind: str) -> Optional[Path]:
         """Return the filesystem path to a render artifact ('model' or 'preview')."""
+        if not _is_safe_token(render_id):
+            return None
         render = await self.repo.get_render(render_id)
         if not render:
             return None
         key = "model_path" if kind == "model" else "preview_path"
-        path_str = render.get(key)
-        if path_str and Path(path_str).exists():
-            return Path(path_str)
-        return None
+        return self._confined_artifact(render.get(key))
 
     # ---- Library hand-off --------------------------------------------------
 
@@ -199,17 +255,19 @@ class GeneratorService:
         """Copy a completed STL render into the Library so it can be sliced."""
         if not self.library_service:
             raise OpenSCADRenderError("Library service unavailable")
+        if not _is_safe_token(render_id):
+            raise GeneratorTemplateNotFoundError(render_id)
         render = await self.repo.get_render(render_id)
         if not render:
             raise GeneratorTemplateNotFoundError(render_id)
-        model_path = render.get("model_path")
-        if not model_path or not Path(model_path).exists():
+        # Source path comes from the stored render record (server-written).
+        artifact = self._confined_artifact(render.get("model_path"))
+        if artifact is None:
             raise OpenSCADRenderError("No STL artifact to save", details={"render_id": render_id})
 
-        name = display_name or f"{render['source_ref']}_{render_id[:8]}"
-        named_path = Path(model_path).parent / f"{_safe_filename(name)}.stl"
-        if named_path != Path(model_path):
-            shutil.copy2(model_path, named_path)
+        # Stage a copy with a generated name so no user input reaches the path.
+        staged = self.renders_dir / f"library_{uuid.uuid4().hex}.stl"
+        shutil.copy2(artifact, staged)
 
         source_info = {
             "type": "upload",
@@ -217,10 +275,19 @@ class GeneratorService:
             "source_ref": render["source_ref"],
             "parameters": render.get("parameters", {}),
         }
-        return await self.library_service.add_file_to_library(
-            source_path=named_path, source_info=source_info,
-            copy_file=True, calculate_hash=True,
-        )
+        # The user's chosen name is recorded as library metadata only - it never
+        # touches a filesystem path.
+        if display_name:
+            safe_label = _safe_filename(display_name)
+            if safe_label:
+                source_info["display_name"] = f"{safe_label}.stl"
+        try:
+            return await self.library_service.add_file_to_library(
+                source_path=staged, source_info=source_info,
+                copy_file=True, calculate_hash=True,
+            )
+        finally:
+            staged.unlink(missing_ok=True)
 
     # ---- Presets -----------------------------------------------------------
 

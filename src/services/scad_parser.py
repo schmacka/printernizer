@@ -28,12 +28,16 @@ _NON_PARAM_STARTERS = (
     "echo", "assert", "let", "intersection_for",
 )
 
-# Top-level assignment: identifier = value ; (value captured non-greedily up to ;)
-_ASSIGN_RE = re.compile(r"^\s*([A-Za-z_]\w*)\s*=\s*(.+?);\s*(?://(.*))?$")
+# Top-level assignment: identifier = value ; <rest>
+# Linear (non-backtracking) patterns are used throughout so that parsing
+# untrusted uploaded .scad files cannot trigger catastrophic regex backtracking.
+# Value is everything up to the first ';'; the remainder (incl. any // comment)
+# is captured separately and handled in code.
+_ASSIGN_RE = re.compile(r"^\s*([A-Za-z_]\w*)\s*=([^;]*);(.*)$")
 # Section header comment: /* [Name] */
-_SECTION_RE = re.compile(r"/\*\s*\[(.+?)\]\s*\*/")
+_SECTION_RE = re.compile(r"/\*\s*\[([^\]]*)\]\s*\*/")
 # Customizer widget bracket inside a trailing comment: [ ... ]
-_BRACKET_RE = re.compile(r"\[(.+?)\]")
+_BRACKET_RE = re.compile(r"\[([^\]]*)\]")
 
 
 def _is_number(token: str) -> bool:
@@ -62,12 +66,31 @@ def _parse_default(raw: str) -> Any:
 
 
 def _strip_code(line: str) -> str:
-    """Return the code portion of a line (drop trailing // comment, inline /* */)."""
-    line = re.sub(r"/\*.*?\*/", "", line)
-    idx = line.find("//")
-    if idx != -1:
-        line = line[:idx]
-    return line
+    """
+    Return the code portion of a line.
+
+    Drops the trailing ``//`` comment and removes paired inline ``/* */``
+    comments. An unterminated ``/*`` is left in place so the caller can detect
+    a multi-line block comment. Uses a single linear scan (no regex) to avoid
+    backtracking on untrusted input.
+    """
+    result = []
+    i, n = 0, len(line)
+    while i < n:
+        ch = line[i]
+        if ch == "/" and i + 1 < n and line[i + 1] == "*":
+            end = line.find("*/", i + 2)
+            if end == -1:
+                # Unterminated block comment: keep it for multi-line handling.
+                result.append(line[i:])
+                break
+            i = end + 2
+            continue
+        if ch == "/" and i + 1 < n and line[i + 1] == "/":
+            break  # line comment: drop the remainder
+        result.append(ch)
+        i += 1
+    return "".join(result)
 
 
 def _parse_bracket(content: str):
@@ -163,9 +186,17 @@ def parse_parameters(source: str) -> List[ScadParameter]:
         if depth == 0 and not hidden:
             match = _ASSIGN_RE.match(line)
             if match:
-                name, raw_value, trailing = match.group(1), match.group(2), match.group(3)
-                first_token = code.strip().split()[0] if code.strip() else ""
-                if name not in _NON_PARAM_STARTERS and first_token == name and name not in seen:
+                name, raw_value, rest = match.group(1), match.group(2), match.group(3)
+                # The trailing comment (if any) is the text after '//' in the rest.
+                trailing = rest.split("//", 1)[1] if "//" in rest else None
+                # Confirm the (comment-stripped) code is genuinely "<name> = ...",
+                # robust to spacing (handles both "x = 5" and "x=5").
+                code_stripped = code.lstrip()
+                looks_like_assignment = (
+                    code_stripped.startswith(name)
+                    and code_stripped[len(name):].lstrip().startswith("=")
+                )
+                if name not in _NON_PARAM_STARTERS and looks_like_assignment and name not in seen:
                     bracket_kind, bracket_data = None, None
                     description = pending_description
                     if trailing:
