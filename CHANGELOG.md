@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.32.2] - 2026-06-15
+
+### Fixed
+- Home Assistant add-on build failed (since 2.31.0) while installing `matplotlib`: it has no musllinux/aarch64 wheel and cannot be compiled inside the Alpine add-on image (the source build needs `patch`/`git` and a freetype toolchain that are not present). Moved `matplotlib` out of `requirements.txt` into a new optional `requirements-optional.txt`. STL/3MF preview thumbnail rendering already degrades gracefully when matplotlib is absent, so the core add-on now builds and updates successfully. Install `requirements-optional.txt` on glibc platforms to re-enable STL preview rendering.
+
 ## [2.32.1] - 2026-06-13
 
 ### Fixed
