@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.32.3] - 2026-06-15
+
+### Changed
+- Maintenance release. Version bump to re-trigger the Home Assistant add-on sync and rebuild, picking up the add-on Dockerfile change that installs `matplotlib` via Alpine's `py3-matplotlib` package — restoring STL/3MF preview thumbnail rendering on the add-on while keeping the core install free of source-built dependencies.
+
 ## [2.32.2] - 2026-06-15
 
 ### Fixed
