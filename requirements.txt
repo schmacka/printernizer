@@ -62,9 +62,14 @@ openpyxl>=3.1.0  # Excel file generation for material exports
 # 3D File Processing and Preview Rendering
 trimesh>=4.0.5
 numpy-stl>=3.0.1
-matplotlib>=3.8.2
 scipy>=1.11.0
 networkx>=3.0  # Required by trimesh for 3MF mesh processing
+# NOTE: matplotlib is an OPTIONAL dependency (STL/3MF preview thumbnail
+# rendering only - see src/services/preview_render_service.py, which degrades
+# gracefully when it is missing). It is intentionally NOT listed here because
+# it has no musllinux/aarch64 wheel and cannot be compiled inside the
+# Alpine-based Home Assistant add-on image. Install requirements-optional.txt
+# on glibc platforms to enable STL preview rendering.
 
 # Security Headers and Middleware
 python-multipart==0.0.27

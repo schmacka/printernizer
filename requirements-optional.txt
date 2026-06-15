@@ -1,0 +1,16 @@
+# Printernizer - Optional Dependencies
+#
+# These packages enable extra features but are NOT required for the core
+# application to run. They are kept out of requirements.txt because they have
+# no prebuilt musllinux/aarch64 wheels and cannot be compiled inside the
+# Alpine-based Home Assistant add-on image (which lacks a full build
+# toolchain). The features they back degrade gracefully when absent.
+#
+# Install on glibc-based deployments (standard Docker, Raspberry Pi OS, local
+# development) to enable the features noted below:
+#
+#   pip install -r requirements-optional.txt
+
+# STL / 3MF preview thumbnail rendering
+# Used by src/services/preview_render_service.py (guarded by RENDERING_AVAILABLE)
+matplotlib>=3.8.2
