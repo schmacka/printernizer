@@ -2082,25 +2082,20 @@
             </div>
         </div>
 
-        <!-- OpenSCAD Generator Page -->
+        <!-- Model Generator Page (build123d) -->
         <div id="generator" class="page">
             <div class="page-header">
-                <h1>🧩 <span data-i18n="generator.pageTitle">Modell-Generator</span></h1>
-                <div class="header-subtitle" data-i18n="generator.subtitle">Parametrische OpenSCAD-Modelle erzeugen, rendern und in die Bibliothek speichern</div>
+                <h1>🧩 <span data-i18n="generator.pageTitle">Model Generator</span></h1>
+                <div class="header-subtitle" data-i18n="generator.subtitle">Generate parametric build123d models, render them and save into the library</div>
             </div>
             <div id="generatorUnavailable" class="generator-unavailable" style="display: none;">
-                <p data-i18n="generator.unavailable">OpenSCAD ist nicht installiert. Installieren Sie OpenSCAD oder setzen Sie OPENSCAD_BINARY_PATH, um den Generator zu aktivieren.</p>
+                <p data-i18n="generator.unavailable">The model generator is unavailable. build123d could not be loaded — it requires a glibc platform (use the Debian image).</p>
             </div>
             <div class="generator-layout" id="generatorLayout">
                 <aside class="generator-sidebar">
                     <div class="generator-section">
-                        <h3 data-i18n="generator.templates">Vorlagen</h3>
+                        <h3 data-i18n="generator.templates">Templates</h3>
                         <div id="generatorTemplates" class="generator-templates"></div>
-                        <label class="btn btn-secondary btn-sm generator-upload-btn">
-                            <span class="btn-icon">📁</span>
-                            <span data-i18n="generator.upload">.scad hochladen</span>
-                            <input type="file" id="generatorUpload" accept=".scad" hidden>
-                        </label>
                     </div>
                 </aside>
                 <main class="generator-main">
@@ -2108,21 +2103,21 @@
                     <div class="generator-actions">
                         <button type="button" class="btn btn-secondary" id="generatorPreviewBtn" disabled>
                             <span class="btn-icon">🖼️</span>
-                            <span data-i18n="generator.preview">Vorschau</span>
+                            <span data-i18n="generator.preview">Preview</span>
                         </button>
                         <button type="button" class="btn btn-primary" id="generatorRenderBtn" disabled>
                             <span class="btn-icon">⚙️</span>
-                            <span data-i18n="generator.render">Rendern (STL)</span>
+                            <span data-i18n="generator.render">Render (STL)</span>
                         </button>
                         <button type="button" class="btn btn-secondary" id="generatorSaveBtn" disabled>
                             <span class="btn-icon">💾</span>
-                            <span data-i18n="generator.saveToLibrary">In Bibliothek speichern</span>
+                            <span data-i18n="generator.saveToLibrary">Save to library</span>
                         </button>
                     </div>
                     <div class="generator-viewer-wrap">
                         <div id="generatorViewer" class="generator-viewer"></div>
                         <img id="generatorPreviewImage" class="generator-preview-image" alt="" style="display: none;">
-                        <div id="generatorViewerStatus" class="generator-viewer-status" data-i18n="generator.selectTemplate">Wählen Sie eine Vorlage, um zu beginnen.</div>
+                        <div id="generatorViewerStatus" class="generator-viewer-status" data-i18n="generator.selectTemplate">Select a template to get started.</div>
                     </div>
                 </main>
             </div>
@@ -3071,7 +3066,7 @@
     <script src="js/global-drag-drop.js"></script>
     <script src="js/setup-wizard.js"></script>
     <script src="js/preview-3d.js"></script>
-    <!-- three.js for the OpenSCAD generator's interactive 3D viewer -->
+    <!-- three.js for the model generator's interactive 3D viewer -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>

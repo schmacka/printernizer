@@ -17,21 +17,19 @@
   },
   "generator": {
     "pageTitle": "Modell-Generator",
-    "subtitle": "Parametrische OpenSCAD-Modelle erzeugen, rendern und in die Bibliothek speichern",
-    "unavailable": "OpenSCAD ist nicht installiert. Installieren Sie OpenSCAD oder setzen Sie OPENSCAD_BINARY_PATH, um den Generator zu aktivieren.",
+    "subtitle": "Parametrische build123d-Modelle erzeugen, rendern und in die Bibliothek speichern",
+    "unavailable": "Der Modell-Generator ist nicht verfügbar. build123d konnte nicht geladen werden — es benötigt eine glibc-Plattform (Debian-Image verwenden).",
     "templates": "Vorlagen",
-    "upload": ".scad hochladen",
     "preview": "Vorschau",
     "render": "Rendern (STL)",
     "saveToLibrary": "In Bibliothek speichern",
     "selectTemplate": "Wählen Sie eine Vorlage, um zu beginnen.",
-    "rendering": "Wird gerendert…",
+    "rendering": "Rendern…",
     "loadFailed": "Vorlagen konnten nicht geladen werden",
     "renderFailed": "Rendern fehlgeschlagen",
     "saved": "In Bibliothek gespeichert",
     "saveFailed": "Speichern fehlgeschlagen",
-    "uploaded": "Datei hochgeladen",
-    "viewerUnavailable": "3D-Ansicht nicht verfügbar, zeige Bild"
+    "viewerUnavailable": "3D-Viewer nicht verfügbar, zeige Bild"
   },
   "common": {
     "save": "Speichern",

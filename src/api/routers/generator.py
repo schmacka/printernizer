@@ -1,44 +1,40 @@
 """
-OpenSCAD Generator API router.
+Model Generator API router (build123d).
 
 Endpoints for the parametric model generator: query availability, list/inspect
-bundled templates, upload and parse arbitrary .scad files, render to STL/PNG,
-serve render artifacts, save results to the Library, and manage presets.
+bundled templates, render to STL (with a best-effort PNG preview), serve render
+artifacts, save results to the Library, and manage parameter presets.
+
+Only bundled templates are supported — there is no template upload, because
+build123d templates are executable Python and running uploaded code would be a
+remote code execution risk.
 """
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, Query, Request, UploadFile, File
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from src.models.generator import (
     GeneratorStatus,
+    ModelTemplate,
     Preset,
     PresetRequest,
     RenderRequest,
     RenderResult,
-    ScadParameter,
-    ScadTemplate,
 )
 from src.services.generator_service import GeneratorService
-from src.utils.errors import NotFoundError, OpenSCADNotAvailableError, ValidationError
+from src.utils.errors import GeneratorNotAvailableError, NotFoundError
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
 
-MAX_UPLOAD_BYTES = 2 * 1024 * 1024  # 2 MB is plenty for a .scad source file
-
 
 async def get_generator_service(request: Request) -> GeneratorService:
     """Get generator service instance from app state."""
     return request.app.state.generator_service
-
-
-class ParseRequest(BaseModel):
-    """Request to parse parameters from raw OpenSCAD source."""
-    source: str
 
 
 class SaveRequest(BaseModel):
@@ -48,54 +44,30 @@ class SaveRequest(BaseModel):
 
 @router.get("/status", response_model=GeneratorStatus)
 async def get_status(service: GeneratorService = Depends(get_generator_service)):
-    """Report whether OpenSCAD is available (drives conditional UI)."""
+    """Report whether the build123d engine is available (drives conditional UI)."""
     return service.get_status()
 
 
-@router.get("/templates", response_model=List[ScadTemplate])
+@router.get("/templates", response_model=List[ModelTemplate])
 async def list_templates(service: GeneratorService = Depends(get_generator_service)):
     """List bundled generator templates with their parameter schemas."""
     return service.list_templates()
 
 
-@router.get("/templates/{template_id}", response_model=ScadTemplate)
+@router.get("/templates/{template_id}", response_model=ModelTemplate)
 async def get_template(template_id: str,
                        service: GeneratorService = Depends(get_generator_service)):
-    """Get a single template including its OpenSCAD source."""
+    """Get a single template with its parameter schema."""
     return service.get_template(template_id)
-
-
-@router.post("/parse", response_model=List[ScadParameter])
-async def parse_source(body: ParseRequest,
-                       service: GeneratorService = Depends(get_generator_service)):
-    """Parse parameters from pasted OpenSCAD source."""
-    return service.parse_source(body.source)
-
-
-@router.post("/upload", response_model=ScadTemplate)
-async def upload_scad(file: UploadFile = File(...),
-                      service: GeneratorService = Depends(get_generator_service)):
-    """Upload an arbitrary .scad file and auto-discover its parameters."""
-    filename = file.filename or "uploaded.scad"
-    if not filename.lower().endswith(".scad"):
-        raise ValidationError("file", "Only .scad files are accepted")
-    content = await file.read()
-    if len(content) > MAX_UPLOAD_BYTES:
-        raise ValidationError("file", "File exceeds the 2 MB limit")
-    try:
-        source = content.decode("utf-8")
-    except UnicodeDecodeError:
-        raise ValidationError("file", "File is not valid UTF-8 text")
-    return service.store_upload(source, filename=filename)
 
 
 @router.post("/render", response_model=RenderResult)
 async def render(body: RenderRequest,
                  service: GeneratorService = Depends(get_generator_service)):
-    """Render a template/upload to STL or PNG with parameter overrides."""
-    if not service.openscad.available:
-        raise OpenSCADNotAvailableError()
-    return await service.render(body.source_ref, body.parameters, fmt=body.format.value)
+    """Render a template to STL (with a best-effort PNG preview)."""
+    if not service.engine.available:
+        raise GeneratorNotAvailableError()
+    return await service.render(body.template_id, body.parameters, fmt=body.format.value)
 
 
 @router.get("/render/{render_id}/model.stl")

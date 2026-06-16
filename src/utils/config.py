@@ -256,31 +256,18 @@ class PrinternizerSettings(BaseSettings):
         le=300
     )
 
-    # OpenSCAD Generator Configuration
-    openscad_binary_path: Optional[str] = Field(
-        default=None,
-        env="OPENSCAD_BINARY_PATH",
-        description="Path to the OpenSCAD binary. If unset, the binary is auto-detected on PATH. "
-                    "The generator module is optional and disabled when OpenSCAD is not available."
-    )
-    openscad_render_timeout: int = Field(
+    # Model Generator (build123d) Configuration
+    generator_render_timeout: int = Field(
         default=120,
-        env="OPENSCAD_RENDER_TIMEOUT",
-        description="Timeout in seconds for OpenSCAD render operations. Must be between 5 and 600 seconds.",
+        env="GENERATOR_RENDER_TIMEOUT",
+        description="Timeout in seconds for build123d render operations. Must be between 5 and 600 seconds.",
         ge=5,
         le=600
-    )
-    openscad_max_output_mb: int = Field(
-        default=100,
-        env="OPENSCAD_MAX_OUTPUT_MB",
-        description="Maximum allowed size (in MB) for an OpenSCAD render artifact. Guards against runaway uploads.",
-        ge=1,
-        le=2048
     )
     generator_output_dir: str = Field(
         default="/data/printernizer/generator",
         env="GENERATOR_OUTPUT_DIR",
-        description="Directory for OpenSCAD generator working files, render artifacts and uploaded scripts."
+        description="Directory for model generator working files and render artifacts."
     )
 
     # Library System Configuration

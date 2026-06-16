@@ -17,10 +17,9 @@
   },
   "generator": {
     "pageTitle": "Model Generator",
-    "subtitle": "Generate parametric OpenSCAD models, render them and save into the library",
-    "unavailable": "OpenSCAD is not installed. Install OpenSCAD or set OPENSCAD_BINARY_PATH to enable the generator.",
+    "subtitle": "Generate parametric build123d models, render them and save into the library",
+    "unavailable": "The model generator is unavailable. build123d could not be loaded — it requires a glibc platform (use the Debian image).",
     "templates": "Templates",
-    "upload": "Upload .scad",
     "preview": "Preview",
     "render": "Render (STL)",
     "saveToLibrary": "Save to library",
@@ -30,7 +29,6 @@
     "renderFailed": "Render failed",
     "saved": "Saved to library",
     "saveFailed": "Save failed",
-    "uploaded": "File uploaded",
     "viewerUnavailable": "3D viewer unavailable, showing image"
   },
   "common": {

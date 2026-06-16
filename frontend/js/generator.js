@@ -1,16 +1,17 @@
 /**
- * OpenSCAD Generator page manager.
+ * Model Generator page manager (build123d).
  *
- * Lists bundled parametric templates and accepts arbitrary .scad uploads,
- * builds a dynamic form from each script's discovered parameters, renders a
- * PNG preview / STL via the backend, shows the STL in an interactive three.js
- * viewer, and saves results into the Library.
+ * Lists bundled parametric templates, builds a dynamic form from each
+ * template's parameter schema, renders an STL (with an optional PNG preview)
+ * via the backend, shows the STL in an interactive three.js viewer, and saves
+ * results into the Library. Templates are bundled only — there is no upload,
+ * because build123d templates are executable Python.
  */
 class GeneratorManager {
     constructor() {
         this.available = false;
         this.templates = [];
-        this.currentSourceRef = null;
+        this.currentTemplateId = null;
         this.currentParameters = [];
         this.lastRenderId = null;
         this.three = null; // { renderer, scene, camera, controls, mesh, animationId }
@@ -36,10 +37,9 @@ class GeneratorManager {
         if (this._initialized) return;
         this._initialized = true;
 
-        document.getElementById('generatorPreviewBtn')?.addEventListener('click', () => this.render('png'));
+        document.getElementById('generatorPreviewBtn')?.addEventListener('click', () => this.render('preview'));
         document.getElementById('generatorRenderBtn')?.addEventListener('click', () => this.render('stl'));
         document.getElementById('generatorSaveBtn')?.addEventListener('click', () => this.saveToLibrary());
-        document.getElementById('generatorUpload')?.addEventListener('change', (e) => this.handleUpload(e));
 
         await this.loadTemplates();
     }
@@ -91,7 +91,7 @@ class GeneratorManager {
     async selectTemplate(templateId) {
         try {
             const tpl = await api.get(`/generator/templates/${encodeURIComponent(templateId)}`);
-            this.setActiveSource(tpl.id, tpl.parameters);
+            this.setActiveTemplate(tpl.id, tpl.parameters);
             this._highlightCard(tpl.id);
         } catch (e) {
             this._toast('error', this._t('generator.loadFailed', 'Failed to load template'));
@@ -104,8 +104,8 @@ class GeneratorManager {
         });
     }
 
-    setActiveSource(sourceRef, parameters) {
-        this.currentSourceRef = sourceRef;
+    setActiveTemplate(templateId, parameters) {
+        this.currentTemplateId = templateId;
         this.currentParameters = parameters || [];
         this.lastRenderId = null;
         this.buildForm();
@@ -201,8 +201,8 @@ class GeneratorManager {
         return params;
     }
 
-    async render(format) {
-        if (!this.currentSourceRef) return;
+    async render(mode) {
+        if (!this.currentTemplateId) return;
         const statusEl = document.getElementById('generatorViewerStatus');
         const setBusy = (busy) => {
             document.getElementById('generatorPreviewBtn').disabled = busy;
@@ -215,15 +215,16 @@ class GeneratorManager {
         }
         try {
             const result = await api.post('/generator/render', {
-                source_ref: this.currentSourceRef,
+                template_id: this.currentTemplateId,
                 parameters: this.collectParameters(),
-                format,
+                format: mode === 'preview' ? 'png' : 'stl',
             });
             this.lastRenderId = result.render_id;
-            if (format === 'png') {
+            // An STL is always produced, so a render can always be saved.
+            document.getElementById('generatorSaveBtn').disabled = false;
+            if (mode === 'preview' && result.preview_url) {
                 this._showPreviewImage(result.render_id);
             } else {
-                document.getElementById('generatorSaveBtn').disabled = false;
                 await this._showStl(result.render_id);
             }
         } catch (e) {
@@ -259,9 +260,9 @@ class GeneratorManager {
         if (img) img.style.display = 'none';
 
         if (typeof THREE === 'undefined' || typeof THREE.STLLoader === 'undefined') {
-            // Fallback: no WebGL libs available, show a PNG preview instead.
+            // No WebGL libs available — fall back to the PNG preview if present.
             this._toast('warning', this._t('generator.viewerUnavailable', '3D viewer unavailable, showing image'));
-            await this.render('png');
+            this._showPreviewImage(renderId);
             return;
         }
         if (viewer) viewer.style.display = 'block';
@@ -351,35 +352,11 @@ class GeneratorManager {
             this._toast('error', msg);
         }
     }
-
-    async handleUpload(event) {
-        const file = event.target.files && event.target.files[0];
-        if (!file) return;
-        const formData = new FormData();
-        formData.append('file', file);
-        try {
-            const response = await fetch(`${api.baseURL.replace(/\/+$/, '')}/generator/upload`, {
-                method: 'POST', body: formData,
-            });
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.message || err.detail?.message || 'Upload failed');
-            }
-            const tpl = await response.json();
-            this.setActiveSource(tpl.id, tpl.parameters);
-            this._highlightCard(null);
-            this._toast('success', this._t('generator.uploaded', 'File uploaded'));
-        } catch (e) {
-            this._toast('error', e.message);
-        } finally {
-            event.target.value = '';
-        }
-    }
 }
 
 const generatorManager = new GeneratorManager();
 
-// Reveal the nav entry on startup when OpenSCAD is available.
+// Reveal the nav entry on startup when the generator engine is available.
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof api !== 'undefined') {
         generatorManager.checkStatus().catch(() => {});

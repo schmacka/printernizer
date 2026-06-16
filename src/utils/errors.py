@@ -515,37 +515,37 @@ class LibraryItemNotFoundError(PrinternizerError):
 
 
 # =============================================================================
-# OpenSCAD Generator Errors
+# Model Generator (build123d) Errors
 # =============================================================================
 
-class OpenSCADNotAvailableError(PrinternizerError):
-    """OpenSCAD binary is not installed or could not be found."""
+class GeneratorNotAvailableError(PrinternizerError):
+    """The build123d engine is not installed/importable."""
 
     def __init__(self, details: Optional[Dict[str, Any]] = None):
         """
-        Initialize OpenSCADNotAvailableError.
+        Initialize GeneratorNotAvailableError.
 
         Args:
-            details: Additional context (e.g. configured path)
+            details: Additional context (e.g. import error)
         """
         super().__init__(
-            message="OpenSCAD is not available. Install OpenSCAD or set OPENSCAD_BINARY_PATH "
-                    "to enable the model generator.",
+            message="The model generator is not available. build123d could not be "
+                    "imported — it requires a glibc platform (use the Debian image).",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            error_code="OPENSCAD_NOT_AVAILABLE",
+            error_code="GENERATOR_NOT_AVAILABLE",
             details=details or {}
         )
 
 
-class OpenSCADRenderError(PrinternizerError):
-    """OpenSCAD render operation failed."""
+class GeneratorRenderError(PrinternizerError):
+    """A build123d render operation failed."""
 
     def __init__(self, reason: str, details: Optional[Dict[str, Any]] = None):
         """
-        Initialize OpenSCADRenderError.
+        Initialize GeneratorRenderError.
 
         Args:
-            reason: Failure reason (often captured from OpenSCAD stderr)
+            reason: Failure reason
             details: Additional context
         """
         error_details = {"reason": reason}
@@ -553,9 +553,9 @@ class OpenSCADRenderError(PrinternizerError):
             error_details.update(details)
 
         super().__init__(
-            message=f"OpenSCAD render failed: {reason}",
+            message=f"Model render failed: {reason}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="OPENSCAD_RENDER_FAILED",
+            error_code="GENERATOR_RENDER_FAILED",
             details=error_details
         )
 
