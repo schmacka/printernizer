@@ -364,9 +364,7 @@ class LibraryService:
                 'id': file_id,
                 'checksum': unique_checksum,  # Unique for database, may be modified for duplicates
                 'filename': library_path.name,  # Use actual filename (may have _1, _2 suffix)
-                # Honor an explicit display name from the source (e.g. generator
-                # output), falling back to the on-disk filename.
-                'display_name': source_info.get('display_name') or library_path.name,
+                'display_name': library_path.name,
                 'library_path': str(library_path.relative_to(self.library_path)),
                 'file_size': file_size,
                 'file_type': file_type,

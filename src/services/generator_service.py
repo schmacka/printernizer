@@ -1,67 +1,73 @@
 """
-Generator service for the OpenSCAD module.
+Generator service for the build123d model generator.
 
-Coordinates bundled/curated generator templates and arbitrary uploaded ``.scad``
-files: discovers their parameters, renders them to STL/PNG via OpenSCADService,
+Coordinates the bundled build123d templates: exposes their parameter schemas,
+renders them to STL (with a best-effort PNG thumbnail) via Build123dService,
 tracks render artifacts, hands finished models off to the Library, and stores
 named parameter presets.
+
+Only bundled templates are supported. Unlike the previous OpenSCAD integration
+there is no template upload, because build123d templates are executable Python —
+running uploaded templates would be arbitrary code execution.
 """
+import importlib
 import json
-import os
 import re
 import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import structlog
 
-from src.database.repositories import OpenSCADRepository
+from src.database.repositories import GeneratorRepository
 from src.models.generator import (
     GeneratorStatus,
+    ModelTemplate,
+    ParameterType,
     Preset,
     RenderResult,
-    ScadParameter,
-    ScadTemplate,
+    TemplateParameter,
 )
-from src.services.openscad_service import OpenSCADService
-from src.services.scad_parser import parse_parameters
+from src.services.build123d_service import Build123dService
 from src.utils.config import get_settings
-from src.utils.errors import GeneratorTemplateNotFoundError, OpenSCADRenderError
+from src.utils.errors import GeneratorRenderError, GeneratorTemplateNotFoundError
 
 logger = structlog.get_logger(__name__)
 
-UPLOAD_PREFIX = "upload:"
-
-# Render/upload ids are server-generated uuid hex tokens. Validating the
-# character set up front prevents any path traversal via these identifiers.
+# Template ids are derived from filenames we ship; restrict the character set so
+# they can never influence the dynamic import path.
+_SAFE_ID_RE = re.compile(r"[a-z0-9_]{1,64}")
+# Render ids are server-generated uuid hex tokens.
 _SAFE_TOKEN_RE = re.compile(r"[A-Za-z0-9]{1,64}")
 
 
+def _is_safe_id(value: Optional[str]) -> bool:
+    return bool(value) and _SAFE_ID_RE.fullmatch(value) is not None
+
+
 def _is_safe_token(value: Optional[str]) -> bool:
-    """Return True if value is a safe identifier (alphanumeric, no separators)."""
     return bool(value) and _SAFE_TOKEN_RE.fullmatch(value) is not None
 
 
 class GeneratorService:
-    """Coordinator for OpenSCAD template rendering and management."""
+    """Coordinator for build123d template rendering and management."""
 
-    def __init__(self, database, event_service, openscad_service: OpenSCADService,
+    def __init__(self, database, event_service, engine: Build123dService,
                  library_service=None):
         self.database = database
         self.event_service = event_service
-        self.openscad = openscad_service
+        self.engine = engine
         self.library_service = library_service
-        self.repo = OpenSCADRepository(database._connection)
+        self.repo = GeneratorRepository(database._connection)
 
         settings = get_settings()
         self.output_dir = Path(settings.generator_output_dir)
-        self.uploads_dir = self.output_dir / "uploads"
         self.renders_dir = self.output_dir / "renders"
-        self.templates_dir = Path(__file__).parent.parent / "scad_templates"
+        self.templates_dir = Path(__file__).parent.parent / "build123d_templates"
 
-        self._templates: Dict[str, ScadTemplate] = {}
+        self._templates: Dict[str, ModelTemplate] = {}
         self._dirs_ready = False
 
     async def initialize(self) -> None:
@@ -70,7 +76,6 @@ class GeneratorService:
 
         Directory creation is best-effort: the generator is an optional feature,
         so a non-writable output directory must never crash application startup.
-        Directories are (re)created lazily when a render or upload runs.
         """
         self._ensure_dirs()
         self._load_templates()
@@ -78,157 +83,160 @@ class GeneratorService:
                     templates=len(self._templates),
                     output_dir=str(self.output_dir),
                     output_writable=self._dirs_ready,
-                    openscad_available=self.openscad.available)
+                    build123d_available=self.engine.available)
 
     def _ensure_dirs(self) -> bool:
         """Create the working directories if possible. Returns success."""
         try:
-            for folder in (self.output_dir, self.uploads_dir, self.renders_dir):
+            for folder in (self.output_dir, self.renders_dir):
                 folder.mkdir(parents=True, exist_ok=True)
             self._dirs_ready = True
         except OSError as e:
             self._dirs_ready = False
             logger.warning("Generator output directory is not writable; "
-                           "rendering/upload will be unavailable",
+                           "rendering will be unavailable",
                            output_dir=str(self.output_dir), error=str(e))
         return self._dirs_ready
 
     # ---- Status ------------------------------------------------------------
 
     def get_status(self) -> GeneratorStatus:
-        return GeneratorStatus(**self.openscad.get_status())
+        return GeneratorStatus(**self.engine.get_status())
 
     # ---- Templates ---------------------------------------------------------
 
     def _load_templates(self) -> None:
-        """Load bundled .scad templates and their optional .json metadata."""
+        """Discover bundled templates (a <id>.py module + <id>.json sidecar)."""
         self._templates.clear()
         if not self.templates_dir.exists():
             return
-        for scad_file in sorted(self.templates_dir.glob("*.scad")):
-            template_id = scad_file.stem
-            source = scad_file.read_text(encoding="utf-8")
-            meta: Dict[str, Any] = {}
-            meta_file = scad_file.with_suffix(".json")
-            if meta_file.exists():
-                try:
-                    meta = json.loads(meta_file.read_text(encoding="utf-8"))
-                except json.JSONDecodeError as e:
-                    logger.warning("Invalid template metadata", file=str(meta_file), error=str(e))
-            self._templates[template_id] = ScadTemplate(
+        for py_file in sorted(self.templates_dir.glob("*.py")):
+            template_id = py_file.stem
+            if template_id.startswith("_") or not _is_safe_id(template_id):
+                continue
+            meta_file = py_file.with_suffix(".json")
+            if not meta_file.exists():
+                continue
+            try:
+                meta = json.loads(meta_file.read_text(encoding="utf-8"))
+            except json.JSONDecodeError as e:
+                logger.warning("Invalid template metadata", file=str(meta_file), error=str(e))
+                continue
+            parameters = [TemplateParameter(**p) for p in meta.get("parameters", [])]
+            self._templates[template_id] = ModelTemplate(
                 id=template_id,
                 name=meta.get("name", template_id.replace("_", " ").title()),
                 description=meta.get("description"),
                 category=meta.get("category"),
-                bundled=True,
-                parameters=parse_parameters(source),
-                default_camera=meta.get("default_camera"),
-                source=source,
+                parameters=parameters,
             )
 
-    def list_templates(self) -> List[ScadTemplate]:
-        """Return all bundled templates (with parameters, without source)."""
-        return [t.model_copy(update={"source": None}) for t in self._templates.values()]
+    def list_templates(self) -> List[ModelTemplate]:
+        return list(self._templates.values())
 
-    def get_template(self, template_id: str) -> ScadTemplate:
+    def get_template(self, template_id: str) -> ModelTemplate:
         template = self._templates.get(template_id)
         if not template:
             raise GeneratorTemplateNotFoundError(template_id)
         return template
 
-    def parse_source(self, source: str) -> List[ScadParameter]:
-        """Parse parameters from arbitrary OpenSCAD source."""
-        return parse_parameters(source)
+    def _resolve_build_fn(self, template_id: str) -> Callable[..., Any]:
+        """Import a bundled template module and return its build() callable."""
+        if template_id not in self._templates or not _is_safe_id(template_id):
+            raise GeneratorTemplateNotFoundError(template_id)
+        module = importlib.import_module(f"src.build123d_templates.{template_id}")
+        build_fn = getattr(module, "build", None)
+        if not callable(build_fn):
+            raise GeneratorTemplateNotFoundError(template_id)
+        return build_fn
 
-    # ---- Uploads -----------------------------------------------------------
-
-    def store_upload(self, source: str, filename: Optional[str] = None) -> ScadTemplate:
-        """Persist an uploaded .scad source and return it as a template."""
-        if not self._ensure_dirs():
-            raise OpenSCADRenderError("Generator storage is not available")
-        upload_id = uuid.uuid4().hex[:12]
-        path = self.uploads_dir / f"{upload_id}.scad"
-        path.write_text(source, encoding="utf-8")
-        return ScadTemplate(
-            id=f"{UPLOAD_PREFIX}{upload_id}",
-            name=filename or f"Uploaded {upload_id}",
-            description="Uploaded OpenSCAD file",
-            category="Uploads",
-            bundled=False,
-            parameters=parse_parameters(source),
-            source=source,
-        )
-
-    def _resolve_source(self, source_ref: str) -> tuple[str, Optional[str]]:
-        """Return (source, default_camera) for a template id or upload ref."""
-        if source_ref.startswith(UPLOAD_PREFIX):
-            # basename strips any directory components and the alphanumeric check
-            # rejects traversal, so the request value cannot escape uploads_dir.
-            upload_id = os.path.basename(source_ref[len(UPLOAD_PREFIX):])
-            if not re.fullmatch(r"[A-Za-z0-9]+", upload_id):
-                raise GeneratorTemplateNotFoundError(source_ref)
-            path = self.uploads_dir / f"{upload_id}.scad"
-            if not path.exists():
-                raise GeneratorTemplateNotFoundError(source_ref)
-            return path.read_text(encoding="utf-8"), None
-        template = self.get_template(source_ref)
-        return template.source or "", template.default_camera
+    def _coerce_params(self, template: ModelTemplate,
+                       overrides: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a clean parameter dict from defaults + validated overrides."""
+        clean: Dict[str, Any] = {}
+        for param in template.parameters:
+            value = overrides.get(param.name, param.default)
+            if param.type == ParameterType.NUMBER:
+                try:
+                    value = float(value)
+                except (TypeError, ValueError):
+                    value = float(param.default if param.default is not None else 0)
+                if param.min is not None:
+                    value = max(param.min, value)
+                if param.max is not None:
+                    value = min(param.max, value)
+            elif param.type == ParameterType.BOOLEAN:
+                if isinstance(value, str):
+                    value = value.strip().lower() in ("1", "true", "yes", "on")
+                else:
+                    value = bool(value)
+            elif param.type == ParameterType.ENUM:
+                if param.options and value not in param.options:
+                    value = param.default
+            clean[param.name] = value
+        return clean
 
     # ---- Rendering ---------------------------------------------------------
 
-    async def render(self, source_ref: str, parameters: Dict[str, Any],
+    async def render(self, template_id: str, parameters: Dict[str, Any],
                      fmt: str = "stl") -> RenderResult:
-        """Render a template/upload to STL or PNG and record the artifact."""
+        """Render a template to STL (with a best-effort PNG preview)."""
         if not self._ensure_dirs():
-            raise OpenSCADRenderError("Generator storage is not available")
-        source, default_camera = self._resolve_source(source_ref)
+            raise GeneratorRenderError("Generator storage is not available")
+        template = self.get_template(template_id)
+        build_fn = self._resolve_build_fn(template_id)
+        clean_params = self._coerce_params(template, parameters)
+
         render_id = uuid.uuid4().hex[:16]
         work_dir = self.renders_dir / render_id
         work_dir.mkdir(parents=True, exist_ok=True)
 
         await self.repo.create_render({
             "id": render_id,
-            "source_ref": source_ref,
-            "parameters": parameters,
+            "template_id": template_id,
+            "parameters": clean_params,
             "format": fmt,
             "status": "running",
             "work_dir": str(work_dir),
         })
-        await self._emit("started", render_id, source_ref)
+        await self._emit("started", render_id, template_id)
 
+        stl_path = work_dir / "model.stl"
         try:
-            scad_path = work_dir / "model.scad"
-            scad_path.write_text(source, encoding="utf-8")
-            output_path = work_dir / f"model.{fmt}"
-            await self.openscad.render(
-                scad_path, output_path, params=parameters, fmt=fmt, camera=default_camera
-            )
-        except OpenSCADRenderError as e:
+            await self.engine.render_stl(build_fn, clean_params, stl_path)
+        except GeneratorRenderError as e:
             await self.repo.update_render(render_id, {"status": "failed", "error": e.message})
-            await self._emit("failed", render_id, source_ref, error=e.message)
+            await self._emit("failed", render_id, template_id, error=e.message)
             raise
 
-        field = "model_path" if fmt == "stl" else "preview_path"
-        await self.repo.update_render(render_id, {"status": "completed", field: str(output_path)})
-        await self._emit("completed", render_id, source_ref)
+        # Best-effort PNG thumbnail (degrades gracefully when matplotlib absent).
+        preview_path = work_dir / "preview.png"
+        preview_url = None
+        try:
+            if await self.engine.render_preview(stl_path, preview_path):
+                preview_url = f"/api/v1/generator/render/{render_id}/preview.png"
+        except Exception as e:  # noqa: BLE001 - preview must never fail a render
+            logger.warning("Preview thumbnail generation failed",
+                           render_id=render_id, error=str(e))
+
+        await self.repo.update_render(render_id, {
+            "status": "completed",
+            "model_path": str(stl_path),
+            "preview_path": str(preview_path) if preview_url else None,
+        })
+        await self._emit("completed", render_id, template_id)
 
         return RenderResult(
             render_id=render_id,
-            source_ref=source_ref,
-            format=fmt,
+            template_id=template_id,
+            format="stl",
             status="completed",
-            model_url=f"/api/v1/generator/render/{render_id}/model.stl" if fmt == "stl" else None,
-            preview_url=f"/api/v1/generator/render/{render_id}/preview.png" if fmt == "png" else None,
+            model_url=f"/api/v1/generator/render/{render_id}/model.stl",
+            preview_url=preview_url,
         )
 
     def _confined_artifact(self, path_str: Optional[str]) -> Optional[Path]:
-        """
-        Return the stored artifact path if it lies within the renders directory.
-
-        ``path_str`` is read from the render's database record (server-written
-        at render time), never from request input. The containment check is
-        defence-in-depth so a path can never point outside the renders root.
-        """
+        """Return the stored artifact path only if it lies within renders_dir."""
         if not path_str:
             return None
         path = Path(path_str)
@@ -254,16 +262,15 @@ class GeneratorService:
                               display_name: Optional[str] = None) -> Dict[str, Any]:
         """Copy a completed STL render into the Library so it can be sliced."""
         if not self.library_service:
-            raise OpenSCADRenderError("Library service unavailable")
+            raise GeneratorRenderError("Library service unavailable")
         if not _is_safe_token(render_id):
             raise GeneratorTemplateNotFoundError(render_id)
         render = await self.repo.get_render(render_id)
         if not render:
             raise GeneratorTemplateNotFoundError(render_id)
-        # Source path comes from the stored render record (server-written).
         artifact = self._confined_artifact(render.get("model_path"))
         if artifact is None:
-            raise OpenSCADRenderError("No STL artifact to save", details={"render_id": render_id})
+            raise GeneratorRenderError("No STL artifact to save", details={"render_id": render_id})
 
         # Stage a copy with a generated name so no user input reaches the path.
         staged = self.renders_dir / f"library_{uuid.uuid4().hex}.stl"
@@ -271,12 +278,10 @@ class GeneratorService:
 
         source_info = {
             "type": "upload",
-            "generator": "openscad",
-            "source_ref": render["source_ref"],
+            "generator": "build123d",
+            "template_id": render["template_id"],
             "parameters": render.get("parameters", {}),
         }
-        # The user's chosen name is recorded as library metadata only - it never
-        # touches a filesystem path.
         if display_name:
             safe_label = _safe_filename(display_name)
             if safe_label:
@@ -310,16 +315,16 @@ class GeneratorService:
 
     # ---- Events ------------------------------------------------------------
 
-    async def _emit(self, phase: str, render_id: str, source_ref: str,
+    async def _emit(self, phase: str, render_id: str, template_id: str,
                     error: Optional[str] = None) -> None:
         payload = {
             "render_id": render_id,
-            "source_ref": source_ref,
+            "template_id": template_id,
             "timestamp": datetime.now().isoformat(),
         }
         if error:
             payload["error"] = error
-        await self.event_service.emit_event(f"openscad.generation.{phase}", payload)
+        await self.event_service.emit_event(f"generator.generation.{phase}", payload)
 
 
 def _safe_filename(name: str) -> str:

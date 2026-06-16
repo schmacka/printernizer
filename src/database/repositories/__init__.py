@@ -16,7 +16,7 @@ from .usage_statistics_repository import UsageStatisticsRepository
 from .notification_repository import NotificationRepository
 from .customer_repository import CustomerRepository
 from .order_repository import OrderRepository
-from .openscad_repository import OpenSCADRepository
+from .generator_repository import GeneratorRepository
 
 __all__ = [
     'BaseRepository',
@@ -31,5 +31,5 @@ __all__ = [
     'NotificationRepository',
     'CustomerRepository',
     'OrderRepository',
-    'OpenSCADRepository',
+    'GeneratorRepository',
 ]

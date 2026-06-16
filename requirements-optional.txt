@@ -14,3 +14,11 @@
 # STL / 3MF preview thumbnail rendering
 # Used by src/services/preview_render_service.py (guarded by RENDERING_AVAILABLE)
 matplotlib>=3.8.2
+
+# Parametric model generator (build123d)
+# Pure-Python CAD on OpenCascade via the OCP bindings. Requires a glibc platform
+# with x86_64 or aarch64: cadquery-ocp has no musllinux build and no 32-bit
+# armv7 wheel, so it cannot be installed on Alpine or armv7. The generator
+# (src/services/build123d_service.py) degrades gracefully when it is absent.
+build123d>=0.9.1
+

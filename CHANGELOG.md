@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Model generator reworked to build123d (glibc).** The OpenSCAD-binary–based parametric generator (introduced in 2.32.0) has been removed in favour of a [build123d](https://build123d.readthedocs.io/) engine. build123d is a pure-Python CAD library on OpenCascade/OCP, so models are defined in Python templates instead of `.scad` and rendered in-process — no external `openscad` binary, no `xvfb`. The standalone Docker image and the Home Assistant add-on now use a Debian (glibc) base. build123d is an **optional** dependency (like matplotlib): cadquery-ocp ships glibc wheels for x86_64/aarch64 only — no musllinux and no 32-bit armv7 build — so it is installed best-effort and the generator degrades gracefully (nav entry hidden, API reports `available: false`) where it cannot be installed, e.g. the armv7 add-on. Templates are bundled only (`box`, `vase`); arbitrary template upload was dropped because build123d templates are executable Python.
+- The OpenSCAD generator work is preserved on the `archive/openscad-v2.32.4` tag and the `claude/openscad-renderer-module-j0zfz2` branch in case the OpenSCAD approach is revisited.
+
 ## [2.32.4] - 2026-06-16
 
 ### Changed

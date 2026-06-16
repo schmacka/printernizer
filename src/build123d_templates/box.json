@@ -1,0 +1,13 @@
+{
+  "name": "Parametric Box",
+  "description": "A rectangular box with configurable dimensions, wall thickness and rounded corners.",
+  "category": "Containers",
+  "parameters": [
+    {"name": "width", "type": "number", "default": 80, "min": 20, "max": 300, "step": 1, "group": "Dimensions", "description": "Inner width (mm)"},
+    {"name": "depth", "type": "number", "default": 60, "min": 20, "max": 300, "step": 1, "group": "Dimensions", "description": "Inner depth (mm)"},
+    {"name": "height", "type": "number", "default": 40, "min": 10, "max": 300, "step": 1, "group": "Dimensions", "description": "Inner height (mm)"},
+    {"name": "wall_thickness", "type": "number", "default": 2, "min": 1, "max": 8, "step": 0.5, "group": "Dimensions", "description": "Wall thickness (mm)"},
+    {"name": "corner_radius", "type": "number", "default": 3, "min": 0, "max": 20, "step": 0.5, "group": "Style", "description": "Corner rounding radius (mm, 0 = sharp)"},
+    {"name": "closed_bottom", "type": "boolean", "default": true, "group": "Style", "description": "Add a solid bottom"}
+  ]
+}

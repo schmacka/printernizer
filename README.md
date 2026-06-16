@@ -114,15 +114,6 @@ Full functionality on mobile devices with optimized responsive layout.
 - **Processing Queue** - Sequential processing with real-time status updates
 - **Storage Management** - Track video storage and cleanup recommendations
 
-### 🧩 OpenSCAD Model Generator
-
-- **Parametric Generators** - Bundled templates (vase, box) with auto-generated forms
-- **Open Any `.scad` File** - Upload a script and its parameters are auto-discovered
-- **Interactive 3D Viewer** - Inspect rendered STL in-browser (three.js) plus PNG previews
-- **Library Integration** - Save generated models straight into the Library for slicing
-- **Parameter Presets** - Save and reuse named parameter sets per template
-- **Optional Dependency** - Auto-detects OpenSCAD; the feature hides itself if not installed ([docs](docs/openscad-generator.md))
-
 ### 📈 Enhanced 3D Model Metadata
 
 - **Physical Properties** - Dimensions, volume, surface area, object count

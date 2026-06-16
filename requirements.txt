@@ -64,6 +64,13 @@ trimesh>=4.0.5
 numpy-stl>=3.0.1
 scipy>=1.11.0
 networkx>=3.0  # Required by trimesh for 3MF mesh processing
+# NOTE: build123d (parametric model generator) is an OPTIONAL dependency for the
+# same reason as matplotlib: cadquery-ocp (OpenCascade bindings) ships glibc
+# manylinux wheels for x86_64/aarch64 only — no musllinux build and no 32-bit
+# armv7 wheel. Listing it here would break the Alpine and armv7 image builds, so
+# it lives in requirements-optional.txt and is installed best-effort per platform
+# (see docker/Dockerfile and the HA add-on Dockerfile). The generator degrades
+# gracefully when build123d is not importable.
 # NOTE: matplotlib is an OPTIONAL dependency (STL/3MF preview thumbnail
 # rendering only - see src/services/preview_render_service.py, which degrades
 # gracefully when it is missing). It is intentionally NOT listed here because
