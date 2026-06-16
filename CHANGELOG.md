@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.32.4] - 2026-06-16
+
+### Changed
+- Maintenance release verifying the end-to-end release pipeline after the Home Assistant add-on base image was migrated from Alpine to Debian. The Debian (glibc) base provides prebuilt `openscad` and `matplotlib` packages for all supported architectures, so STL/3MF preview thumbnail rendering and the Generator feature work on the add-on without source-built dependencies.
+
 ## [2.32.3] - 2026-06-15
 
 ### Changed
