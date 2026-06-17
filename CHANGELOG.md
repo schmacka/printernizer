@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.33.2] - 2026-06-17
+
+### Changed
+- Maintenance release. The Home Assistant add-on now installs from **prebuilt, CI-published per-arch ghcr images** (`ghcr.io/schmacka/printernizer-ha-{arch}`) instead of building locally on the device. This eliminates the stale-local-build version mismatches seen on 2.33.0/2.33.1 (where the running app lagged the add-on version) and speeds up installs/updates. No application changes — version bump to trigger the first image-based update.
+
 ## [2.33.1] - 2026-06-17
 
 ### Changed
