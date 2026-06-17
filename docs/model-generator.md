@@ -9,12 +9,17 @@ rendered to STL **in-process** — there is no external CAD binary.
 
 ## Availability
 
-build123d depends on the OCP bindings, which ship **glibc (manylinux) wheels
-only** (no musllinux build). The feature therefore requires a glibc platform:
+build123d requires **glibc + x86_64 (amd64)**. It cannot be installed on Linux
+ARM: its pinned `cadquery-ocp` 7.8.x has no linux-arm64 wheel (the arm64-capable
+7.9.x is pinned out), and build123d imports `lib3mf`, which also has no
+linux-arm64 wheel. There is no musllinux (Alpine) build either.
 
-- **Standalone Docker** and the **Home Assistant add-on** use a Debian base.
-- **Local development**: `pip install -r requirements.txt` on any glibc Linux or
-  macOS host.
+- **Standalone Docker** and the **Home Assistant add-on** use a Debian (glibc)
+  base; the generator is available on **amd64** hosts.
+- On **aarch64 / armv7** Home Assistant hosts (e.g. Raspberry Pi) the generator
+  is **unavailable** — everything else in the add-on works normally.
+- **Local development**: `pip install -r requirements.txt` on an x86_64 glibc
+  Linux (or macOS) host.
 
 When build123d cannot be imported the generator degrades gracefully: the API
 reports `available: false` and the navigation entry stays hidden.
