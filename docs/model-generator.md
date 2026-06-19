@@ -1,47 +1,34 @@
-# Model Generator (build123d)
+# Model Generator (browser-side / JSCAD)
 
 The model generator produces parametric, 3D-printable models from bundled
 templates and saves the results into the Library for slicing/printing.
 
-It is built on [build123d](https://build123d.readthedocs.io/), a pure-Python CAD
-library on top of OpenCascade. Models are defined as Python templates and
-rendered to STL **in-process** — there is no external CAD binary.
+Geometry is generated **entirely in the browser** with
+[JSCAD](https://openjscad.xyz/) and shown in a three.js viewer. The finished STL
+is uploaded to the server only to be stored in the Library. **Nothing CAD-related
+runs on the server**, so the feature works on every deployment architecture —
+including Raspberry Pi (aarch64) and armv7 Home Assistant hosts.
 
-## Availability
+> Why browser-side? Earlier server-side engines (OpenSCAD binary, then
+> build123d/OpenCascade) could not be installed on ARM Linux — no `cadquery-ocp`
+> or `lib3mf` wheels for aarch64. Moving generation to the client removes the
+> dependency entirely and works everywhere.
 
-build123d requires **glibc + x86_64 (amd64)**. It cannot be installed on Linux
-ARM: its pinned `cadquery-ocp` 7.8.x has no linux-arm64 wheel (the arm64-capable
-7.9.x is pinned out), and build123d imports `lib3mf`, which also has no
-linux-arm64 wheel. There is no musllinux (Alpine) build either.
+## How it works
 
-- **Standalone Docker** and the **Home Assistant add-on** use a Debian (glibc)
-  base; the generator is available on **amd64** hosts.
-- On **aarch64 / armv7** Home Assistant hosts (e.g. Raspberry Pi) the generator
-  is **unavailable** — everything else in the add-on works normally.
-- **Local development**: `pip install -r requirements.txt` on an x86_64 glibc
-  Linux (or macOS) host.
-
-When build123d cannot be imported the generator degrades gracefully: the API
-reports `available: false` and the navigation entry stays hidden.
+1. The browser loads `@jscad/modeling` + `@jscad/stl-serializer` (ES modules).
+2. A bundled template's `build(params)` produces JSCAD geometry from the
+   parameter form.
+3. The geometry is rendered in the three.js viewer (orbit to inspect).
+4. **Save to Library** serializes the geometry to a binary STL and POSTs it to
+   `POST /api/v1/generator/save`, which stores it via the Library.
 
 ## Templates
 
-Each bundled template lives in `src/build123d_templates/` as a pair:
-
-- `<id>.py` — a module exposing `build(**params)` that returns a build123d shape.
-- `<id>.json` — a sidecar describing the template metadata and parameters
-  (`name`, `type`, `min`/`max`/`step`, `default`, `group`, `options`).
-
-Bundled templates ship with the app: `box` (parametric box) and `vase`
-(parametric vase). Templates are **not** uploadable, because build123d templates
-are executable Python — running uploaded code would be a remote-code-execution
-risk.
-
-### Adding a template
-
-1. Create `src/build123d_templates/my_thing.py` with a `build(**params)` function.
-2. Create `src/build123d_templates/my_thing.json` describing its parameters.
-3. Restart — the template is auto-discovered.
+Templates live in the frontend (`frontend/js/generator.js`) as JSCAD build
+functions plus a parameter schema (`name`, `type`, `min`/`max`/`step`, `default`,
+`group`). Bundled: **box** (parametric box) and **vase** (parametric vase with
+taper/twist/faceting). Adding a template is a small JS function + schema entry.
 
 ## API
 
@@ -49,21 +36,18 @@ Base path: `/api/v1/generator`
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/status` | Engine availability |
-| GET | `/templates` | List templates + parameter schemas |
-| GET | `/templates/{id}` | Single template schema |
-| POST | `/render` | Render `{template_id, parameters, format}` → STL (+ best-effort PNG) |
-| GET | `/render/{id}/model.stl` | Download rendered STL |
-| GET | `/render/{id}/preview.png` | Preview thumbnail (if produced) |
-| POST | `/render/{id}/save` | Save the STL into the Library |
+| GET | `/status` | Always `{available: true, engine: "jscad"}` |
+| POST | `/save` | Multipart STL upload (`file`, `template_id`, `parameters`, `display_name`) → Library |
 | GET/POST/DELETE | `/presets` | Manage saved parameter presets |
 
 ## Configuration
 
 | Env var | Default | Description |
 |---------|---------|-------------|
-| `GENERATOR_OUTPUT_DIR` | `/data/printernizer/generator` | Working files and render artifacts |
-| `GENERATOR_RENDER_TIMEOUT` | `120` | Per-render timeout (seconds) |
+| `GENERATOR_OUTPUT_DIR` | `/data/printernizer/generator` | Staging dir for uploaded STLs before Library import |
 
-PNG thumbnails reuse the optional matplotlib preview pipeline and degrade
-gracefully when matplotlib is absent.
+## Notes
+
+- Requires a browser with WebAssembly + WebGL (any modern browser).
+- The 3D viewer and JSCAD modules load from a CDN (jsDelivr), like the rest of
+  the app's three.js usage.

@@ -515,34 +515,15 @@ class LibraryItemNotFoundError(PrinternizerError):
 
 
 # =============================================================================
-# Model Generator (build123d) Errors
+# Model Generator Errors
 # =============================================================================
 
-class GeneratorNotAvailableError(PrinternizerError):
-    """The build123d engine is not installed/importable."""
-
-    def __init__(self, details: Optional[Dict[str, Any]] = None):
-        """
-        Initialize GeneratorNotAvailableError.
-
-        Args:
-            details: Additional context (e.g. import error)
-        """
-        super().__init__(
-            message="The model generator is not available. build123d could not be "
-                    "imported — it requires a glibc platform (use the Debian image).",
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            error_code="GENERATOR_NOT_AVAILABLE",
-            details=details or {}
-        )
-
-
-class GeneratorRenderError(PrinternizerError):
-    """A build123d render operation failed."""
+class GeneratorError(PrinternizerError):
+    """A model-generator operation failed (e.g. saving a generated STL)."""
 
     def __init__(self, reason: str, details: Optional[Dict[str, Any]] = None):
         """
-        Initialize GeneratorRenderError.
+        Initialize GeneratorError.
 
         Args:
             reason: Failure reason
@@ -553,31 +534,9 @@ class GeneratorRenderError(PrinternizerError):
             error_details.update(details)
 
         super().__init__(
-            message=f"Model render failed: {reason}",
+            message=f"Model generator error: {reason}",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            error_code="GENERATOR_RENDER_FAILED",
-            details=error_details
-        )
-
-
-class GeneratorTemplateNotFoundError(PrinternizerError):
-    """Requested generator template does not exist."""
-
-    def __init__(self, template_id: str, details: Optional[Dict[str, Any]] = None):
-        """
-        Initialize GeneratorTemplateNotFoundError.
-
-        Args:
-            template_id: ID of the template that wasn't found
-            details: Additional context
-        """
-        error_details = {"template_id": template_id}
-        if details:
-            error_details.update(details)
-
-        super().__init__(
-            message=f"Generator template not found: {template_id}",
-            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="GENERATOR_ERROR",
             details=error_details
         )
 

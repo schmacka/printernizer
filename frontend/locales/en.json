@@ -17,19 +17,16 @@
   },
   "generator": {
     "pageTitle": "Model Generator",
-    "subtitle": "Generate parametric build123d models, render them and save into the library",
-    "unavailable": "The model generator is unavailable. build123d could not be loaded — it requires a glibc platform (use the Debian image).",
+    "subtitle": "Generate parametric models in your browser and save them into the library",
+    "unavailable": "The model generator could not be loaded in your browser.",
     "templates": "Templates",
-    "preview": "Preview",
-    "render": "Render (STL)",
+    "render": "Generate",
     "saveToLibrary": "Save to library",
     "selectTemplate": "Select a template to get started.",
-    "rendering": "Rendering…",
-    "loadFailed": "Failed to load templates",
-    "renderFailed": "Render failed",
+    "renderFailed": "Generation failed",
     "saved": "Saved to library",
     "saveFailed": "Save failed",
-    "viewerUnavailable": "3D viewer unavailable, showing image"
+    "viewerUnavailable": "3D viewer unavailable"
   },
   "common": {
     "save": "Save",

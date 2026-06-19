@@ -102,7 +102,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.33.2")
+APP_VERSION = get_version(fallback="2.34.0")
 
 
 # Prometheus metrics - initialized once
@@ -316,21 +316,18 @@ async def lifespan(app: FastAPI):
     timer.end("Slicer services initialization")
     logger.info("[OK] Slicer services initialized")
 
-    # Initialize build123d model generator service (optional - degrades if
-    # build123d is unavailable, e.g. on a non-glibc platform)
+    # Initialize model generator service. Geometry is generated client-side
+    # (JSCAD); the server only stores presets and saves generated STLs.
     timer.start("Generator service initialization")
-    logger.info("Initializing build123d generator service...")
-    from src.services.build123d_service import Build123dService
+    logger.info("Initializing model generator service...")
     from src.services.generator_service import GeneratorService
 
-    build123d_service = Build123dService()
     generator_service = GeneratorService(
-        database, event_service, build123d_service, library_service=library_service
+        database, event_service, library_service=library_service
     )
     await generator_service.initialize()
     timer.end("Generator service initialization")
-    logger.info("[OK] build123d generator service initialized",
-                build123d_available=build123d_service.available)
+    logger.info("[OK] model generator service initialized")
 
     app.state.config_service = config_service
     app.state.event_service = event_service
@@ -349,7 +346,6 @@ async def lifespan(app: FastAPI):
     app.state.camera_snapshot_service = camera_snapshot_service
     app.state.slicer_service = slicer_service
     app.state.slicing_queue = slicing_queue
-    app.state.build123d_service = build123d_service
     app.state.generator_service = generator_service
 
     # Initialize notification service

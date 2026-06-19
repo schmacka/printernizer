@@ -256,18 +256,13 @@ class PrinternizerSettings(BaseSettings):
         le=300
     )
 
-    # Model Generator (build123d) Configuration
-    generator_render_timeout: int = Field(
-        default=120,
-        env="GENERATOR_RENDER_TIMEOUT",
-        description="Timeout in seconds for build123d render operations. Must be between 5 and 600 seconds.",
-        ge=5,
-        le=600
-    )
+    # Model Generator Configuration
+    # Geometry is generated client-side (JSCAD); this dir only stages uploaded
+    # STLs before they are copied into the Library.
     generator_output_dir: str = Field(
         default="/data/printernizer/generator",
         env="GENERATOR_OUTPUT_DIR",
-        description="Directory for model generator working files and render artifacts."
+        description="Directory for staging browser-generated STLs before Library import."
     )
 
     # Library System Configuration

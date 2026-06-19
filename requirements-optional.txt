@@ -15,12 +15,8 @@
 # Used by src/services/preview_render_service.py (guarded by RENDERING_AVAILABLE)
 matplotlib>=3.8.2
 
-# Parametric model generator (build123d)
-# Pure-Python CAD on OpenCascade via the OCP bindings. Requires glibc + x86_64.
-# It cannot be installed on Linux ARM (aarch64/armv7): build123d's pinned
-# cadquery-ocp 7.8.x has no linux-arm64 wheel (the arm64-capable 7.9.x is pinned
-# out), and build123d imports lib3mf, which also has no linux-arm64 wheel. So the
-# model generator works on amd64 only; the generator
-# (src/services/build123d_service.py) degrades gracefully when it is absent.
-build123d>=0.9.1
+# NOTE: the model generator no longer has a server-side dependency. Geometry is
+# generated in the browser (JSCAD), so build123d/OpenCascade is no longer used —
+# this is what lets the generator work on every architecture (incl. Raspberry Pi
+# aarch64), where build123d could not be installed.
 

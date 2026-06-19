@@ -2082,14 +2082,14 @@
             </div>
         </div>
 
-        <!-- Model Generator Page (build123d) -->
+        <!-- Model Generator Page (browser-side / JSCAD) -->
         <div id="generator" class="page">
             <div class="page-header">
                 <h1>🧩 <span data-i18n="generator.pageTitle">Model Generator</span></h1>
-                <div class="header-subtitle" data-i18n="generator.subtitle">Generate parametric build123d models, render them and save into the library</div>
+                <div class="header-subtitle" data-i18n="generator.subtitle">Generate parametric models in your browser and save them into the library</div>
             </div>
             <div id="generatorUnavailable" class="generator-unavailable" style="display: none;">
-                <p data-i18n="generator.unavailable">The model generator is unavailable. build123d could not be loaded — it requires a glibc platform (use the Debian image).</p>
+                <p data-i18n="generator.unavailable">The model generator could not be loaded in your browser.</p>
             </div>
             <div class="generator-layout" id="generatorLayout">
                 <aside class="generator-sidebar">
@@ -2101,13 +2101,9 @@
                 <main class="generator-main">
                     <form id="generatorForm" class="generator-form"></form>
                     <div class="generator-actions">
-                        <button type="button" class="btn btn-secondary" id="generatorPreviewBtn" disabled>
-                            <span class="btn-icon">🖼️</span>
-                            <span data-i18n="generator.preview">Preview</span>
-                        </button>
                         <button type="button" class="btn btn-primary" id="generatorRenderBtn" disabled>
                             <span class="btn-icon">⚙️</span>
-                            <span data-i18n="generator.render">Render (STL)</span>
+                            <span data-i18n="generator.render">Generate</span>
                         </button>
                         <button type="button" class="btn btn-secondary" id="generatorSaveBtn" disabled>
                             <span class="btn-icon">💾</span>
@@ -3068,9 +3064,8 @@
     <script src="js/preview-3d.js"></script>
     <!-- three.js for the model generator's interactive 3D viewer -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="js/generator.js"></script>
+    <script type="module" src="js/generator.js"></script>
 
     <script src="js/main.js?v=1.5"></script>
 

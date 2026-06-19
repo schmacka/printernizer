@@ -1,5 +1,9 @@
 """
-Repository for build123d generator data (renders and parameter presets).
+Repository for model-generator data (parameter presets).
+
+Geometry is generated client-side, so there are no server render records — only
+named parameter presets persist. (The legacy ``generator_renders`` table from
+migration 033 is left in place but unused.)
 """
 import json
 from typing import Any, Dict, List, Optional
@@ -8,52 +12,7 @@ from .base_repository import BaseRepository
 
 
 class GeneratorRepository(BaseRepository):
-    """Data access for generator renders and presets."""
-
-    # ---- Renders -----------------------------------------------------------
-
-    async def create_render(self, render: Dict[str, Any]) -> None:
-        """Persist a render record."""
-        await self._execute_write(
-            """
-            INSERT INTO generator_renders
-                (id, template_id, parameters, format, status, work_dir,
-                 model_path, preview_path, error)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                render["id"],
-                render["template_id"],
-                json.dumps(render.get("parameters", {})),
-                render.get("format", "stl"),
-                render.get("status", "pending"),
-                render.get("work_dir"),
-                render.get("model_path"),
-                render.get("preview_path"),
-                render.get("error"),
-            ),
-        )
-
-    async def update_render(self, render_id: str, fields: Dict[str, Any]) -> None:
-        """Update mutable fields of a render record."""
-        if not fields:
-            return
-        columns = ", ".join(f"{key} = ?" for key in fields)
-        values = list(fields.values())
-        values.append(render_id)
-        await self._execute_write(
-            f"UPDATE generator_renders SET {columns} WHERE id = ?", tuple(values)
-        )
-
-    async def get_render(self, render_id: str) -> Optional[Dict[str, Any]]:
-        row = await self._fetch_one(
-            "SELECT * FROM generator_renders WHERE id = ?", [render_id]
-        )
-        if row and row.get("parameters"):
-            row["parameters"] = json.loads(row["parameters"])
-        return row
-
-    # ---- Presets -----------------------------------------------------------
+    """Data access for generator parameter presets."""
 
     async def create_preset(self, preset: Dict[str, Any]) -> None:
         await self._execute_write(

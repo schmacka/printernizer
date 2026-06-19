@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.34.0] - 2026-06-19
+
+### Changed
+- **Model generator now runs in the browser (JSCAD)** — and therefore works on every architecture, including Raspberry Pi (aarch64) and armv7 add-on hosts. Geometry is generated client-side with [JSCAD](https://openjscad.xyz/), shown in the three.js viewer, and only the finished STL is uploaded to be stored in the Library. The previous server-side engines could not run on ARM Linux: OpenSCAD needed a binary + xvfb, and build123d/OpenCascade has no `cadquery-ocp`/`lib3mf` wheels for aarch64 — so the generator was unavailable on most Home Assistant hardware. Moving generation to the client removes the server dependency entirely.
+- Server side is now minimal: the generator API only reports status, stores parameter presets, and saves browser-generated STLs to the Library. All build123d/OpenCascade dependencies and the OCP system libraries were removed from the images. The Debian base is retained solely for the optional matplotlib preview thumbnails. Bundled templates (`box`, `vase`) were reimplemented in JSCAD.
+
 ## [2.33.2] - 2026-06-17
 
 ### Changed

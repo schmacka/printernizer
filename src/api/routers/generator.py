@@ -1,35 +1,27 @@
 """
-Model Generator API router (build123d).
+Model Generator API router.
 
-Endpoints for the parametric model generator: query availability, list/inspect
-bundled templates, render to STL (with a best-effort PNG preview), serve render
-artifacts, save results to the Library, and manage parameter presets.
-
-Only bundled templates are supported — there is no template upload, because
-build123d templates are executable Python and running uploaded code would be a
-remote code execution risk.
+Geometry is generated in the browser (JSCAD). The server only:
+  - reports status (always available — there is no server engine),
+  - accepts a finished STL and stores it in the Library,
+  - manages named parameter presets.
 """
+import json
 from typing import List, Optional
 
 import structlog
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 
-from src.models.generator import (
-    GeneratorStatus,
-    ModelTemplate,
-    Preset,
-    PresetRequest,
-    RenderRequest,
-    RenderResult,
-)
+from src.models.generator import GeneratorStatus, Preset, PresetRequest
 from src.services.generator_service import GeneratorService
-from src.utils.errors import GeneratorNotAvailableError, NotFoundError
+from src.utils.errors import ValidationError
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter()
+
+# Generated STLs are small; cap the upload defensively.
+MAX_STL_BYTES = 50 * 1024 * 1024  # 50 MB
 
 
 async def get_generator_service(request: Request) -> GeneratorService:
@@ -37,64 +29,40 @@ async def get_generator_service(request: Request) -> GeneratorService:
     return request.app.state.generator_service
 
 
-class SaveRequest(BaseModel):
-    """Request to save a render into the Library."""
-    display_name: Optional[str] = None
-
-
 @router.get("/status", response_model=GeneratorStatus)
 async def get_status(service: GeneratorService = Depends(get_generator_service)):
-    """Report whether the build123d engine is available (drives conditional UI)."""
+    """Generator availability (always true — geometry is generated client-side)."""
     return service.get_status()
 
 
-@router.get("/templates", response_model=List[ModelTemplate])
-async def list_templates(service: GeneratorService = Depends(get_generator_service)):
-    """List bundled generator templates with their parameter schemas."""
-    return service.list_templates()
+@router.post("/save")
+async def save_to_library(
+    file: UploadFile = File(...),
+    template_id: str = Form("custom"),
+    parameters: str = Form("{}"),
+    display_name: Optional[str] = Form(None),
+    service: GeneratorService = Depends(get_generator_service),
+):
+    """Store a browser-generated STL in the Library for slicing/printing."""
+    content = await file.read()
+    if not content:
+        raise ValidationError("file", "Empty STL upload")
+    if len(content) > MAX_STL_BYTES:
+        raise ValidationError("file", "STL exceeds the 50 MB limit")
+    # Cheap STL sniff: ASCII starts with "solid", binary has an 84+ byte header.
+    if not (content[:5].lower() == b"solid" or len(content) >= 84):
+        raise ValidationError("file", "File does not look like an STL")
 
+    try:
+        params = json.loads(parameters) if parameters else {}
+        if not isinstance(params, dict):
+            params = {}
+    except json.JSONDecodeError:
+        params = {}
 
-@router.get("/templates/{template_id}", response_model=ModelTemplate)
-async def get_template(template_id: str,
-                       service: GeneratorService = Depends(get_generator_service)):
-    """Get a single template with its parameter schema."""
-    return service.get_template(template_id)
-
-
-@router.post("/render", response_model=RenderResult)
-async def render(body: RenderRequest,
-                 service: GeneratorService = Depends(get_generator_service)):
-    """Render a template to STL (with a best-effort PNG preview)."""
-    if not service.engine.available:
-        raise GeneratorNotAvailableError()
-    return await service.render(body.template_id, body.parameters, fmt=body.format.value)
-
-
-@router.get("/render/{render_id}/model.stl")
-async def get_render_model(render_id: str,
-                           service: GeneratorService = Depends(get_generator_service)):
-    """Serve the STL artifact for a render."""
-    path = await service.get_artifact_path(render_id, "model")
-    if not path:
-        raise NotFoundError("render artifact", render_id)
-    return FileResponse(path, media_type="model/stl", filename=f"{render_id}.stl")
-
-
-@router.get("/render/{render_id}/preview.png")
-async def get_render_preview(render_id: str,
-                             service: GeneratorService = Depends(get_generator_service)):
-    """Serve the PNG preview for a render."""
-    path = await service.get_artifact_path(render_id, "preview")
-    if not path:
-        raise NotFoundError("render artifact", render_id)
-    return FileResponse(path, media_type="image/png")
-
-
-@router.post("/render/{render_id}/save")
-async def save_render_to_library(render_id: str, body: SaveRequest,
-                                 service: GeneratorService = Depends(get_generator_service)):
-    """Save a completed STL render into the Library for slicing/printing."""
-    result = await service.save_to_library(render_id, display_name=body.display_name)
+    result = await service.save_stl_to_library(
+        content, template_id=template_id, parameters=params, display_name=display_name
+    )
     return {"status": "success", "data": result}
 
 

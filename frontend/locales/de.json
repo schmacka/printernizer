@@ -17,19 +17,16 @@
   },
   "generator": {
     "pageTitle": "Modell-Generator",
-    "subtitle": "Parametrische build123d-Modelle erzeugen, rendern und in die Bibliothek speichern",
-    "unavailable": "Der Modell-Generator ist nicht verfügbar. build123d konnte nicht geladen werden — es benötigt eine glibc-Plattform (Debian-Image verwenden).",
+    "subtitle": "Parametrische Modelle im Browser erzeugen und in die Bibliothek speichern",
+    "unavailable": "Der Modell-Generator konnte im Browser nicht geladen werden.",
     "templates": "Vorlagen",
-    "preview": "Vorschau",
-    "render": "Rendern (STL)",
+    "render": "Erzeugen",
     "saveToLibrary": "In Bibliothek speichern",
     "selectTemplate": "Wählen Sie eine Vorlage, um zu beginnen.",
-    "rendering": "Rendern…",
-    "loadFailed": "Vorlagen konnten nicht geladen werden",
-    "renderFailed": "Rendern fehlgeschlagen",
+    "renderFailed": "Erzeugung fehlgeschlagen",
     "saved": "In Bibliothek gespeichert",
     "saveFailed": "Speichern fehlgeschlagen",
-    "viewerUnavailable": "3D-Viewer nicht verfügbar, zeige Bild"
+    "viewerUnavailable": "3D-Viewer nicht verfügbar"
   },
   "common": {
     "save": "Speichern",

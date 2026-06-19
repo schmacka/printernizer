@@ -14,10 +14,9 @@
 #
 # The build context must include: src/, frontend/, database_schema.sql, docker/
 #
-# NOTE: This image uses a Debian (glibc) base rather than Alpine. The build123d
-# parametric model generator depends on OpenCascade via the OCP bindings, which
-# ship manylinux (glibc) wheels only — there is no musllinux build, so it cannot
-# be installed on Alpine/musl.
+# NOTE: This image uses a Debian (glibc) base. The model generator runs in the
+# browser (JSCAD), so there is no server-side CAD dependency; Debian is retained
+# for parity with the Home Assistant add-on and broad wheel availability.
 
 # Stage 1: Builder
 FROM python:3.11-slim-bookworm AS builder
@@ -39,12 +38,6 @@ COPY requirements.txt .
 # Install Python dependencies (prefer prebuilt wheels)
 RUN pip install --no-cache-dir --user --prefer-binary -r requirements.txt
 
-# Optional: build123d (parametric model generator). Best-effort — it has wheels
-# for x86_64/aarch64 glibc only, so on other arches this is skipped and the
-# generator simply reports itself unavailable.
-RUN pip install --no-cache-dir --user --prefer-binary "build123d>=0.9.1" \
-    || echo "build123d not installable on this platform; model generator disabled"
-
 # Stage 2: Runtime
 FROM python:3.11-slim-bookworm
 
@@ -58,9 +51,8 @@ ENV PYTHONUNBUFFERED=1 \
     TZ=Europe/Berlin \
     PATH=/home/appuser/.local/bin:$PATH
 
-# Runtime dependencies.
-# - sqlite3, curl, bash, tzdata, ffmpeg: core app
-# - libGL/libGLU/libX* + fontconfig: required by OpenCascade/OCP (build123d)
+# Runtime dependencies (core app only; the model generator runs in the browser,
+# so no CAD/GL system libraries are needed).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         sqlite3 \
         curl \
@@ -68,14 +60,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         tzdata \
         ffmpeg \
         ca-certificates \
-        libgl1 \
-        libglu1-mesa \
-        libxrender1 \
-        libxext6 \
-        libsm6 \
-        libgomp1 \
-        fontconfig \
-        fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user for security
