@@ -134,8 +134,7 @@ class GeneratorManager {
     async checkStatus() { this._revealNav(); }
 
     _revealNav() {
-        const navLink = document.getElementById('nav-generator-link');
-        if (navLink) navLink.style.display = '';
+        // Nav link is managed by navigation-preferences; only toggle page-level divs.
         const layout = document.getElementById('generatorLayout');
         if (layout) layout.style.display = '';
         const unavailable = document.getElementById('generatorUnavailable');
