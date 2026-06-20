@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.34.1] - 2026-06-20
+
+### Fixed
+- Generator section missing from navbar after page load. `updateNavigation()` rebuilt the nav entirely from `navigationPreferences.getVisibleSections()`, but `generator` was absent from `defaultSections`, so the nav link was silently dropped on every startup.
+
 ## [2.34.0] - 2026-06-19
 
 ### Changed

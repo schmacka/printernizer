@@ -1474,6 +1474,7 @@
     "materials": "Filament-Verwaltung und Bestandsübersicht",
     "ideas": "Ideenverwaltung, Lesezeichen und Modell-Entdeckung",
     "tools": "Externe Tools und Helfer für den 3D-Druck",
+    "generator": "Parametrische Modelle im Browser erzeugen",
     "settings": "Anwendungseinstellungen und Konfiguration",
     "debug": "Debug-Informationen und Systemprotokolle",
     "timelines": "Verlauf Ihrer Druckhistorie"

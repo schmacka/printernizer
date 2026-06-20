@@ -1474,6 +1474,7 @@
     "materials": "Filament management and inventory overview",
     "ideas": "Idea management, bookmarks and model discovery",
     "tools": "External tools and helpers for 3D printing",
+    "generator": "Generate parametric models in your browser",
     "settings": "Application settings and configuration",
     "debug": "Debug information and system logs",
     "timelines": "Timeline of your print history"

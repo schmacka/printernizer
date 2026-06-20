@@ -84,6 +84,14 @@ class NavigationPreferences {
                 required: false
             },
             {
+                id: 'generator',
+                icon: '🧩',
+                labelKey: 'nav.generator',
+                descriptionKey: 'navDescriptions.generator',
+                visible: true,
+                required: false
+            },
+            {
                 id: 'settings',
                 icon: '⚙️',
                 labelKey: 'nav.settings',
