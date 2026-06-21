@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.34.3] - 2026-06-21
+
+### Fixed
+- **Generator still missing from the navbar after updating to 2.34.1/2.34.2.** The navbar fix shipped in `navigation-preferences.js`, but that file (and `navigation-preferences-ui.js`, `generator.js`, `generator.css`) was loaded without a cache-busting query string, so browsers and the Home Assistant ingress proxy kept serving the pre-fix cached copy. Added `?v=2.34.3` to these generator-related assets to force a fresh fetch.
+
 ## [2.34.2] - 2026-06-21
 
 ### Changed
