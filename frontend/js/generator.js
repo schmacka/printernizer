@@ -13,12 +13,22 @@ import jscad from 'https://cdn.jsdelivr.net/npm/@jscad/modeling@2/+esm';
 import stlSerializer from 'https://cdn.jsdelivr.net/npm/@jscad/stl-serializer@2/+esm';
 
 const { primitives, booleans, transforms, extrusions, geometries, maths } = jscad;
-const { roundedRectangle, rectangle } = primitives;
+const { roundedRectangle, rectangle, cylinder, cuboid } = primitives;
 const { extrudeLinear, extrudeFromSlices, slice } = extrusions;
-const { subtract } = booleans;
+const { subtract, union } = booleans;
 const { translate } = transforms;
 const { mat4 } = maths;
-const { geom3 } = geometries;
+const { geom3, geom2 } = geometries;
+
+// --- Lazy module loader ------------------------------------------------------
+// Heavier per-template dependencies (fonts, QR, SVG parsing) are imported from a
+// CDN only the first time a template that needs them is built, and the import
+// promise is cached so subsequent builds reuse it.
+const _moduleCache = new Map();
+function loadModule(url) {
+    if (!_moduleCache.has(url)) _moduleCache.set(url, import(/* @vite-ignore */ url));
+    return _moduleCache.get(url);
+}
 
 // --- Bundled templates (build function + parameter schema) -------------------
 
@@ -54,6 +64,130 @@ function vaseSolid(baseRadius, p) {
             return slice.transform(m, base);
         },
     }, base);
+}
+
+// --- QR matrix → row-merged module runs --------------------------------------
+// Merge horizontally-adjacent "on" modules in each row into runs, which keeps
+// the geometry to a few hundred boxes instead of one box per module.
+function qrModuleRuns(qr, invert) {
+    const n = qr.getModuleCount();
+    const on = (r, c) => (invert ? !qr.isDark(r, c) : qr.isDark(r, c));
+    const runs = [];
+    for (let r = 0; r < n; r++) {
+        let c = 0;
+        while (c < n) {
+            if (!on(r, c)) { c++; continue; }
+            let c1 = c;
+            while (c1 + 1 < n && on(r, c1 + 1)) c1++;
+            runs.push([r, c, c1]);
+            c = c1 + 1;
+        }
+    }
+    return { n, runs };
+}
+
+// --- Text → geometry (opentype.js, lazy-loaded) ------------------------------
+
+let _fontPromise = null;
+function loadFont() {
+    if (!_fontPromise) {
+        _fontPromise = (async () => {
+            const mod = await loadModule('https://cdn.jsdelivr.net/npm/opentype.js@1/+esm');
+            const opentype = mod.default || mod;
+            const url = new URL('../assets/fonts/LiberationSans-Regular.ttf', import.meta.url).href;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('Could not load font');
+            return opentype.parse(await resp.arrayBuffer());
+        })().catch((e) => { _fontPromise = null; throw e; });
+    }
+    return _fontPromise;
+}
+
+// Flatten an opentype path into closed contours of [x, y] points. The font
+// y-axis points down, so we negate y to get a conventional (y-up) outline.
+function glyphContours(font, text, size, curveSteps) {
+    const cmds = font.getPath(text, 0, 0, size).commands;
+    const steps = curveSteps || 8;
+    const contours = [];
+    let cur = null;
+    let px = 0, py = 0;
+    const moveTo = (x, y) => { px = x; py = y; cur.push([x, -y]); };
+    for (const c of cmds) {
+        if (c.type === 'M') {
+            if (cur && cur.length) contours.push(cur);
+            cur = [];
+            moveTo(c.x, c.y);
+        } else if (c.type === 'L') {
+            moveTo(c.x, c.y);
+        } else if (c.type === 'C') {
+            const x0 = px, y0 = py;
+            for (let i = 1; i <= steps; i++) {
+                const t = i / steps, m = 1 - t;
+                const x = m*m*m*x0 + 3*m*m*t*c.x1 + 3*m*t*t*c.x2 + t*t*t*c.x;
+                const y = m*m*m*y0 + 3*m*m*t*c.y1 + 3*m*t*t*c.y2 + t*t*t*c.y;
+                cur.push([x, -y]);
+            }
+            px = c.x; py = c.y;
+        } else if (c.type === 'Q') {
+            const x0 = px, y0 = py;
+            for (let i = 1; i <= steps; i++) {
+                const t = i / steps, m = 1 - t;
+                const x = m*m*x0 + 2*m*t*c.x1 + t*t*c.x;
+                const y = m*m*y0 + 2*m*t*c.y1 + t*t*c.y;
+                cur.push([x, -y]);
+            }
+            px = c.x; py = c.y;
+        } else if (c.type === 'Z') {
+            if (cur && cur.length) contours.push(cur);
+            cur = null;
+        }
+    }
+    if (cur && cur.length) contours.push(cur);
+    return contours.filter((p) => p.length >= 3);
+}
+
+function signedArea(poly) {
+    let a = 0;
+    for (let i = 0; i < poly.length; i++) {
+        const [x1, y1] = poly[i];
+        const [x2, y2] = poly[(i + 1) % poly.length];
+        a += x1 * y2 - x2 * y1;
+    }
+    return a / 2;
+}
+
+function pointInPoly([x, y], poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const [xi, yi] = poly[i];
+        const [xj, yj] = poly[j];
+        if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+    }
+    return inside;
+}
+
+// Build an extruded, origin-centered solid from text. Holes (letter counters)
+// are detected by even-odd containment, not winding, so it is font-agnostic.
+function textToSolid(font, text, size, height, curveSteps) {
+    const contours = glyphContours(font, text, size, curveSteps);
+    if (!contours.length) throw new Error('No printable glyphs in text');
+    const solids = [], holes = [];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    contours.forEach((c, i) => {
+        let depth = 0;
+        contours.forEach((o, j) => { if (i !== j && pointInPoly(c[0], o)) depth++; });
+        const poly = signedArea(c) < 0 ? c.slice().reverse() : c;
+        for (const [x, y] of poly) {
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (y < minY) minY = y; if (y > maxY) maxY = y;
+        }
+        const solid = extrudeLinear({ height }, geom2.fromPoints(poly));
+        (depth % 2 === 0 ? solids : holes).push(solid);
+    });
+    let result = solids.length > 1 ? union(solids) : solids[0];
+    if (holes.length) result = subtract(result, holes.length > 1 ? union(holes) : holes[0]);
+    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    return { geom: translate([-cx, -cy, 0], result), width: maxX - minX, height: maxY - minY };
 }
 
 const TEMPLATES = {
@@ -94,6 +228,101 @@ const TEMPLATES = {
             let inner = vaseSolid(p.diameter / 2 - p.wall_thickness, p);
             inner = translate([0, 0, p.wall_thickness], inner);
             return subtract(outer, inner);
+        },
+    },
+    text: {
+        name: 'Text / Nameplate / Keychain',
+        description: 'Embossed or debossed text on an optional plate, with a keychain hole.',
+        parameters: [
+            { name: 'text', type: 'text', default: 'Porcus3D', group: 'Text', description: 'Text to render' },
+            { name: 'font_size', type: 'number', default: 12, min: 4, max: 80, step: 1, group: 'Text', description: 'Text height (mm)' },
+            { name: 'text_depth', type: 'number', default: 1.5, min: 0.4, max: 10, step: 0.1, group: 'Text', description: 'Emboss height / deboss depth (mm)' },
+            { name: 'mode', type: 'select', default: 'emboss', group: 'Text', description: 'Raised above or cut into the plate', options: [{ value: 'emboss', label: 'Raised (emboss)' }, { value: 'deboss', label: 'Recessed (deboss)' }] },
+            { name: 'plate', type: 'select', default: 'rounded', group: 'Plate', description: 'Backing plate style', options: [{ value: 'rounded', label: 'Rounded plate' }, { value: 'rect', label: 'Rectangular plate' }, { value: 'none', label: 'Text only (no plate)' }] },
+            { name: 'margin', type: 'number', default: 6, min: 0, max: 40, step: 1, group: 'Plate', description: 'Plate margin around text (mm)' },
+            { name: 'plate_thickness', type: 'number', default: 2, min: 0.6, max: 12, step: 0.2, group: 'Plate', description: 'Plate thickness (mm)' },
+            { name: 'corner_radius', type: 'number', default: 3, min: 0, max: 30, step: 0.5, group: 'Plate', description: 'Plate corner radius (mm)' },
+            { name: 'keychain_hole', type: 'boolean', default: false, group: 'Keychain', description: 'Add a keychain hole (top-left corner)' },
+            { name: 'hole_diameter', type: 'number', default: 4, min: 2, max: 15, step: 0.5, group: 'Keychain', description: 'Keychain hole diameter (mm)' },
+        ],
+        async build(p) {
+            const font = await loadFont();
+            const noPlate = p.plate === 'none';
+            const depth = (p.mode === 'deboss' && !noPlate)
+                ? Math.min(p.text_depth, p.plate_thickness - 0.4)
+                : p.text_depth;
+            const t = textToSolid(font, p.text || ' ', p.font_size, Math.max(depth, 0.2), 8);
+            if (noPlate) return t.geom;
+
+            const pw = t.width + 2 * p.margin;
+            const ph = t.height + 2 * p.margin;
+            const profile = (p.plate === 'rounded' && p.corner_radius > 0)
+                ? roundedRectangle({ size: [pw, ph], roundRadius: Math.min(p.corner_radius, Math.min(pw, ph) / 2 - 0.01) })
+                : rectangle({ size: [pw, ph] });
+            let plate = extrudeLinear({ height: p.plate_thickness }, profile);
+            if (p.keychain_hole) {
+                const off = Math.max(p.margin / 2, p.hole_diameter / 2 + 1);
+                const hole = cylinder({ radius: p.hole_diameter / 2, height: p.plate_thickness + 2,
+                    center: [-pw / 2 + off, ph / 2 - off, p.plate_thickness / 2] });
+                plate = subtract(plate, hole);
+            }
+            if (p.mode === 'deboss') {
+                return subtract(plate, translate([0, 0, p.plate_thickness - depth], t.geom));
+            }
+            return union(plate, translate([0, 0, p.plate_thickness], t.geom));
+        },
+    },
+    qr_tag: {
+        name: 'QR Tag',
+        description: 'A scannable QR code on a plate — e.g. a link back to this model in your Printernizer library.',
+        parameters: [
+            { name: 'text', type: 'text', default: 'https://github.com/schmacka/printernizer', group: 'Code', description: 'URL or text to encode (e.g. a link to this model in your library)' },
+            { name: 'error_correction', type: 'select', default: 'M', group: 'Code', description: 'Error correction (higher = more robust, denser)', options: [{ value: 'L', label: 'L — 7%' }, { value: 'M', label: 'M — 15%' }, { value: 'Q', label: 'Q — 25%' }, { value: 'H', label: 'H — 30%' }] },
+            { name: 'mode', type: 'select', default: 'emboss', group: 'Code', description: 'Raised modules or recessed into the plate', options: [{ value: 'emboss', label: 'Raised (emboss)' }, { value: 'deboss', label: 'Recessed (deboss)' }] },
+            { name: 'invert', type: 'boolean', default: false, group: 'Code', description: 'Invert (build light modules instead of dark)' },
+            { name: 'module_size', type: 'number', default: 2, min: 0.8, max: 6, step: 0.1, group: 'Dimensions', description: 'Size of one QR module (mm)' },
+            { name: 'module_height', type: 'number', default: 0.8, min: 0.2, max: 6, step: 0.1, group: 'Dimensions', description: 'Emboss height / deboss depth (mm)' },
+            { name: 'plate_thickness', type: 'number', default: 2, min: 0.8, max: 12, step: 0.2, group: 'Dimensions', description: 'Plate thickness (mm)' },
+            { name: 'border', type: 'number', default: 4, min: 0, max: 20, step: 0.5, group: 'Dimensions', description: 'Quiet-zone border around the code (mm)' },
+            { name: 'corner_radius', type: 'number', default: 2, min: 0, max: 20, step: 0.5, group: 'Style', description: 'Plate corner radius (mm)' },
+        ],
+        async build(p) {
+            // qrcode-generator is already loaded globally (UMD) in index.html;
+            // fall back to a lazy CDN import if that ever changes.
+            const qrcode = (typeof window !== 'undefined' && window.qrcode)
+                ? window.qrcode
+                : ((await loadModule('https://cdn.jsdelivr.net/npm/qrcode-generator@1/+esm')).default);
+            const qr = qrcode(0, p.error_correction || 'M');
+            qr.addData(p.text || ' ');
+            qr.make();
+            const { n, runs } = qrModuleRuns(qr, p.invert);
+            const ms = p.module_size;
+            const qrW = n * ms;
+            const plateW = qrW + 2 * p.border;
+            const plateThk = p.plate_thickness;
+            const modH = Math.max(0.2, p.mode === 'deboss' ? Math.min(p.module_height, plateThk - 0.4) : p.module_height);
+            const profile = (p.corner_radius > 0)
+                ? roundedRectangle({ size: [plateW, plateW], roundRadius: Math.min(p.corner_radius, plateW / 2 - 0.01) })
+                : rectangle({ size: [plateW, plateW] });
+            const plate = extrudeLinear({ height: plateThk }, profile);
+            if (!runs.length) return plate;
+
+            const zc = p.mode === 'deboss' ? plateThk - modH / 2 : plateThk + modH / 2;
+            const boxes = runs.map(([r, c0, c1]) => {
+                const w = (c1 - c0 + 1) * ms;
+                const cx = -qrW / 2 + ((c0 + c1 + 1) / 2) * ms;
+                const cy = qrW / 2 - (r + 0.5) * ms;
+                return cuboid({ size: [w, ms, modH], center: [cx, cy, zc] });
+            });
+            if (p.mode === 'deboss') {
+                return subtract(plate, boxes.length > 1 ? union(boxes) : boxes[0]);
+            }
+            // Emboss: merge plate + raised modules into one polygon soup (fast; the
+            // boxes sit on top of the plate and the slicer unions the volumes).
+            return geom3.create([
+                ...geom3.toPolygons(plate),
+                ...boxes.flatMap((b) => geom3.toPolygons(b)),
+            ]);
         },
     },
 };
@@ -218,6 +447,39 @@ class GeneratorManager {
             if (param.max !== undefined) input.max = param.max;
             if (param.step !== undefined) input.step = param.step;
             input.value = param.default ?? '';
+        } else if (param.type === 'select') {
+            input = document.createElement('select');
+            (param.options || []).forEach((opt) => {
+                const value = (opt && typeof opt === 'object') ? opt.value : opt;
+                const text = (opt && typeof opt === 'object') ? (opt.label ?? opt.value) : opt;
+                const o = document.createElement('option');
+                o.value = value;
+                o.textContent = text;
+                input.appendChild(o);
+            });
+            if (param.default !== undefined) input.value = param.default;
+        } else if (param.type === 'file') {
+            input = document.createElement('input');
+            input.type = 'file';
+            if (param.accept) input.accept = param.accept;
+            // Read the file once on selection and stash the result on the element so
+            // collectParameters() can read it synchronously at build time.
+            input.addEventListener('change', () => {
+                const file = input.files && input.files[0];
+                if (!file) { input._fileData = null; return; }
+                const reader = new FileReader();
+                const asText = /svg|text|json/i.test(file.type) || /\.svg$/i.test(file.name);
+                reader.onload = () => {
+                    input._fileData = {
+                        name: file.name,
+                        type: file.type,
+                        text: asText ? reader.result : null,
+                        dataURL: asText ? null : reader.result,
+                    };
+                };
+                if (asText) reader.readAsText(file);
+                else reader.readAsDataURL(file);
+            });
         } else {
             input = document.createElement('input');
             input.type = 'text';
@@ -238,17 +500,22 @@ class GeneratorManager {
             const type = el.dataset.type;
             if (type === 'boolean') params[name] = el.checked;
             else if (type === 'number') params[name] = el.value === '' ? 0 : Number(el.value);
+            else if (type === 'file') params[name] = el._fileData || null;
             else params[name] = el.value;
         });
         return params;
     }
 
-    generate() {
+    async generate() {
         if (!this.currentTemplateId) return;
         const statusEl = document.getElementById('generatorViewerStatus');
+        const renderBtn = document.getElementById('generatorRenderBtn');
+        if (renderBtn) renderBtn.disabled = true;
+        if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = this._t('generator.generating', 'Generating…'); }
         try {
             const tpl = TEMPLATES[this.currentTemplateId];
-            const geom = tpl.build(this.collectParameters());
+            // build() may be sync or async (templates that load fonts/images/SVG).
+            const geom = await tpl.build(this.collectParameters());
             this.currentGeom = geom;
             this._showGeom(geom);
             document.getElementById('generatorSaveBtn').disabled = false;
@@ -256,6 +523,8 @@ class GeneratorManager {
             const msg = (e && e.message) ? e.message : this._t('generator.renderFailed', 'Generation failed');
             this._toast('error', msg);
             if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = msg; }
+        } finally {
+            if (renderBtn) renderBtn.disabled = false;
         }
     }
 
