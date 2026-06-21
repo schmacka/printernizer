@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.34.2] - 2026-06-21
+
+### Changed
+- Maintenance release to trigger a fresh Home Assistant add-on image build so the browser-side (JSCAD) model generator reaches add-on installs. No application changes.
+
+### Fixed
+- CI: rewrote the stale generator service test that still imported the removed `build123d_service`, which had been failing the *Backend Tests (Core Tests)* job (and the whole CI/CD pipeline) on every `master` push since 2.34.0.
+
 ## [2.34.1] - 2026-06-20
 
 ### Fixed
