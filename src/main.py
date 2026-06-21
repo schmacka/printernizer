@@ -102,7 +102,7 @@ from src.constants import (
 
 # Application version - Automatically extracted from git tags
 # Fallback version used when git is unavailable
-APP_VERSION = get_version(fallback="2.34.3")
+APP_VERSION = get_version(fallback="2.35.0")
 
 
 # Prometheus metrics - initialized once
@@ -789,7 +789,15 @@ def create_application() -> FastAPI:
         @app.get("/")
         async def read_index():
             from fastapi.responses import FileResponse
-            return FileResponse(str(frontend_path / "index.html"))
+            # Never let clients reuse a stale HTML entry point without revalidating.
+            # Assets are cache-busted with ?v=, but that only helps if the browser
+            # (or the Home Assistant app's WKWebView) re-reads index.html to see the
+            # new URLs. no-cache forces a cheap revalidation on every load so updates
+            # are picked up without manual cache clears.
+            return FileResponse(
+                str(frontend_path / "index.html"),
+                headers={"Cache-Control": "no-cache"},
+            )
 
         # Handle Home Assistant Ingress double-slash issue
         # HA Ingress sometimes forwards requests as // instead of /

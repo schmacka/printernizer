@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.35.0] - 2026-06-21
+
+### Added
+- **Model generator: Text / Nameplate / Keychain template.** Render any text as embossed (raised) or debossed (recessed) geometry on an optional rounded or rectangular plate, with an optional keychain hole. Glyph outlines are converted to extrudable solids via opentype.js, with letter counters (the holes in `O`, `A`, `8`, `e`, …) detected by even-odd containment so it is font-agnostic. Uses a self-hosted Liberation Sans (OFL) font so it works offline.
+- **Model generator: QR Tag template.** Generate a scannable QR code on a plate — e.g. a link back to a model in your Printernizer library — with selectable error-correction level, emboss/deboss, invert, module size/height, quiet-zone border and corner radius. Horizontally-adjacent modules are merged into runs to keep the mesh light.
+- **Generator engine foundations:** new `select`, `text` and `file` parameter input types; template `build()` functions may now be async; and heavier per-template dependencies (fonts, QR) are lazy-loaded from CDN only when first needed, keeping the base page light.
+
+### Changed
+- Serve `index.html` with `Cache-Control: no-cache` so browsers (and the Home Assistant WKWebView) revalidate the HTML entry point on every load and pick up cache-busted assets without manual cache clears.
+
 ## [2.34.3] - 2026-06-21
 
 ### Fixed
