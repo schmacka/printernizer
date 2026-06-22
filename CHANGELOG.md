@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.37.0] - 2026-06-22
+
+### Added
+- **Model generator: generator-as-engine templates** that build geometry from external input:
+  - **SVG → Extrude** — turn an uploaded SVG (logo, icon, outline) into a 3D part with holes preserved, scaled to a target size with an optional backing plate. Parsed via `@jscad/svg-deserializer` into outlines and extruded with even-odd hole detection, which handles curve- and hole-heavy artwork that naive geom2 extrusion chokes on.
+  - **Lithophane** — convert a photo into a backlit lithophane (darker areas print thicker) by sampling the image to a capped grid and building a watertight height-mapped mesh. Configurable width, min/max thickness, sampling resolution and invert.
+  - **Custom (JSCAD code)** — advanced template that runs user-written JSCAD code (in the browser only) and saves the resulting solid to the library.
+- Generator engine: added a `textarea` parameter input type; refactored a shared even-odd outline-extrusion core used by both the text and SVG templates.
+
 ## [2.36.0] - 2026-06-22
 
 ### Added
