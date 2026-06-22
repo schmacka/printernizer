@@ -13,10 +13,10 @@ import jscad from 'https://cdn.jsdelivr.net/npm/@jscad/modeling@2/+esm';
 import stlSerializer from 'https://cdn.jsdelivr.net/npm/@jscad/stl-serializer@2/+esm';
 
 const { primitives, booleans, transforms, extrusions, geometries, maths } = jscad;
-const { roundedRectangle, rectangle, cylinder, cuboid } = primitives;
+const { roundedRectangle, rectangle, cylinder, cuboid, circle } = primitives;
 const { extrudeLinear, extrudeFromSlices, slice } = extrusions;
 const { subtract, union } = booleans;
-const { translate } = transforms;
+const { translate, rotate } = transforms;
 const { mat4 } = maths;
 const { geom3, geom2 } = geometries;
 
@@ -190,6 +190,59 @@ function textToSolid(font, text, size, height, curveSteps) {
     return { geom: translate([-cx, -cy, 0], result), width: maxX - minX, height: maxY - minY };
 }
 
+// --- Functional-part helpers -------------------------------------------------
+
+// CCW perimeter points of a rounded rectangle centered at the origin.
+function roundedRectPoints(w, d, r, seg) {
+    r = Math.max(0.05, Math.min(r, Math.min(w, d) / 2 - 0.01));
+    const s = seg || 8;
+    const hx = w / 2 - r, hy = d / 2 - r;
+    const corners = [[hx, hy, 0], [-hx, hy, 90], [-hx, -hy, 180], [hx, -hy, 270]];
+    const pts = [];
+    for (const [cx, cy, a0] of corners) {
+        for (let i = 0; i <= s; i++) {
+            const a = (a0 + 90 * i / s) * Math.PI / 180;
+            pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+        }
+    }
+    return pts;
+}
+
+// Gridfinity constants and the standard base "foot" profile (bottom → top):
+// 0.8mm @45°, 1.8mm straight, 2.15mm @45°. Built by lofting a rounded-rect
+// outline that is inset toward the bottom. Reused (positive) by the bin and
+// (as a slightly oversized cutter) by the baseplate.
+const GF = { GRID: 42, HEIGHT_UNIT: 7, BASE_H: 4.75, CLEAR: 0.5, OUTER_R: 4 };
+const GF_FOOT_KP = [
+    { z: 0, inset: 2.95 },
+    { z: 0.8, inset: 2.15 },
+    { z: 2.6, inset: 2.15 },
+    { z: GF.BASE_H, inset: 0 },
+];
+function gridfinityFoot(topSize, topR) {
+    const sliceAt = (kp) => {
+        const w = topSize - 2 * kp.inset;
+        const r = Math.max(0.1, topR - kp.inset);
+        const m = mat4.fromTranslation(mat4.create(), [0, 0, kp.z]);
+        return slice.transform(m, slice.fromPoints(roundedRectPoints(w, w, r, 8)));
+    };
+    return extrudeFromSlices({
+        numberOfSlices: GF_FOOT_KP.length,
+        callback: (progress, i) => sliceAt(GF_FOOT_KP[Math.min(i, GF_FOOT_KP.length - 1)]),
+    }, sliceAt(GF_FOOT_KP[0]));
+}
+
+// Grid of cell centers, centered on the origin (spacing = GF.GRID).
+function cellCenters(gx, gy) {
+    const out = [];
+    for (let i = 0; i < gx; i++) {
+        for (let j = 0; j < gy; j++) {
+            out.push([(i - (gx - 1) / 2) * GF.GRID, (j - (gy - 1) / 2) * GF.GRID]);
+        }
+    }
+    return out;
+}
+
 const TEMPLATES = {
     box: {
         name: 'Parametric Box',
@@ -323,6 +376,166 @@ const TEMPLATES = {
                 ...geom3.toPolygons(plate),
                 ...boxes.flatMap((b) => geom3.toPolygons(b)),
             ]);
+        },
+    },
+    gridfinity_bin: {
+        name: 'Gridfinity Bin',
+        description: 'A Gridfinity-compatible storage bin (42mm grid, 7mm height units) with optional magnet/screw holes.',
+        parameters: [
+            { name: 'grid_x', type: 'number', default: 1, min: 1, max: 6, step: 1, group: 'Grid', description: 'Width in grid units (× 42mm)' },
+            { name: 'grid_y', type: 'number', default: 2, min: 1, max: 6, step: 1, group: 'Grid', description: 'Depth in grid units (× 42mm)' },
+            { name: 'height_units', type: 'number', default: 3, min: 2, max: 14, step: 1, group: 'Grid', description: 'Height in units (× 7mm)' },
+            { name: 'wall_thickness', type: 'number', default: 1.2, min: 0.8, max: 4, step: 0.1, group: 'Walls', description: 'Wall thickness (mm)' },
+            { name: 'magnet_holes', type: 'boolean', default: false, group: 'Base', description: 'Add 6mm magnet holes' },
+            { name: 'screw_holes', type: 'boolean', default: false, group: 'Base', description: 'Add 3mm screw holes' },
+        ],
+        build(p) {
+            const { GRID, HEIGHT_UNIT, BASE_H, CLEAR, OUTER_R } = GF;
+            const outerW = p.grid_x * GRID - CLEAR;
+            const outerD = p.grid_y * GRID - CLEAR;
+            const totalH = p.height_units * HEIGHT_UNIT;
+            const offsets = [[13, 13], [13, -13], [-13, 13], [-13, -13]];
+            const feet = cellCenters(p.grid_x, p.grid_y).map(([cx, cy]) => {
+                let foot = gridfinityFoot(GRID - CLEAR, OUTER_R);
+                const cutters = [];
+                // Spec (gridfinity-rebuilt): 6.5mm magnet ×2.4mm deep, 3mm screw,
+                // holes 8mm in from each cell edge → 13mm from the cell centre.
+                offsets.forEach(([ox, oy]) => {
+                    if (p.magnet_holes) cutters.push(cylinder({ radius: 3.25, height: 2.4, segments: 32, center: [ox, oy, 1.2] }));
+                    if (p.screw_holes) cutters.push(cylinder({ radius: 1.5, height: BASE_H + 1, segments: 24, center: [ox, oy, (BASE_H + 1) / 2] }));
+                });
+                if (cutters.length) foot = subtract(foot, cutters.length > 1 ? union(cutters) : cutters[0]);
+                return translate([cx, cy, 0], foot);
+            });
+            const base = feet.length > 1 ? union(feet) : feet[0];
+            const upper = translate([0, 0, BASE_H], extrudeLinear({ height: totalH - BASE_H },
+                roundedRectangle({ size: [outerW, outerD], roundRadius: OUTER_R })));
+            const body = union(base, upper);
+            const cavity = translate([0, 0, BASE_H], extrudeLinear({ height: totalH },
+                roundedRectangle({ size: [outerW - 2 * p.wall_thickness, outerD - 2 * p.wall_thickness], roundRadius: Math.max(0.5, OUTER_R - p.wall_thickness) })));
+            return subtract(body, cavity);
+        },
+    },
+    gridfinity_baseplate: {
+        name: 'Gridfinity Baseplate',
+        description: 'A Gridfinity baseplate that bins drop into (42mm grid).',
+        parameters: [
+            { name: 'grid_x', type: 'number', default: 2, min: 1, max: 8, step: 1, group: 'Grid', description: 'Width in grid units (× 42mm)' },
+            { name: 'grid_y', type: 'number', default: 2, min: 1, max: 8, step: 1, group: 'Grid', description: 'Depth in grid units (× 42mm)' },
+            { name: 'floor_thickness', type: 'number', default: 1, min: 0.6, max: 6, step: 0.2, group: 'Base', description: 'Solid floor under the cells (mm)' },
+            { name: 'screw_holes', type: 'boolean', default: false, group: 'Base', description: 'Add 3mm mounting screw holes' },
+        ],
+        build(p) {
+            const { GRID, BASE_H, CLEAR, OUTER_R } = GF;
+            const outerW = p.grid_x * GRID;
+            const outerD = p.grid_y * GRID;
+            const plateH = BASE_H + p.floor_thickness;
+            const block = extrudeLinear({ height: plateH },
+                roundedRectangle({ size: [outerW, outerD], roundRadius: OUTER_R }));
+            const centers = cellCenters(p.grid_x, p.grid_y);
+            const pockets = centers.map(([cx, cy]) =>
+                translate([cx, cy, plateH - BASE_H], gridfinityFoot(GRID - CLEAR + 0.25, OUTER_R)));
+            let plate = subtract(block, pockets.length > 1 ? union(pockets) : pockets[0]);
+            if (p.screw_holes) {
+                const holes = centers.map(([cx, cy]) =>
+                    cylinder({ radius: 1.5, height: plateH + 2, segments: 24, center: [cx, cy, plateH / 2] }));
+                plate = subtract(plate, holes.length > 1 ? union(holes) : holes[0]);
+            }
+            return plate;
+        },
+    },
+    bracket: {
+        name: 'Bracket / Mounting Plate',
+        description: 'A flat mounting plate or right-angle (L) bracket with corner bolt holes.',
+        parameters: [
+            { name: 'shape', type: 'select', default: 'flat', group: 'Shape', description: 'Plate style', options: [{ value: 'flat', label: 'Flat plate' }, { value: 'L', label: 'L-bracket' }] },
+            { name: 'length', type: 'number', default: 60, min: 15, max: 300, step: 1, group: 'Shape', description: 'Base length, X (mm)' },
+            { name: 'width', type: 'number', default: 40, min: 15, max: 300, step: 1, group: 'Shape', description: 'Width, Y (mm)' },
+            { name: 'leg_height', type: 'number', default: 40, min: 15, max: 300, step: 1, group: 'Shape', description: 'Vertical leg height, Z — L only (mm)' },
+            { name: 'thickness', type: 'number', default: 4, min: 1.5, max: 20, step: 0.5, group: 'Shape', description: 'Material thickness (mm)' },
+            { name: 'hole_diameter', type: 'number', default: 5, min: 2, max: 20, step: 0.5, group: 'Holes', description: 'Bolt hole diameter (mm)' },
+            { name: 'hole_inset', type: 'number', default: 8, min: 4, max: 40, step: 0.5, group: 'Holes', description: 'Hole inset from edges (mm)' },
+            { name: 'countersink', type: 'boolean', default: false, group: 'Holes', description: 'Counterbore the top of flat-plate holes' },
+        ],
+        build(p) {
+            const th = p.thickness, hr = p.hole_diameter / 2, ins = p.hole_inset;
+            // Vertical (Z-axis) holes through a plate occupying z 0..th.
+            const vHole = (x, y) => {
+                const c = [cylinder({ radius: hr, height: th + 2, segments: 24, center: [x, y, th / 2] })];
+                if (p.countersink) c.push(cylinder({ radius: hr + 1.4, height: th * 0.5 + 0.1, segments: 24, center: [x, y, th - th * 0.25 + 0.05] }));
+                return c.length > 1 ? union(c) : c[0];
+            };
+            const cornerXY = (lx, ly) => [
+                [lx / 2 - ins, ly / 2 - ins], [lx / 2 - ins, -(ly / 2 - ins)],
+                [-(lx / 2 - ins), ly / 2 - ins], [-(lx / 2 - ins), -(ly / 2 - ins)],
+            ];
+            const legA = extrudeLinear({ height: th }, roundedRectangle({ size: [p.length, p.width], roundRadius: 2 }));
+            const aHoles = cornerXY(p.length, p.width).map(([x, y]) => vHole(x, y));
+            let plate = subtract(legA, union(aHoles));
+            if (p.shape === 'flat') return plate;
+            // L-bracket: vertical leg rising at the back edge (x = -length/2).
+            const legB = cuboid({ size: [th, p.width, p.leg_height], center: [-p.length / 2 + th / 2, 0, p.leg_height / 2] });
+            let geom = union(plate, legB);
+            // Horizontal (X-axis) holes through the vertical leg.
+            const bHole = (y, z) => rotate([0, Math.PI / 2, 0],
+                cylinder({ radius: hr, height: th + 2, segments: 24, center: [z, y, -p.length / 2 + th / 2] }));
+            const bHoles = [[p.width / 2 - ins, p.leg_height - ins], [-(p.width / 2 - ins), p.leg_height - ins]]
+                .map(([y, z]) => bHole(y, z));
+            return subtract(geom, union(bHoles));
+        },
+    },
+    standoff: {
+        name: 'Standoff / Spacer',
+        description: 'A round or hex standoff/spacer, optionally with a through hole.',
+        parameters: [
+            { name: 'shape', type: 'select', default: 'round', group: 'Body', description: 'Outer shape', options: [{ value: 'round', label: 'Round' }, { value: 'hex', label: 'Hex' }] },
+            { name: 'outer_size', type: 'number', default: 8, min: 3, max: 40, step: 0.5, group: 'Body', description: 'Outer diameter / across-flats (mm)' },
+            { name: 'height', type: 'number', default: 10, min: 2, max: 100, step: 0.5, group: 'Body', description: 'Height (mm)' },
+            { name: 'through_hole', type: 'boolean', default: true, group: 'Bore', description: 'Add a through hole' },
+            { name: 'inner_diameter', type: 'number', default: 3.2, min: 1, max: 30, step: 0.1, group: 'Bore', description: 'Bore diameter (mm)' },
+        ],
+        build(p) {
+            const isHex = p.shape === 'hex';
+            const outerR = isHex ? p.outer_size / Math.sqrt(3) : p.outer_size / 2;
+            let body = cylinder({ radius: outerR, height: p.height, segments: isHex ? 6 : 48, center: [0, 0, p.height / 2] });
+            if (p.through_hole) {
+                body = subtract(body, cylinder({ radius: p.inner_diameter / 2, height: p.height + 2, segments: 48, center: [0, 0, p.height / 2] }));
+            }
+            return body;
+        },
+    },
+    cable_clip: {
+        name: 'Cable Clip',
+        description: 'A snap-over cable clip on a screw-down foot, for routing cables along a surface.',
+        parameters: [
+            { name: 'cable_diameter', type: 'number', default: 6, min: 2, max: 40, step: 0.5, group: 'Clip', description: 'Cable diameter (mm)' },
+            { name: 'wall', type: 'number', default: 2, min: 1, max: 8, step: 0.5, group: 'Clip', description: 'Ring wall thickness (mm)' },
+            { name: 'clip_width', type: 'number', default: 8, min: 3, max: 40, step: 1, group: 'Clip', description: 'Clip width along the cable (mm)' },
+            { name: 'opening', type: 'number', default: 0.6, min: 0.2, max: 0.95, step: 0.05, group: 'Clip', description: 'Snap opening (fraction of cable diameter)' },
+            { name: 'base_thickness', type: 'number', default: 3, min: 1.5, max: 10, step: 0.5, group: 'Foot', description: 'Foot thickness (mm)' },
+            { name: 'screw_diameter', type: 'number', default: 4, min: 0, max: 12, step: 0.5, group: 'Foot', description: 'Screw hole diameter (0 = none)' },
+        ],
+        build(p) {
+            const Ri = p.cable_diameter / 2, Ro = Ri + p.wall, cw = p.clip_width, bt = p.base_thickness;
+            const gap = Math.max(1.5, p.cable_diameter * p.opening);
+            let ring2d = subtract(circle({ radius: Ro, segments: 48 }), circle({ radius: Ri, segments: 48 }));
+            ring2d = subtract(ring2d, rectangle({ size: [gap, Ro + 5], center: [0, Ro / 2 + 2.5] }));
+            // Extrude the annulus, center it, then lay the tube axis along Y; the
+            // top opening ends up facing up (+Z).
+            let ring = rotate([Math.PI / 2, 0, 0], translate([0, 0, -cw / 2], extrudeLinear({ height: cw }, ring2d)));
+            ring = translate([0, 0, Ro + bt], ring);
+            const footW = Ro * 2 + 6, footL = cw + 4;
+            const foot = extrudeLinear({ height: bt }, roundedRectangle({ size: [footW, footL], roundRadius: Math.min(3, bt) }));
+            let body = union(foot, ring);
+            if (p.screw_diameter > 0) {
+                const sr = p.screw_diameter / 2;
+                const holes = [footL / 2 - sr - 1.5, -(footL / 2 - sr - 1.5)].map((y) => union(
+                    cylinder({ radius: sr, height: bt + 2, segments: 24, center: [0, y, bt / 2] }),
+                    cylinder({ radius: sr + 1.2, height: bt * 0.5 + 0.1, segments: 24, center: [0, y, bt - bt * 0.25 + 0.05] }),
+                ));
+                body = subtract(body, union(holes));
+            }
+            return body;
         },
     },
 };

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.36.0] - 2026-06-22
+
+### Added
+- **Model generator: functional-parts library.** Four new templates aimed at practical, repeatedly-needed prints:
+  - **Gridfinity Bin** — Gridfinity-compatible storage bins on the standard 42mm grid with 7mm height units and the canonical base "foot" profile (0.8/1.8/2.15mm chamfers, 0.5mm clearance). Configurable grid size, height, wall thickness and optional 6.5mm magnet / 3mm screw holes (positioned to spec, 13mm from each cell centre).
+  - **Gridfinity Baseplate** — a matching baseplate that bins drop into, with optional mounting screw holes.
+  - **Bracket / Mounting Plate** — a flat plate or right-angle (L) bracket with corner bolt holes and optional counterbore.
+  - **Standoff / Spacer** — round or hex, with an optional through-bore.
+
 ## [2.35.0] - 2026-06-21
 
 ### Added
