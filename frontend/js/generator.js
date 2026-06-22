@@ -18,7 +18,7 @@ const { extrudeLinear, extrudeFromSlices, slice } = extrusions;
 const { subtract, union } = booleans;
 const { translate, rotate } = transforms;
 const { mat4 } = maths;
-const { geom3, geom2 } = geometries;
+const { geom3, geom2, path2, poly3 } = geometries;
 
 // --- Lazy module loader ------------------------------------------------------
 // Heavier per-template dependencies (fonts, QR, SVG parsing) are imported from a
@@ -166,28 +166,98 @@ function pointInPoly([x, y], poly) {
     return inside;
 }
 
-// Build an extruded, origin-centered solid from text. Holes (letter counters)
-// are detected by even-odd containment, not winding, so it is font-agnostic.
-function textToSolid(font, text, size, height, curveSteps) {
-    const contours = glyphContours(font, text, size, curveSteps);
-    if (!contours.length) throw new Error('No printable glyphs in text');
+// Extrude a set of 2D outlines into a solid, treating nested loops as holes by
+// even-odd containment (winding-agnostic). Shared by the text and SVG templates.
+function outlinesToSolid(outlines, height) {
+    const loops = outlines.filter((o) => o.length >= 3);
+    if (!loops.length) throw new Error('No closed regions to extrude');
     const solids = [], holes = [];
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    contours.forEach((c, i) => {
+    loops.forEach((c, i) => {
         let depth = 0;
-        contours.forEach((o, j) => { if (i !== j && pointInPoly(c[0], o)) depth++; });
+        loops.forEach((o, j) => { if (i !== j && pointInPoly(c[0], o)) depth++; });
         const poly = signedArea(c) < 0 ? c.slice().reverse() : c;
-        for (const [x, y] of poly) {
-            if (x < minX) minX = x; if (x > maxX) maxX = x;
-            if (y < minY) minY = y; if (y > maxY) maxY = y;
-        }
-        const solid = extrudeLinear({ height }, geom2.fromPoints(poly));
-        (depth % 2 === 0 ? solids : holes).push(solid);
+        (depth % 2 === 0 ? solids : holes).push(extrudeLinear({ height }, geom2.fromPoints(poly)));
     });
     let result = solids.length > 1 ? union(solids) : solids[0];
     if (holes.length) result = subtract(result, holes.length > 1 ? union(holes) : holes[0]);
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    return { geom: translate([-cx, -cy, 0], result), width: maxX - minX, height: maxY - minY };
+    return result;
+}
+
+function boundsOf(outlines) {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (const o of outlines) for (const [x, y] of o) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    return { minX, maxX, minY, maxY };
+}
+
+// Build an extruded, origin-centered solid from text. Holes (letter counters)
+// are detected by even-odd containment, so it is font-agnostic.
+function textToSolid(font, text, size, height, curveSteps) {
+    const contours = glyphContours(font, text, size, curveSteps);
+    if (!contours.length) throw new Error('No printable glyphs in text');
+    const b = boundsOf(contours);
+    const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+    return {
+        geom: translate([-cx, -cy, 0], outlinesToSolid(contours, height)),
+        width: b.maxX - b.minX,
+        height: b.maxY - b.minY,
+    };
+}
+
+// Decompose a JSCAD svg-deserializer result (path2 + clean geom2 primitives)
+// into 2D outlines, with Y negated so the part is not mirrored.
+function svgOutlines(geoms) {
+    const arr = Array.isArray(geoms) ? geoms : [geoms];
+    const outlines = [];
+    for (const x of arr) {
+        if (x && x.points !== undefined) {
+            const pts = path2.toPoints(x);
+            if (pts.length >= 3) outlines.push(pts.map((q) => [q[0], -q[1]]));
+        } else if (x && x.sides) {
+            try {
+                for (const loop of geom2.toOutlines(x)) {
+                    if (loop.length >= 3) outlines.push(loop.map((q) => [q[0], -q[1]]));
+                }
+            } catch (e) { /* skip a region the deserializer left unclosed */ }
+        }
+    }
+    return outlines;
+}
+
+// Turn a row-major grid of heights into a watertight geom3: top surface,
+// perimeter walls down to z=0, and a fanned flat bottom.
+function heightmapToGeom3(heights, cellW, cellH) {
+    const rows = heights.length, cols = heights[0].length;
+    const X = (c) => c * cellW;
+    const Y = (r) => (rows - 1 - r) * cellH;        // image row 0 at the top (+Y)
+    const topV = (c, r) => [X(c), Y(r), heights[r][c]];
+    const botV = (c, r) => [X(c), Y(r), 0];
+    const polys = [];
+    const tri = (a, b, c) => polys.push(poly3.create([a, b, c]));
+    for (let r = 0; r < rows - 1; r++) {
+        for (let c = 0; c < cols - 1; c++) {
+            const v00 = topV(c, r), v10 = topV(c + 1, r), v01 = topV(c, r + 1), v11 = topV(c + 1, r + 1);
+            tri(v00, v11, v10); tri(v00, v01, v11);
+        }
+    }
+    const peri = [];
+    for (let c = 0; c < cols; c++) peri.push([c, 0]);
+    for (let r = 1; r < rows; r++) peri.push([cols - 1, r]);
+    for (let c = cols - 2; c >= 0; c--) peri.push([c, rows - 1]);
+    for (let r = rows - 2; r >= 1; r--) peri.push([0, r]);
+    for (let i = 0; i < peri.length; i++) {
+        const [ca, ra] = peri[i], [cb, rb] = peri[(i + 1) % peri.length];
+        tri(topV(ca, ra), topV(cb, rb), botV(cb, rb));
+        tri(topV(ca, ra), botV(cb, rb), botV(ca, ra));
+    }
+    const [c0, r0] = peri[0];
+    for (let i = 1; i < peri.length - 1; i++) {
+        const [c1, r1] = peri[i], [c2, r2] = peri[i + 1];
+        tri(botV(c0, r0), botV(c2, r2), botV(c1, r1));
+    }
+    return geom3.create(polys);
 }
 
 // --- Functional-part helpers -------------------------------------------------
@@ -538,6 +608,100 @@ const TEMPLATES = {
             return body;
         },
     },
+    svg_extrude: {
+        name: 'SVG → Extrude',
+        description: 'Turn an uploaded SVG (logo, icon, outline) into a 3D part. Holes are preserved.',
+        parameters: [
+            { name: 'file', type: 'file', accept: '.svg,image/svg+xml', group: 'Source', description: 'SVG file to extrude' },
+            { name: 'height', type: 'number', default: 3, min: 0.4, max: 50, step: 0.2, group: 'Extrude', description: 'Extrude height (mm)' },
+            { name: 'target_size', type: 'number', default: 60, min: 0, max: 300, step: 1, group: 'Extrude', description: 'Scale longest side to (mm, 0 = keep SVG size)' },
+            { name: 'base_thickness', type: 'number', default: 0, min: 0, max: 20, step: 0.2, group: 'Base', description: 'Backing plate thickness (mm, 0 = none)' },
+            { name: 'base_margin', type: 'number', default: 3, min: 0, max: 30, step: 0.5, group: 'Base', description: 'Backing plate margin (mm)' },
+        ],
+        async build(p) {
+            if (!p.file || !p.file.text) throw new Error('Upload an SVG file first');
+            const mod = await loadModule('https://cdn.jsdelivr.net/npm/@jscad/svg-deserializer@2/+esm');
+            const deserialize = mod.deserialize || (mod.default && mod.default.deserialize);
+            if (typeof deserialize !== 'function') throw new Error('SVG parser unavailable');
+            const outlines = svgOutlines(deserialize({ output: 'geometry', target: 'path2' }, p.file.text));
+            if (!outlines.length) throw new Error('No usable shapes found in the SVG');
+            const b = boundsOf(outlines);
+            const maxDim = Math.max(b.maxX - b.minX, b.maxY - b.minY) || 1;
+            const sf = p.target_size > 0 ? p.target_size / maxDim : 1;
+            const cx = (b.minX + b.maxX) / 2, cy = (b.minY + b.maxY) / 2;
+            const placed = outlines.map((o) => o.map(([x, y]) => [(x - cx) * sf, (y - cy) * sf]));
+            let solid = outlinesToSolid(placed, p.height);
+            if (p.base_thickness > 0) {
+                const sb = boundsOf(placed);
+                const w = (sb.maxX - sb.minX) + 2 * p.base_margin;
+                const d = (sb.maxY - sb.minY) + 2 * p.base_margin;
+                const plate = extrudeLinear({ height: p.base_thickness },
+                    roundedRectangle({ size: [w, d], roundRadius: Math.min(2, p.base_margin || 0.1) }));
+                solid = union(plate, translate([0, 0, p.base_thickness], solid));
+            }
+            return solid;
+        },
+    },
+    lithophane: {
+        name: 'Lithophane',
+        description: 'Convert a photo into a backlit lithophane — darker areas print thicker.',
+        parameters: [
+            { name: 'file', type: 'file', accept: 'image/*', group: 'Source', description: 'Image to convert' },
+            { name: 'width', type: 'number', default: 100, min: 20, max: 250, step: 1, group: 'Size', description: 'Width (mm, height follows aspect)' },
+            { name: 'min_thickness', type: 'number', default: 0.8, min: 0.4, max: 5, step: 0.1, group: 'Thickness', description: 'Thinnest (brightest) areas (mm)' },
+            { name: 'max_thickness', type: 'number', default: 3, min: 1, max: 12, step: 0.1, group: 'Thickness', description: 'Thickest (darkest) areas (mm)' },
+            { name: 'resolution', type: 'number', default: 200, min: 40, max: 350, step: 10, group: 'Quality', description: 'Samples across the width (higher = finer, slower)' },
+            { name: 'invert', type: 'boolean', default: false, group: 'Thickness', description: 'Invert (bright areas print thicker)' },
+        ],
+        async build(p) {
+            if (!p.file || !p.file.dataURL) throw new Error('Upload an image first');
+            if (typeof document === 'undefined') throw new Error('Image decoding needs a browser');
+            const img = new Image();
+            img.src = p.file.dataURL;
+            await img.decode();
+            const cols = Math.max(2, Math.min(Math.round(p.resolution), 400));
+            const rows = Math.max(2, Math.round(cols * img.height / img.width));
+            const canvas = document.createElement('canvas');
+            canvas.width = cols; canvas.height = rows;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, cols, rows);
+            const data = ctx.getImageData(0, 0, cols, rows).data;
+            const minT = p.min_thickness, maxT = Math.max(p.max_thickness, minT + 0.1);
+            const heights = [];
+            for (let r = 0; r < rows; r++) {
+                const row = [];
+                for (let c = 0; c < cols; c++) {
+                    const i = (r * cols + c) * 4;
+                    const a = data[i + 3] / 255;
+                    let lum = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
+                    lum = lum * a + (1 - a);                 // transparent → bright (thin)
+                    const t = p.invert ? lum : (1 - lum);    // default: dark → thick
+                    row.push(minT + t * (maxT - minT));
+                }
+                heights.push(row);
+            }
+            const cell = p.width / (cols - 1);
+            const geom = heightmapToGeom3(heights, cell, cell);
+            return translate([-(cols - 1) * cell / 2, -(rows - 1) * cell / 2, 0], geom);
+        },
+    },
+    custom_jscad: {
+        name: 'Custom (JSCAD code)',
+        description: 'Advanced: write JSCAD code that returns a solid. Runs only in your browser.',
+        parameters: [
+            { name: 'code', type: 'textarea', rows: 12, group: 'Code', description: 'Return a JSCAD geom3. `jscad` and `params` are in scope.',
+                default: "const { primitives, booleans, transforms } = jscad;\nconst { cuboid, sphere, cylinder } = primitives;\n\nconst body = cuboid({ size: [30, 30, 30] });\nconst hole = sphere({ radius: 19 });\n\nreturn booleans.subtract(body, hole);" },
+        ],
+        build(p) {
+            if (!p.code || !p.code.trim()) throw new Error('Enter some JSCAD code');
+            let fn;
+            try { fn = new Function('jscad', 'params', p.code); }
+            catch (e) { throw new Error('Code syntax error: ' + e.message); }
+            const result = fn(jscad, p);
+            if (!result || !result.polygons) throw new Error('Your code must return a 3D solid (geom3)');
+            return result;
+        },
+    },
 };
 
 // --- Manager ----------------------------------------------------------------
@@ -693,6 +857,11 @@ class GeneratorManager {
                 if (asText) reader.readAsText(file);
                 else reader.readAsDataURL(file);
             });
+        } else if (param.type === 'textarea') {
+            input = document.createElement('textarea');
+            input.rows = param.rows || 8;
+            input.spellcheck = false;
+            input.value = param.default ?? '';
         } else {
             input = document.createElement('input');
             input.type = 'text';
