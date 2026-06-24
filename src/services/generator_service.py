@@ -53,7 +53,8 @@ class GeneratorService:
 
     async def save_stl_to_library(self, stl_bytes: bytes, template_id: str,
                                   parameters: Dict[str, Any],
-                                  display_name: Optional[str] = None) -> Dict[str, Any]:
+                                  display_name: Optional[str] = None,
+                                  is_business: bool = False) -> Dict[str, Any]:
         """Persist a browser-generated STL into the Library."""
         if not self.library_service:
             raise GeneratorError("Library service unavailable")
@@ -71,6 +72,7 @@ class GeneratorService:
             "generator": "jscad",
             "template_id": template_id,
             "parameters": parameters or {},
+            "is_business": is_business,
         }
         if display_name:
             safe = _safe_filename(display_name)
