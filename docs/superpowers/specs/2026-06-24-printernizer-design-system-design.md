@@ -137,6 +137,7 @@ esbuild bundles this to `dist/styles.css`. Components never import CSS themselve
 **`build.mjs` (esbuild):**
 - Entry: `src/index.ts`
 - Format: ESM
+- Global name (for design-sync bundle header): `PrinternizerDS`
 - External: `react`, `react-dom`
 - Bundle: true
 - Minify: false (readable output aids design agent)
