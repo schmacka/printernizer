@@ -467,6 +467,19 @@ class SlicerService(BaseService):
 
         return is_valid
 
+    async def get_backend(self, slicer_id: str):
+        """Resolve the execution backend for a slicer config.
+
+        Returns a RemoteHTTPBackend for remote slicer services, otherwise a
+        LocalProcessBackend wrapping a host-installed slicer binary.
+        """
+        from src.services.slicer_backends.local_process import LocalProcessBackend
+        from src.services.slicer_backends.remote_http import RemoteHTTPBackend
+        slicer = await self.get_slicer(slicer_id)
+        if slicer.backend_type == "remote":
+            return RemoteHTTPBackend(slicer)
+        return LocalProcessBackend(slicer)
+
     async def _get_setting(self, key: str, default: Any) -> Any:
         """Get setting from database or return default."""
         try:

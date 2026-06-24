@@ -24,7 +24,6 @@ from src.models.slicer import (
 )
 from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
-from src.utils.gcode_metadata import GCodeMetadata, parse_gcode_metadata
 import re
 
 logger = structlog.get_logger()
@@ -177,7 +176,7 @@ class SlicingQueue(BaseService):
         )
 
         job = await self.get_job(job_id)
-        await self.event_service.emit("slicing_job.created", {"job_id": job_id})
+        await self.event_service.emit_event("slicing_job.created", {"job_id": job_id})
         
         # Start processing if slots available
         await self._process_queue()
@@ -265,7 +264,7 @@ class SlicingQueue(BaseService):
         await self._update_job_status(job_id, SlicingJobStatus.CANCELLED)
         
         logger.info("Cancelled slicing job", job_id=job_id)
-        await self.event_service.emit("slicing_job.cancelled", {"job_id": job_id})
+        await self.event_service.emit_event("slicing_job.cancelled", {"job_id": job_id})
         
         return True
 
@@ -350,15 +349,9 @@ class SlicingQueue(BaseService):
             await self._update_job_status(job_id, SlicingJobStatus.RUNNING)
             await self._update_job_progress(job_id, 0)
             
-            # Get slicer and profile
-            slicer = await self.slicer_service.get_slicer(job.slicer_id)
+            # Get profile (the execution backend is resolved from the slicer config)
             profile = await self.slicer_service.get_profile(job.profile_id)
-            
-            # Verify slicer is available
-            is_available = await self.slicer_service.verify_slicer_availability(job.slicer_id)
-            if not is_available:
-                raise Exception("Slicer is not available")
-            
+
             # Get input file from library
             if not self.library_service:
                 raise Exception("Library service not available")
@@ -377,85 +370,32 @@ class SlicingQueue(BaseService):
             
             await self._update_job_progress(job_id, 10)
             
-            # Build slicing command
-            cmd = [
-                str(slicer.executable_path),
-                "--export-gcode",
-                "--output", str(output_file),
-            ]
-            
-            # Add profile if path exists
-            if profile.profile_path and Path(profile.profile_path).exists():
-                cmd.extend(["--load", str(profile.profile_path)])
-            
-            cmd.append(str(input_file))
-            
+            # Resolve the execution backend (remote slicer service or local process)
+            backend = await self.slicer_service.get_backend(job.slicer_id)
+            if not await backend.verify():
+                raise Exception("Slicer backend is not available")
+
             logger.info(
                 "Starting slicing",
                 job_id=job_id,
-                slicer=slicer.name,
                 profile=profile.profile_name,
-                input_file=str(input_file)
+                input_file=str(input_file),
             )
-            
-            await self._update_job_progress(job_id, 20)
-            
-            # Execute slicing command
-            timeout = await self._get_setting("slicing.timeout_seconds", 3600)
-            
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            # Monitor progress with timeout tracking
-            start_time = asyncio.get_event_loop().time()
-            progress_steps = [30, 40, 50, 60, 70, 80, 90]
-            step_interval = 5  # Fixed 5-second interval between progress updates
-            
-            for progress in progress_steps:
-                # Check if we've exceeded timeout
-                elapsed = asyncio.get_event_loop().time() - start_time
-                if elapsed >= timeout:
-                    process.kill()
-                    raise Exception("Slicing timed out")
-                
-                await asyncio.sleep(step_interval)
-                if process.returncode is not None:
-                    break
-                await self._update_job_progress(job_id, progress)
-            
-            # Wait for completion with remaining timeout
-            elapsed = asyncio.get_event_loop().time() - start_time
-            remaining_timeout = max(1, timeout - elapsed)
-            
-            try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=remaining_timeout
-                )
-            except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
-                raise Exception("Slicing timed out")
-            
-            if process.returncode != 0:
-                # stderr is already bytes from communicate()
-                error_msg = stderr.decode('utf-8', errors='ignore') if isinstance(stderr, bytes) else str(stderr)
-                raise Exception(f"Slicing failed: {error_msg}")
-            
-            if not output_file.exists():
-                raise Exception("Output file was not created")
 
-            # Parse G-code metadata to extract print time and filament usage
-            gcode_metadata = parse_gcode_metadata(str(output_file))
+            async def _progress(p: int):
+                await self._update_job_progress(job_id, max(10, min(99, p)))
+
+            result = await backend.slice(
+                str(input_file), profile, str(output_file), progress_cb=_progress)
+
+            if not result.success:
+                raise Exception(result.error_message or "Slicing failed")
 
             logger.info(
-                "Extracted G-code metadata",
+                "Slicing produced output",
                 job_id=job_id,
-                estimated_print_time=gcode_metadata.estimated_print_time,
-                filament_used=gcode_metadata.filament_used
+                estimated_print_time=result.estimated_print_time,
+                filament_used=result.filament_used,
             )
 
             # Update job with results including extracted metadata
@@ -473,11 +413,11 @@ class SlicingQueue(BaseService):
                     WHERE id = ?
                     """,
                     (
-                        str(output_file),
+                        result.output_path,
                         SlicingJobStatus.COMPLETED.value,
                         100,
-                        gcode_metadata.estimated_print_time,
-                        gcode_metadata.filament_used,
+                        result.estimated_print_time,
+                        result.filament_used,
                         datetime.now(),
                         datetime.now(),
                         job_id,
@@ -491,7 +431,7 @@ class SlicingQueue(BaseService):
                 output_file=str(output_file)
             )
             
-            await self.event_service.emit("slicing_job.completed", {"job_id": job_id})
+            await self.event_service.emit_event("slicing_job.completed", {"job_id": job_id})
             
             # Handle auto-upload if enabled
             if job.auto_upload and job.target_printer_id:
@@ -540,7 +480,7 @@ class SlicingQueue(BaseService):
                     )
                     await conn.commit()
                 
-                await self.event_service.emit("slicing_job.failed", {"job_id": job_id, "error": str(e)})
+                await self.event_service.emit_event("slicing_job.failed", {"job_id": job_id, "error": str(e)})
         
         finally:
             # Remove from running jobs
@@ -612,7 +552,7 @@ class SlicingQueue(BaseService):
                     printer_id=job.target_printer_id,
                     filename=remote_name
                 )
-                await self.event_service.emit("slicing_job.upload_failed", {
+                await self.event_service.emit_event("slicing_job.upload_failed", {
                     "job_id": job_id,
                     "printer_id": job.target_printer_id,
                     "filename": remote_name
@@ -626,7 +566,7 @@ class SlicingQueue(BaseService):
                 filename=remote_name
             )
 
-            await self.event_service.emit("slicing_job.uploaded", {
+            await self.event_service.emit_event("slicing_job.uploaded", {
                 "job_id": job_id,
                 "printer_id": job.target_printer_id,
                 "filename": remote_name
@@ -650,7 +590,7 @@ class SlicingQueue(BaseService):
                         printer_id=job.target_printer_id,
                         filename=remote_name
                     )
-                    await self.event_service.emit("slicing_job.print_started", {
+                    await self.event_service.emit_event("slicing_job.print_started", {
                         "job_id": job_id,
                         "printer_id": job.target_printer_id,
                         "filename": remote_name
@@ -662,7 +602,7 @@ class SlicingQueue(BaseService):
                         printer_id=job.target_printer_id,
                         filename=remote_name
                     )
-                    await self.event_service.emit("slicing_job.print_start_failed", {
+                    await self.event_service.emit_event("slicing_job.print_start_failed", {
                         "job_id": job_id,
                         "printer_id": job.target_printer_id,
                         "filename": remote_name
@@ -691,7 +631,7 @@ class SlicingQueue(BaseService):
             )
             await conn.commit()
         
-        await self.event_service.emit("slicing_job.status_changed", {
+        await self.event_service.emit_event("slicing_job.status_changed", {
             "job_id": job_id,
             "status": status.value
         })
@@ -705,7 +645,7 @@ class SlicingQueue(BaseService):
             )
             await conn.commit()
         
-        await self.event_service.emit("slicing_job.progress", {
+        await self.event_service.emit_event("slicing_job.progress", {
             "job_id": job_id,
             "progress": progress
         })
