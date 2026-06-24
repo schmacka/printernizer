@@ -214,3 +214,5 @@ config.local.json
 settings.local.json
 exports/
 .worktrees/
+.venv/
+.superpowers/
