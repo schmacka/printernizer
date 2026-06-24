@@ -787,10 +787,10 @@ const TEMPLATES = {
 
     first_layer_patch: {
         name: 'First Layer Patch',
-        description: 'A flat patch for calibrating live-Z / first layer squish. Defaults to a 60 × 60 mm area.',
+        description: 'A flat patch for calibrating live-Z / first layer squish. Pre-fills to the selected printer\'s bed size (defaults to 60 × 60 mm).',
         parameters: [
-            { name: 'width', type: 'number', default: 60, min: 20, max: 200, step: 5, group: 'Dimensions', description: 'Patch width (mm)' },
-            { name: 'depth', type: 'number', default: 60, min: 20, max: 200, step: 5, group: 'Dimensions', description: 'Patch depth (mm)' },
+            { name: 'width', type: 'number', default: 60, min: 20, max: 350, step: 5, group: 'Dimensions', description: 'Patch width (mm)', fromProfile: 'bedWidth' },
+            { name: 'depth', type: 'number', default: 60, min: 20, max: 350, step: 5, group: 'Dimensions', description: 'Patch depth (mm)', fromProfile: 'bedDepth' },
             { name: 'thickness', type: 'number', default: 0.4, min: 0.2, max: 1.2, step: 0.1, group: 'Dimensions', description: 'Thickness — one layer height (mm)' },
             { name: 'corner_radius', type: 'number', default: 3, min: 0, max: 15, step: 0.5, group: 'Style', description: 'Corner radius (mm)' },
             { name: 'nozzle_diameter', type: 'number', default: 0.4, min: 0.2, max: 1.0, step: 0.1, group: 'Printer', description: 'Nozzle diameter (mm)' },
@@ -855,10 +855,11 @@ const TEMPLATES = {
             const armR = cuboid({ size: [th, al, th], center: [  sw / 2 + th / 2, 0, th / 2] });
             const bridge = cuboid({ size: [sw + 2 * th, th, th], center: [0, -al / 2, th / 2] });
             let clip = union([armL, armR, bridge]);
-            // Filament retention hole through the bridge.
+            // Vertical filament retention hole through the bridge (bridge spans z 0..th
+            // at y = -al/2); the Z-axis cylinder is already aligned, so no rotation.
             const wireHole = cylinder({ radius: wr, height: th + 2, segments: 24,
                                         center: [0, -al / 2, th / 2] });
-            clip = subtract(clip, rotate([Math.PI / 2, 0, 0], wireHole));
+            clip = subtract(clip, wireHole);
             return clip;
         },
     },
@@ -1092,19 +1093,17 @@ class GeneratorManager {
         if (!form) return;
         form.innerHTML = '';
 
-        // Merge printer profile into parameter defaults where field names match.
-        const profile = this.getSelectedPrinterProfile();
-        const profileDefaults = {
-            nozzle_diameter: profile.nozzleDiameter,
-        };
+        // When a printer is selected, pre-fill any parameter that opts in via
+        // `fromProfile` (e.g. width: 'bedWidth') with that printer's value.
+        const profile = this.selectedPrinter ? this.getSelectedPrinterProfile() : null;
 
         const groups = new Map();
         this.currentParameters.forEach((p) => {
             const key = p.group || '';
             if (!groups.has(key)) groups.set(key, []);
-            // Apply printer-profile default if available.
-            const overridden = (p.name in profileDefaults)
-                ? { ...p, default: profileDefaults[p.name] }
+            const profileValue = (profile && p.fromProfile) ? profile[p.fromProfile] : undefined;
+            const overridden = (profileValue !== undefined)
+                ? { ...p, default: profileValue }
                 : p;
             groups.get(key).push(overridden);
         });

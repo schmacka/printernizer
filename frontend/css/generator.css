@@ -152,6 +152,32 @@
     pointer-events: none;
 }
 
+.generator-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #f0c36d;
+    border-left: 4px solid #e6a700;
+    border-radius: 8px;
+    background: #fff8e6;
+    color: #6b4e00;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.generator-warning strong {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.generator-warning-icon {
+    font-size: 1.1rem;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
 .generator-printer-section:empty {
     display: none;
 }
