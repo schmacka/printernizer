@@ -113,8 +113,9 @@ class SlicerService(BaseService):
                 """
                 INSERT INTO slicer_configs (
                     id, name, slicer_type, executable_path, version, config_dir,
+                    backend_type, endpoint_url,
                     is_available, last_verified, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     slicer_id,
@@ -123,6 +124,8 @@ class SlicerService(BaseService):
                     slicer_data["executable_path"],
                     slicer_data.get("version"),
                     slicer_data.get("config_dir"),
+                    slicer_data.get("backend_type", "local"),
+                    slicer_data.get("endpoint_url"),
                     True,
                     now,
                     now,
@@ -197,7 +200,8 @@ class SlicerService(BaseService):
         Returns:
             Updated slicer configuration
         """
-        allowed_fields = {"name", "executable_path", "version", "config_dir", "is_available"}
+        allowed_fields = {"name", "executable_path", "version", "config_dir",
+                          "backend_type", "endpoint_url", "is_available"}
         updates = {k: v for k, v in updates.items() if k in allowed_fields}
         
         if not updates:
@@ -496,6 +500,9 @@ class SlicerService(BaseService):
 
     def _row_to_slicer_config(self, row) -> SlicerConfig:
         """Convert database row to SlicerConfig."""
+        # NOTE: SELECT * returns columns in physical order. Migration 034 appends
+        # backend_type/endpoint_url to the END of slicer_configs (ALTER ADD COLUMN),
+        # so they are indices 10/11 while is_available stays at 6.
         return SlicerConfig(
             id=row[0],
             name=row[1],
@@ -507,6 +514,8 @@ class SlicerService(BaseService):
             last_verified=datetime.fromisoformat(row[7]) if row[7] else None,
             created_at=datetime.fromisoformat(row[8]),
             updated_at=datetime.fromisoformat(row[9]),
+            backend_type=(row[10] if len(row) > 10 else None) or "local",
+            endpoint_url=row[11] if len(row) > 11 else None,
         )
 
     def _row_to_profile(self, row) -> SlicerProfile:
