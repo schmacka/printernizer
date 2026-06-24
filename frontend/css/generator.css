@@ -152,6 +152,70 @@
     pointer-events: none;
 }
 
+.generator-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #f0c36d;
+    border-left: 4px solid #e6a700;
+    border-radius: 8px;
+    background: #fff8e6;
+    color: #6b4e00;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.generator-warning strong {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.generator-warning-icon {
+    font-size: 1.1rem;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+.generator-printer-section:empty {
+    display: none;
+}
+
+.generator-printer-section h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.generator-printer-section label {
+    font-size: 0.875rem;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.generator-estimate {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #d0d0d8);
+    border-radius: 6px;
+    background: var(--surface-alt, #f7f7fa);
+    font-size: 0.875rem;
+    color: var(--text-secondary, #555);
+    font-variant-numeric: tabular-nums;
+}
+
+.generator-business-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    align-self: center;
+}
+
+.generator-business-label input[type="checkbox"] {
+    cursor: pointer;
+}
+
 @media (max-width: 900px) {
     .generator-layout {
         grid-template-columns: 1fr;

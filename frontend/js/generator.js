@@ -12,7 +12,7 @@
 import jscad from 'https://cdn.jsdelivr.net/npm/@jscad/modeling@2/+esm';
 import stlSerializer from 'https://cdn.jsdelivr.net/npm/@jscad/stl-serializer@2/+esm';
 
-const { primitives, booleans, transforms, extrusions, geometries, maths } = jscad;
+const { primitives, booleans, transforms, extrusions, geometries, maths, measurements } = jscad;
 const { roundedRectangle, rectangle, cylinder, cuboid, circle } = primitives;
 const { extrudeLinear, extrudeFromSlices, slice } = extrusions;
 const { subtract, union } = booleans;
@@ -29,6 +29,24 @@ function loadModule(url) {
     if (!_moduleCache.has(url)) _moduleCache.set(url, import(/* @vite-ignore */ url));
     return _moduleCache.get(url);
 }
+
+// --- Printer-awareness constants ---------------------------------------------
+
+// Bed dimensions (mm) keyed by printer type string from the API.
+const PRINTER_BED_SIZES = {
+    BAMBU_LAB:  { width: 256, depth: 256 },  // A1, P1S, X1C
+    PRUSA_CORE: { width: 250, depth: 210 },
+};
+// A1 Mini has a smaller bed — detected by name substring.
+const A1_MINI_BED = { width: 180, depth: 180 };
+// Fallback when no printer is selected.
+const DEFAULT_BED = { width: 235, depth: 235 };
+
+// Filament density g/mm³ for volume → mass conversion.
+const FILAMENT_DENSITY = {
+    PLA: 1.24e-3, PETG: 1.27e-3, ABS: 1.05e-3, TPU: 1.22e-3,
+    ASA: 1.07e-3, NYLON: 1.14e-3,
+};
 
 // --- Bundled templates (build function + parameter schema) -------------------
 
@@ -685,6 +703,218 @@ const TEMPLATES = {
             return translate([-(cols - 1) * cell / 2, -(rows - 1) * cell / 2, 0], geom);
         },
     },
+    // --- Calibration & test-print templates -----------------------------------
+
+    temp_tower: {
+        name: 'Temperature Tower',
+        description: 'Stacked segments for dialing in optimal print temperature. Configure your slicer to change temperature at each segment height.',
+        parameters: [
+            { name: 'start_temp', type: 'number', default: 220, min: 170, max: 290, step: 5, group: 'Temperature', description: 'Bottom segment temperature (°C)' },
+            { name: 'end_temp', type: 'number', default: 190, min: 170, max: 290, step: 5, group: 'Temperature', description: 'Top segment temperature (°C)' },
+            { name: 'temp_step', type: 'number', default: 5, min: 5, max: 20, step: 5, group: 'Temperature', description: 'Temperature step between segments (°C)' },
+            { name: 'block_width', type: 'number', default: 20, min: 10, max: 50, step: 1, group: 'Dimensions', description: 'Block width (mm)' },
+            { name: 'block_depth', type: 'number', default: 15, min: 8, max: 40, step: 1, group: 'Dimensions', description: 'Block depth (mm)' },
+            { name: 'segment_height', type: 'number', default: 10, min: 5, max: 25, step: 1, group: 'Dimensions', description: 'Height per segment (mm)' },
+            { name: 'nozzle_diameter', type: 'number', default: 0.4, min: 0.2, max: 1.0, step: 0.1, group: 'Printer', description: 'Nozzle diameter (mm)' },
+        ],
+        build(p) {
+            const segs = Math.max(2, Math.round(Math.abs(p.start_temp - p.end_temp) / p.temp_step) + 1);
+            const bw = p.block_width, bd = p.block_depth, sh = p.segment_height;
+            const blocks = [];
+            for (let i = 0; i < segs; i++) {
+                const z = i * sh;
+                // Main segment block.
+                blocks.push(translate([0, 0, z], cuboid({ size: [bw, bd, sh - 0.1], center: [0, 0, (sh - 0.1) / 2] })));
+                // Small overhang tab on the front face of every segment except the bottom.
+                if (i > 0) {
+                    const tw = bw * 0.5, td = bw * 0.15, th = sh * 0.3;
+                    blocks.push(translate([0, bd / 2 + td / 2, z + th / 2],
+                        cuboid({ size: [tw, td, th] })));
+                }
+            }
+            return union(blocks);
+        },
+    },
+
+    retraction_tower: {
+        name: 'Retraction Test Tower',
+        description: 'Two-pillar tower with bridging spans. Increase retraction distance until stringing disappears.',
+        parameters: [
+            { name: 'pillar_diameter', type: 'number', default: 8, min: 4, max: 16, step: 0.5, group: 'Dimensions', description: 'Pillar diameter (mm)' },
+            { name: 'pillar_gap', type: 'number', default: 20, min: 8, max: 50, step: 1, group: 'Dimensions', description: 'Gap between pillars (mm)' },
+            { name: 'tower_height', type: 'number', default: 60, min: 20, max: 120, step: 5, group: 'Dimensions', description: 'Total height (mm)' },
+            { name: 'bridge_count', type: 'number', default: 5, min: 2, max: 10, step: 1, group: 'Bridges', description: 'Number of bridging levels' },
+            { name: 'bridge_thickness', type: 'number', default: 1.5, min: 0.8, max: 4, step: 0.1, group: 'Bridges', description: 'Bridge thickness (mm)' },
+            { name: 'nozzle_diameter', type: 'number', default: 0.4, min: 0.2, max: 1.0, step: 0.1, group: 'Printer', description: 'Nozzle diameter (mm)' },
+        ],
+        build(p) {
+            const r = p.pillar_diameter / 2;
+            const cx = (p.pillar_gap + p.pillar_diameter) / 2;
+            const left  = translate([-cx, 0, p.tower_height / 2], cylinder({ radius: r, height: p.tower_height, segments: 32 }));
+            const right = translate([ cx, 0, p.tower_height / 2], cylinder({ radius: r, height: p.tower_height, segments: 32 }));
+            const parts = [left, right];
+            const bridgeSpacing = p.tower_height / (p.bridge_count + 1);
+            const bridgeW = p.pillar_gap + p.pillar_diameter;
+            for (let i = 1; i <= p.bridge_count; i++) {
+                const z = i * bridgeSpacing;
+                parts.push(translate([0, 0, z],
+                    cuboid({ size: [bridgeW, p.pillar_diameter * 0.8, p.bridge_thickness],
+                              center: [0, 0, 0] })));
+            }
+            return union(parts);
+        },
+    },
+
+    flow_square: {
+        name: 'Flow / Extrusion Calibration',
+        description: 'A flat calibration square with a centred reference hole for measuring extrusion width and flow rate.',
+        parameters: [
+            { name: 'size', type: 'number', default: 30, min: 15, max: 80, step: 1, group: 'Dimensions', description: 'Square side length (mm)' },
+            { name: 'thickness', type: 'number', default: 0.4, min: 0.2, max: 2, step: 0.1, group: 'Dimensions', description: 'Thickness — one layer height recommended (mm)' },
+            { name: 'ref_hole', type: 'boolean', default: true, group: 'Style', description: 'Add a centred 5 mm reference hole' },
+            { name: 'nozzle_diameter', type: 'number', default: 0.4, min: 0.2, max: 1.0, step: 0.1, group: 'Printer', description: 'Nozzle diameter (mm)' },
+        ],
+        build(p) {
+            let base = extrudeLinear({ height: p.thickness },
+                rectangle({ size: [p.size, p.size] }));
+            if (p.ref_hole) {
+                const hole = cylinder({ radius: 2.5, height: p.thickness + 1, segments: 32, center: [0, 0, p.thickness / 2] });
+                base = subtract(base, hole);
+            }
+            return base;
+        },
+    },
+
+    first_layer_patch: {
+        name: 'First Layer Patch',
+        description: 'A flat patch for calibrating live-Z / first layer squish. Pre-fills to the selected printer\'s bed size (defaults to 60 × 60 mm).',
+        parameters: [
+            { name: 'width', type: 'number', default: 60, min: 20, max: 350, step: 5, group: 'Dimensions', description: 'Patch width (mm)', fromProfile: 'bedWidth' },
+            { name: 'depth', type: 'number', default: 60, min: 20, max: 350, step: 5, group: 'Dimensions', description: 'Patch depth (mm)', fromProfile: 'bedDepth' },
+            { name: 'thickness', type: 'number', default: 0.4, min: 0.2, max: 1.2, step: 0.1, group: 'Dimensions', description: 'Thickness — one layer height (mm)' },
+            { name: 'corner_radius', type: 'number', default: 3, min: 0, max: 15, step: 0.5, group: 'Style', description: 'Corner radius (mm)' },
+            { name: 'nozzle_diameter', type: 'number', default: 0.4, min: 0.2, max: 1.0, step: 0.1, group: 'Printer', description: 'Nozzle diameter (mm)' },
+        ],
+        build(p) {
+            const profile = (p.corner_radius > 0)
+                ? roundedRectangle({ size: [p.width, p.depth],
+                                     roundRadius: Math.min(p.corner_radius, Math.min(p.width, p.depth) / 2 - 0.01) })
+                : rectangle({ size: [p.width, p.depth] });
+            return extrudeLinear({ height: p.thickness }, profile);
+        },
+    },
+
+    tolerance_gauge: {
+        name: 'Clearance / Tolerance Gauge',
+        description: 'A base plate with peg–hole pairs at different clearances. Print and test which peg fits its matching hole.',
+        parameters: [
+            { name: 'peg_diameter', type: 'number', default: 8, min: 4, max: 20, step: 0.5, group: 'Gauge', description: 'Nominal peg diameter (mm)' },
+            { name: 'steps', type: 'number', default: 5, min: 3, max: 8, step: 1, group: 'Gauge', description: 'Number of tolerance steps' },
+            { name: 'tolerance_step', type: 'number', default: 0.1, min: 0.05, max: 0.5, step: 0.05, group: 'Gauge', description: 'Clearance increment per step (mm)' },
+            { name: 'peg_height', type: 'number', default: 10, min: 5, max: 30, step: 1, group: 'Dimensions', description: 'Peg height (mm)' },
+            { name: 'base_thickness', type: 'number', default: 2, min: 1, max: 6, step: 0.5, group: 'Dimensions', description: 'Base plate thickness (mm)' },
+        ],
+        build(p) {
+            const spacing = p.peg_diameter * 2.5;
+            const totalW = p.steps * spacing;
+            const base = extrudeLinear({ height: p.base_thickness },
+                rectangle({ size: [totalW, spacing * 2.5] }));
+            const pegs = [], holes = [];
+            for (let i = 0; i < p.steps; i++) {
+                const clearance = i * p.tolerance_step;
+                const pegR = p.peg_diameter / 2;
+                const holeR = pegR + clearance;
+                const x = -totalW / 2 + (i + 0.5) * spacing;
+                // Peg row (top half of base)
+                pegs.push(translate([x, spacing * 0.5, p.base_thickness + p.peg_height / 2],
+                    cylinder({ radius: pegR, height: p.peg_height, segments: 32 })));
+                // Hole row (bottom half of base) — drilled through the base
+                holes.push(translate([x, -spacing * 0.5, p.base_thickness / 2],
+                    cylinder({ radius: holeR, height: p.base_thickness + 2, segments: 32 })));
+            }
+            return subtract(union([base, ...pegs]), union(holes));
+        },
+    },
+
+    // --- Per-printer utility part templates ----------------------------------
+
+    spool_clip: {
+        name: 'Spool Clip',
+        description: 'A spring clip to hold a filament end against the spool rim.',
+        parameters: [
+            { name: 'spool_rim_width', type: 'number', default: 15, min: 8, max: 35, step: 0.5, group: 'Spool', description: 'Spool rim width to straddle (mm)' },
+            { name: 'wire_diameter', type: 'number', default: 1.75, min: 1.5, max: 3, step: 0.05, group: 'Filament', description: 'Filament diameter (mm)' },
+            { name: 'arm_thickness', type: 'number', default: 2.5, min: 1.5, max: 5, step: 0.25, group: 'Body', description: 'Arm thickness (mm)' },
+            { name: 'arm_length', type: 'number', default: 30, min: 15, max: 60, step: 1, group: 'Body', description: 'Arm length (mm)' },
+        ],
+        build(p) {
+            const th = p.arm_thickness, sw = p.spool_rim_width, al = p.arm_length;
+            const wr = p.wire_diameter / 2 + 0.2;  // slight clearance
+            // U-shaped clip: two parallel arms bridged at one end.
+            const armL = cuboid({ size: [th, al, th], center: [-(sw / 2 + th / 2), 0, th / 2] });
+            const armR = cuboid({ size: [th, al, th], center: [  sw / 2 + th / 2, 0, th / 2] });
+            const bridge = cuboid({ size: [sw + 2 * th, th, th], center: [0, -al / 2, th / 2] });
+            let clip = union([armL, armR, bridge]);
+            // Vertical filament retention hole through the bridge (bridge spans z 0..th
+            // at y = -al/2); the Z-axis cylinder is already aligned, so no rotation.
+            const wireHole = cylinder({ radius: wr, height: th + 2, segments: 24,
+                                        center: [0, -al / 2, th / 2] });
+            clip = subtract(clip, wireHole);
+            return clip;
+        },
+    },
+
+    bed_scraper_holder: {
+        name: 'Bed Scraper Holder',
+        description: 'A wall-mount holder for a flat bed scraper blade.',
+        parameters: [
+            { name: 'blade_width', type: 'number', default: 100, min: 50, max: 200, step: 5, group: 'Blade', description: 'Scraper blade width (mm)' },
+            { name: 'blade_thickness', type: 'number', default: 1.5, min: 0.5, max: 4, step: 0.25, group: 'Blade', description: 'Blade thickness (mm)' },
+            { name: 'wall_thickness', type: 'number', default: 3, min: 2, max: 6, step: 0.5, group: 'Body', description: 'Wall thickness (mm)' },
+            { name: 'slot_depth', type: 'number', default: 20, min: 10, max: 40, step: 2, group: 'Body', description: 'Slot depth (mm)' },
+            { name: 'screw_diameter', type: 'number', default: 4, min: 0, max: 8, step: 0.5, group: 'Mount', description: 'Wall screw hole diameter (mm, 0 = none)' },
+        ],
+        build(p) {
+            const bw = p.blade_width, bt = p.blade_thickness, wt = p.wall_thickness, sd = p.slot_depth;
+            const outerW = bw + 2 * wt;
+            const outerH = sd + wt;
+            const outerD = bt + 2 * wt;
+            const body = cuboid({ size: [outerW, outerD, outerH], center: [0, 0, outerH / 2] });
+            const slot = cuboid({ size: [bw, bt + 0.4, sd + 1], center: [0, 0, outerH - sd / 2] });
+            let holder = subtract(body, slot);
+            if (p.screw_diameter > 0) {
+                const sr = p.screw_diameter / 2;
+                const holes = [-outerW / 4, outerW / 4].map((x) =>
+                    cylinder({ radius: sr, height: outerD + 2, segments: 24,
+                                center: [x, 0, wt / 2] }));
+                holder = subtract(holder, union(holes));
+            }
+            return holder;
+        },
+    },
+
+    nozzle_wipe_block: {
+        name: 'Nozzle Wipe Block',
+        description: 'A silicone-pad holder / wipe block for nozzle purging, sized for your printer.',
+        parameters: [
+            { name: 'width', type: 'number', default: 30, min: 15, max: 60, step: 1, group: 'Dimensions', description: 'Width (mm)' },
+            { name: 'depth', type: 'number', default: 25, min: 10, max: 50, step: 1, group: 'Dimensions', description: 'Depth (mm)' },
+            { name: 'height', type: 'number', default: 20, min: 8, max: 40, step: 1, group: 'Dimensions', description: 'Height (mm)' },
+            { name: 'pad_recess', type: 'number', default: 3, min: 0, max: 10, step: 0.5, group: 'Dimensions', description: 'Top recess depth for silicone pad (mm, 0 = flat)' },
+            { name: 'nozzle_diameter', type: 'number', default: 0.4, min: 0.2, max: 1.0, step: 0.1, group: 'Printer', description: 'Nozzle diameter (mm)' },
+            { name: 'wall_thickness', type: 'number', default: 2, min: 1.2, max: 4, step: 0.2, group: 'Dimensions', description: 'Wall thickness (mm)' },
+        ],
+        build(p) {
+            const body = cuboid({ size: [p.width, p.depth, p.height], center: [0, 0, p.height / 2] });
+            if (p.pad_recess <= 0) return body;
+            const recess = cuboid({
+                size: [p.width - 2 * p.wall_thickness, p.depth - 2 * p.wall_thickness, p.pad_recess + 0.1],
+                center: [0, 0, p.height - p.pad_recess / 2],
+            });
+            return subtract(body, recess);
+        },
+    },
+
     custom_jscad: {
         name: 'Custom (JSCAD code)',
         description: 'Advanced: write JSCAD code that returns a solid. Runs only in your browser.',
@@ -713,6 +943,8 @@ class GeneratorManager {
         this.currentGeom = null;
         this.three = null;
         this._initialized = false;
+        this.printers = [];
+        this.selectedPrinter = null;
     }
 
     _t(key, fallback) { return (typeof t === 'function') ? t(key) : fallback; }
@@ -732,6 +964,78 @@ class GeneratorManager {
         document.getElementById('generatorRenderBtn')?.addEventListener('click', () => this.generate());
         document.getElementById('generatorSaveBtn')?.addEventListener('click', () => this.saveToLibrary());
         this.renderTemplateList();
+        this._loadPrinters();
+    }
+
+    // ---- Printer selector -------------------------------------------------
+
+    async _loadPrinters() {
+        try {
+            const base = (typeof api !== 'undefined') ? api.baseURL.replace(/\/+$/, '') : '/api/v1';
+            const resp = await fetch(`${base}/printers`);
+            if (resp.ok) {
+                const data = await resp.json();
+                const list = data.data || data || [];
+                this.printers = Array.isArray(list) ? list.filter((p) => p.is_active !== false) : [];
+            }
+        } catch (_) { /* generator works without printer data */ }
+        this._renderPrinterSelector();
+    }
+
+    _renderPrinterSelector() {
+        const wrap = document.getElementById('generatorPrinterSection');
+        if (!wrap || !this.printers.length) return;
+
+        const h3 = document.createElement('h3');
+        h3.textContent = 'Target Printer';
+
+        const lbl = document.createElement('label');
+        lbl.textContent = 'Printer';
+        lbl.htmlFor = 'generatorPrinterSelect';
+
+        const sel = document.createElement('select');
+        sel.id = 'generatorPrinterSelect';
+        sel.className = 'generator-input';
+
+        const none = document.createElement('option');
+        none.value = '';
+        none.textContent = '— any printer —';
+        sel.appendChild(none);
+
+        this.printers.forEach((p) => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name || p.id;
+            sel.appendChild(opt);
+        });
+
+        sel.addEventListener('change', () => {
+            this.selectedPrinter = this.printers.find((p) => p.id === sel.value) || null;
+            if (this.currentTemplateId) this.buildForm();
+        });
+
+        wrap.innerHTML = '';
+        wrap.appendChild(h3);
+        wrap.appendChild(lbl);
+        wrap.appendChild(sel);
+    }
+
+    getSelectedPrinterProfile() {
+        const defaults = { bedWidth: DEFAULT_BED.width, bedDepth: DEFAULT_BED.depth, nozzleDiameter: 0.4, filamentType: 'PLA' };
+        if (!this.selectedPrinter) return defaults;
+
+        const printerType = (this.selectedPrinter.type || '').toUpperCase();
+        const isA1Mini = (this.selectedPrinter.name || '').toLowerCase().includes('mini');
+        const bed = isA1Mini ? A1_MINI_BED : (PRINTER_BED_SIZES[printerType] || DEFAULT_BED);
+
+        let filamentType = 'PLA';
+        const filaments = this.selectedPrinter.filaments || this.selectedPrinter.filament_slots || [];
+        const active = filaments.find((f) => f.is_active || f.slot === 0);
+        if (active && active.type) {
+            filamentType = active.type.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 6) || 'PLA';
+        }
+
+        return { ...defaults, bedWidth: bed.width, bedDepth: bed.depth, filamentType };
     }
 
     cleanup() { this._stopAnimation(); }
@@ -769,6 +1073,9 @@ class GeneratorManager {
         this.currentTemplateId = templateId;
         this.currentParameters = tpl.parameters;
         this.currentGeom = null;
+        // Hide stale estimate when switching templates.
+        const est = document.getElementById('generatorEstimate');
+        if (est) est.style.display = 'none';
         this.buildForm();
         this._highlightCard(templateId);
         document.getElementById('generatorRenderBtn').disabled = false;
@@ -785,11 +1092,20 @@ class GeneratorManager {
         const form = document.getElementById('generatorForm');
         if (!form) return;
         form.innerHTML = '';
+
+        // When a printer is selected, pre-fill any parameter that opts in via
+        // `fromProfile` (e.g. width: 'bedWidth') with that printer's value.
+        const profile = this.selectedPrinter ? this.getSelectedPrinterProfile() : null;
+
         const groups = new Map();
         this.currentParameters.forEach((p) => {
             const key = p.group || '';
             if (!groups.has(key)) groups.set(key, []);
-            groups.get(key).push(p);
+            const profileValue = (profile && p.fromProfile) ? profile[p.fromProfile] : undefined;
+            const overridden = (profileValue !== undefined)
+                ? { ...p, default: profileValue }
+                : p;
+            groups.get(key).push(overridden);
         });
         groups.forEach((params, groupName) => {
             const fieldset = document.createElement('fieldset');
@@ -802,6 +1118,20 @@ class GeneratorManager {
             params.forEach((p) => fieldset.appendChild(this._buildField(p)));
             form.appendChild(fieldset);
         });
+
+        // Inject shared Plate (batch) group at the end of every template form.
+        const plateFieldset = document.createElement('fieldset');
+        plateFieldset.className = 'generator-fieldset';
+        const plateLegend = document.createElement('legend');
+        plateLegend.textContent = 'Plate';
+        plateFieldset.appendChild(plateLegend);
+        [
+            { name: '_copies', type: 'number', default: 1, min: 1, max: 25, step: 1,
+              description: 'Copies on plate (1 = single part)' },
+            { name: '_gap', type: 'number', default: 2, min: 0.5, max: 20, step: 0.5,
+              description: 'Gap between copies (mm)' },
+        ].forEach((p) => plateFieldset.appendChild(this._buildField(p)));
+        form.appendChild(plateFieldset);
     }
 
     _buildField(param) {
@@ -888,6 +1218,54 @@ class GeneratorManager {
         return params;
     }
 
+    // Extract plate (batch) params from collected parameters.
+    _extractPlateParams(params) {
+        const copies = Math.max(1, Math.min(25, Math.round(params._copies ?? 1)));
+        const gap = Math.max(0.5, params._gap ?? 2);
+        const templateParams = { ...params };
+        delete templateParams._copies;
+        delete templateParams._gap;
+        return { copies, gap, templateParams };
+    }
+
+    // Arrange `copies` instances of `geom` in a grid with `gap` mm between them.
+    _applyBatch(geom, copies, gap) {
+        if (copies <= 1) return geom;
+        const bb = measurements.measureBoundingBox(geom);
+        const partW = bb[1][0] - bb[0][0];
+        const partD = bb[1][1] - bb[0][1];
+        const cols = Math.ceil(Math.sqrt(copies));
+        const stepX = partW + gap;
+        const stepY = partD + gap;
+        const totalW = cols * stepX - gap;
+        const totalD = Math.ceil(copies / cols) * stepY - gap;
+        const parts = [];
+        for (let i = 0; i < copies; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            parts.push(translate([col * stepX - totalW / 2, row * stepY - totalD / 2, 0], geom));
+        }
+        return union(parts);
+    }
+
+    // Show volume-based filament/cost/time estimate after generation.
+    _updateEstimate(geom) {
+        const el = document.getElementById('generatorEstimate');
+        if (!el) return;
+        try {
+            const vol = measurements.measureVolume(geom);          // mm³
+            const profile = this.getSelectedPrinterProfile();
+            const density = FILAMENT_DENSITY[profile.filamentType] ?? FILAMENT_DENSITY.PLA;
+            const mass_g = vol * density;
+            const cost_eur = mass_g * 0.025;                       // €0.025/g average
+            const time_min = Math.max(1, Math.ceil(vol / 800));
+            el.textContent = `~${mass_g.toFixed(1)} g  ·  ~€${cost_eur.toFixed(2)}  ·  ~${time_min} min`;
+            el.style.display = '';
+        } catch (_) {
+            el.style.display = 'none';
+        }
+    }
+
     async generate() {
         if (!this.currentTemplateId) return;
         const statusEl = document.getElementById('generatorViewerStatus');
@@ -896,10 +1274,14 @@ class GeneratorManager {
         if (statusEl) { statusEl.style.display = 'block'; statusEl.textContent = this._t('generator.generating', 'Generating…'); }
         try {
             const tpl = TEMPLATES[this.currentTemplateId];
+            const allParams = this.collectParameters();
+            const { copies, gap, templateParams } = this._extractPlateParams(allParams);
             // build() may be sync or async (templates that load fonts/images/SVG).
-            const geom = await tpl.build(this.collectParameters());
+            let geom = await tpl.build(templateParams);
+            if (copies > 1) geom = this._applyBatch(geom, copies, gap);
             this.currentGeom = geom;
             this._showGeom(geom);
+            this._updateEstimate(geom);
             document.getElementById('generatorSaveBtn').disabled = false;
         } catch (e) {
             const msg = (e && e.message) ? e.message : this._t('generator.renderFailed', 'Generation failed');
@@ -918,7 +1300,11 @@ class GeneratorManager {
             const fd = new FormData();
             fd.append('file', blob, `${this.currentTemplateId}.stl`);
             fd.append('template_id', this.currentTemplateId);
-            fd.append('parameters', JSON.stringify(this.collectParameters()));
+            const allParams = this.collectParameters();
+            const { templateParams } = this._extractPlateParams(allParams);
+            fd.append('parameters', JSON.stringify(templateParams));
+            const isBusiness = document.getElementById('generatorBusinessChk')?.checked ?? false;
+            fd.append('is_business', isBusiness ? 'true' : 'false');
 
             const base = api.baseURL.replace(/\/+$/, '');
             const resp = await fetch(`${base}/generator/save`, { method: 'POST', body: fd });

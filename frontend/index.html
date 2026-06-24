@@ -2088,11 +2088,19 @@
                 <h1>🧩 <span data-i18n="generator.pageTitle">Model Generator</span></h1>
                 <div class="header-subtitle" data-i18n="generator.subtitle">Generate parametric models in your browser and save them into the library</div>
             </div>
+            <div class="generator-warning" role="alert">
+                <span class="generator-warning-icon">⚠️</span>
+                <div>
+                    <strong data-i18n="generator.warningTitle">Experimental — use at your own risk.</strong>
+                    <span data-i18n="generator.warningBody">The model generator is experimental and provided without warranty. Generated geometry, dimensions, fit, and cost/time estimates are not guaranteed. Always inspect and slice models before printing. You are solely responsible for anything you print.</span>
+                </div>
+            </div>
             <div id="generatorUnavailable" class="generator-unavailable" style="display: none;">
                 <p data-i18n="generator.unavailable">The model generator could not be loaded in your browser.</p>
             </div>
             <div class="generator-layout" id="generatorLayout">
                 <aside class="generator-sidebar">
+                    <div id="generatorPrinterSection" class="generator-section generator-printer-section"></div>
                     <div class="generator-section">
                         <h3 data-i18n="generator.templates">Templates</h3>
                         <div id="generatorTemplates" class="generator-templates"></div>
@@ -2100,6 +2108,7 @@
                 </aside>
                 <main class="generator-main">
                     <form id="generatorForm" class="generator-form"></form>
+                    <div id="generatorEstimate" class="generator-estimate" style="display:none;"></div>
                     <div class="generator-actions">
                         <button type="button" class="btn btn-primary" id="generatorRenderBtn" disabled>
                             <span class="btn-icon">⚙️</span>
@@ -2109,6 +2118,10 @@
                             <span class="btn-icon">💾</span>
                             <span data-i18n="generator.saveToLibrary">Save to library</span>
                         </button>
+                        <label class="generator-business-label">
+                            <input type="checkbox" id="generatorBusinessChk">
+                            Business order
+                        </label>
                     </div>
                     <div class="generator-viewer-wrap">
                         <div id="generatorViewer" class="generator-viewer"></div>

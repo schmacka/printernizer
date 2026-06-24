@@ -41,6 +41,7 @@ async def save_to_library(
     template_id: str = Form("custom"),
     parameters: str = Form("{}"),
     display_name: Optional[str] = Form(None),
+    is_business: bool = Form(False),
     service: GeneratorService = Depends(get_generator_service),
 ):
     """Store a browser-generated STL in the Library for slicing/printing."""
@@ -61,7 +62,8 @@ async def save_to_library(
         params = {}
 
     result = await service.save_stl_to_library(
-        content, template_id=template_id, parameters=params, display_name=display_name
+        content, template_id=template_id, parameters=params,
+        display_name=display_name, is_business=is_business,
     )
     return {"status": "success", "data": result}
 

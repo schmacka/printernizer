@@ -53,7 +53,8 @@ class GeneratorService:
 
     async def save_stl_to_library(self, stl_bytes: bytes, template_id: str,
                                   parameters: Dict[str, Any],
-                                  display_name: Optional[str] = None) -> Dict[str, Any]:
+                                  display_name: Optional[str] = None,
+                                  is_business: bool = False) -> Dict[str, Any]:
         """Persist a browser-generated STL into the Library."""
         if not self.library_service:
             raise GeneratorError("Library service unavailable")
@@ -71,6 +72,7 @@ class GeneratorService:
             "generator": "jscad",
             "template_id": template_id,
             "parameters": parameters or {},
+            "is_business": is_business,
         }
         if display_name:
             safe = _safe_filename(display_name)
@@ -84,11 +86,31 @@ class GeneratorService:
         finally:
             staged.unlink(missing_ok=True)
 
+        # Tag the saved file with the library's built-in Business/Personal tag so
+        # the flag is actually surfaced by library filtering and reporting.
+        await self._tag_business(result, is_business)
+
         await self.event_service.emit_event("generator.generation.saved", {
             "template_id": template_id,
             "timestamp": datetime.now().isoformat(),
         })
         return result
+
+    async def _tag_business(self, file_record: Dict[str, Any], is_business: bool) -> None:
+        """Assign the built-in 'Business'/'Personal' library tag to a saved file.
+
+        Best-effort: a tagging failure must never fail the save itself.
+        """
+        checksum = (file_record or {}).get("checksum")
+        repo = getattr(self.library_service, "library_repo", None)
+        if not checksum or repo is None:
+            return
+        tag_id = "tag_business" if is_business else "tag_personal"
+        try:
+            await repo.assign_tag_to_file(checksum, tag_id)
+        except Exception as e:
+            logger.warning("Could not tag generated file business/personal",
+                           tag_id=tag_id, error=str(e))
 
     # ---- Presets -----------------------------------------------------------
 
