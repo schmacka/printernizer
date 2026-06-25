@@ -1,0 +1,13 @@
+name: Printernizer Slicer
+version: "0.1.0"
+slug: printernizer_slicer
+description: OrcaSlicer-based slicing service for Printernizer
+url: https://github.com/schmacka/printernizer
+arch:
+  - aarch64
+  - amd64
+init: false
+ports:
+  8001/tcp: 8001
+ports_description:
+  8001/tcp: Slicer service API (point Printernizer's SLICER_SERVICE_URL here)

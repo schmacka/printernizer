@@ -68,6 +68,9 @@ class SlicerService(BaseService):
         if auto_detect:
             await self.detect_and_register_slicers()
 
+        # Register the remote slicer microservice if configured
+        await self.register_remote_slicer_from_env()
+
     async def detect_and_register_slicers(self) -> List[SlicerConfig]:
         """
         Detect and register available slicers.
@@ -466,6 +469,21 @@ class SlicerService(BaseService):
             )
 
         return is_valid
+
+    async def register_remote_slicer_from_env(self) -> None:
+        """Register the remote slicer service from SLICER_SERVICE_URL (idempotent)."""
+        import os
+        url = os.environ.get("SLICER_SERVICE_URL")
+        if not url:
+            return
+        for s in await self.list_slicers():
+            if s.backend_type == "remote" and s.endpoint_url == url:
+                return  # already registered
+        await self.register_slicer({
+            "name": "Slicer Service", "slicer_type": "orcaslicer",
+            "executable_path": "", "backend_type": "remote", "endpoint_url": url,
+        })
+        logger.info("Registered remote slicer service", url=url)
 
     async def get_backend(self, slicer_id: str):
         """Resolve the execution backend for a slicer config.
