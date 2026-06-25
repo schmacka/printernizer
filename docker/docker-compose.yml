@@ -59,6 +59,9 @@ services:
       - ENABLE_ANALYTICS_EXPORT=true
       - ENABLE_BUSINESS_REPORTS=true
 
+      # Slicer microservice (separate container, see the `slicer` service below)
+      - SLICER_SERVICE_URL=http://slicer:8001
+
     # Port mapping
     ports:
       - "8000:8000"
@@ -103,6 +106,26 @@ services:
     #     reservations:
     #       cpus: '0.5'
     #       memory: 512M
+
+  # Standalone slicer microservice (OrcaSlicer). Printernizer talks to it over
+  # HTTP via SLICER_SERVICE_URL. Kept separate so the main image stays slim and
+  # unchanged (the slicer image needs glibc >= 2.38 / Ubuntu 24.04 base).
+  slicer:
+    build:
+      context: ../slicer-service
+    image: ghcr.io/schmacka/printernizer-slicer:latest
+    container_name: printernizer-slicer
+    restart: unless-stopped
+    expose:
+      - "8001"
+    networks:
+      - printernizer-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # Named volumes for data persistence
 volumes:

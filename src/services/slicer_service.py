@@ -68,6 +68,9 @@ class SlicerService(BaseService):
         if auto_detect:
             await self.detect_and_register_slicers()
 
+        # Register the remote slicer microservice if configured
+        await self.register_remote_slicer_from_env()
+
     async def detect_and_register_slicers(self) -> List[SlicerConfig]:
         """
         Detect and register available slicers.
@@ -113,8 +116,9 @@ class SlicerService(BaseService):
                 """
                 INSERT INTO slicer_configs (
                     id, name, slicer_type, executable_path, version, config_dir,
+                    backend_type, endpoint_url,
                     is_available, last_verified, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     slicer_id,
@@ -123,6 +127,8 @@ class SlicerService(BaseService):
                     slicer_data["executable_path"],
                     slicer_data.get("version"),
                     slicer_data.get("config_dir"),
+                    slicer_data.get("backend_type", "local"),
+                    slicer_data.get("endpoint_url"),
                     True,
                     now,
                     now,
@@ -197,7 +203,8 @@ class SlicerService(BaseService):
         Returns:
             Updated slicer configuration
         """
-        allowed_fields = {"name", "executable_path", "version", "config_dir", "is_available"}
+        allowed_fields = {"name", "executable_path", "version", "config_dir",
+                          "backend_type", "endpoint_url", "is_available"}
         updates = {k: v for k, v in updates.items() if k in allowed_fields}
         
         if not updates:
@@ -463,6 +470,34 @@ class SlicerService(BaseService):
 
         return is_valid
 
+    async def register_remote_slicer_from_env(self) -> None:
+        """Register the remote slicer service from SLICER_SERVICE_URL (idempotent)."""
+        import os
+        url = os.environ.get("SLICER_SERVICE_URL")
+        if not url:
+            return
+        for s in await self.list_slicers():
+            if s.backend_type == "remote" and s.endpoint_url == url:
+                return  # already registered
+        await self.register_slicer({
+            "name": "Slicer Service", "slicer_type": "orcaslicer",
+            "executable_path": "", "backend_type": "remote", "endpoint_url": url,
+        })
+        logger.info("Registered remote slicer service", url=url)
+
+    async def get_backend(self, slicer_id: str):
+        """Resolve the execution backend for a slicer config.
+
+        Returns a RemoteHTTPBackend for remote slicer services, otherwise a
+        LocalProcessBackend wrapping a host-installed slicer binary.
+        """
+        from src.services.slicer_backends.local_process import LocalProcessBackend
+        from src.services.slicer_backends.remote_http import RemoteHTTPBackend
+        slicer = await self.get_slicer(slicer_id)
+        if slicer.backend_type == "remote":
+            return RemoteHTTPBackend(slicer)
+        return LocalProcessBackend(slicer)
+
     async def _get_setting(self, key: str, default: Any) -> Any:
         """Get setting from database or return default."""
         try:
@@ -496,6 +531,9 @@ class SlicerService(BaseService):
 
     def _row_to_slicer_config(self, row) -> SlicerConfig:
         """Convert database row to SlicerConfig."""
+        # NOTE: SELECT * returns columns in physical order. Migration 034 appends
+        # backend_type/endpoint_url to the END of slicer_configs (ALTER ADD COLUMN),
+        # so they are indices 10/11 while is_available stays at 6.
         return SlicerConfig(
             id=row[0],
             name=row[1],
@@ -507,6 +545,8 @@ class SlicerService(BaseService):
             last_verified=datetime.fromisoformat(row[7]) if row[7] else None,
             created_at=datetime.fromisoformat(row[8]),
             updated_at=datetime.fromisoformat(row[9]),
+            backend_type=(row[10] if len(row) > 10 else None) or "local",
+            endpoint_url=row[11] if len(row) > 11 else None,
         )
 
     def _row_to_profile(self, row) -> SlicerProfile:

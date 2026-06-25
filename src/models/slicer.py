@@ -42,6 +42,8 @@ class SlicerConfig(BaseModel):
     executable_path: str
     version: Optional[str] = None
     config_dir: Optional[str] = None
+    backend_type: str = "local"
+    endpoint_url: Optional[str] = None
     is_available: bool = True
     last_verified: Optional[datetime] = None
     created_at: datetime

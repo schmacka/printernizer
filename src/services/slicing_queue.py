@@ -6,8 +6,6 @@ Handles job queuing, execution, progress tracking, and WebSocket updates.
 import os
 import uuid
 import asyncio
-import subprocess
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Any
@@ -24,204 +22,16 @@ from src.models.slicer import (
 )
 from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
-import re
+# Backward-compatible re-exports: the gcode parser moved to
+# src.utils.gcode_metadata, but existing callers/tests still import these
+# names from this module.
+from src.utils.gcode_metadata import (  # noqa: F401
+    GCodeMetadata,
+    parse_gcode_metadata,
+    _parse_human_time,
+)
 
 logger = structlog.get_logger()
-
-
-class GCodeMetadata:
-    """Container for extracted G-code metadata."""
-
-    def __init__(self):
-        self.estimated_print_time: Optional[int] = None  # seconds
-        self.filament_used: Optional[float] = None  # grams
-
-
-def parse_gcode_metadata(gcode_path: str) -> GCodeMetadata:
-    """
-    Parse G-code file to extract print metadata (time and filament usage).
-
-    Supports multiple slicers:
-    - PrusaSlicer: ; estimated printing time (normal mode) = 1h 30m 15s
-    - OrcaSlicer: ; estimated printing time (normal mode) = 1h 30m 15s
-    - BambuStudio: ; estimated printing time (normal mode) = 1h 30m 15s
-    - Generic: ; TIME:5415, ; total estimated time (s) = 5415
-
-    Args:
-        gcode_path: Path to the G-code file
-
-    Returns:
-        GCodeMetadata with extracted values (or None if not found)
-    """
-    metadata = GCodeMetadata()
-
-    # Patterns for print time extraction
-    time_patterns = [
-        # PrusaSlicer, OrcaSlicer, BambuStudio format: "1h 30m 15s", "30m 15s", "1d 2h 30m"
-        (r';\s*estimated printing time.*?=\s*(.+?)$', 'human'),
-        # Cura, some slicers: ";TIME:5415" (seconds)
-        (r';\s*TIME:\s*(\d+)', 'seconds'),
-        # Alternative format: "; total estimated time (s) = 5415"
-        (r';\s*total estimated time.*?=\s*(\d+)', 'seconds'),
-        # Another format: "; print_time = 5415"
-        (r';\s*print_time\s*=\s*(\d+)', 'seconds'),
-        # BambuStudio alternative: "; total layer number: ..." and "; estimated time: 1h 30m"
-        (r';\s*estimated time:\s*(.+?)$', 'human'),
-    ]
-
-    # Patterns for filament usage extraction
-    filament_patterns = [
-        # PrusaSlicer: "; filament used [g] = 15.23" or "; total filament used [g] = 15.23"
-        (r';\s*(?:total\s+)?filament used \[g\]\s*=\s*([\d.]+)', 'grams'),
-        # OrcaSlicer, BambuStudio: "; filament used [g] = 15.23"
-        (r';\s*filament used \[g\]\s*=\s*([\d.]+)', 'grams'),
-        # Some slicers report in mm: "; filament used [mm] = 5000.0"
-        # Convert mm to grams (approximate: 1m of 1.75mm filament ~ 2.98g for PLA)
-        (r';\s*filament used \[mm\]\s*=\s*([\d.]+)', 'mm'),
-        # Cura format: ";Filament used: 5.0m" or ";Filament used: 5000mm"
-        (r';\s*Filament used:\s*([\d.]+)\s*m(?:m)?', 'cura'),
-        # Alternative: "; filament_used = 15.23"
-        (r';\s*filament_used\s*=\s*([\d.]+)', 'grams'),
-        # Weight-based: "; filament weight = 15.23 g"
-        (r';\s*filament weight\s*=\s*([\d.]+)', 'grams'),
-    ]
-
-    try:
-        # Only read first and last parts of file (metadata usually at start/end)
-        with open(gcode_path, 'r', encoding='utf-8', errors='ignore') as f:
-            # Read first 500 lines (header comments)
-            header_lines = []
-            for i, line in enumerate(f):
-                if i >= 500:
-                    break
-                header_lines.append(line)
-
-            # Seek to end and read last 200 lines (footer comments)
-            f.seek(0, 2)  # End of file
-            file_size = f.tell()
-
-            footer_lines = []
-            if file_size > 50000:  # Only seek for large files
-                # Read last 50KB for footer
-                f.seek(max(0, file_size - 50000))
-                f.readline()  # Skip partial line
-                footer_lines = f.readlines()[-200:]
-            else:
-                # Small file - re-read entirely
-                f.seek(0)
-                all_lines = f.readlines()
-                footer_lines = all_lines[-200:] if len(all_lines) > 200 else []
-
-        # Combine lines for searching
-        lines_to_search = header_lines + footer_lines
-
-        # Search for print time
-        for pattern, format_type in time_patterns:
-            if metadata.estimated_print_time is not None:
-                break
-            for line in lines_to_search:
-                match = re.search(pattern, line, re.IGNORECASE)
-                if match:
-                    try:
-                        if format_type == 'seconds':
-                            metadata.estimated_print_time = int(match.group(1))
-                        elif format_type == 'human':
-                            metadata.estimated_print_time = _parse_human_time(match.group(1))
-
-                        if metadata.estimated_print_time is not None:
-                            logger.debug(
-                                "Extracted print time from G-code",
-                                pattern=pattern,
-                                raw_value=match.group(1),
-                                seconds=metadata.estimated_print_time
-                            )
-                            break
-                    except (ValueError, AttributeError) as e:
-                        logger.debug("Failed to parse time value", error=str(e))
-
-        # Search for filament usage
-        for pattern, format_type in filament_patterns:
-            if metadata.filament_used is not None:
-                break
-            for line in lines_to_search:
-                match = re.search(pattern, line, re.IGNORECASE)
-                if match:
-                    try:
-                        value = float(match.group(1))
-                        if format_type == 'grams':
-                            metadata.filament_used = value
-                        elif format_type == 'mm':
-                            # Convert mm to grams (1m of 1.75mm PLA ~ 2.98g)
-                            # Assuming 1.75mm filament and PLA density
-                            metadata.filament_used = (value / 1000.0) * 2.98
-                        elif format_type == 'cura':
-                            # Cura reports in meters or mm, convert to grams
-                            if value < 100:  # Likely meters
-                                metadata.filament_used = value * 2.98
-                            else:  # Likely mm
-                                metadata.filament_used = (value / 1000.0) * 2.98
-
-                        if metadata.filament_used is not None:
-                            logger.debug(
-                                "Extracted filament usage from G-code",
-                                pattern=pattern,
-                                raw_value=match.group(1),
-                                grams=metadata.filament_used
-                            )
-                            break
-                    except (ValueError, AttributeError) as e:
-                        logger.debug("Failed to parse filament value", error=str(e))
-
-    except Exception as e:
-        logger.warning("Failed to parse G-code metadata", path=gcode_path, error=str(e))
-
-    return metadata
-
-
-def _parse_human_time(time_str: str) -> Optional[int]:
-    """
-    Parse human-readable time string to seconds.
-
-    Formats supported:
-    - "1h 30m 15s"
-    - "1d 2h 30m 15s"
-    - "30m 15s"
-    - "15s"
-    - "1h30m" (no spaces)
-
-    Args:
-        time_str: Human-readable time string
-
-    Returns:
-        Time in seconds, or None if parsing fails
-    """
-    if not time_str:
-        return None
-
-    time_str = time_str.strip()
-    total_seconds = 0
-
-    # Pattern for extracting time components
-    # Matches: 1d, 2h, 30m, 15s
-    pattern = r'(\d+)\s*([dhms])'
-    matches = re.findall(pattern, time_str, re.IGNORECASE)
-
-    if not matches:
-        return None
-
-    multipliers = {
-        'd': 86400,  # days
-        'h': 3600,   # hours
-        'm': 60,     # minutes
-        's': 1       # seconds
-    }
-
-    for value, unit in matches:
-        unit = unit.lower()
-        if unit in multipliers:
-            total_seconds += int(value) * multipliers[unit]
-
-    return total_seconds if total_seconds > 0 else None
 
 
 class SlicingQueue(BaseService):
@@ -371,7 +181,7 @@ class SlicingQueue(BaseService):
         )
 
         job = await self.get_job(job_id)
-        await self.event_service.emit("slicing_job.created", {"job_id": job_id})
+        await self.event_service.emit_event("slicing_job.created", {"job_id": job_id})
         
         # Start processing if slots available
         await self._process_queue()
@@ -459,7 +269,7 @@ class SlicingQueue(BaseService):
         await self._update_job_status(job_id, SlicingJobStatus.CANCELLED)
         
         logger.info("Cancelled slicing job", job_id=job_id)
-        await self.event_service.emit("slicing_job.cancelled", {"job_id": job_id})
+        await self.event_service.emit_event("slicing_job.cancelled", {"job_id": job_id})
         
         return True
 
@@ -544,15 +354,9 @@ class SlicingQueue(BaseService):
             await self._update_job_status(job_id, SlicingJobStatus.RUNNING)
             await self._update_job_progress(job_id, 0)
             
-            # Get slicer and profile
-            slicer = await self.slicer_service.get_slicer(job.slicer_id)
+            # Get profile (the execution backend is resolved from the slicer config)
             profile = await self.slicer_service.get_profile(job.profile_id)
-            
-            # Verify slicer is available
-            is_available = await self.slicer_service.verify_slicer_availability(job.slicer_id)
-            if not is_available:
-                raise Exception("Slicer is not available")
-            
+
             # Get input file from library
             if not self.library_service:
                 raise Exception("Library service not available")
@@ -571,85 +375,32 @@ class SlicingQueue(BaseService):
             
             await self._update_job_progress(job_id, 10)
             
-            # Build slicing command
-            cmd = [
-                str(slicer.executable_path),
-                "--export-gcode",
-                "--output", str(output_file),
-            ]
-            
-            # Add profile if path exists
-            if profile.profile_path and Path(profile.profile_path).exists():
-                cmd.extend(["--load", str(profile.profile_path)])
-            
-            cmd.append(str(input_file))
-            
+            # Resolve the execution backend (remote slicer service or local process)
+            backend = await self.slicer_service.get_backend(job.slicer_id)
+            if not await backend.verify():
+                raise Exception("Slicer backend is not available")
+
             logger.info(
                 "Starting slicing",
                 job_id=job_id,
-                slicer=slicer.name,
                 profile=profile.profile_name,
-                input_file=str(input_file)
+                input_file=str(input_file),
             )
-            
-            await self._update_job_progress(job_id, 20)
-            
-            # Execute slicing command
-            timeout = await self._get_setting("slicing.timeout_seconds", 3600)
-            
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            
-            # Monitor progress with timeout tracking
-            start_time = asyncio.get_event_loop().time()
-            progress_steps = [30, 40, 50, 60, 70, 80, 90]
-            step_interval = 5  # Fixed 5-second interval between progress updates
-            
-            for progress in progress_steps:
-                # Check if we've exceeded timeout
-                elapsed = asyncio.get_event_loop().time() - start_time
-                if elapsed >= timeout:
-                    process.kill()
-                    raise Exception("Slicing timed out")
-                
-                await asyncio.sleep(step_interval)
-                if process.returncode is not None:
-                    break
-                await self._update_job_progress(job_id, progress)
-            
-            # Wait for completion with remaining timeout
-            elapsed = asyncio.get_event_loop().time() - start_time
-            remaining_timeout = max(1, timeout - elapsed)
-            
-            try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(),
-                    timeout=remaining_timeout
-                )
-            except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
-                raise Exception("Slicing timed out")
-            
-            if process.returncode != 0:
-                # stderr is already bytes from communicate()
-                error_msg = stderr.decode('utf-8', errors='ignore') if isinstance(stderr, bytes) else str(stderr)
-                raise Exception(f"Slicing failed: {error_msg}")
-            
-            if not output_file.exists():
-                raise Exception("Output file was not created")
 
-            # Parse G-code metadata to extract print time and filament usage
-            gcode_metadata = parse_gcode_metadata(str(output_file))
+            async def _progress(p: int):
+                await self._update_job_progress(job_id, max(10, min(99, p)))
+
+            result = await backend.slice(
+                str(input_file), profile, str(output_file), progress_cb=_progress)
+
+            if not result.success:
+                raise Exception(result.error_message or "Slicing failed")
 
             logger.info(
-                "Extracted G-code metadata",
+                "Slicing produced output",
                 job_id=job_id,
-                estimated_print_time=gcode_metadata.estimated_print_time,
-                filament_used=gcode_metadata.filament_used
+                estimated_print_time=result.estimated_print_time,
+                filament_used=result.filament_used,
             )
 
             # Update job with results including extracted metadata
@@ -667,11 +418,11 @@ class SlicingQueue(BaseService):
                     WHERE id = ?
                     """,
                     (
-                        str(output_file),
+                        result.output_path,
                         SlicingJobStatus.COMPLETED.value,
                         100,
-                        gcode_metadata.estimated_print_time,
-                        gcode_metadata.filament_used,
+                        result.estimated_print_time,
+                        result.filament_used,
                         datetime.now(),
                         datetime.now(),
                         job_id,
@@ -685,7 +436,7 @@ class SlicingQueue(BaseService):
                 output_file=str(output_file)
             )
             
-            await self.event_service.emit("slicing_job.completed", {"job_id": job_id})
+            await self.event_service.emit_event("slicing_job.completed", {"job_id": job_id})
             
             # Handle auto-upload if enabled
             if job.auto_upload and job.target_printer_id:
@@ -734,7 +485,7 @@ class SlicingQueue(BaseService):
                     )
                     await conn.commit()
                 
-                await self.event_service.emit("slicing_job.failed", {"job_id": job_id, "error": str(e)})
+                await self.event_service.emit_event("slicing_job.failed", {"job_id": job_id, "error": str(e)})
         
         finally:
             # Remove from running jobs
@@ -806,7 +557,7 @@ class SlicingQueue(BaseService):
                     printer_id=job.target_printer_id,
                     filename=remote_name
                 )
-                await self.event_service.emit("slicing_job.upload_failed", {
+                await self.event_service.emit_event("slicing_job.upload_failed", {
                     "job_id": job_id,
                     "printer_id": job.target_printer_id,
                     "filename": remote_name
@@ -820,7 +571,7 @@ class SlicingQueue(BaseService):
                 filename=remote_name
             )
 
-            await self.event_service.emit("slicing_job.uploaded", {
+            await self.event_service.emit_event("slicing_job.uploaded", {
                 "job_id": job_id,
                 "printer_id": job.target_printer_id,
                 "filename": remote_name
@@ -844,7 +595,7 @@ class SlicingQueue(BaseService):
                         printer_id=job.target_printer_id,
                         filename=remote_name
                     )
-                    await self.event_service.emit("slicing_job.print_started", {
+                    await self.event_service.emit_event("slicing_job.print_started", {
                         "job_id": job_id,
                         "printer_id": job.target_printer_id,
                         "filename": remote_name
@@ -856,7 +607,7 @@ class SlicingQueue(BaseService):
                         printer_id=job.target_printer_id,
                         filename=remote_name
                     )
-                    await self.event_service.emit("slicing_job.print_start_failed", {
+                    await self.event_service.emit_event("slicing_job.print_start_failed", {
                         "job_id": job_id,
                         "printer_id": job.target_printer_id,
                         "filename": remote_name
@@ -885,7 +636,7 @@ class SlicingQueue(BaseService):
             )
             await conn.commit()
         
-        await self.event_service.emit("slicing_job.status_changed", {
+        await self.event_service.emit_event("slicing_job.status_changed", {
             "job_id": job_id,
             "status": status.value
         })
@@ -899,7 +650,7 @@ class SlicingQueue(BaseService):
             )
             await conn.commit()
         
-        await self.event_service.emit("slicing_job.progress", {
+        await self.event_service.emit_event("slicing_job.progress", {
             "job_id": job_id,
             "progress": progress
         })
