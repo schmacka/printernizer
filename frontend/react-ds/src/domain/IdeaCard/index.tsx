@@ -24,7 +24,7 @@ export function IdeaCard({ idea, onClick, onBookmark, className }: IdeaCardProps
     <div
       className={['idea-card', className ?? ''].filter(Boolean).join(' ')}
       onClick={() => onClick?.(idea.id)}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      style={{ cursor: onClick ? 'pointer' : 'default', position: 'relative' }}
     >
       {idea.thumbnailUrl && (
         <img
