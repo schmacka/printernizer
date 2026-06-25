@@ -6,8 +6,6 @@ Handles job queuing, execution, progress tracking, and WebSocket updates.
 import os
 import uuid
 import asyncio
-import subprocess
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Any
@@ -24,7 +22,6 @@ from src.models.slicer import (
 )
 from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
-import re
 
 logger = structlog.get_logger()
 
