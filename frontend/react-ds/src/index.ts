@@ -1,2 +1,2 @@
-// components exported in later tasks
-export {};
+export { PrinternizerProvider } from './PrinternizerProvider';
+export type { PrinternizerProviderProps, PrinternizerTheme } from './PrinternizerProvider';
