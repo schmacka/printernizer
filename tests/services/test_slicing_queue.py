@@ -49,7 +49,7 @@ def mock_database():
 def mock_event_service():
     """Create mock event service for testing."""
     event_service = MagicMock(spec=EventService)
-    event_service.emit = AsyncMock()
+    event_service.emit_event = AsyncMock()
     return event_service
 
 
@@ -132,7 +132,7 @@ class TestSlicingQueue:
                 assert result is not None
                 assert result.file_checksum == job_request.file_checksum
                 assert result.status == SlicingJobStatus.QUEUED
-                mock_event_service.emit.assert_called()
+                mock_event_service.emit_event.assert_called()
 
     @pytest.mark.asyncio
     async def test_get_job_found(self, slicing_queue, mock_database):
@@ -285,7 +285,7 @@ class TestSlicingQueue:
                 result = await slicing_queue.cancel_job(job_id)
                 
                 assert result is True
-                mock_event_service.emit.assert_called()
+                mock_event_service.emit_event.assert_called()
 
     @pytest.mark.asyncio
     async def test_cancel_completed_job(self, slicing_queue):
@@ -362,7 +362,7 @@ class TestSlicingQueue:
         
         await slicing_queue._update_job_status(job_id, SlicingJobStatus.RUNNING)
         
-        mock_event_service.emit.assert_called()
+        mock_event_service.emit_event.assert_called()
 
     @pytest.mark.asyncio
     async def test_update_job_progress(self, slicing_queue, mock_database, mock_event_service):
@@ -371,7 +371,7 @@ class TestSlicingQueue:
 
         await slicing_queue._update_job_progress(job_id, 50)
 
-        mock_event_service.emit.assert_called()
+        mock_event_service.emit_event.assert_called()
 
 
 class TestHumanTimeParsing:

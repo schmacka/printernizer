@@ -22,6 +22,14 @@ from src.models.slicer import (
 )
 from src.utils.errors import NotFoundError
 from src.utils.config import get_settings
+# Backward-compatible re-exports: the gcode parser moved to
+# src.utils.gcode_metadata, but existing callers/tests still import these
+# names from this module.
+from src.utils.gcode_metadata import (  # noqa: F401
+    GCodeMetadata,
+    parse_gcode_metadata,
+    _parse_human_time,
+)
 
 logger = structlog.get_logger()
 
