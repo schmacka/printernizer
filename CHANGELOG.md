@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.38.0] - 2026-06-25
+
+### Added
+- **Slicer integration (Phase 1): standalone slicer microservice.** STL→gcode slicing now works in container / Home Assistant deployments without bloating the main image:
+  - New **Printernizer Slicer Service** (`slicer-service/`) — a FastAPI microservice wrapping **OrcaSlicer**, shipped as a multi-arch image (`amd64` + `arm64`, `ghcr.io/schmacka/printernizer-slicer`). Built on Ubuntu 24.04 and extracts the OrcaSlicer AppImage FUSE-free.
+  - **Pluggable slicer backends** (`src/services/slicer_backends/`): `RemoteHTTPBackend` (the slicer service) and `LocalProcessBackend` (a slicer installed on the host), behind a common `SlicerBackend` interface. `SlicingQueue` now delegates execution instead of shelling out directly, with per-engine command building (OrcaSlicer vs PrusaSlicer).
+  - **Deployment wiring**: a `slicer` service in `docker-compose.yml`, `SLICER_SERVICE_URL` auto-registration on startup, and a companion **Home Assistant add-on** (`ha-addon/printernizer-slicer/`).
+  - Migration `034_slicer_backends.sql` adds `backend_type` / `endpoint_url` to slicer configs.
+
+### Fixed
+- G-code metadata parser now extracts OrcaSlicer/Bambu print time (`; total estimated time:` / `; model printing time:`); extracted to a shared `src/utils/gcode_metadata.py`.
+- `SlicingQueue` now emits events via `emit_event` (previously called a non-existent `emit`, so slicing events were never delivered).
+
 ## [2.37.0] - 2026-06-22
 
 ### Added
