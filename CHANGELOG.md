@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.39.0] - 2026-06-26
+
+### Added
+- **Slicer integration (Phase 2): curated + uploadable profiles** (backend/API only; profile-selection UI lands in Phase 3):
+  - **Curated built-in profiles** for Bambu **A1** and Prusa **CORE One**, sourced from OrcaSlicer's own bundled presets (no hand-authored files). Seeded on startup, idempotent and resilient to preset renames / an unreachable slicer service.
+  - **Profile upload** — `POST /api/v1/slicing/profiles/upload` accepts OrcaSlicer preset JSON (machine + process + filament), categorized by each file's `type`, stored with `source='upload'`.
+  - Slicer-service gains **`GET /profiles`** (lists bundled presets) and `/slice` now accepts an `inline` profile payload (uploaded preset content) while staying stateless.
+  - Migration `035` adds `source` / `printer_model` / `is_builtin` to `slicer_profiles`. A profile's `settings_json` is the slice payload: `{"system_preset": {…names}}` (built-in) or `{"inline": {…preset JSON}}` (upload).
+
 ## [2.38.0] - 2026-06-25
 
 ### Added
