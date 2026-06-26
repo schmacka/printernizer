@@ -4,7 +4,7 @@ Slicing API router.
 REST endpoints for slicer management and slicing operations.
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from pydantic import BaseModel
 import structlog
 
@@ -236,6 +236,29 @@ async def import_profiles(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to import profiles: {str(e)}"
         )
+
+
+@router.post("/profiles/upload", response_model=SlicerProfile)
+async def upload_profile(
+    slicer_id: str = Form(...),
+    name: str = Form(...),
+    printer_model: Optional[str] = Form(None),
+    files: List[UploadFile] = File(...),
+    slicer_service: SlicerService = Depends(get_slicer_service),
+):
+    """Upload OrcaSlicer preset JSON files (machine + process + filament) as one profile."""
+    try:
+        payload = [(f.filename or "file.json", await f.read()) for f in files]
+        return await slicer_service.create_uploaded_profile(
+            slicer_id, name, payload, printer_model=printer_model)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except PrinternizerNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        logger.error("Profile upload failed", error=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Upload failed: {str(e)}")
 
 
 @router.get("/profiles/{profile_id}", response_model=SlicerProfile)

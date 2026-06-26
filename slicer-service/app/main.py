@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse
 
 from app.runner import BaseRunner
 from app.jobs import JobStore
+from app.profiles import list_bundled_profiles
 
 
 def create_app(runner: BaseRunner) -> FastAPI:
@@ -20,6 +21,10 @@ def create_app(runner: BaseRunner) -> FastAPI:
     @app.get("/version")
     async def version():
         return {"version": runner.version()}
+
+    @app.get("/profiles")
+    async def profiles():
+        return list_bundled_profiles(getattr(runner, "profiles_root", ""))
 
     @app.post("/slice")
     async def slice_endpoint(file: UploadFile = File(...), profile: str = Form("{}")):

@@ -22,6 +22,8 @@ class RunnerResult:
 
 
 class BaseRunner:
+    profiles_root: str = ""
+
     async def slice(self, model_path: str, profile: dict, output_dir: str) -> RunnerResult:
         raise NotImplementedError
 
@@ -43,7 +45,16 @@ class OrcaSlicerRunner(BaseRunner):
             return str(path)
         return None
 
-    def _build_settings(self, profile: dict):
+    def _build_settings(self, profile: dict, workdir: str):
+        if "inline" in profile:
+            inl = profile["inline"]
+            paths = {}
+            for kind in ("machine", "process", "filament"):
+                if inl.get(kind):
+                    p = Path(workdir) / f"_{kind}.json"
+                    p.write_text(json.dumps(inl[kind]))
+                    paths[kind] = str(p)
+            return paths.get("process"), paths.get("machine"), paths.get("filament")
         sp = profile.get("system_preset", {})
         if isinstance(sp, str):
             sp = {"process": sp}
@@ -56,7 +67,7 @@ class OrcaSlicerRunner(BaseRunner):
         return os.environ.get("ORCA_VERSION", "orca")
 
     async def slice(self, model_path, profile, output_dir) -> RunnerResult:
-        process, machine, filament = self._build_settings(profile)
+        process, machine, filament = self._build_settings(profile, output_dir)
         settings = ";".join(p for p in (process, machine) if p)
         cmd = ["xvfb-run", "-a", self.apprun, "--debug", "2"]
         if settings:

@@ -28,6 +28,15 @@ from src.utils.config import get_settings
 
 logger = structlog.get_logger()
 
+CURATED_BUILTINS = [
+    {"printer_model": "Bambu Lab A1", "profile_name": "A1 — 0.20mm Standard PLA",
+     "machine": "Bambu Lab A1 0.4 nozzle", "process": "0.20mm Standard @BBL A1",
+     "filament": "Bambu PLA Basic @BBL A1"},
+    {"printer_model": "Prusa CORE One", "profile_name": "CORE One — 0.20mm PLA",
+     "machine": "Prusa CORE One 0.4 nozzle", "process": "0.20mm SPEED @CORE One 0.4",
+     "filament": "Prusa Generic PLA @CORE One"},
+]
+
 
 class SlicerService(BaseService):
     """
@@ -60,9 +69,9 @@ class SlicerService(BaseService):
     async def initialize(self) -> None:
         """Initialize service and detect slicers."""
         await super().initialize()
-        
+
         logger.info("Initializing slicer service")
-        
+
         # Auto-detect slicers if enabled
         auto_detect = await self._get_setting("slicing.auto_detect", True)
         if auto_detect:
@@ -70,6 +79,9 @@ class SlicerService(BaseService):
 
         # Register the remote slicer microservice if configured
         await self.register_remote_slicer_from_env()
+
+        # Seed built-in profiles for registered remote slicers
+        await self.seed_builtin_profiles()
 
     async def detect_and_register_slicers(self) -> List[SlicerConfig]:
         """
@@ -340,8 +352,10 @@ class SlicerService(BaseService):
                 """
                 INSERT INTO slicer_profiles (
                     id, slicer_id, profile_name, profile_type, profile_path,
-                    settings_json, compatible_printers, is_default, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    settings_json, compatible_printers, is_default,
+                    created_at, updated_at,
+                    source, printer_model, is_builtin
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     profile_id,
@@ -354,6 +368,9 @@ class SlicerService(BaseService):
                     profile_data.get("is_default", False),
                     now,
                     now,
+                    profile_data.get("source", "import"),
+                    profile_data.get("printer_model"),
+                    profile_data.get("is_builtin", False),
                 ),
             )
             await conn.commit()
@@ -439,6 +456,33 @@ class SlicerService(BaseService):
         logger.info("Deleted profile", profile_id=profile_id)
         return True
 
+    async def create_uploaded_profile(self, slicer_id, name, files, printer_model=None):
+        """Assemble an uploaded OrcaSlicer profile (machine+process+filament JSON)."""
+        parts = {}
+        for filename, content in files:
+            try:
+                obj = json.loads(content)
+            except (ValueError, TypeError):
+                raise ValueError(f"{filename}: not valid JSON")
+            ptype = obj.get("type")
+            if ptype not in ("machine", "process", "filament"):
+                raise ValueError(f"{filename}: unrecognized preset type {ptype!r}")
+            if ptype in parts:
+                raise ValueError(f"duplicate {ptype} preset")
+            parts[ptype] = obj
+        missing = [k for k in ("machine", "process", "filament") if k not in parts]
+        if missing:
+            raise ValueError(f"missing required presets: {', '.join(missing)}")
+        if not printer_model:
+            printer_model = parts["machine"].get("name")
+        return await self.create_profile(slicer_id, {
+            "profile_name": name, "profile_type": "bundle",
+            "source": "upload", "is_builtin": False, "printer_model": printer_model,
+            "settings_json": json.dumps({"inline": {
+                "machine": parts["machine"], "process": parts["process"],
+                "filament": parts["filament"]}}),
+        })
+
     async def verify_slicer_availability(self, slicer_id: str) -> bool:
         """
         Verify slicer is still available.
@@ -484,6 +528,47 @@ class SlicerService(BaseService):
             "executable_path": "", "backend_type": "remote", "endpoint_url": url,
         })
         logger.info("Registered remote slicer service", url=url)
+
+    async def _fetch_service_profiles(self, endpoint_url: str) -> dict:
+        """Fetch profiles from remote slicer service."""
+        import aiohttp
+        base = (endpoint_url or "").rstrip("/")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{base}/profiles") as r:
+                return await r.json()
+
+    async def seed_builtin_profiles(self, fetch_profiles=None) -> None:
+        """Seed curated built-in profiles for the remote slicer (idempotent)."""
+        remotes = [s for s in await self.list_slicers() if s.backend_type == "remote"]
+        if not remotes:
+            return
+        slicer = remotes[0]
+        fetch = fetch_profiles or self._fetch_service_profiles
+        try:
+            data = await fetch(slicer.endpoint_url)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Could not fetch slicer profiles for seeding", error=str(e))
+            return
+        available = {"machine": set(), "process": set(), "filament": set()}
+        for v in (data or {}).get("vendors", {}).values():
+            for kind in available:
+                available[kind].update(v.get(kind, []))
+        existing = {p.profile_name for p in await self.list_profiles(slicer_id=slicer.id)}
+        for c in CURATED_BUILTINS:
+            if c["profile_name"] in existing:
+                continue
+            missing = [c[k] for k in ("machine", "process", "filament") if c[k] not in available[k]]
+            if missing:
+                logger.warning("Skipping builtin profile; presets missing",
+                               profile=c["profile_name"], missing=missing)
+                continue
+            await self.create_profile(slicer.id, {
+                "profile_name": c["profile_name"], "profile_type": "bundle",
+                "source": "builtin", "is_builtin": True, "printer_model": c["printer_model"],
+                "settings_json": json.dumps({"system_preset": {
+                    "machine": c["machine"], "process": c["process"], "filament": c["filament"]}}),
+            })
+            logger.info("Seeded builtin profile", profile=c["profile_name"])
 
     async def get_backend(self, slicer_id: str):
         """Resolve the execution backend for a slicer config.
@@ -562,4 +647,7 @@ class SlicerService(BaseService):
             is_default=bool(row[7]),
             created_at=datetime.fromisoformat(row[8]),
             updated_at=datetime.fromisoformat(row[9]),
+            source=(row[10] if len(row) > 10 else None) or "import",
+            printer_model=row[11] if len(row) > 11 else None,
+            is_builtin=bool(row[12]) if len(row) > 12 else False,
         )

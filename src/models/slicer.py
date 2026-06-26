@@ -65,6 +65,9 @@ class SlicerProfile(BaseModel):
     is_default: bool = False
     created_at: datetime
     updated_at: datetime
+    source: str = "import"
+    printer_model: Optional[str] = None
+    is_builtin: bool = False
 
     class Config:
         use_enum_values = True
