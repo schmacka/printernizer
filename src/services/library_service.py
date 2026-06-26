@@ -25,6 +25,7 @@ from src.services.filament_colors import (
     get_primary_color,
     format_color_list
 )
+from src.services.file_role_classifier import classify_role, threemf_has_gcode
 import base64
 
 logger = structlog.get_logger()
@@ -160,7 +161,7 @@ class LibraryService:
 
         Args:
             checksum: File checksum (not used in path anymore)
-            source_type: Source type (printer, watch_folder, upload)
+            source_type: Source type (printer, watch_folder, upload, slicer)
             original_filename: Original filename (required)
             printer_name: Printer name (required for printer source type)
 
@@ -183,6 +184,10 @@ class LibraryService:
         elif source_type == 'upload':
             # Store in uploads/ with original filename
             return self.library_path / 'uploads' / original_filename
+
+        elif source_type == 'slicer':
+            # Store in models/ with original filename (slicer output)
+            return self.library_path / 'models' / original_filename
 
         else:
             raise ValueError(f"Unknown source type: {source_type}")
@@ -234,20 +239,24 @@ class LibraryService:
         return existing_file
 
     async def add_file_to_library(self, source_path: Path, source_info: Dict[str, Any],
-                                  copy_file: bool = True, calculate_hash: bool = True) -> Dict[str, Any]:
+                                  copy_file: bool = True, calculate_hash: bool = True,
+                                  role: Optional[str] = None,
+                                  parent_checksum: Optional[str] = None) -> Dict[str, Any]:
         """
         Add a file to the library.
 
         Args:
             source_path: Path to source file
             source_info: Dictionary with source information:
-                - type: 'printer', 'watch_folder', 'upload'
+                - type: 'printer', 'watch_folder', 'upload', 'slicer'
                 - printer_id: ID of printer (for printer source)
                 - printer_name: Name of printer (for printer source)
                 - folder_path: Path to watch folder (for watch_folder source)
                 - relative_path: Relative path within folder
             copy_file: Whether to copy file to library (False to move)
             calculate_hash: Whether to calculate checksum (False if already known)
+            role: Optional file role ('model' or 'printfile'). If not provided, will be classified.
+            parent_checksum: Optional checksum of parent model (for printfiles).
 
         Returns:
             Dictionary with file information
@@ -258,7 +267,7 @@ class LibraryService:
 
             # Validate source info
             source_type = source_info.get('type')
-            if source_type not in ['printer', 'watch_folder', 'upload']:
+            if source_type not in ['printer', 'watch_folder', 'upload', 'slicer']:
                 raise ValueError(f"Invalid source type: {source_type}")
 
             # Calculate checksum
@@ -342,6 +351,11 @@ class LibraryService:
             file_size = file_stat.st_size
             file_type = library_path.suffix.lower()
 
+            # Classify role if not provided
+            if role is None:
+                has_gcode = threemf_has_gcode(library_path) if file_type.lstrip('.') == '3mf' else None
+                role = classify_role(file_type, has_gcode)
+
             # Create library file record
             # For duplicates, we use a modified checksum to bypass UNIQUE constraint
             # The modified checksum is checksum + "-" + UUID to make it unique
@@ -376,6 +390,8 @@ class LibraryService:
                 'is_duplicate': is_duplicate,
                 'duplicate_of_checksum': duplicate_of_checksum or checksum,  # Always store original checksum
                 'duplicate_count': 0,  # Will be updated if other duplicates are added later
+                'role': role,
+                'parent_checksum': parent_checksum,
             }
 
             # Save to database (handle race condition with UNIQUE constraint)

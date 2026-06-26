@@ -199,6 +199,8 @@ class LibraryRepository(BaseRepository):
                 - is_duplicate: Duplicate flag (default: 0)
                 - duplicate_of_checksum: Checksum of original if duplicate
                 - duplicate_count: Number of duplicates found (default: 0)
+                - role: File role (model|printfile)
+                - parent_checksum: Checksum of parent model (for printfiles)
 
         Returns:
             True if file was created successfully, False otherwise
@@ -208,8 +210,9 @@ class LibraryRepository(BaseRepository):
                 """INSERT INTO library_files
                 (id, checksum, filename, display_name, library_path, file_size, file_type,
                  sources, status, added_to_library, last_modified, search_index,
-                 is_duplicate, duplicate_of_checksum, duplicate_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 is_duplicate, duplicate_of_checksum, duplicate_count,
+                 role, parent_checksum)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     file_data['id'],
                     file_data['checksum'],
@@ -225,7 +228,9 @@ class LibraryRepository(BaseRepository):
                     file_data.get('search_index', ''),
                     file_data.get('is_duplicate', 0),
                     file_data.get('duplicate_of_checksum'),
-                    file_data.get('duplicate_count', 0)
+                    file_data.get('duplicate_count', 0),
+                    file_data.get('role'),
+                    file_data.get('parent_checksum'),
                 )
             )
             return True
