@@ -1,0 +1,18 @@
+{
+  "pkg": "@printernizer/design-system",
+  "globalName": "PrinternizerDS",
+  "projectId": "12d0cf4c-6461-4e62-a2a4-90f485804465",
+  "shape": "package",
+  "buildCmd": "npm run build",
+  "cssEntry": "dist/styles.css",
+  "provider": {
+    "component": "PrinternizerProvider",
+    "props": { "theme": "default" }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "StatCard": { "cardMode": "column" },
+    "JobListItem": { "cardMode": "column" },
+    "PrintProgressBar": { "cardMode": "column" }
+  }
+}
