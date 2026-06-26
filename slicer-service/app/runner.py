@@ -22,6 +22,8 @@ class RunnerResult:
 
 
 class BaseRunner:
+    profiles_root: str = ""
+
     async def slice(self, model_path: str, profile: dict, output_dir: str) -> RunnerResult:
         raise NotImplementedError
 
