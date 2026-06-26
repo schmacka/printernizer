@@ -456,6 +456,33 @@ class SlicerService(BaseService):
         logger.info("Deleted profile", profile_id=profile_id)
         return True
 
+    async def create_uploaded_profile(self, slicer_id, name, files, printer_model=None):
+        """Assemble an uploaded OrcaSlicer profile (machine+process+filament JSON)."""
+        parts = {}
+        for filename, content in files:
+            try:
+                obj = json.loads(content)
+            except (ValueError, TypeError):
+                raise ValueError(f"{filename}: not valid JSON")
+            ptype = obj.get("type")
+            if ptype not in ("machine", "process", "filament"):
+                raise ValueError(f"{filename}: unrecognized preset type {ptype!r}")
+            if ptype in parts:
+                raise ValueError(f"duplicate {ptype} preset")
+            parts[ptype] = obj
+        missing = [k for k in ("machine", "process", "filament") if k not in parts]
+        if missing:
+            raise ValueError(f"missing required presets: {', '.join(missing)}")
+        if not printer_model:
+            printer_model = parts["machine"].get("name")
+        return await self.create_profile(slicer_id, {
+            "profile_name": name, "profile_type": "bundle",
+            "source": "upload", "is_builtin": False, "printer_model": printer_model,
+            "settings_json": json.dumps({"inline": {
+                "machine": parts["machine"], "process": parts["process"],
+                "filament": parts["filament"]}}),
+        })
+
     async def verify_slicer_availability(self, slicer_id: str) -> bool:
         """
         Verify slicer is still available.
