@@ -517,6 +517,22 @@ class LibraryService:
         """
         return await self.library_repo.get_file(file_id)
 
+    async def get_printfiles_for_model(self, model_checksum: str) -> List[Dict[str, Any]]:
+        """Return printfiles derived from a model, enriched with slicing-job detail."""
+        query = """
+            SELECT lf.*, sj.profile_id AS profile_id, sj.target_printer_id AS target_printer_id,
+                   sj.estimated_print_time AS estimated_print_time, sj.filament_used AS filament_used,
+                   sj.created_at AS sliced_at
+            FROM library_files lf
+            LEFT JOIN slicing_jobs sj ON sj.output_gcode_checksum = lf.checksum
+            WHERE lf.parent_checksum = ? AND lf.role = 'printfile'
+            ORDER BY lf.added_to_library DESC
+        """
+        async with self.database.connection() as conn:
+            cursor = await conn.execute(query, (model_checksum,))
+            rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
     async def list_files(self, filters: Dict[str, Any] = None,
                         page: int = 1, limit: int = 50) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """
