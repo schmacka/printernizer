@@ -340,8 +340,10 @@ class SlicerService(BaseService):
                 """
                 INSERT INTO slicer_profiles (
                     id, slicer_id, profile_name, profile_type, profile_path,
-                    settings_json, compatible_printers, is_default, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    settings_json, compatible_printers, is_default,
+                    created_at, updated_at,
+                    source, printer_model, is_builtin
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     profile_id,
@@ -354,6 +356,9 @@ class SlicerService(BaseService):
                     profile_data.get("is_default", False),
                     now,
                     now,
+                    profile_data.get("source", "import"),
+                    profile_data.get("printer_model"),
+                    profile_data.get("is_builtin", False),
                 ),
             )
             await conn.commit()
@@ -562,4 +567,7 @@ class SlicerService(BaseService):
             is_default=bool(row[7]),
             created_at=datetime.fromisoformat(row[8]),
             updated_at=datetime.fromisoformat(row[9]),
+            source=(row[10] if len(row) > 10 else None) or "import",
+            printer_model=row[11] if len(row) > 11 else None,
+            is_builtin=bool(row[12]) if len(row) > 12 else False,
         )
