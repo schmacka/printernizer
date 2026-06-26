@@ -19,7 +19,7 @@ export function FileThumbnail({ src, fileType, animated, size = 'md', alt, class
   const px = sizePx[size];
   return (
     <div
-      className={['file-thumbnail', animated ? 'animated' : '', className ?? ''].filter(Boolean).join(' ')}
+      className={['file-thumbnail', animated ? 'supports-animation' : '', className ?? ''].filter(Boolean).join(' ')}
       style={{ width: px, height: px, flexShrink: 0 }}
     >
       {src ? (

@@ -46,17 +46,19 @@ export function MaterialCard({ material, onClick, className }: MaterialCardProps
         <span className="material-type-badge">{material.type}</span>
       </div>
       <div className="material-info">
-        {material.remainingGrams !== undefined && (
-          <div className="material-detail-item">
-            <span className="material-detail-label">Remaining</span>
-            <span className="material-detail-value">{material.remainingGrams}g</span>
-          </div>
-        )}
-        {material.stockStatus && material.stockStatus !== 'ok' && (
-          <span className={['material-status-badge', material.stockStatus].join(' ')}>
-            {material.stockStatus === 'low' ? 'Low stock' : 'Out of stock'}
-          </span>
-        )}
+        <div className="material-details">
+          {material.remainingGrams !== undefined && (
+            <div className="material-detail-item">
+              <span className="material-detail-label">Remaining</span>
+              <span className="material-detail-value">{material.remainingGrams}g</span>
+            </div>
+          )}
+          {material.stockStatus && material.stockStatus !== 'ok' && (
+            <span className={['material-status-badge', material.stockStatus].join(' ')}>
+              {material.stockStatus === 'low' ? 'Low stock' : 'Out of stock'}
+            </span>
+          )}
+        </div>
       </div>
       {pct !== undefined && (
         <div className="material-progress">
