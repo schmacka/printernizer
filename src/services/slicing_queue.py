@@ -429,13 +429,33 @@ class SlicingQueue(BaseService):
                     )
                 )
                 await conn.commit()
-            
+
+            # Register the sliced output in the library, linked to its source model
+            if self.library_service and result.output_path:
+                try:
+                    reg = await self.library_service.add_file_to_library(
+                        Path(result.output_path),
+                        {"type": "slicer", "slicer_id": job.slicer_id},
+                        role="printfile",
+                        parent_checksum=job.file_checksum,
+                    )
+                    output_checksum = reg.get("checksum") if isinstance(reg, dict) else None
+                    if output_checksum:
+                        async with self.db.connection() as conn:
+                            await conn.execute(
+                                "UPDATE slicing_jobs SET output_gcode_checksum = ? WHERE id = ?",
+                                (output_checksum, job_id))
+                            await conn.commit()
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("Failed to register slice output in library",
+                                   job_id=job_id, error=str(e))
+
             logger.info(
                 "Slicing completed",
                 job_id=job_id,
                 output_file=str(output_file)
             )
-            
+
             await self.event_service.emit_event("slicing_job.completed", {"job_id": job_id})
             
             # Handle auto-upload if enabled
