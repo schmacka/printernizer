@@ -104,9 +104,43 @@ class LibraryService:
 
             logger.info("Library initialized successfully")
 
+            # Backfill library file roles for existing unclassified rows
+            try:
+                await self.classify_unroled_files()
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Library role backfill failed", error=str(e))
+
         except Exception as e:
             logger.error("Failed to initialize library", error=str(e))
             raise
+
+    async def classify_unroled_files(self) -> int:
+        """One-time backfill: classify library_files rows with role IS NULL."""
+        from src.services.file_role_classifier import classify_role, threemf_has_gcode
+        updated = 0
+        async with self.database.connection() as conn:
+            cursor = await conn.execute(
+                "SELECT checksum, file_type, library_path FROM library_files WHERE role IS NULL")
+            rows = await cursor.fetchall()
+        for row in rows:
+            checksum, file_type, library_path = row[0], row[1], row[2]
+            ext = (file_type or "").lstrip(".").lower()
+            has_gcode = None
+            if ext == "3mf":
+                full = self.library_path / library_path if library_path else None
+                has_gcode = threemf_has_gcode(full) if full and full.exists() else None
+            role = classify_role(file_type or "", has_gcode)
+            if role is None:
+                continue
+            async with self.database.connection() as conn:
+                await conn.execute(
+                    "UPDATE library_files SET role = ? WHERE checksum = ? AND role IS NULL",
+                    (role, checksum))
+                await conn.commit()
+            updated += 1
+        if updated:
+            logger.info("Backfilled library file roles", count=updated)
+        return updated
 
     async def calculate_checksum(self, file_path: Path, algorithm: str = None) -> str:
         """
