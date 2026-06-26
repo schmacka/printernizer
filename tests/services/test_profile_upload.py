@@ -49,3 +49,20 @@ async def test_upload_rejects_bad_json(svc):
     s = await _remote(svc)
     with pytest.raises(ValueError):
         await svc.create_uploaded_profile(s.id, "bad", [("x.json", b"not json")])
+
+
+async def test_upload_rejects_unknown_type(svc):
+    s = await _remote(svc)
+    bad = [("x.json", json.dumps({"type": "wat", "name": "x"}).encode())]
+    with pytest.raises(ValueError):
+        await svc.create_uploaded_profile(s.id, "bad", bad)
+
+
+async def test_upload_rejects_duplicate_type(svc):
+    s = await _remote(svc)
+    dup = [
+        ("p1.json", json.dumps({"type": "process", "name": "A"}).encode()),
+        ("p2.json", json.dumps({"type": "process", "name": "B"}).encode()),
+    ]
+    with pytest.raises(ValueError):
+        await svc.create_uploaded_profile(s.id, "dup", dup)
