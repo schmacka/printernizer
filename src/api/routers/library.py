@@ -273,7 +273,7 @@ async def get_model_printfiles(
     """List print files derived from a library model."""
     model = await library_service.get_file_by_checksum(checksum)
     if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
+        raise LibraryItemNotFoundError(checksum)
     printfiles = await library_service.get_printfiles_for_model(checksum)
     return PrintfilesResponse(printfiles=printfiles, count=len(printfiles))
 

@@ -1,5 +1,4 @@
 import pytest
-from datetime import datetime
 from src.database.database import Database
 from src.services.library_service import LibraryService
 from src.services.event_service import EventService
