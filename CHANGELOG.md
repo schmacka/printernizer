@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.40.0] - 2026-06-27
+
+### Added
+- **Slicer integration (Phase 3a): library model→printfile relation** (backend; the model-centric UI is the 3b follow-up):
+  - `library_files` gains `role` (`model`|`printfile`) and `parent_checksum` (migration `036`). A pure role classifier categorizes files by extension, detecting sliced `.3mf` (embedded `plate_*.gcode`) via a lightweight zip scan.
+  - Files are classified on ingest, and a one-time startup **backfill** classifies existing rows.
+  - **Slice outputs are now registered in the library** as `role='printfile'` files linked via `parent_checksum` to their source model, and `slicing_jobs.output_gcode_checksum` is set — guarded so a registration failure never fails the slice job.
+  - New **`GET /api/v1/library/files/{checksum}/printfiles`** returns a model's derived print files, enriched with slicing-job detail (profile, target printer, estimated time, filament).
+
 ## [2.39.0] - 2026-06-26
 
 ### Added
