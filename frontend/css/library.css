@@ -1201,3 +1201,23 @@
 [data-theme="dark"] .tag-picker-item.selected {
     background: var(--gray-700);
 }
+
+/* ── Model-centric detail view (Slicer Phase 3b) ────────────────────── */
+.model-detail { padding: 8px 0; }
+.model-detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.model-detail-thumb { width: 96px; height: 96px; object-fit: contain; background: var(--surface-2, #f4f4f5); border-radius: 8px; }
+.model-detail-title h2 { margin: 0; }
+.model-detail-meta { color: var(--text-muted, #71717a); font-size: 0.9rem; }
+.model-detail section { margin-top: 24px; }
+.model-detail .empty { color: var(--text-muted, #71717a); font-style: italic; }
+.role-badge { font-size: 0.7rem; padding: 1px 6px; border-radius: 10px; margin-left: 6px; }
+.role-badge.role-model { background: #dbeafe; color: #1e40af; }
+.role-badge.role-printfile { background: #dcfce7; color: #166534; }
+.md-table { width: 100%; border-collapse: collapse; }
+.md-table th, .md-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--border, #e4e4e7); font-size: 0.9rem; }
+.md-slice-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.md-slice-form label { display: flex; flex-direction: column; font-size: 0.85rem; gap: 4px; }
+.md-progress { height: 8px; background: #e4e4e7; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+.md-progress > div { height: 100%; background: #16a34a; width: 0; transition: width .3s; }
+.md-status { font-size: 0.85rem; color: var(--text-muted, #71717a); margin-top: 4px; }
+.btn-sm { padding: 2px 8px; font-size: 0.8rem; }
