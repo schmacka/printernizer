@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.41.0] - 2026-06-27
+
+### Added
+- **Slicer integration (Phase 3b): model-centric detail view** — completes the slicer epic in the UI. Clicking a library model opens a dedicated detail view (inside the library page) showing its derived **print files** (target printer · profile · est. time · filament) with **Download** and **Print** actions, plus a **Slice** panel (profile + printer pickers) offering **Slice** / **Slice & Print** with inline progress.
+- `GET /api/v1/library/files/{checksum}/download` — download a library file's bytes.
+- `POST /api/v1/library/files/{checksum}/print` — send an existing library print file to a printer and start the print (guarded against non-printfiles).
+
 ## [2.40.0] - 2026-06-27
 
 ### Added
