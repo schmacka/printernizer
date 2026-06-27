@@ -1018,18 +1018,24 @@ class LibraryService:
                                 # Extract and merge STL-specific metadata
                                 stl_fields = self._map_stl_metadata_to_db(stl_result)
                                 metadata_fields.update(stl_fields)
+                                metadata_fields['analysis_error'] = None  # clear any prior error
 
                                 logger.info("STL geometric metadata extracted",
                                            checksum=checksum[:16],
                                            stl_fields_added=len(stl_fields))
                             else:
+                                err = stl_result.get('error') or 'STL analysis returned no data'
+                                metadata_fields['analysis_error'] = f"STL analysis failed: {err}"
                                 logger.warning("STL analysis failed",
                                              checksum=checksum[:16],
                                              error=stl_result.get('error'))
                         except Exception as e:
+                            # Persist the error onto the record so it is visible via the API
+                            # (it otherwise only reaches stdout via structlog).
+                            metadata_fields['analysis_error'] = f"STL analysis exception: {str(e)}"
                             logger.error("Error during STL analysis",
                                        checksum=checksum[:16],
-                                       error=str(e))
+                                       error=str(e), exc_info=True)
 
                     # Generate thumbnail if file needs it (STL, gcode without embedded thumbnails)
                     if parse_result.get('needs_generation', False) and not metadata_fields.get('has_thumbnail'):

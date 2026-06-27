@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.41.1] - 2026-06-27
+
+### Fixed
+- **Library API now returns `role` / `parent_checksum`** for files. Phase 3a stored these but the read API filtered them out, so the frontend never saw `role='model'` and the model-centric detail view never opened on click. (This is the fix that makes the Phase 3b view actually work.)
+
+### Added
+- Library files now carry an `analysis_error` field (migration 037): when STL/3MF metadata extraction fails, the error is recorded on the file and exposed via the API instead of only going to stdout — so a failed preview/dimension extraction is diagnosable.
+- `docs/SLICER-SETUP.md` — how to connect the slicer service so `GET /api/v1/slicing` isn't empty (Docker Compose, or pointing the HA add-on at a slicer container).
+
 ## [2.41.0] - 2026-06-27
 
 ### Added

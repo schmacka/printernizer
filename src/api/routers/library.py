@@ -51,6 +51,9 @@ class LibraryFileResponse(BaseModel):
     model_volume: Optional[float] = None
     surface_area: Optional[float] = None
     object_count: Optional[int] = None
+    role: Optional[str] = None
+    parent_checksum: Optional[str] = None
+    analysis_error: Optional[str] = None
     layer_height: Optional[float] = None
     first_layer_height: Optional[float] = None
     nozzle_diameter: Optional[float] = None
