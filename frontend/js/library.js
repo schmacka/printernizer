@@ -262,7 +262,14 @@ class LibraryManager {
 
                 const checksum = card.dataset.checksum;
                 const file = files.find(f => f.checksum === checksum);
-                if (file) this.showFileDetail(file);
+                if (!file) return;
+                // Models open the dedicated model-detail view (printfiles + slice);
+                // other files keep the existing detail modal.
+                if (file.role === 'model' && window.modelDetailView) {
+                    window.modelDetailView.open(file.checksum);
+                } else {
+                    this.showFileDetail(file);
+                }
             });
         });
 
