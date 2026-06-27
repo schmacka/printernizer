@@ -3,7 +3,7 @@ Library API Router - Unified file management endpoints.
 Provides REST API for library operations (list, get, reprocess, delete).
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, Query, Path as PathParam, Depends
 from pydantic import BaseModel, Field
 import structlog
@@ -138,6 +138,12 @@ class LibraryMetadataResponse(BaseModel):
     last_analyzed: Optional[str] = None
 
 
+class PrintfilesResponse(BaseModel):
+    """Printfiles derived from a model, with slicing job enrichment."""
+    printfiles: List[Dict[str, Any]]
+    count: int
+
+
 # Dependency to get library service
 async def get_library_service():
     """Get library service from application state."""
@@ -257,6 +263,19 @@ async def get_library_file(
         raise LibraryItemNotFoundError(checksum)
 
     return file_record
+
+
+@router.get("/files/{checksum}/printfiles", response_model=PrintfilesResponse)
+async def get_model_printfiles(
+    checksum: str,
+    library_service = Depends(get_library_service),
+):
+    """List print files derived from a library model."""
+    model = await library_service.get_file_by_checksum(checksum)
+    if not model:
+        raise LibraryItemNotFoundError(checksum)
+    printfiles = await library_service.get_printfiles_for_model(checksum)
+    return PrintfilesResponse(printfiles=printfiles, count=len(printfiles))
 
 
 @router.post("/files/{checksum}/reprocess", response_model=ReprocessResponse)

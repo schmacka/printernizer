@@ -25,6 +25,7 @@ from src.services.filament_colors import (
     get_primary_color,
     format_color_list
 )
+from src.services.file_role_classifier import classify_role, threemf_has_gcode
 import base64
 
 logger = structlog.get_logger()
@@ -103,9 +104,43 @@ class LibraryService:
 
             logger.info("Library initialized successfully")
 
+            # Backfill library file roles for existing unclassified rows
+            try:
+                await self.classify_unroled_files()
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Library role backfill failed", error=str(e))
+
         except Exception as e:
             logger.error("Failed to initialize library", error=str(e))
             raise
+
+    async def classify_unroled_files(self) -> int:
+        """One-time backfill: classify library_files rows with role IS NULL."""
+        from src.services.file_role_classifier import classify_role, threemf_has_gcode
+        updated = 0
+        async with self.database.connection() as conn:
+            cursor = await conn.execute(
+                "SELECT checksum, file_type, library_path FROM library_files WHERE role IS NULL")
+            rows = await cursor.fetchall()
+        for row in rows:
+            checksum, file_type, library_path = row[0], row[1], row[2]
+            ext = (file_type or "").lstrip(".").lower()
+            has_gcode = None
+            if ext == "3mf":
+                full = self.library_path / library_path if library_path else None
+                has_gcode = threemf_has_gcode(full) if full and full.exists() else None
+            role = classify_role(file_type or "", has_gcode)
+            if role is None:
+                continue
+            async with self.database.connection() as conn:
+                await conn.execute(
+                    "UPDATE library_files SET role = ? WHERE checksum = ? AND role IS NULL",
+                    (role, checksum))
+                await conn.commit()
+            updated += 1
+        if updated:
+            logger.info("Backfilled library file roles", count=updated)
+        return updated
 
     async def calculate_checksum(self, file_path: Path, algorithm: str = None) -> str:
         """
@@ -160,7 +195,7 @@ class LibraryService:
 
         Args:
             checksum: File checksum (not used in path anymore)
-            source_type: Source type (printer, watch_folder, upload)
+            source_type: Source type (printer, watch_folder, upload, slicer)
             original_filename: Original filename (required)
             printer_name: Printer name (required for printer source type)
 
@@ -183,6 +218,10 @@ class LibraryService:
         elif source_type == 'upload':
             # Store in uploads/ with original filename
             return self.library_path / 'uploads' / original_filename
+
+        elif source_type == 'slicer':
+            # Store in models/ with original filename (slicer output)
+            return self.library_path / 'models' / original_filename
 
         else:
             raise ValueError(f"Unknown source type: {source_type}")
@@ -234,20 +273,24 @@ class LibraryService:
         return existing_file
 
     async def add_file_to_library(self, source_path: Path, source_info: Dict[str, Any],
-                                  copy_file: bool = True, calculate_hash: bool = True) -> Dict[str, Any]:
+                                  copy_file: bool = True, calculate_hash: bool = True,
+                                  role: Optional[str] = None,
+                                  parent_checksum: Optional[str] = None) -> Dict[str, Any]:
         """
         Add a file to the library.
 
         Args:
             source_path: Path to source file
             source_info: Dictionary with source information:
-                - type: 'printer', 'watch_folder', 'upload'
+                - type: 'printer', 'watch_folder', 'upload', 'slicer'
                 - printer_id: ID of printer (for printer source)
                 - printer_name: Name of printer (for printer source)
                 - folder_path: Path to watch folder (for watch_folder source)
                 - relative_path: Relative path within folder
             copy_file: Whether to copy file to library (False to move)
             calculate_hash: Whether to calculate checksum (False if already known)
+            role: Optional file role ('model' or 'printfile'). If not provided, will be classified.
+            parent_checksum: Optional checksum of parent model (for printfiles).
 
         Returns:
             Dictionary with file information
@@ -258,7 +301,7 @@ class LibraryService:
 
             # Validate source info
             source_type = source_info.get('type')
-            if source_type not in ['printer', 'watch_folder', 'upload']:
+            if source_type not in ['printer', 'watch_folder', 'upload', 'slicer']:
                 raise ValueError(f"Invalid source type: {source_type}")
 
             # Calculate checksum
@@ -342,6 +385,11 @@ class LibraryService:
             file_size = file_stat.st_size
             file_type = library_path.suffix.lower()
 
+            # Classify role if not provided
+            if role is None:
+                has_gcode = threemf_has_gcode(library_path) if file_type.lstrip('.') == '3mf' else None
+                role = classify_role(file_type, has_gcode)
+
             # Create library file record
             # For duplicates, we use a modified checksum to bypass UNIQUE constraint
             # The modified checksum is checksum + "-" + UUID to make it unique
@@ -376,6 +424,8 @@ class LibraryService:
                 'is_duplicate': is_duplicate,
                 'duplicate_of_checksum': duplicate_of_checksum or checksum,  # Always store original checksum
                 'duplicate_count': 0,  # Will be updated if other duplicates are added later
+                'role': role,
+                'parent_checksum': parent_checksum,
             }
 
             # Save to database (handle race condition with UNIQUE constraint)
@@ -466,6 +516,22 @@ class LibraryService:
             File record or None if not found
         """
         return await self.library_repo.get_file(file_id)
+
+    async def get_printfiles_for_model(self, model_checksum: str) -> List[Dict[str, Any]]:
+        """Return printfiles derived from a model, enriched with slicing-job detail."""
+        query = """
+            SELECT lf.*, sj.profile_id AS profile_id, sj.target_printer_id AS target_printer_id,
+                   sj.estimated_print_time AS estimated_print_time, sj.filament_used AS filament_used,
+                   sj.created_at AS sliced_at
+            FROM library_files lf
+            LEFT JOIN slicing_jobs sj ON sj.output_gcode_checksum = lf.checksum
+            WHERE lf.parent_checksum = ? AND lf.role = 'printfile'
+            ORDER BY lf.added_to_library DESC
+        """
+        async with self.database.connection() as conn:
+            cursor = await conn.execute(query, (model_checksum,))
+            rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
 
     async def list_files(self, filters: Dict[str, Any] = None,
                         page: int = 1, limit: int = 50) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
