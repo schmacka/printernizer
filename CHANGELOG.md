@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.41.2] - 2026-06-28
+
+### Fixed
+- **Slicer not detected on the Home Assistant add-on.** The add-on provides `SLICER_SERVICE_URL` via `/app/.env`, but the remote-slicer registration only read `os.environ` (which the add-on never populates), so `GET /api/v1/slicing` stayed empty even with the slicer add-on running and configured. Registration now also reads it from app settings (which load `.env`). Added a `slicer_service_url` setting.
+
 ## [2.41.1] - 2026-06-27
 
 ### Fixed
