@@ -90,6 +90,12 @@ class PrinternizerSettings(BaseSettings):
         description="Automatically create jobs when print starts are detected."
     )
 
+    slicer_service_url: str = Field(
+        default="",
+        env="SLICER_SERVICE_URL",
+        description="URL of the remote slicer microservice (e.g. http://slicer:8001). Empty disables slicing."
+    )
+
     # File Management
     downloads_path: str = Field(
         default="/data/printernizer/printer-files",

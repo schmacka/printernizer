@@ -515,9 +515,14 @@ class SlicerService(BaseService):
         return is_valid
 
     async def register_remote_slicer_from_env(self) -> None:
-        """Register the remote slicer service from SLICER_SERVICE_URL (idempotent)."""
+        """Register the remote slicer service from SLICER_SERVICE_URL (idempotent).
+
+        Reads from the process env (docker-compose) OR the app settings, which load
+        the HA add-on's .env file (the add-on writes SLICER_SERVICE_URL there, not
+        into os.environ).
+        """
         import os
-        url = os.environ.get("SLICER_SERVICE_URL")
+        url = os.environ.get("SLICER_SERVICE_URL") or getattr(self.settings, "slicer_service_url", "")
         if not url:
             return
         for s in await self.list_slicers():
