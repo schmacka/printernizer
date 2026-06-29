@@ -121,6 +121,24 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- System & Libraries -->
+                <div class="debug-card">
+                    <div class="card-header">
+                        <h3>
+                            <span class="card-icon">🧩</span>
+                            System &amp; Bibliotheken
+                        </h3>
+                        <div class="card-controls">
+                            <button class="btn btn-sm" onclick="loadSystemInfo()">Aktualisieren</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="systemInfo" class="system-info">
+                            <div class="loading-spinner">Lade System-Info…</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -142,6 +160,40 @@
     <script src="js/unified-log-viewer.js"></script>
     <script src="js/debug.js"></script>
     <script src="js/debug-init.js"></script>
+    <script>
+    // System & libraries panel: app/Python versions + optional-library availability.
+    async function loadSystemInfo() {
+        const host = document.getElementById('systemInfo');
+        if (!host) return;
+        host.innerHTML = '<div class="loading-spinner">Lade System-Info…</div>';
+        const badge = (ok) => ok === true ? '<span style="color:#16a34a">●</span>'
+            : ok === false ? '<span style="color:#dc2626">●</span>'
+            : '<span style="color:#9ca3af">●</span>';
+        try {
+            const base = (window.CONFIG && CONFIG.API_BASE_URL) || '/api/v1';
+            const d = await (await fetch(`${base}/debug/system-info`)).json();
+            const libRows = Object.entries(d.libraries || {}).map(([name, v]) =>
+                `<tr><td>${badge(v.available)} ${name}</td><td>${v.version || ''}</td>`
+                + `<td style="color:#dc2626">${v.available ? '' : (v.error || '')}</td></tr>`).join('');
+            host.innerHTML = `
+                <div class="system-info-meta" style="display:flex;flex-wrap:wrap;gap:8px 24px;margin-bottom:10px">
+                  <div><b>App</b> ${d.app_version}</div>
+                  <div><b>Python</b> ${d.python_version}</div>
+                  <div><b>Platform</b> ${d.platform} (${d.machine})</div>
+                  <div><b>Mode</b> ${d.deployment_mode}</div>
+                  <div><b>Preview rendering</b> ${badge(d.preview_rendering_available)} ${d.preview_rendering_available}</div>
+                  <div><b>Slicer URL</b> ${d.slicer_service_url || '—'}</div>
+                </div>
+                <table class="system-info-table" style="width:100%;border-collapse:collapse">
+                  <thead><tr><th style="text-align:left">Library</th><th style="text-align:left">Version</th><th style="text-align:left">Error</th></tr></thead>
+                  <tbody>${libRows}</tbody>
+                </table>`;
+        } catch (e) {
+            host.innerHTML = `<div class="error">Failed to load system info: ${e.message}</div>`;
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadSystemInfo);
+    </script>
 
     <style>
         .debug-page {
