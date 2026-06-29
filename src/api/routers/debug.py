@@ -175,3 +175,54 @@ async def get_thumbnail_processing_log(
         },
         "recent_attempts": transformed_entries
     }
+
+
+@router.get("/system-info", tags=["Debug"], summary="App version + Python/library availability")
+async def system_info():
+    """Report app/Python versions and availability of optional libraries.
+
+    Useful for diagnosing why previews/features are missing on a given deployment
+    (e.g. matplotlib not importable -> no STL preview thumbnails).
+    """
+    import sys
+    import platform
+    import importlib
+    from src.utils.version import get_version
+
+    def probe(module_name: str, version_attr: str = "__version__"):
+        try:
+            mod = importlib.import_module(module_name)
+            ver = getattr(mod, version_attr, None)
+            return {"available": True, "version": str(ver) if ver else None, "error": None}
+        except Exception as e:  # noqa: BLE001 - we want the message verbatim
+            return {"available": False, "version": None, "error": f"{type(e).__name__}: {e}"}
+
+    libraries = {
+        "matplotlib": probe("matplotlib"),       # STL/3MF preview thumbnail rendering
+        "trimesh": probe("trimesh"),             # STL geometry / dimensions
+        "numpy": probe("numpy"),
+        "numpy-stl": probe("stl"),
+        "scipy": probe("scipy"),
+        "networkx": probe("networkx"),
+        "Pillow": probe("PIL"),
+        "packaging": probe("packaging"),
+        "build123d": probe("build123d"),         # parametric generator (optional)
+    }
+
+    # Whether the preview renderer considers itself usable
+    try:
+        from src.services.preview_render_service import RENDERING_AVAILABLE
+        preview_rendering_available = bool(RENDERING_AVAILABLE)
+    except Exception as e:  # noqa: BLE001
+        preview_rendering_available = None
+
+    return {
+        "app_version": get_version(fallback="unknown"),
+        "python_version": sys.version.split()[0],
+        "platform": platform.platform(),
+        "machine": platform.machine(),
+        "deployment_mode": __import__("os").getenv("DEPLOYMENT_MODE", "standalone"),
+        "preview_rendering_available": preview_rendering_available,
+        "slicer_service_url": __import__("os").getenv("SLICER_SERVICE_URL") or None,
+        "libraries": libraries,
+    }

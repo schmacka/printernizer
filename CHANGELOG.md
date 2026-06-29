@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.41.4] - 2026-06-29
+
+### Added
+- **Debug page: System & Libraries panel** — `GET /api/v1/debug/system-info` reports the app/Python versions, platform, deployment mode, slicer URL, whether preview rendering is available, and the availability + version (or import error) of each optional library (matplotlib, trimesh, numpy-stl, scipy, networkx, Pillow, packaging, build123d). Makes "why is there no STL thumbnail / why is feature X off" diagnosable at a glance. Surfaced on `/debug.html`.
+
 ## [2.41.3] - 2026-06-29
 
 ### Fixed
