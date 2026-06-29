@@ -362,10 +362,20 @@ class SlicingQueue(BaseService):
                 raise Exception("Library service not available")
             
             library_file = await self.library_service.get_file_by_checksum(job.file_checksum)
-            if not library_file or not library_file.get("file_path"):
+            if not library_file:
                 raise Exception("Library file not found")
-            
-            input_file = Path(library_file["file_path"])
+
+            # Library records store a relative `library_path` (under the library root).
+            # `file_path` is only present for some sources, so resolve robustly:
+            # prefer an explicit file_path, else join library_path with the library root.
+            rel = library_file.get("file_path") or library_file.get("library_path")
+            if not rel:
+                raise Exception("Library file not found")
+            input_file = Path(rel)
+            if not input_file.is_absolute():
+                lib_root = getattr(self.library_service, "library_path", None)
+                if lib_root:
+                    input_file = Path(lib_root) / rel
             if not input_file.exists():
                 raise Exception(f"Input file not found: {input_file}")
             

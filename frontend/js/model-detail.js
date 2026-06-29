@@ -45,10 +45,27 @@ class ModelDetailView {
             const model = await res.json();
             c.innerHTML = this._renderShell(model);
             c.querySelector('[data-act="back"]').addEventListener('click', () => this.close());
+            const delBtn = c.querySelector('[data-act="delete"]');
+            if (delBtn) delBtn.addEventListener('click', () => this._delete(model.display_name || model.filename || model.checksum));
             await this.refreshPrintfiles();
             await this.renderSlicePanel();
         } catch (e) {
             c.innerHTML = '<div class="error">Failed to load model.</div>';
+        }
+    }
+
+    async _delete(label) {
+        if (!confirm(`Delete "${label}"?\nThis removes the model from the library.`)) return;
+        try {
+            const r = await fetch(`${CONFIG.API_BASE_URL}/library/files/${this.checksum}`, { method: 'DELETE' });
+            if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'delete failed');
+            showToast('success', 'Library', 'Model deleted');
+            this.close();
+            if (window.libraryManager && typeof window.libraryManager.loadFiles === 'function') {
+                window.libraryManager.loadFiles();
+            }
+        } catch (e) {
+            showToast('error', 'Delete', e.message);
         }
     }
 
@@ -65,6 +82,24 @@ class ModelDetailView {
         const dims = (model.model_width && model.model_height)
             ? `${Math.round(model.model_width)}×${Math.round(model.model_depth || 0)}×${Math.round(model.model_height)} mm`
             : '';
+        const fmtBytes = (b) => {
+            if (b === null || b === undefined || b === '') return '';
+            const u = ['B', 'KB', 'MB', 'GB']; let i = 0, n = Number(b);
+            while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+            return `${n.toFixed(i ? 1 : 0)} ${u[i]}`;
+        };
+        const rows = [
+            ['Type', model.file_type || ''],
+            ['Dimensions', dims],
+            ['Size', fmtBytes(model.file_size)],
+            ['Source', model.sources || ''],
+            ['Added', (model.added_to_library || '').slice(0, 10)],
+            ['Checksum', model.checksum ? model.checksum.slice(0, 12) + '…' : ''],
+        ].filter(([, v]) => v);
+        const info = rows.map(([k, v]) => `<div class="md-info-row"><span class="md-info-k">${k}</span><span class="md-info-v">${v}</span></div>`).join('');
+        const err = model.analysis_error
+            ? `<div class="md-info-row md-info-error"><span class="md-info-k">Analysis</span><span class="md-info-v">${model.analysis_error}</span></div>`
+            : '';
         return `
           <div class="model-detail-header">
             <button class="btn btn-secondary" data-act="back">← Library</button>
@@ -72,8 +107,13 @@ class ModelDetailView {
             <div class="model-detail-title">
               <h2>${name}</h2>
               <div class="model-detail-meta">${dims}${dims ? ' · ' : ''}${model.file_type || ''}</div>
+              <div class="model-detail-actions">
+                <a class="btn btn-secondary" href="${CONFIG.API_BASE_URL}/library/files/${model.checksum}/download">Download</a>
+                <button class="btn btn-danger" data-act="delete">Delete</button>
+              </div>
             </div>
           </div>
+          <section class="model-detail-info">${info}${err}</section>
           <section class="model-detail-printfiles"><h3>Print files</h3><div id="mdPrintfiles"></div></section>
           <section class="model-detail-slice"><h3>Slice</h3><div id="mdSlice"></div></section>`;
     }

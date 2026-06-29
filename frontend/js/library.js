@@ -1529,6 +1529,7 @@ class LibraryManager {
 
 // Initialize library manager
 const libraryManager = new LibraryManager();
+window.libraryManager = libraryManager;  // expose for model-detail view (refresh after delete)
 
 // Export init function for page manager
 libraryManager.init = function() {

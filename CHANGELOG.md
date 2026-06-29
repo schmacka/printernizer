@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.41.3] - 2026-06-29
+
+### Fixed
+- **Slicing failed with "Library file not found".** The slice queue resolved the input via `file_path`, but library records store a relative `library_path` under the library root, so every slice-from-library failed. It now resolves the path robustly (relative `library_path` joined with the library root).
+- **Model detail view lost actions/info.** The model-centric view (added in 2.41.0) dropped the Delete and Download actions and the metadata display that the classic file view had. Restored: a **Delete** button (with refresh), a **Download** button, a metadata section (type/dimensions/size/source/added/checksum), and the `analysis_error` (when extraction failed) so a broken preview is visible in the UI.
+
+### Changed
+- `window.libraryManager` is now exposed so the model detail view can refresh the grid after deleting.
+
 ## [2.41.2] - 2026-06-28
 
 ### Fixed
