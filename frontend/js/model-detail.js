@@ -9,6 +9,7 @@ class ModelDetailView {
         this.checksum = null;
         this._poll = null;
         this._printerCache = null;
+        this._profileCache = null;
         this._slicerId = null;
     }
 
@@ -114,8 +115,8 @@ class ModelDetailView {
             </div>
           </div>
           <section class="model-detail-info">${info}${err}</section>
-          <section class="model-detail-printfiles"><h3>Print files</h3><div id="mdPrintfiles"></div></section>
-          <section class="model-detail-slice"><h3>Slice</h3><div id="mdSlice"></div></section>`;
+          <section class="model-detail-slice"><h3>Slice</h3><div id="mdSlice"></div></section>
+          <section class="model-detail-printfiles"><h3>Print files</h3><div id="mdPrintfiles"></div></section>`;
     }
 
     async _printers() {
@@ -128,6 +129,30 @@ class ModelDetailView {
             this._printerCache = [];
         }
         return this._printerCache;
+    }
+
+    async _profiles() {
+        if (this._profileCache) return this._profileCache;
+        this._profileCache = [];
+        try {
+            const sl = await (await fetch(`${CONFIG.API_BASE_URL}/slicing`)).json();
+            const slicers = sl.slicers || [];
+            const slicer = slicers.find(s => s.is_available) || slicers[0];
+            if (slicer) {
+                this._slicerId = slicer.id;
+                const pf = await (await fetch(`${CONFIG.API_BASE_URL}/slicing/${slicer.id}/profiles`)).json();
+                this._profileCache = pf.profiles || [];
+            }
+        } catch (e) { /* none */ }
+        return this._profileCache;
+    }
+
+    async _nameMaps() {
+        const [printers, profiles] = await Promise.all([this._printers(), this._profiles()]);
+        const pmap = {}, fmap = {};
+        printers.forEach(x => { pmap[x.id] = x.name; });
+        profiles.forEach(x => { fmap[x.id] = x.profile_name; });
+        return { pmap, fmap };
     }
 
     async refreshPrintfiles() {
@@ -144,14 +169,17 @@ class ModelDetailView {
             return;
         }
         const printers = await this._printers();
+        const { pmap, fmap } = await this._nameMaps();
         const rows = printfiles.map(p => {
             const t = p.estimated_print_time ? `${Math.round(p.estimated_print_time / 60)} min` : '—';
             const fil = p.filament_used ? `${Number(p.filament_used).toFixed(1)} g` : '—';
+            const printerName = pmap[p.target_printer_id] || (p.target_printer_id ? 'Unknown printer' : '—');
+            const profileName = fmap[p.profile_id] || p.profile_name || '—';
             const pr = printers.length
                 ? `<select class="md-printer">${printers.map(x => `<option value="${x.id}">${x.name}</option>`).join('')}</select>`
                 : '';
             return `<tr data-cs="${p.checksum}">
-              <td>${p.target_printer_id || '—'}</td><td>${p.profile_id || '—'}</td>
+              <td>${printerName}</td><td>${profileName}</td>
               <td>${t}</td><td>${fil}</td>
               <td><button class="btn btn-sm" data-dl="${p.checksum}">Download</button>
                   ${pr} <button class="btn btn-sm" data-print="${p.checksum}">Print</button></td></tr>`;
@@ -179,30 +207,47 @@ class ModelDetailView {
     async renderSlicePanel() {
         const host = document.getElementById('mdSlice');
         if (!host) return;
-        let slicer = null, profiles = [];
-        try {
-            const sl = await (await fetch(`${CONFIG.API_BASE_URL}/slicing`)).json();
-            const slicers = sl.slicers || [];
-            slicer = slicers.find(s => s.is_available) || slicers[0];
-            if (slicer) {
-                const pf = await (await fetch(`${CONFIG.API_BASE_URL}/slicing/${slicer.id}/profiles`)).json();
-                profiles = pf.profiles || [];
-            }
-        } catch (e) { /* none */ }
-        if (!slicer || !profiles.length) {
-            host.innerHTML = '<div class="empty">No slicer/profile available. Add one in slicer settings.</div>';
+        const profiles = await this._profiles();
+        if (!this._slicerId || !profiles.length) {
+            host.innerHTML = '<div class="empty">No slicer or profile available yet. Start the slicer add-on and configure its URL.</div>';
             return;
         }
-        this._slicerId = slicer.id;
         const printers = await this._printers();
+
+        // Group profiles by printer model so the picker reads as names, not IDs.
+        const groups = {};
+        profiles.forEach(p => { (groups[p.printer_model || 'Other'] = groups[p.printer_model || 'Other'] || []).push(p); });
+        const profileOptions = Object.keys(groups).sort().map(model =>
+            `<optgroup label="${model}">` +
+            groups[model].map(p => `<option value="${p.id}">${p.profile_name}</option>`).join('') +
+            `</optgroup>`).join('');
+
         host.innerHTML = `
           <div class="md-slice-form">
-            <label>Profile <select id="mdProfile">${profiles.map(p => `<option value="${p.id}">${p.profile_name}</option>`).join('')}</select></label>
-            <label>Printer <select id="mdSlicePrinter"><option value="">— none —</option>${printers.map(x => `<option value="${x.id}">${x.name}</option>`).join('')}</select></label>
-            <button class="btn btn-primary" id="mdSliceBtn">Slice</button>
-            <button class="btn" id="mdSlicePrintBtn">Slice &amp; Print</button>
+            <label class="md-field">Profile
+              <select id="mdProfile">${profileOptions}</select>
+            </label>
+            <label class="md-field">Target printer
+              <select id="mdSlicePrinter"><option value="">— choose when printing —</option>${printers.map(x => `<option value="${x.id}">${x.name}</option>`).join('')}</select>
+            </label>
+            <div class="md-slice-actions">
+              <button class="btn btn-primary" id="mdSliceBtn">Slice</button>
+              <button class="btn btn-secondary" id="mdSlicePrintBtn">Slice &amp; Print</button>
+            </div>
           </div>
+          <div id="mdProfileMeta" class="md-profile-meta"></div>
           <div id="mdSliceStatus"></div>`;
+
+        const sel = host.querySelector('#mdProfile');
+        const meta = host.querySelector('#mdProfileMeta');
+        const updateMeta = () => {
+            const p = profiles.find(x => x.id === sel.value);
+            if (!p) { meta.textContent = ''; return; }
+            const src = p.is_builtin ? 'built-in' : (p.source || 'custom');
+            meta.innerHTML = `<span class="md-chip">${p.printer_model || 'Generic'}</span><span class="md-chip md-chip-soft">${src}</span>`;
+        };
+        sel.addEventListener('change', updateMeta);
+        updateMeta();
         host.querySelector('#mdSliceBtn').addEventListener('click', () => this._slice(false));
         host.querySelector('#mdSlicePrintBtn').addEventListener('click', () => this._slice(true));
     }

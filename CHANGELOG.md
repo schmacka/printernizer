@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.41.5] - 2026-06-30
+
+### Changed
+- **Model detail / slicing UI overhaul.**
+  - **Print files table now shows real printer and profile *names*** instead of raw UUIDs (resolved via the printers and slicer-profiles lists).
+  - **Profile picker grouped by printer model** (optgroups) with a live detail line showing the selected profile's printer model and built-in/custom source.
+  - Reworked layout: larger preview, metadata shown as a clean grid, section headers, and the **Slice** panel promoted above the print-files list with a tidier form and clearer Slice / Slice & Print actions.
+
 ## [2.41.4] - 2026-06-29
 
 ### Added
