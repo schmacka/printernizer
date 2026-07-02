@@ -907,8 +907,11 @@ class PrinterMonitoringService:
             # Discovery time (when we first saw it)
             'created_at': discovery_time.isoformat(),
 
-            # Actual start time from printer (if available)
-            'start_time': status.print_start_time.isoformat() if status.print_start_time else None,
+            # Actual start time from printer if it reports elapsed print time;
+            # otherwise fall back to discovery_time so the job never ends up with
+            # a permanently null start_time (auto-created jobs are never
+            # revisited to backfill this once the printer starts reporting it).
+            'start_time': (status.print_start_time or discovery_time).isoformat(),
 
             # Metadata (as dict - job_service will serialize to JSON for database)
             'customer_info': {

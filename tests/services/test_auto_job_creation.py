@@ -458,6 +458,44 @@ class TestAutoCreateJobLogic:
         assert job_data['status'] == 'running'
 
     @pytest.mark.asyncio
+    async def test_auto_create_job_without_start_time_falls_back_to_discovery_time(self, monitoring_service):
+        """Should fall back to discovery_time when printer doesn't report elapsed print time yet.
+
+        Regression test: jobs auto-created before the printer reports elapsed
+        print time (e.g. Bambu MQTT `mc_print_time` still 0 on the very first
+        status update) used to get `start_time: None` permanently, since
+        auto-creation is never revisited to backfill it later. This left the
+        job showing "not started" in the UI forever despite actively printing.
+        """
+        status = PrinterStatusUpdate(
+            printer_id="bambu_001",
+            status=PrinterStatus.PRINTING,
+            current_job="model.3mf",
+            progress=1,
+            print_start_time=None,
+            timestamp=datetime.now()
+        )
+
+        # Mock dependencies
+        monitoring_service.database.list_jobs = AsyncMock(return_value=[])
+        monitoring_service.job_service.create_job = AsyncMock(return_value={'id': 'job_123'})
+
+        mock_printer = Mock()
+        mock_printer.__class__.__name__ = "BambuLabPrinter"
+        monitoring_service.connection_service.printer_instances = {"bambu_001": mock_printer}
+
+        before = datetime.now()
+        await monitoring_service._auto_create_job_if_needed(status)
+        after = datetime.now()
+
+        call_args = monitoring_service.job_service.create_job.call_args
+        job_data = call_args[0][0]
+
+        assert job_data['start_time'] is not None
+        recorded_start_time = datetime.fromisoformat(job_data['start_time'])
+        assert before <= recorded_start_time <= after
+
+    @pytest.mark.asyncio
     async def test_auto_create_job_startup_flag(self, monitoring_service):
         """Should set startup flag when is_startup=True."""
         status = PrinterStatusUpdate(
