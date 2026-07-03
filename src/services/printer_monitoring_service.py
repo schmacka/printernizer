@@ -151,6 +151,14 @@ class PrinterMonitoringService:
         if self.auto_create_jobs and self.job_service:
             await self._auto_create_job_if_needed(status)
 
+        # Keep the active job's progress in sync. Auto-created jobs get their
+        # progress recorded once at creation time and are never revisited, so
+        # without this the dashboard shows whatever percentage the printer
+        # happened to report at that single moment, frozen for the rest of
+        # the print.
+        if self.job_service and status.status == PrinterStatus.PRINTING:
+            await self._sync_active_job_progress(status)
+
         # Clean up discovery tracking when print ends
         if status.status in [PrinterStatus.ONLINE, PrinterStatus.ERROR]:
             if status.current_job:
@@ -763,6 +771,24 @@ class PrinterMonitoringService:
                     return job
 
         return None
+
+    async def _sync_active_job_progress(self, status: PrinterStatusUpdate) -> None:
+        """
+        Refresh the DB progress of the active job matching this status update.
+
+        Args:
+            status: Current printer status with the latest reported progress
+        """
+        if not status.current_job:
+            return
+
+        try:
+            job = await self._find_active_job(status.printer_id, status.current_job)
+            if job and job.get('progress') != (status.progress or 0):
+                await self.job_service.update_job_progress(job['id'], status.progress or 0)
+        except Exception as e:
+            logger.debug("Failed to sync active job progress",
+                        printer_id=status.printer_id, error=str(e))
 
     def _make_job_key(self, printer_id: str, filename: str, reference_time: datetime) -> str:
         """

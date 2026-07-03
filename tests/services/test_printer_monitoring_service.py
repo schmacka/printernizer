@@ -650,6 +650,103 @@ class TestFindActiveJob:
         assert result is not None
 
 
+class TestSyncActiveJobProgress:
+    """Test that the active job's DB progress is kept in sync with live status.
+
+    Regression test: auto-created jobs had their progress recorded once at
+    creation time and were never revisited, so the dashboard showed whatever
+    percentage the printer happened to report at that single moment, frozen
+    for the rest of the print (e.g. 97% shown while the printer was actually
+    at 46%).
+    """
+
+    @pytest.fixture
+    def service(self):
+        """Create monitoring service with a mocked job_service."""
+        db = MagicMock()
+        db._connection = MagicMock()
+        db.list_jobs = AsyncMock(return_value=[])
+
+        event_service = MagicMock(spec=EventService)
+        event_service.emit_event = AsyncMock()
+
+        job_service = MagicMock()
+        job_service.update_job_progress = AsyncMock(return_value=True)
+
+        return PrinterMonitoringService(db, event_service, job_service=job_service)
+
+    @pytest.mark.asyncio
+    async def test_updates_progress_when_changed(self, service):
+        """Should push the new progress to the matching active job."""
+        service.database.list_jobs = AsyncMock(return_value=[
+            {"id": "job_001", "filename": "model.3mf", "status": "running", "progress": 97}
+        ])
+        status = PrinterStatusUpdate(
+            printer_id="bambu_001",
+            status=PrinterStatus.PRINTING,
+            current_job="model.3mf",
+            progress=46,
+            timestamp=datetime.now()
+        )
+
+        await service._sync_active_job_progress(status)
+
+        service.job_service.update_job_progress.assert_awaited_once_with("job_001", 46)
+
+    @pytest.mark.asyncio
+    async def test_skips_update_when_progress_unchanged(self, service):
+        """Should not write to the DB if progress hasn't actually changed."""
+        service.database.list_jobs = AsyncMock(return_value=[
+            {"id": "job_001", "filename": "model.3mf", "status": "running", "progress": 46}
+        ])
+        status = PrinterStatusUpdate(
+            printer_id="bambu_001",
+            status=PrinterStatus.PRINTING,
+            current_job="model.3mf",
+            progress=46,
+            timestamp=datetime.now()
+        )
+
+        await service._sync_active_job_progress(status)
+
+        service.job_service.update_job_progress.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_no_active_job_is_a_noop(self, service):
+        """Should do nothing if no matching active job is found."""
+        status = PrinterStatusUpdate(
+            printer_id="bambu_001",
+            status=PrinterStatus.PRINTING,
+            current_job="model.3mf",
+            progress=46,
+            timestamp=datetime.now()
+        )
+
+        await service._sync_active_job_progress(status)
+
+        service.job_service.update_job_progress.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_handle_status_update_syncs_progress_while_printing(self, service):
+        """_handle_status_update should call the progress sync while printing."""
+        service.database.list_jobs = AsyncMock(return_value=[
+            {"id": "job_001", "filename": "model.3mf", "status": "running", "progress": 97}
+        ])
+        service._store_status_update = AsyncMock()
+        service._check_auto_download = AsyncMock()
+        status = PrinterStatusUpdate(
+            printer_id="bambu_001",
+            status=PrinterStatus.PRINTING,
+            current_job="model.3mf",
+            progress=46,
+            timestamp=datetime.now()
+        )
+
+        await service._handle_status_update(status)
+
+        service.job_service.update_job_progress.assert_awaited_once_with("job_001", 46)
+
+
 class TestFindExistingJob:
     """Test existing job finding with time window."""
 
