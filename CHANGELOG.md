@@ -5,6 +5,12 @@ All notable changes to Printernizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.41.7] - 2026-07-03
+
+### Fixed
+- **Every dashboard load fired an "Anwendungsfehler / Ein unerwarteter Fehler ist aufgetreten" toast, and the console showed a repeating `SyntaxError: Invalid left-hand side in assignment`.** The camera preview `<img>` `onload`/`onerror` handlers used optional chaining on the left-hand side of an assignment (`this.parentElement.querySelector('.stream-error')?.style.display='block'`), which is illegal JavaScript. The browser recompiled the handler on every image load/error, threw, and the global error handler turned each throw into a toast — repeatedly, because the camera preview auto-refreshes. Rewrote all four handlers (`frontend/js/camera.js`) to a guarded statement form. This also restores the intended "webcam not available" placeholder when the external preview is unreachable (503).
+- **`GET /api/v1/system/info` returned 500.** `system.py` called `config_service.get_system_info()`, but the method did not exist on `ConfigService` (`AttributeError`). Added `ConfigService.get_system_info()` returning `version`, `environment`, `timezone`, `database_size_mb` and `uptime_seconds` per `SystemInfoResponse`.
+
 ## [2.41.6] - 2026-07-03
 
 ### Fixed
