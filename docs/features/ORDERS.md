@@ -1,7 +1,7 @@
 # Orders Tracking Feature
 
-**Version**: 2.30.0
-**Status**: In Progress (bugs pending fix — see Known Issues)
+**Version**: 2.41.5
+**Status**: Stable
 
 ## Overview
 
@@ -153,31 +153,11 @@ SQLite (orders, customers, order_sources, order_files tables)
 
 ---
 
-## Known Issues (pending fix on branch `claude/fix-order-feature-bugs-VKV3I`)
+## Known Issues
 
-### Backend — `order_repository.py` schema mismatch
-
-The repository was written against a different schema than the migration. Five methods are broken:
-
-| Method | Bug | Effect |
-|--------|-----|--------|
-| `create_order()` | INSERT uses non-existent columns `description`, `currency`; omits `payment_status`; wrong default status `'pending'` | Every order creation fails with SQL error |
-| `update_order()` | `allowed_fields` includes `description`, `currency`; missing `payment_status` | `payment_status` can never be updated |
-| `add_file()` | INSERT uses `file_path`, `file_size`, `mime_type` (don't exist); missing `file_id`, `url`, `file_type`; violates CHECK constraint | Every file attachment fails |
-| `create_source()` | INSERT includes non-existent column `description` | Source creation fails |
-| `update_source()` | `allowed_fields` includes non-existent `description` | Source updates silently drop valid fields |
-
-### Frontend — incomplete create modals
-
-| Issue | Detail |
-|-------|--------|
-| `showCreateModal()` uses `prompt()` | Only captures title; no customer, source, price, dates, notes, or file picker |
-| No proper modal form | No `createOrderModal` HTML exists yet |
-| No library file selector | `attach_file` / `detach_file` methods exist but no UI triggers them |
-
-### Fix plan
-
-See `/root/.claude/plans/woolly-purring-seal.md` for full implementation plan covering:
-1. Fix 5 methods in `order_repository.py`
-2. Add `createOrderModal` to `frontend/index.html`
-3. Replace `showCreateModal()`, add `submitCreateOrder()` and `loadLibraryFilesForPicker()` in `frontend/js/orders.js`
+None currently open. The `order_repository.py` schema mismatch (create_order/update_order/
+add_file/create_source/update_source using non-existent columns) and the incomplete
+`prompt()`-based create modal were fixed in `fix: Align order repository SQL with DB schema
+and add proper create-order modal` (v2.30.1). A follow-up safety-net migration
+(`030_repair_orders_tables.sql`) was added to repair any HA installs whose DB was
+initialized before that fix landed.

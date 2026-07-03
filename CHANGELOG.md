@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Dashboard showed "Nicht gestartet" and a "❓ Running" badge for actively printing jobs.** Auto-created jobs (created the moment monitoring first sees an in-progress print) are always given `status: 'running'`, but the frontend's `CONFIG.JOB_STATUS` map had no entry for `'running'` (or `'pending'`) — only `'printing'`/`'queued'` etc. — so the badge fell back to an unknown-status placeholder that echoed the raw value, styled as "❓ Running" via the status-badge CSS. Added the missing `running`/`pending` entries (`frontend/js/config.js`) so they render with the same icon/label/i18n as `printing`/`queued`.
+- **Auto-created jobs could get a permanently null `start_time`.** If the printer hadn't yet reported elapsed print time on first status update (e.g. Bambu MQTT `mc_print_time` still 0), the job's `start_time` was stored as `None` and never backfilled, showing "Nicht gestartet" forever despite the print actively running. Falls back to `discovery_time` when the printer doesn't report a start time (`src/services/printer_monitoring_service.py`).
+- Updated `docs/features/ORDERS.md` — the order-repository SQL/schema-mismatch bugs and the `prompt()`-based create modal it described as "pending" were already fixed on master in v2.30.1; docs were stale.
+
 ## [2.41.5] - 2026-06-30
 
 ### Changed
