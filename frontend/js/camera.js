@@ -161,8 +161,8 @@ class CameraManager {
                              class="camera-stream"
                              src="${externalPreviewUrl}"
                              alt="External Webcam"
-                             onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
-                             onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
+                             onerror="this.style.display='none'; var e=this.parentElement.querySelector('.stream-error'); if(e)e.style.display='block';"
+                             onload="this.style.display='block'; var e=this.parentElement.querySelector('.stream-error'); if(e)e.style.display='none';"
                              style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
                         <div class="stream-error" style="display: none;">
                             <span class="text-muted">External webcam not available</span>
@@ -200,8 +200,8 @@ class CameraManager {
                                  class="camera-stream"
                                  src="${imageUrl}"
                                  alt="${t('camera.previewAlt')}"
-                                 onerror="this.style.display='none'; this.parentElement.querySelector('.stream-error')?.style.display='block';"
-                                 onload="this.style.display='block'; this.parentElement.querySelector('.stream-error')?.style.display='none';"
+                                 onerror="this.style.display='none'; var e=this.parentElement.querySelector('.stream-error'); if(e)e.style.display='block';"
+                                 onload="this.style.display='block'; var e=this.parentElement.querySelector('.stream-error'); if(e)e.style.display='none';"
                                  style="width: 100%; height: auto; border-radius: 4px; margin-bottom: 8px;">
                             <div class="stream-error" style="display: none;">
                                 <span class="text-muted">${t('camera.imageUnavailable')}</span>

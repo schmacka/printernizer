@@ -8,6 +8,7 @@ from pydantic import field_validator
 from pathlib import Path
 import json
 import os
+import time
 from dataclasses import dataclass
 from datetime import datetime
 import structlog
@@ -16,6 +17,10 @@ from src.services.watch_folder_db_service import WatchFolderDbService
 from src.models.watch_folder import WatchFolder, WatchFolderSource
 
 logger = structlog.get_logger()
+
+# Approximate application start time, captured when this module is first imported
+# during app startup. Used to report system uptime via get_system_info().
+_PROCESS_START_TIME = time.time()
 
 
 @dataclass
@@ -640,6 +645,35 @@ class ConfigService:
             "enabled": settings.watch_folders_enabled,
             "recursive": settings.watch_recursive,
             "supported_extensions": ['.stl', '.3mf', '.gcode', '.obj', '.ply']
+        }
+
+    async def get_system_info(self) -> Dict[str, Any]:
+        """Return system information for the /api/v1/system/info endpoint.
+
+        Provides the fields declared by SystemInfoResponse: version,
+        environment, timezone, database size (MB) and process uptime (seconds).
+        """
+        from src.utils.version import get_version
+
+        settings = get_settings()
+
+        # Database file size in MB (0.0 if the file does not exist yet)
+        database_size_mb = 0.0
+        try:
+            db_path = Path(str(settings.database_path))
+            if db_path.exists():
+                database_size_mb = round(db_path.stat().st_size / (1024 * 1024), 2)
+        except OSError as e:
+            logger.warning("Could not determine database size", error=str(e))
+
+        uptime_seconds = int(max(0, time.time() - _PROCESS_START_TIME))
+
+        return {
+            "version": get_version(fallback="unknown"),
+            "environment": settings.environment,
+            "timezone": settings.timezone,
+            "database_size_mb": database_size_mb,
+            "uptime_seconds": uptime_seconds,
         }
 
     def get_application_settings(self) -> Dict[str, Any]:
