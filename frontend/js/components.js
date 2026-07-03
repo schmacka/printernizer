@@ -552,11 +552,11 @@ class PrinterCard {
                 let tempValue = '';
                 
                 if (typeof temp === 'object') {
-                    tempValue = `${temp.current}°C`;
+                    tempValue = `${Math.round(temp.current)}°C`;
                     const isHeating = temp.target && Math.abs(temp.current - temp.target) > 2;
                     tempElement.className = `temp-value ${isHeating ? 'temp-heating' : ''}`;
                 } else {
-                    tempValue = `${temp}°C`;
+                    tempValue = `${Math.round(parseFloat(temp))}°C`;
                 }
                 
                 tempElement.textContent = tempValue;
@@ -2315,8 +2315,8 @@ class StatusHistoryChart {
         ctx.fillStyle = '#6b7280';
         ctx.font = '12px Arial';
         ctx.textAlign = 'right';
-        ctx.fillText(`${maxTemp}°C`, margin - 5, margin + 5);
-        ctx.fillText(`${minTemp}°C`, margin - 5, margin + height + 5);
+        ctx.fillText(`${Math.round(maxTemp)}°C`, margin - 5, margin + 5);
+        ctx.fillText(`${Math.round(minTemp)}°C`, margin - 5, margin + height + 5);
     }
 
     /**

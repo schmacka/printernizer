@@ -836,9 +836,9 @@ class PrinterManager {
                                         <div class="temp-info">
                                             <span class="temp-label">${t('printers.printBed')}</span>
                                             <span class="temp-value ${this.getTempClass(current_status.temperatures.bed)}">
-                                                ${current_status.temperatures.bed.current || 0}°C
+                                                ${Math.round(current_status.temperatures.bed.current || 0)}°C
                                             </span>
-                                            <span class="temp-target">${t('printers.target')}: ${current_status.temperatures.bed.target || 0}°C</span>
+                                            <span class="temp-target">${t('printers.target')}: ${Math.round(current_status.temperatures.bed.target || 0)}°C</span>
                                         </div>
                                     </div>
                                     <div class="temp-card">
@@ -846,9 +846,9 @@ class PrinterManager {
                                         <div class="temp-info">
                                             <span class="temp-label">${t('printers.nozzle')}</span>
                                             <span class="temp-value ${this.getTempClass(current_status.temperatures.nozzle)}">
-                                                ${current_status.temperatures.nozzle.current || 0}°C
+                                                ${Math.round(current_status.temperatures.nozzle.current || 0)}°C
                                             </span>
-                                            <span class="temp-target">${t('printers.target')}: ${current_status.temperatures.nozzle.target || 0}°C</span>
+                                            <span class="temp-target">${t('printers.target')}: ${Math.round(current_status.temperatures.nozzle.target || 0)}°C</span>
                                         </div>
                                     </div>
                                 </div>

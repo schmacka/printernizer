@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Dashboard showed "Nicht gestartet" and a "❓ Running" badge for actively printing jobs.** Auto-created jobs (created the moment monitoring first sees an in-progress print) are always given `status: 'running'`, but the frontend's `CONFIG.JOB_STATUS` map had no entry for `'running'` (or `'pending'`) — only `'printing'`/`'queued'` etc. — so the badge fell back to an unknown-status placeholder that echoed the raw value, styled as "❓ Running" via the status-badge CSS. Added the missing `running`/`pending` entries (`frontend/js/config.js`) so they render with the same icon/label/i18n as `printing`/`queued`.
+- **Auto-created jobs could get a permanently null `start_time`.** If the printer hadn't yet reported elapsed print time on first status update (e.g. Bambu MQTT `mc_print_time` still 0), the job's `start_time` was stored as `None` and never backfilled, showing "Nicht gestartet" forever despite the print actively running. Falls back to `discovery_time` when the printer doesn't report a start time (`src/services/printer_monitoring_service.py`).
+- Updated `docs/features/ORDERS.md` — the order-repository SQL/schema-mismatch bugs and the `prompt()`-based create modal it described as "pending" were already fixed on master in v2.30.1; docs were stale.
+- **Live temperature readings showed 4+ decimal places** (e.g. "209.847362°C") once the first WebSocket update arrived, instead of a clean whole-degree value. The initial printer-card render already rounded via `Math.round()`; the live-update path, the printer detail modal, and the temperature-history chart axis labels didn't. Fixed in `frontend/js/components.js` and `frontend/js/printers.js`.
+- **Job progress percentage froze at whatever value the printer reported at the moment the job was auto-created**, then never updated again for the rest of the print (e.g. dashboard showing 97% while the actual print was at 46%). `update_job_progress()` was only ever called from the manual job-edit API and the unrelated slicing queue — never from the monitoring loop. `_handle_status_update()` now calls a new `_sync_active_job_progress()` on every `PRINTING` status update to keep the DB progress current.
+
 ## [2.41.5] - 2026-06-30
 
 ### Changed

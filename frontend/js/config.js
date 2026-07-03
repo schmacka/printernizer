@@ -242,6 +242,11 @@ const CONFIG = {
     },
 
     JOB_STATUS: {
+        'pending': {
+            label: 'Warteschlange',
+            icon: '⏳',
+            class: 'status-queued'
+        },
         'queued': {
             label: 'Warteschlange',
             icon: '⏳',
@@ -251,6 +256,11 @@ const CONFIG = {
             label: 'Vorbereitung',
             icon: '⚙️',
             class: 'status-preparing'
+        },
+        'running': {
+            label: 'Druckt',
+            icon: '🖨️',
+            class: 'status-printing'
         },
         'printing': {
             label: 'Druckt',
