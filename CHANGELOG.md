@@ -5,7 +5,7 @@ All notable changes to Printernizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.41.6] - 2026-07-03
 
 ### Fixed
 - **Dashboard showed "Nicht gestartet" and a "❓ Running" badge for actively printing jobs.** Auto-created jobs (created the moment monitoring first sees an in-progress print) are always given `status: 'running'`, but the frontend's `CONFIG.JOB_STATUS` map had no entry for `'running'` (or `'pending'`) — only `'printing'`/`'queued'` etc. — so the badge fell back to an unknown-status placeholder that echoed the raw value, styled as "❓ Running" via the status-badge CSS. Added the missing `running`/`pending` entries (`frontend/js/config.js`) so they render with the same icon/label/i18n as `printing`/`queued`.
