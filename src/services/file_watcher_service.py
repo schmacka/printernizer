@@ -562,6 +562,10 @@ class FileWatcherService:
                                 error=str(e))
                     # Continue anyway - file still tracked locally
 
+                # Apply per-folder processing rules (auto-tags, classification)
+                if local_file.checksum:
+                    await self._apply_folder_rules(local_file)
+
             # Emit file discovered event
             await self._emit_file_event('file_discovered', local_file)
 
@@ -571,6 +575,52 @@ class FileWatcherService:
         except Exception as e:
             logger.error("Error processing discovered file",
                        file_path=file_path, error=str(e))
+
+    async def _apply_folder_rules(self, local_file: LocalFile) -> None:
+        """Apply the watch folder's processing rules to an ingested file.
+
+        Rules (configured per folder, migration 038):
+        - auto_tag: tag the file with its first-level subfolder name
+          (e.g. ``vases/spiral.stl`` -> tag ``vases``).
+        - classification: tag the file as ``business`` or ``private``.
+        """
+        watch_folder_db = getattr(self.config_service, 'watch_folder_db', None)
+        if watch_folder_db is None or not local_file.checksum:
+            return
+
+        try:
+            folder = await watch_folder_db.get_watch_folder_by_path(local_file.watch_folder_path)
+        except Exception as e:
+            logger.debug("Could not load watch folder rules",
+                        folder_path=local_file.watch_folder_path, error=str(e))
+            return
+
+        if folder is None:
+            return
+
+        tags = []
+
+        if getattr(folder, 'auto_tag', False):
+            parts = Path(local_file.relative_path).parts
+            if len(parts) > 1:  # File sits in a subfolder
+                tags.append(parts[0])
+
+        classification = getattr(folder, 'classification', None)
+        if classification in ('business', 'private'):
+            tags.append(classification)
+
+        for tag_name in tags:
+            try:
+                await self.library_service.assign_tag_by_name(local_file.checksum, tag_name)
+            except Exception as e:
+                logger.error("Failed to apply folder rule tag",
+                            filename=local_file.filename, tag=tag_name, error=str(e))
+
+        if tags:
+            logger.info("Applied watch folder rules",
+                       filename=local_file.filename,
+                       folder_path=local_file.watch_folder_path,
+                       tags=tags)
 
     def _find_watch_folder_for_file(self, file_path: str) -> Optional[str]:
         """Find which watch folder contains the given file."""

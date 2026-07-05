@@ -899,6 +899,153 @@ class TestFileWatcherServiceLibraryReconciliation:
         mock_library.remove_file_source.assert_not_awaited()
 
 
+class TestFileWatcherServiceFolderRules:
+    """Test per-folder processing rules (Phase 7b)."""
+
+    def _make_service(self, folder, library=None):
+        from unittest.mock import MagicMock
+        mock_config = MagicMock()
+        mock_config.watch_folder_db.get_watch_folder_by_path = AsyncMock(return_value=folder)
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        if library is None:
+            library = MagicMock()
+            library.enabled = True
+            library.assign_tag_by_name = AsyncMock(return_value=True)
+        return FileWatcherService(mock_config, mock_event, library), library
+
+    def _local_file(self, relative_path="vases/spiral.stl", checksum="abc123"):
+        return LocalFile(
+            file_id="local_1",
+            filename=Path(relative_path).name,
+            file_path=f"/watch/{relative_path}",
+            file_size=100,
+            file_type=".stl",
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path=relative_path,
+            checksum=checksum
+        )
+
+    @pytest.mark.asyncio
+    async def test_auto_tag_uses_first_level_subfolder(self):
+        """Test auto_tag tags with the first-level subfolder name."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True)
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/nested/spiral.stl"))
+
+        library.assign_tag_by_name.assert_awaited_once_with("abc123", "vases")
+
+    @pytest.mark.asyncio
+    async def test_auto_tag_skips_root_level_files(self):
+        """Test files directly in the watch folder get no subfolder tag."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True)
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("spiral.stl"))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_classification_tag_applied(self):
+        """Test business classification is applied as a tag."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", classification="business")
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("spiral.stl"))
+
+        library.assign_tag_by_name.assert_awaited_once_with("abc123", "business")
+
+    @pytest.mark.asyncio
+    async def test_auto_tag_and_classification_combined(self):
+        """Test both rules apply together."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True, classification="private")
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl"))
+
+        assert library.assign_tag_by_name.await_count == 2
+        tags = [call.args[1] for call in library.assign_tag_by_name.await_args_list]
+        assert tags == ["vases", "private"]
+
+    @pytest.mark.asyncio
+    async def test_no_rules_no_tags(self):
+        """Test a folder without rules applies nothing."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch")
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl"))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_unknown_folder_is_ignored(self):
+        """Test a file whose folder has no DB record applies nothing."""
+        service, library = self._make_service(None)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl"))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_missing_checksum_skips_rules(self):
+        """Test rules require a library checksum."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True)
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl", checksum=None))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+
+class TestWatchFolderModelRules:
+    """Test WatchFolder model rule fields (migration 038)."""
+
+    def test_from_db_row_pre_migration_defaults(self):
+        """Test rows without rule columns get safe defaults."""
+        from src.models.watch_folder import WatchFolder
+        row = (1, "/watch", 1, 1, None, None, 0, None, 1, None, None,
+               "manual", None, None)
+
+        folder = WatchFolder.from_db_row(row)
+
+        assert folder.auto_tag is False
+        assert folder.classification is None
+        assert folder.default_printer_id is None
+        assert folder.default_profile_id is None
+
+    def test_from_db_row_with_rule_columns(self):
+        """Test rows with rule columns parse them."""
+        from src.models.watch_folder import WatchFolder
+        row = (1, "/watch", 1, 1, None, None, 0, None, 1, None, None,
+               "manual", None, None, 1, "business", "printer_1", "profile_2")
+
+        folder = WatchFolder.from_db_row(row)
+
+        assert folder.auto_tag is True
+        assert folder.classification == "business"
+        assert folder.default_printer_id == "printer_1"
+        assert folder.default_profile_id == "profile_2"
+
+    def test_to_dict_includes_rules(self):
+        """Test to_dict exposes rule fields."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True, classification="private")
+
+        data = folder.to_dict()
+
+        assert data['auto_tag'] is True
+        assert data['classification'] == "private"
+        assert 'default_printer_id' in data
+        assert 'default_profile_id' in data
+
+
 class TestFileWatcherServiceLibraryIntegration:
     """Test library service integration."""
 

@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Watcher file IDs changed on every restart.** IDs were derived from Python's salted `hash()`; they are now a deterministic digest of the file path.
 
 ### Added
+- **Watch folders (Phase 7b): per-folder processing rules** (migration 038). Each watch folder can now be configured (Files page → watch folder card, or `PATCH /api/v1/files/watch-folders/update`) with:
+  - **Auto-tagging** — ingested files are tagged with their first-level subfolder name (`vases/spiral.stl` → tag `vases`), feeding the existing Library tag filter.
+  - **Business/private classification** — ingested files are tagged `business` or `private`, so watch-folder files finally participate in the business-vs-private distinction.
+  - **Default printer / slicer profile** — stored per folder now, consumed by the auto-slice workflows coming in Phase 7c.
+  - The watch-folder cards on the Files page also show per-folder file count, last scan time, an invalid-folder badge, and a per-folder **Rescan** button.
 - **Watch folders (Phase 7a foundation):**
   - `.bgcode` files are now picked up from watch folders.
   - `POST /api/v1/files/watch-folders/rescan?folder_path=…` — rescan a single watch folder on demand.
