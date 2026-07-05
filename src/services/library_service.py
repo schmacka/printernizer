@@ -602,6 +602,94 @@ class LibraryService:
             'metadata': json.dumps(source_info)
         })
 
+    async def assign_tag_by_name(self, checksum: str, tag_name: str) -> bool:
+        """
+        Assign a tag to a library file by tag name, creating the tag if needed.
+
+        Used by watch-folder processing rules (auto-tagging, business/private
+        classification). Tag names are matched case-insensitively; the
+        usage_count is maintained by database triggers.
+
+        Args:
+            checksum: File checksum
+            tag_name: Tag name to assign
+
+        Returns:
+            True if the tag was assigned (or already present), False otherwise
+        """
+        name = (tag_name or '').strip()
+        if not name or len(name) > 50:
+            return False
+
+        try:
+            async with self.database.connection() as conn:
+                cursor = await conn.execute(
+                    "SELECT id FROM file_tags WHERE LOWER(name) = LOWER(?)",
+                    (name,)
+                )
+                row = await cursor.fetchone()
+
+                if row:
+                    tag_id = row['id']
+                else:
+                    tag_id = f"tag_{uuid4().hex[:12]}"
+                    now = datetime.now().isoformat()
+                    await conn.execute(
+                        """INSERT INTO file_tags (id, name, usage_count, created_at, updated_at)
+                        VALUES (?, ?, 0, ?, ?)""",
+                        (tag_id, name, now, now)
+                    )
+
+                await conn.execute(
+                    """INSERT OR IGNORE INTO file_tag_assignments (file_checksum, tag_id)
+                    VALUES (?, ?)""",
+                    (checksum, tag_id)
+                )
+                await conn.commit()
+
+            logger.debug("Assigned tag to file", checksum=checksum[:16], tag=name)
+            return True
+
+        except Exception as e:
+            logger.error("Failed to assign tag to file", checksum=checksum[:16],
+                        tag=name, error=str(e))
+            return False
+
+    async def remove_file_source(self, checksum: str, source_type: str, source_id: str) -> None:
+        """
+        Remove a source from an existing file (the file itself is kept).
+
+        Used e.g. when a watch-folder original is deleted: the library copy
+        stays, but the folder is no longer a valid source for it.
+
+        Args:
+            checksum: File checksum
+            source_type: Source type (e.g. 'watch_folder', 'printer')
+            source_id: Source identifier (folder path or printer id)
+        """
+        file_record = await self.get_file_by_checksum(checksum)
+        if not file_record:
+            return
+
+        # Update sources JSON array in main record
+        sources = json.loads(file_record.get('sources', '[]') or '[]')
+        remaining = [
+            s for s in sources
+            if not (s.get('type') == source_type
+                    and (s.get('printer_id') or s.get('folder_path')) == source_id)
+        ]
+
+        if len(remaining) != len(sources):
+            await self.library_repo.update_file(checksum, {
+                'sources': json.dumps(remaining)
+            })
+
+        # Remove from junction table
+        await self.library_repo.delete_file_source(checksum, source_type, source_id)
+
+        logger.info("Removed source from file", checksum=checksum[:16],
+                   source_type=source_type, source_id=source_id)
+
     async def delete_file(self, checksum: str, delete_physical: bool = True) -> bool:
         """
         Delete file from library.

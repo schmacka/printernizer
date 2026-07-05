@@ -43,6 +43,8 @@ EVENT_MAPPINGS = {
     'printer_disconnected': NotificationEventType.PRINTER_OFFLINE,
     'material_low_stock': NotificationEventType.MATERIAL_LOW_STOCK,
     'file_download_complete': NotificationEventType.FILE_DOWNLOADED,
+    'slicing_job.completed': NotificationEventType.SLICING_COMPLETED,
+    'slicing_job.failed': NotificationEventType.SLICING_FAILED,
 }
 
 
@@ -119,6 +121,10 @@ class NotificationService(BaseService):
 
         # Subscribe to file events
         self.event_service.subscribe('file_download_complete', self._on_file_downloaded)
+
+        # Subscribe to slicing events (auto-slice workflows and manual slicing)
+        self.event_service.subscribe('slicing_job.completed', self._on_slicing_completed)
+        self.event_service.subscribe('slicing_job.failed', self._on_slicing_failed)
 
         logger.info("NotificationService subscribed to events")
 
@@ -240,6 +246,20 @@ class NotificationService(BaseService):
         """Handle file downloaded event."""
         await self._dispatch_notification(
             NotificationEventType.FILE_DOWNLOADED,
+            data
+        )
+
+    async def _on_slicing_completed(self, data: Dict[str, Any]) -> None:
+        """Handle slicing job completed event."""
+        await self._dispatch_notification(
+            NotificationEventType.SLICING_COMPLETED,
+            data
+        )
+
+    async def _on_slicing_failed(self, data: Dict[str, Any]) -> None:
+        """Handle slicing job failed event."""
+        await self._dispatch_notification(
+            NotificationEventType.SLICING_FAILED,
             data
         )
 

@@ -5718,3 +5718,41 @@ label .required {
         grid-template-columns: 1fr;
     }
 }
+
+/* Watch Folder Rules (Phase 7b) */
+.folder-scan-info {
+    margin-top: var(--spacing-1);
+    color: var(--gray-500);
+    font-size: var(--text-xs);
+}
+
+.folder-rules {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-3);
+    margin-top: var(--spacing-2);
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+}
+
+.folder-rule {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    cursor: pointer;
+}
+
+.folder-rule select {
+    padding: 2px var(--spacing-1);
+    font-size: var(--text-sm);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    color: var(--gray-800);
+}
+
+.status-badge.error {
+    background: var(--danger-color, #dc2626);
+    color: var(--white);
+}

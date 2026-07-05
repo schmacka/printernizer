@@ -5,6 +5,32 @@ All notable changes to Printernizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Real-time watch-folder monitoring never worked.** Watchdog delivers file events on its own observer thread, but the handlers called `asyncio.create_task()` there — where no event loop runs — so every created/modified/deleted/moved event raised `RuntimeError` and was lost. Files dropped into a watch folder were only picked up at the next application restart's initial scan. Events are now bridged to the main loop via `asyncio.run_coroutine_threadsafe()`.
+- **Watch-folder files could be ingested mid-copy.** A file still being copied into a watch folder was ingested as soon as the first event fired, storing a truncated copy with a wrong checksum in the library. Ingest now waits until the file's size/mtime are stable, and an in-flight guard prevents duplicate processing of the same path during event bursts.
+- **Deleting or moving a watched original left stale library sources.** The library keeps its copy (by design), but the watch-folder source entry now gets removed on delete, swapped on cross-folder moves, and refreshed when a file's content changes (new `LibraryService.remove_file_source()`).
+- **Watcher file IDs changed on every restart.** IDs were derived from Python's salted `hash()`; they are now a deterministic digest of the file path.
+
+### Added
+- **Watch folders (Phase 7c): auto-slice workflow** (migration 039). A watch folder can be set to **auto-slice** — when a *new* model file (STL/OBJ/STEP or an unsliced 3MF) lands in it, it is automatically queued for slicing using the folder's default slicer profile, and the resulting gcode is registered in the library linked to its source model (via the existing Phase 3a relation).
+  - **Safety: auto-slice never starts a print.** The queued job always has `auto_upload=False` and `auto_start=False` — watch-folder automation prepares gcode and notifies; sending to a printer and starting a print stay manual actions.
+  - Auto-slice only fires the first time content enters the library, so rescans and duplicate copies never re-queue slicing jobs; gcode/already-sliced files are skipped.
+  - **New notification events `slicing_completed` / `slicing_failed`** (subscribable per channel like the existing job/printer events), so you get a Discord/Slack/ntfy ping when an auto-slice (or any slice) finishes or fails. Slicing completion/failure events now carry the filename, output file, profile and target printer.
+  - Watch-folder cards gain an **Auto-slice** toggle plus **default profile** and **default printer** pickers.
+- **Watch folders (Phase 7b): per-folder processing rules** (migration 038). Each watch folder can now be configured (Files page → watch folder card, or `PATCH /api/v1/files/watch-folders/update`) with:
+  - **Auto-tagging** — ingested files are tagged with their first-level subfolder name (`vases/spiral.stl` → tag `vases`), feeding the existing Library tag filter.
+  - **Business/private classification** — ingested files are tagged `business` or `private`, so watch-folder files finally participate in the business-vs-private distinction.
+  - **Default printer / slicer profile** — stored per folder now, consumed by the auto-slice workflows coming in Phase 7c.
+  - The watch-folder cards on the Files page also show per-folder file count, last scan time, an invalid-folder badge, and a per-folder **Rescan** button.
+- **Watch folders (Phase 7a foundation):**
+  - `.bgcode` files are now picked up from watch folders.
+  - `POST /api/v1/files/watch-folders/rescan?folder_path=…` — rescan a single watch folder on demand.
+  - Periodic automatic rescan (every 5 minutes) when the watchdog observer is unavailable (fallback mode was previously blind between restarts).
+  - Per-folder `file_count` / `last_scan_at` statistics are now actually maintained in the `watch_folders` table; watch status reports whether real-time monitoring is active (`realtime_monitoring`).
+  - Watcher events now include the file's library `checksum`, groundwork for per-folder processing rules (Phase 7b).
+
 ## [2.41.7] - 2026-07-03
 
 ### Fixed

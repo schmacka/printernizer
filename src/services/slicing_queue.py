@@ -466,7 +466,14 @@ class SlicingQueue(BaseService):
                 output_file=str(output_file)
             )
 
-            await self.event_service.emit_event("slicing_job.completed", {"job_id": job_id})
+            await self.event_service.emit_event("slicing_job.completed", {
+                "job_id": job_id,
+                "filename": input_file.name,
+                "output_file": output_file.name,
+                "file_checksum": job.file_checksum,
+                "profile_id": job.profile_id,
+                "printer_id": job.target_printer_id
+            })
             
             # Handle auto-upload if enabled
             if job.auto_upload and job.target_printer_id:
@@ -515,7 +522,13 @@ class SlicingQueue(BaseService):
                     )
                     await conn.commit()
                 
-                await self.event_service.emit_event("slicing_job.failed", {"job_id": job_id, "error": str(e)})
+                await self.event_service.emit_event("slicing_job.failed", {
+                    "job_id": job_id,
+                    "error": str(e),
+                    "file_checksum": job.file_checksum,
+                    "profile_id": job.profile_id,
+                    "printer_id": job.target_printer_id
+                })
         
         finally:
             # Remove from running jobs

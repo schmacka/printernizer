@@ -1056,9 +1056,26 @@ class FileManager {
                 api.getWatchFolderSettings(),
                 api.getWatchFolderStatus()
             ]);
-            
+
+            // Best-effort: printers + slicer profiles for the auto-slice pickers
+            let printers = [];
+            let profiles = [];
+            try {
+                const printersResp = await api.getPrinters();
+                printers = printersResp.printers || printersResp || [];
+            } catch (e) { /* pickers render empty */ }
+            try {
+                const slicersResp = await api.getSlicers();
+                const slicers = slicersResp.slicers || [];
+                const slicer = slicers.find(s => s.is_available) || slicers[0];
+                if (slicer) {
+                    const profilesResp = await api.getSlicerProfiles(slicer.id);
+                    profiles = profilesResp.profiles || [];
+                }
+            } catch (e) { /* pickers render empty */ }
+
             // Render watch folders display
-            container.innerHTML = this.renderWatchFolders(settings, status);
+            container.innerHTML = this.renderWatchFolders(settings, status, printers, profiles);
             
         } catch (error) {
             Logger.error('Failed to load watch folders:', error);
@@ -1072,7 +1089,7 @@ class FileManager {
     /**
      * Render watch folders display
      */
-    renderWatchFolders(settings, status) {
+    renderWatchFolders(settings, status, printers = [], slicerProfiles = []) {
         const watchFolders = settings.watch_folders || [];
         const isEnabled = settings.enabled;
         const isRecursive = settings.recursive;
@@ -1117,10 +1134,15 @@ class FileManager {
             <div class="watch-folders-grid">
                 ${watchFolders.map(folder => {
                     const folderPath = typeof folder === 'string' ? folder : folder.folder_path;
-                    const isActive = typeof folder === 'object' ? folder.is_active : true;
+                    const isObject = typeof folder === 'object';
+                    const isActive = isObject ? folder.is_active : true;
+                    const isValid = isObject ? (folder.is_valid !== false) : true;
                     const statusBadge = isActive
                         ? `<span class="status-badge active">${t('files.active')}</span>`
                         : `<span class="status-badge inactive">${t('files.inactive')}</span>`;
+                    const invalidBadge = !isValid
+                        ? `<span class="status-badge error" title="${escapeHtml(folder.validation_error || '')}">${t('files.invalidFolder')}</span>`
+                        : '';
 
                     const toggleButton = isActive
                         ? `<button class="btn btn-warning btn-sm" onclick="deactivateWatchFolder('${escapeHtml(folderPath)}')"
@@ -1131,15 +1153,82 @@ class FileManager {
                                title="${t('files.activateFolder')}">
                                <span class="btn-icon">▶️</span>
                            </button>`;
-                    
+
+                    // Scan statistics (folder objects only)
+                    let scanInfo = '';
+                    if (isObject) {
+                        const lastScan = folder.last_scan_at
+                            ? new Date(folder.last_scan_at).toLocaleString()
+                            : t('files.neverScanned');
+                        scanInfo = `
+                            <div class="folder-scan-info">
+                                <small>${t('files.fileCount')}: ${folder.file_count ?? 0} · ${t('files.lastScan')}: ${lastScan}</small>
+                            </div>
+                        `;
+                    }
+
+                    // Processing rules (folder objects only)
+                    let rulesRow = '';
+                    if (isObject) {
+                        const classification = folder.classification || '';
+                        const printerOptions = printers.map(p =>
+                            `<option value="${escapeHtml(p.id)}" ${folder.default_printer_id === p.id ? 'selected' : ''}>${escapeHtml(p.name || p.id)}</option>`
+                        ).join('');
+                        const profileOptions = slicerProfiles.map(p =>
+                            `<option value="${escapeHtml(p.id)}" ${folder.default_profile_id === p.id ? 'selected' : ''}>${escapeHtml(p.profile_name || p.name || p.id)}</option>`
+                        ).join('');
+                        rulesRow = `
+                            <div class="folder-rules">
+                                <label class="folder-rule" title="${t('files.autoTagHint')}">
+                                    <input type="checkbox" ${folder.auto_tag ? 'checked' : ''}
+                                           onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'auto_tag', this.checked)">
+                                    ${t('files.autoTagLabel')}
+                                </label>
+                                <label class="folder-rule">
+                                    ${t('files.classificationLabel')}:
+                                    <select onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'classification', this.value)">
+                                        <option value="" ${classification === '' ? 'selected' : ''}>${t('files.classificationNone')}</option>
+                                        <option value="business" ${classification === 'business' ? 'selected' : ''}>${t('files.classificationBusiness')}</option>
+                                        <option value="private" ${classification === 'private' ? 'selected' : ''}>${t('files.classificationPrivate')}</option>
+                                    </select>
+                                </label>
+                                <label class="folder-rule" title="${t('files.autoSliceHint')}">
+                                    <input type="checkbox" ${folder.auto_slice ? 'checked' : ''}
+                                           onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'auto_slice', this.checked)">
+                                    ${t('files.autoSliceLabel')}
+                                </label>
+                                <label class="folder-rule">
+                                    ${t('files.defaultProfileLabel')}:
+                                    <select onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'default_profile_id', this.value)">
+                                        <option value="" ${!folder.default_profile_id ? 'selected' : ''}>${t('files.classificationNone')}</option>
+                                        ${profileOptions}
+                                    </select>
+                                </label>
+                                <label class="folder-rule">
+                                    ${t('files.defaultPrinterLabel')}:
+                                    <select onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'default_printer_id', this.value)">
+                                        <option value="" ${!folder.default_printer_id ? 'selected' : ''}>${t('files.classificationNone')}</option>
+                                        ${printerOptions}
+                                    </select>
+                                </label>
+                            </div>
+                        `;
+                    }
+
                     return `
                         <div class="watch-folder-item ${isActive ? 'active' : 'inactive'}">
                             <div class="folder-icon">📂</div>
                             <div class="folder-info">
                                 <div class="folder-path" title="${escapeHtml(folderPath)}">${escapeHtml(folderPath)}</div>
-                                <div class="folder-status">${statusBadge}</div>
+                                <div class="folder-status">${statusBadge}${invalidBadge}</div>
+                                ${scanInfo}
+                                ${rulesRow}
                             </div>
                             <div class="folder-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="rescanWatchFolder('${escapeHtml(folderPath)}')"
+                                        title="${t('files.rescanFolder')}">
+                                    <span class="btn-icon">🔄</span>
+                                </button>
                                 ${toggleButton}
                                 <button class="btn btn-danger btn-sm" onclick="removeWatchFolder('${escapeHtml(folderPath)}')"
                                         title="${t('files.removeFolder')}">
@@ -1641,6 +1730,43 @@ async function deactivateWatchFolder(folderPath) {
         Logger.error('Failed to deactivate watch folder:', error);
         const message = error instanceof ApiError ? error.getUserMessage() : t('files.deactivateFolderError');
         showToast('error', t('common.error'), message);
+    }
+}
+
+/**
+ * Rescan a single watch folder (called from template)
+ */
+async function rescanWatchFolder(folderPath) {
+    try {
+        const response = await api.rescanWatchFolder(folderPath);
+        showToast('success', t('common.success'),
+            t('files.rescanComplete', {
+                found: response.files_found ?? 0,
+                new: response.new_files ?? 0
+            }));
+        fileManager.loadWatchFolders();
+    } catch (error) {
+        Logger.error('Failed to rescan watch folder:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.rescanError');
+        showToast('error', t('common.error'), message);
+    }
+}
+
+/**
+ * Update a watch folder processing rule (called from template)
+ */
+async function updateWatchFolderRule(folderPath, field, value) {
+    try {
+        const response = await api.updateWatchFolder(folderPath, { [field]: value });
+
+        if (response.success) {
+            showToast('success', t('common.success'), t('files.ruleUpdated'));
+        }
+    } catch (error) {
+        Logger.error('Failed to update watch folder rule:', error);
+        const message = error instanceof ApiError ? error.getUserMessage() : t('files.ruleUpdateError');
+        showToast('error', t('common.error'), message);
+        fileManager.loadWatchFolders();  // Restore actual state
     }
 }
 

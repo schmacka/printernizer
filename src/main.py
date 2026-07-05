@@ -312,7 +312,11 @@ async def lifespan(app: FastAPI):
         library_service=library_service
     )
     await slicing_queue.initialize()
-    
+
+    # Watch-folder auto-slice workflows need the slicing services, which are
+    # constructed after the watcher (late injection)
+    file_watcher_service.set_slicing_services(slicing_queue, slicer_service)
+
     timer.end("Slicer services initialization")
     logger.info("[OK] Slicer services initialized")
 

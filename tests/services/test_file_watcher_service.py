@@ -21,8 +21,13 @@ class TestPrintFileHandler:
 
     def test_supported_extensions(self):
         """Test supported file extensions are defined."""
-        expected = {'.stl', '.3mf', '.gcode', '.obj', '.ply'}
+        expected = {'.stl', '.3mf', '.gcode', '.bgcode', '.obj', '.ply'}
         assert PrintFileHandler.SUPPORTED_EXTENSIONS == expected
+
+    def test_should_process_file_valid_bgcode(self):
+        """Test BGCODE files are processed."""
+        handler = PrintFileHandler(MagicMock())
+        assert handler.should_process_file("/path/to/model.bgcode") is True
 
     def test_should_process_file_valid_stl(self):
         """Test STL files are processed."""
@@ -630,6 +635,544 @@ class TestFileWatcherServiceScan:
 
             # Should only find root file
             assert len(service._local_files) == 1
+
+
+class TestFileWatcherServiceStability:
+    """Test write-stability handling and thread-safe scheduling."""
+
+    @pytest.mark.asyncio
+    async def test_wait_for_file_stable_returns_true_for_finished_file(self):
+        """Test stability check passes for a file that is not changing."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.05
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_file = Path(tmpdir) / "stable.stl"
+            test_file.write_bytes(b"content")
+
+            assert await service._wait_for_file_stable(test_file) is True
+
+    @pytest.mark.asyncio
+    async def test_wait_for_file_stable_returns_false_for_missing_file(self):
+        """Test stability check fails for a nonexistent file."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.05
+
+        assert await service._wait_for_file_stable(Path("/nonexistent/file.stl")) is False
+
+    @pytest.mark.asyncio
+    async def test_wait_for_file_stable_waits_for_write_to_finish(self):
+        """Test stability check keeps waiting while the file grows."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.1
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_file = Path(tmpdir) / "growing.stl"
+            test_file.write_bytes(b"start")
+
+            async def keep_writing():
+                for i in range(3):
+                    await asyncio.sleep(0.03)
+                    with open(test_file, 'ab') as f:
+                        f.write(b"more data")
+
+            writer = asyncio.create_task(keep_writing())
+            result = await service._wait_for_file_stable(test_file)
+            await writer
+
+            assert result is True
+            # The full content must have been present when stability was declared
+            assert test_file.stat().st_size == len(b"start") + 3 * len(b"more data")
+
+    @pytest.mark.asyncio
+    async def test_handle_file_created_in_flight_guard(self):
+        """Test concurrent created events for the same path process once."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.05
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            service._watched_folders[tmpdir] = {
+                'watch': None,
+                'path': Path(tmpdir),
+                'recursive': True
+            }
+            test_file = Path(tmpdir) / "test.stl"
+            test_file.write_bytes(b"test content")
+
+            with patch.object(service, '_process_discovered_file',
+                              new_callable=AsyncMock) as mock_process:
+                await asyncio.gather(
+                    service._handle_file_created(str(test_file)),
+                    service._handle_file_created(str(test_file)),
+                    service._handle_file_created(str(test_file)),
+                )
+
+                assert mock_process.call_count == 1
+
+    def test_schedule_from_thread_without_loop_drops_coroutine(self):
+        """Test scheduling from a foreign thread with no captured loop drops safely."""
+        import threading as _threading
+
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service._loop = None
+
+        async def dummy():
+            pass
+
+        errors = []
+
+        def run_in_thread():
+            try:
+                service._schedule_from_thread(dummy())
+            except Exception as e:
+                errors.append(e)
+
+        thread = _threading.Thread(target=run_in_thread)
+        thread.start()
+        thread.join()
+
+        assert errors == []
+
+    @pytest.mark.asyncio
+    async def test_schedule_from_thread_bridges_to_loop(self):
+        """Test a coroutine scheduled from a foreign thread runs on the loop."""
+        import threading as _threading
+
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service._loop = asyncio.get_running_loop()
+
+        ran = asyncio.Event()
+
+        async def marker():
+            ran.set()
+
+        thread = _threading.Thread(
+            target=lambda: service._schedule_from_thread(marker())
+        )
+        thread.start()
+        thread.join()
+
+        await asyncio.wait_for(ran.wait(), timeout=2.0)
+
+
+class TestFileWatcherServiceStableIds:
+    """Test deterministic file IDs."""
+
+    def test_make_file_id_deterministic(self):
+        """Test the same path always yields the same ID."""
+        id1 = FileWatcherService._make_file_id("/watch/model.stl")
+        id2 = FileWatcherService._make_file_id("/watch/model.stl")
+        assert id1 == id2
+        assert id1.startswith("local_")
+
+    def test_make_file_id_differs_per_path(self):
+        """Test different paths yield different IDs."""
+        id1 = FileWatcherService._make_file_id("/watch/a.stl")
+        id2 = FileWatcherService._make_file_id("/watch/b.stl")
+        assert id1 != id2
+
+
+class TestFileWatcherServiceRescan:
+    """Test on-demand folder rescan."""
+
+    @pytest.mark.asyncio
+    async def test_rescan_folder_unknown_folder_raises(self):
+        """Test rescanning an unwatched folder raises ValueError."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+
+        with pytest.raises(ValueError):
+            await service.rescan_folder("/not/watched")
+
+    @pytest.mark.asyncio
+    async def test_rescan_folder_finds_new_files(self):
+        """Test rescan discovers files added after the initial scan."""
+        mock_config = MagicMock()
+        mock_config.watch_folder_db = None
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            service._watched_folders[tmpdir] = {
+                'watch': None,
+                'path': Path(tmpdir),
+                'recursive': True
+            }
+
+            (Path(tmpdir) / "first.stl").write_bytes(b"one")
+            await service._scan_folder(Path(tmpdir), recursive=True)
+
+            (Path(tmpdir) / "second.stl").write_bytes(b"two")
+            result = await service.rescan_folder(tmpdir)
+
+            assert result['files_found'] == 2
+            assert result['new_files'] == 1
+            assert len(service._local_files) == 2
+
+
+class TestFileWatcherServiceLibraryReconciliation:
+    """Test that deletes/moves are reconciled with the library."""
+
+    @pytest.mark.asyncio
+    async def test_handle_file_deleted_removes_library_source(self):
+        """Test deleting a watched original removes its watch_folder source."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        mock_library = MagicMock()
+        mock_library.enabled = True
+        mock_library.remove_file_source = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event, mock_library)
+
+        local_file = LocalFile(
+            file_id="local_123",
+            filename="test.stl",
+            file_path="/watch/test.stl",
+            file_size=1024,
+            file_type=".stl",
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path="test.stl",
+            checksum="abc123"
+        )
+        service._local_files["local_123"] = local_file
+
+        await service._handle_file_deleted("/watch/test.stl")
+
+        assert "local_123" not in service._local_files
+        mock_library.remove_file_source.assert_awaited_once_with(
+            "abc123", "watch_folder", "/watch"
+        )
+
+    @pytest.mark.asyncio
+    async def test_handle_file_deleted_without_checksum_skips_library(self):
+        """Test deletion of a file with unknown checksum touches no library."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        mock_library = MagicMock()
+        mock_library.enabled = True
+        mock_library.remove_file_source = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event, mock_library)
+
+        local_file = LocalFile(
+            file_id="local_123",
+            filename="test.stl",
+            file_path="/watch/test.stl",
+            file_size=1024,
+            file_type=".stl",
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path="test.stl"
+        )
+        service._local_files["local_123"] = local_file
+
+        await service._handle_file_deleted("/watch/test.stl")
+
+        mock_library.remove_file_source.assert_not_awaited()
+
+
+class TestFileWatcherServiceFolderRules:
+    """Test per-folder processing rules (Phase 7b)."""
+
+    def _make_service(self, folder, library=None):
+        from unittest.mock import MagicMock
+        mock_config = MagicMock()
+        mock_config.watch_folder_db.get_watch_folder_by_path = AsyncMock(return_value=folder)
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        if library is None:
+            library = MagicMock()
+            library.enabled = True
+            library.assign_tag_by_name = AsyncMock(return_value=True)
+        return FileWatcherService(mock_config, mock_event, library), library
+
+    def _local_file(self, relative_path="vases/spiral.stl", checksum="abc123"):
+        return LocalFile(
+            file_id="local_1",
+            filename=Path(relative_path).name,
+            file_path=f"/watch/{relative_path}",
+            file_size=100,
+            file_type=".stl",
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path=relative_path,
+            checksum=checksum
+        )
+
+    @pytest.mark.asyncio
+    async def test_auto_tag_uses_first_level_subfolder(self):
+        """Test auto_tag tags with the first-level subfolder name."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True)
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/nested/spiral.stl"))
+
+        library.assign_tag_by_name.assert_awaited_once_with("abc123", "vases")
+
+    @pytest.mark.asyncio
+    async def test_auto_tag_skips_root_level_files(self):
+        """Test files directly in the watch folder get no subfolder tag."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True)
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("spiral.stl"))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_classification_tag_applied(self):
+        """Test business classification is applied as a tag."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", classification="business")
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("spiral.stl"))
+
+        library.assign_tag_by_name.assert_awaited_once_with("abc123", "business")
+
+    @pytest.mark.asyncio
+    async def test_auto_tag_and_classification_combined(self):
+        """Test both rules apply together."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True, classification="private")
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl"))
+
+        assert library.assign_tag_by_name.await_count == 2
+        tags = [call.args[1] for call in library.assign_tag_by_name.await_args_list]
+        assert tags == ["vases", "private"]
+
+    @pytest.mark.asyncio
+    async def test_no_rules_no_tags(self):
+        """Test a folder without rules applies nothing."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch")
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl"))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_unknown_folder_is_ignored(self):
+        """Test a file whose folder has no DB record applies nothing."""
+        service, library = self._make_service(None)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl"))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_missing_checksum_skips_rules(self):
+        """Test rules require a library checksum."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True)
+
+        service, library = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file("vases/spiral.stl", checksum=None))
+
+        library.assign_tag_by_name.assert_not_awaited()
+
+
+class TestFileWatcherServiceAutoSlice:
+    """Test the auto-slice workflow (Phase 7c)."""
+
+    def _make_service(self, folder, slicers='default'):
+        mock_config = MagicMock()
+        mock_config.watch_folder_db.get_watch_folder_by_path = AsyncMock(return_value=folder)
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        library = MagicMock()
+        library.enabled = True
+        library.assign_tag_by_name = AsyncMock(return_value=True)
+
+        service = FileWatcherService(mock_config, mock_event, library)
+
+        queue = MagicMock()
+        job = MagicMock()
+        job.id = "job_1"
+        queue.create_job = AsyncMock(return_value=job)
+
+        slicer_service = MagicMock()
+        if slicers == 'default':
+            slicer = MagicMock()
+            slicer.id = "slicer_1"
+            slicers = [slicer]
+        slicer_service.list_slicers = AsyncMock(return_value=slicers)
+
+        service.set_slicing_services(queue, slicer_service)
+        return service, queue
+
+    def _local_file(self, relative_path="vases/spiral.stl", checksum="abc123"):
+        return LocalFile(
+            file_id="local_1",
+            filename=Path(relative_path).name,
+            file_path=f"/watch/{relative_path}",
+            file_size=100,
+            file_type=Path(relative_path).suffix.lower(),
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path=relative_path,
+            checksum=checksum
+        )
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_queues_new_model_and_never_prints(self):
+        """Test a new model is queued with auto_start/auto_upload off."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1", default_printer_id="printer_1")
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+        queue.create_job.assert_awaited_once()
+        request = queue.create_job.await_args.args[0]
+        assert request.profile_id == "prof_1"
+        assert request.target_printer_id == "printer_1"
+        assert request.slicer_id == "slicer_1"
+        # The safety rule: watch-folder automation never starts prints
+        assert request.auto_start is False
+        assert request.auto_upload is False
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_skips_duplicate_content(self):
+        """Test re-ingested/duplicate content is not sliced again."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file(), is_new_file=False)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_requires_default_profile(self):
+        """Test auto_slice without a default profile does nothing."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True)
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_skips_printfiles(self):
+        """Test gcode files are never auto-sliced."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(
+            self._local_file("prints/part.gcode"), is_new_file=True)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_skips_without_available_slicer(self):
+        """Test missing slicer configuration skips gracefully."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        service, queue = self._make_service(folder, slicers=[])
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_without_injected_services(self):
+        """Test auto_slice is a no-op when slicing services are absent."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        mock_config = MagicMock()
+        mock_config.watch_folder_db.get_watch_folder_by_path = AsyncMock(return_value=folder)
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        library = MagicMock()
+        library.enabled = True
+        library.assign_tag_by_name = AsyncMock(return_value=True)
+
+        service = FileWatcherService(mock_config, mock_event, library)
+        # No set_slicing_services call — should not raise
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+
+class TestWatchFolderModelRules:
+    """Test WatchFolder model rule fields (migration 038)."""
+
+    def test_from_db_row_pre_migration_defaults(self):
+        """Test rows without rule columns get safe defaults."""
+        from src.models.watch_folder import WatchFolder
+        row = (1, "/watch", 1, 1, None, None, 0, None, 1, None, None,
+               "manual", None, None)
+
+        folder = WatchFolder.from_db_row(row)
+
+        assert folder.auto_tag is False
+        assert folder.classification is None
+        assert folder.default_printer_id is None
+        assert folder.default_profile_id is None
+
+    def test_from_db_row_with_rule_columns(self):
+        """Test rows with rule columns parse them."""
+        from src.models.watch_folder import WatchFolder
+        row = (1, "/watch", 1, 1, None, None, 0, None, 1, None, None,
+               "manual", None, None, 1, "business", "printer_1", "profile_2")
+
+        folder = WatchFolder.from_db_row(row)
+
+        assert folder.auto_tag is True
+        assert folder.classification == "business"
+        assert folder.default_printer_id == "printer_1"
+        assert folder.default_profile_id == "profile_2"
+
+    def test_to_dict_includes_rules(self):
+        """Test to_dict exposes rule fields."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_tag=True, classification="private")
+
+        data = folder.to_dict()
+
+        assert data['auto_tag'] is True
+        assert data['classification'] == "private"
+        assert 'default_printer_id' in data
+        assert 'default_profile_id' in data
 
 
 class TestFileWatcherServiceLibraryIntegration:

@@ -39,11 +39,20 @@ class WatchFolder:
     
     # Source tracking
     source: WatchFolderSource = WatchFolderSource.MANUAL
-    
+
     # Timestamps
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
+
+    # Processing rules (Phase 7b)
+    auto_tag: bool = False                    # Tag files with first-level subfolder name
+    classification: Optional[str] = None      # 'business' | 'private' | None
+    default_printer_id: Optional[str] = None  # Default printer for workflows (Phase 7c)
+    default_profile_id: Optional[str] = None  # Default slicer profile (Phase 7c)
+
+    # Workflows (Phase 7c)
+    auto_slice: bool = False                  # Queue new model files for slicing
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {
@@ -60,7 +69,12 @@ class WatchFolder:
             'last_validation_at': self.last_validation_at.isoformat() if self.last_validation_at else None,
             'source': self.source.value,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'auto_tag': self.auto_tag,
+            'classification': self.classification,
+            'default_printer_id': self.default_printer_id,
+            'default_profile_id': self.default_profile_id,
+            'auto_slice': self.auto_slice
         }
     
     @classmethod
@@ -80,12 +94,21 @@ class WatchFolder:
             last_validation_at=datetime.fromisoformat(data['last_validation_at']) if data.get('last_validation_at') else None,
             source=WatchFolderSource(data.get('source', WatchFolderSource.MANUAL.value)),
             created_at=datetime.fromisoformat(data['created_at']) if data.get('created_at') else None,
-            updated_at=datetime.fromisoformat(data['updated_at']) if data.get('updated_at') else None
+            updated_at=datetime.fromisoformat(data['updated_at']) if data.get('updated_at') else None,
+            auto_tag=bool(data.get('auto_tag', False)),
+            classification=data.get('classification'),
+            default_printer_id=data.get('default_printer_id'),
+            default_profile_id=data.get('default_profile_id'),
+            auto_slice=bool(data.get('auto_slice', False))
         )
-    
+
     @classmethod
     def from_db_row(cls, row: tuple) -> 'WatchFolder':
-        """Create instance from database row."""
+        """Create instance from database row.
+
+        Rule columns (added in migration 038) are appended at the end of the
+        table; guard against rows from a pre-migration schema.
+        """
         return cls(
             id=row[0],
             folder_path=row[1],
@@ -100,7 +123,12 @@ class WatchFolder:
             last_validation_at=datetime.fromisoformat(row[10]) if row[10] else None,
             source=WatchFolderSource(row[11]),
             created_at=datetime.fromisoformat(row[12]) if row[12] else None,
-            updated_at=datetime.fromisoformat(row[13]) if row[13] else None
+            updated_at=datetime.fromisoformat(row[13]) if row[13] else None,
+            auto_tag=bool(row[14]) if len(row) > 14 else False,
+            classification=row[15] if len(row) > 15 else None,
+            default_printer_id=row[16] if len(row) > 16 else None,
+            default_profile_id=row[17] if len(row) > 17 else None,
+            auto_slice=bool(row[18]) if len(row) > 18 else False
         )
     
     def get_display_name(self) -> str:

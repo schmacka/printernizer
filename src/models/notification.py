@@ -27,6 +27,8 @@ class NotificationEventType(str, Enum):
     PRINTER_ERROR = "printer_error"
     MATERIAL_LOW_STOCK = "material_low_stock"
     FILE_DOWNLOADED = "file_downloaded"
+    SLICING_COMPLETED = "slicing_completed"
+    SLICING_FAILED = "slicing_failed"
 
 
 class NotificationStatus(str, Enum):
@@ -207,5 +209,15 @@ EVENT_TYPE_METADATA = {
         "label": "File Downloaded",
         "icon": "download",
         "description": "When a file is downloaded from a printer"
+    },
+    NotificationEventType.SLICING_COMPLETED: {
+        "label": "Slicing Completed",
+        "icon": "layers",
+        "description": "When a slicing job finishes (including watch folder auto-slice)"
+    },
+    NotificationEventType.SLICING_FAILED: {
+        "label": "Slicing Failed",
+        "icon": "alert-triangle",
+        "description": "When a slicing job fails"
     },
 }

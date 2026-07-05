@@ -943,6 +943,22 @@ async def reload_watch_folders(
     return result
 
 
+@router.post("/watch-folders/rescan")
+async def rescan_watch_folder(
+    folder_path: str = Query(..., description="Watch folder path to rescan"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """Rescan a single watch folder on demand."""
+    try:
+        result = await file_service.rescan_watch_folder(folder_path)
+    except ValueError as e:
+        raise PrinternizerValidationError(
+            field="folder_path",
+            error=str(e)
+        )
+    return result
+
+
 @router.post("/watch-folders/validate")
 async def validate_watch_folder(
     folder_path: str = Query(..., description="Folder path to validate"),
@@ -1006,11 +1022,16 @@ async def remove_watch_folder(
 @router.patch("/watch-folders/update")
 async def update_watch_folder(
     folder_path: str = Query(..., description="Folder path to update"),
-    is_active: bool = Query(..., description="Whether to activate or deactivate the folder"),
+    is_active: Optional[bool] = Query(None, description="Whether to activate or deactivate the folder"),
+    auto_tag: Optional[bool] = Query(None, description="Tag ingested files with their first-level subfolder name"),
+    auto_slice: Optional[bool] = Query(None, description="Queue new model files for slicing with the folder's default profile (never starts a print)"),
+    classification: Optional[str] = Query(None, description="Tag ingested files as 'business' or 'private'; empty string clears"),
+    default_printer_id: Optional[str] = Query(None, description="Default printer for folder workflows; empty string clears"),
+    default_profile_id: Optional[str] = Query(None, description="Default slicer profile for folder workflows; empty string clears"),
     config_service: ConfigService = Depends(get_config_service),
     file_service: FileService = Depends(get_file_service)
 ):
-    """Update watch folder activation status."""
+    """Update watch folder activation status and processing rules."""
     # First get the watch folder by path to get its ID
     await config_service._ensure_env_migration()
     folder = await config_service.watch_folder_db.get_watch_folder_by_path(folder_path)
@@ -1021,10 +1042,34 @@ async def update_watch_folder(
             error="Watch folder not found"
         )
 
-    # Update the folder's active status
+    updates = {}
+    if is_active is not None:
+        updates["is_active"] = is_active
+    if auto_tag is not None:
+        updates["auto_tag"] = auto_tag
+    if auto_slice is not None:
+        updates["auto_slice"] = auto_slice
+    if classification is not None:
+        if classification not in ("", "business", "private"):
+            raise PrinternizerValidationError(
+                field="classification",
+                error="classification must be 'business', 'private' or empty"
+            )
+        updates["classification"] = classification or None
+    if default_printer_id is not None:
+        updates["default_printer_id"] = default_printer_id or None
+    if default_profile_id is not None:
+        updates["default_profile_id"] = default_profile_id or None
+
+    if not updates:
+        raise PrinternizerValidationError(
+            field="folder_path",
+            error="No fields to update"
+        )
+
     success = await config_service.watch_folder_db.update_watch_folder(
         folder.id,
-        {"is_active": is_active}
+        updates
     )
 
     if not success:
@@ -1034,15 +1079,16 @@ async def update_watch_folder(
             reason="Failed to update watch folder"
         )
 
-    # Reload watch folders in file service to apply changes
-    await file_service.reload_watch_folders()
+    # Reload watch folders in file service only when the set of actively
+    # watched folders changed; rules are read from the DB at ingest time.
+    if "is_active" in updates:
+        await file_service.reload_watch_folders()
 
-    status_text = "activated" if is_active else "deactivated"
     return success_response({
         "status": "updated",
         "folder_path": folder_path,
-        "is_active": is_active,
-        "message": f"Watch folder {status_text} successfully"
+        "updated_fields": list(updates.keys()),
+        "message": "Watch folder updated successfully"
     })
 
 

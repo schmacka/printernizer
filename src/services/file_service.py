@@ -749,6 +749,19 @@ class FileService:
             logger.error("Error reloading watch folders", error=str(e))
             return {"success": False, "error": str(e)}
 
+    async def rescan_watch_folder(self, folder_path: str) -> Dict[str, Any]:
+        """Rescan a single watch folder on demand.
+
+        Raises:
+            ValueError: If the file watcher is unavailable or the folder
+                is not being watched.
+        """
+        if not self.file_watcher:
+            raise ValueError("File watcher not available")
+
+        result = await self.file_watcher.rescan_folder(folder_path)
+        return {"success": True, **result}
+
     # ========================================================================
     # DEPENDENCY INJECTION (for resolving circular dependencies)
     # ========================================================================

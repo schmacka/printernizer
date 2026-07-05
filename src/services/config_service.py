@@ -640,11 +640,13 @@ class ConfigService:
         settings = get_settings()
         watch_folders = await self.watch_folder_db.get_all_watch_folders(active_only=True)
         
+        from src.services.file_watcher_service import PrintFileHandler
+
         return {
             "watch_folders": [wf.folder_path for wf in watch_folders],
             "enabled": settings.watch_folders_enabled,
             "recursive": settings.watch_recursive,
-            "supported_extensions": ['.stl', '.3mf', '.gcode', '.obj', '.ply']
+            "supported_extensions": sorted(PrintFileHandler.SUPPORTED_EXTENSIONS)
         }
 
     async def get_system_info(self) -> Dict[str, Any]:

@@ -136,10 +136,11 @@ class WatchFolderDbService:
             values = []
             
             for key, value in updates.items():
-                if key in ['folder_path', 'folder_name', 'description', 'validation_error', 'source']:
+                if key in ['folder_path', 'folder_name', 'description', 'validation_error', 'source',
+                           'classification', 'default_printer_id', 'default_profile_id']:
                     set_clauses.append(f"{key} = ?")
                     values.append(value)
-                elif key in ['is_active', 'recursive', 'is_valid']:
+                elif key in ['is_active', 'recursive', 'is_valid', 'auto_tag', 'auto_slice']:
                     set_clauses.append(f"{key} = ?")
                     values.append(bool(value))
                 elif key == 'file_count':

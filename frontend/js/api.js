@@ -389,8 +389,29 @@ class ApiClient {
         return this.post('files/watch-folders/reload');
     }
 
-    async updateWatchFolder(folderPath, isActive) {
-        return this.patch('files/watch-folders/update?folder_path=' + encodeURIComponent(folderPath) + '&is_active=' + isActive);
+    async updateWatchFolder(folderPath, fields) {
+        // Accepts a boolean (legacy is_active toggle) or an object of fields:
+        // { is_active, auto_tag, classification, default_printer_id, default_profile_id }
+        const params = new URLSearchParams({ folder_path: folderPath });
+        const updates = (typeof fields === 'boolean') ? { is_active: fields } : (fields || {});
+        for (const [key, value] of Object.entries(updates)) {
+            if (value !== undefined && value !== null) {
+                params.append(key, value);
+            }
+        }
+        return this.patch('files/watch-folders/update?' + params.toString());
+    }
+
+    async rescanWatchFolder(folderPath) {
+        return this.post('files/watch-folders/rescan?folder_path=' + encodeURIComponent(folderPath));
+    }
+
+    async getSlicers() {
+        return this.get('slicing');
+    }
+
+    async getSlicerProfiles(slicerId) {
+        return this.get('slicing/' + encodeURIComponent(slicerId) + '/profiles');
     }
 
     // Statistics Endpoints

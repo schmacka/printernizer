@@ -193,6 +193,19 @@ class WatchFolderItem(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    recursive: bool = True
+    folder_name: Optional[str] = None
+    # Monitoring status
+    file_count: int = 0
+    last_scan_at: Optional[datetime] = None
+    is_valid: bool = True
+    validation_error: Optional[str] = None
+    # Processing rules (Phase 7b/7c)
+    auto_tag: bool = False
+    auto_slice: bool = False
+    classification: Optional[str] = None
+    default_printer_id: Optional[str] = None
+    default_profile_id: Optional[str] = None
 
 class WatchFolderSettings(BaseModel):
     """Watch folder settings response model."""
