@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
-**Last Updated**: 2026-01-09
-**Current Version**: v2.26.0
+**Last Updated**: 2026-07-05
+**Current Version**: v2.41.7
 **E2E Test Suite**: v2.24.2 (~90% passing, debug tests excluded)
 **Status**: Production Ready
 
@@ -14,18 +14,16 @@
 | Core Features | Production Ready | 99% |
 | Printer Support | Bambu + Prusa + OctoPrint | 100% |
 | Test Coverage | Excellent | ~90% |
-| Sprint 1 (P1 Tasks) | Complete | 100% |
-| Sprint 2 Phase 1 (Service Tests) | Complete | 100% |
-| Sprint 2 Phase 2 (Feature Tests) | Complete | 100% |
-| Sprint 2 Phase 3 (Printer Tests) | Complete | 100% |
-| Sprint 3 (Frontend Polish) | Complete | 100% |
-| Sprint 4 (Tags & Printer Modal) | Complete | 100% |
-| Slicer Integration (v2.14.0) | Complete | 100% |
-| Post-Sprint Patches (v2.15.1-2.15.8) | Complete | 100% |
+| Sprints 1-4 (API, Tests, Frontend, Tags) | Complete | 100% |
 | Unified Log Viewer (v2.18.0) | Complete | 100% |
 | 3D File Preview (v2.19.0) | Complete | 100% |
+| Multi-Theme System (v2.28.0) | Complete | 100% |
+| Tools & Helpers Page (v2.29.0) | Complete | 100% |
+| Orders Tracking (v2.30.0) | Complete | 100% |
+| Model Generator (v2.32.0-2.37.0, browser/JSCAD) | Complete | 100% |
+| Slicer Integration Epic (Phase 1-3b, v2.38.0-2.41.x) | Complete | 100% |
+| Usage Statistics (Phase 3, v2.27.0) | Complete | 100% |
 | E2E Test Suite (v2.24.2) | **Priority 2** | ~90% |
-| Usage Statistics | Phase 2 Complete | 66% |
 | Code Review (2026-01-07) | Complete | 100% |
 
 ---
@@ -84,6 +82,23 @@
   - Delete printer tests: 2/2 ✅
   - Test connection tests: 2/2 ✅
 
+### Major Feature Epics (v2.27.0 - v2.41.7) ✅
+
+- [x] **Slicer Integration Epic** (v2.38.0-2.41.x) - Full STL→gcode→print pipeline
+  - **Phase 1** (v2.38.0): Standalone OrcaSlicer microservice (`slicer-service/`), pluggable backends (`RemoteHTTPBackend`/`LocalProcessBackend`), Docker + HA add-on wiring
+  - **Phase 2** (v2.39.0): Curated built-in profiles (Bambu A1, Prusa CORE One) + profile upload API
+  - **Phase 3a** (v2.40.0): Library model→printfile relation (`role`/`parent_checksum`), slice outputs registered in library
+  - **Phase 3b** (v2.41.0): Model-centric detail view with Slice / Slice & Print actions
+  - **Patches** (v2.41.1-2.41.7): path resolution, slicer detection on HA, model-detail actions, UI overhaul, dashboard fixes
+- [x] **Model Generator Epic** (v2.32.0-2.37.0) - Parametric model generation
+  - Now runs **in-browser via JSCAD** (v2.34.0) so it works on all architectures incl. Raspberry Pi/HA (previously server-side OpenSCAD then build123d, both ARM-incompatible)
+  - Templates: box, vase, Text/Nameplate/Keychain, QR Tag, Gridfinity Bin/Baseplate, Bracket, Standoff, SVG→Extrude, Lithophane, Custom JSCAD (v2.35.0-2.37.0)
+- [x] **Orders Tracking** (v2.30.0) - Full order management on top of the job system
+  - Customer database, order lifecycle (`new→planned→printed→delivered`), configurable sources, payment status, order analytics, HA path fixes (v2.30.2-2.30.7)
+- [x] **Usage Statistics Phase 3** (v2.27.0) - Analytics dashboard, 15+ stats endpoints, SMTP email reports, anomaly detection
+- [x] **Multi-Theme System** (v2.28.0) - 7 selectable UI themes with picker in Settings
+- [x] **Tools & Helpers Page** (v2.29.0) - Curated external 3D-printing links + Gridfinity tools
+
 ### Recent Features (v2.10.0 - v2.26.0) ✅
 
 - [x] **v2.26.0** - Multi-channel notifications (Discord, Slack, ntfy.sh) with per-event subscriptions
@@ -121,20 +136,33 @@
 - [x] **Business Features** - VAT, analytics, German compliance
 - [x] **Auto-Job Creation** - Detect prints automatically
 - [x] **Setup Wizard** - Guided first-run configuration
-- [x] **Slicer Integration** - Auto-detect Bambu Studio, Orca, Prusa Slicer (v2.14.0)
+- [x] **Slicer Integration** - Auto-detect local slicers (v2.14.0) + standalone OrcaSlicer microservice with full slice→print pipeline (v2.38.0-2.41.x)
 - [x] **Custom File Tags** - Tag management system with filtering (v2.15.0)
+- [x] **Orders Tracking** - Customer/order management on top of jobs (v2.30.0)
+- [x] **Model Generator** - Browser-based parametric model generation via JSCAD (v2.34.0+)
+- [x] **Multi-Theme System** - 7 selectable UI themes (v2.28.0)
 
-### Usage Statistics (v2.7.0) ✅
+### Usage Statistics (v2.7.0 - v2.27.0) ✅
 
 - [x] **Phase 1**: Local collection, UI, opt-in/opt-out
 - [x] **Phase 2**: Aggregation service, HTTP submission, scheduler
-- [ ] **Phase 3**: Analytics dashboard (planned)
+- [x] **Phase 3** (v2.27.0): Analytics dashboard, 15+ stats endpoints, SMTP email reports, anomaly detection
 
 ---
 
 ## In Progress
 
-> No tasks currently in progress. Ready for next sprint.
+> No tasks currently in progress. The Slicer Integration epic (Phase 1-3b) shipped in v2.38.0-2.41.0, followed by the v2.41.x stabilization series (dashboard fixes, slicer detection, model-detail actions). Master is on v2.41.7 with CI green and no open PRs.
+
+### Next Candidates
+
+Realistic next epics from the roadmap below, roughly in order of continuity with recent work:
+
+- [ ] **Watch Folders Enhancement** (Phase 7) - auto-slice/auto-upload workflows, auto-tagging, duplicate detection
+- [ ] **Advanced Home Assistant Integration** (Phase 6) - MQTT discovery, sensor entities, automation triggers
+- [ ] **Print Queue System** - manual reordering, priority levels, queue dashboard
+- [ ] **Expanded Printer Support** (Phase 10) - Klipper via Moonraker API
+- [ ] **Printer Error Message Handling** - capture/display error codes with suggested fixes
 
 ### Sprint 4 - Tags & Printer Details ✅ COMPLETE (2026-01-05)
 
@@ -477,12 +505,12 @@ The debug page (`/debug.html`) tests consistently fail because:
 - [x] **OctoPrint** (v2.25.0) - SockJS WebSocket integration
 - **Effort**: 10-15 hours per manufacturer
 
-### Usage Statistics Phase 3
-- [ ] Analytics dashboard
-- [ ] Key metrics visualization
-- [ ] Trend analysis
-- [ ] Anomaly detection
-- **Effort**: 2 weeks
+### Usage Statistics Phase 3 ✅ COMPLETE (v2.27.0)
+- [x] Analytics dashboard
+- [x] Key metrics visualization
+- [x] Trend analysis
+- [x] Anomaly detection
+- [x] SMTP email reports (weekly/monthly)
 
 ---
 
@@ -784,9 +812,9 @@ python3 -m pytest --cov=src tests/
 
 ### Branch Strategy
 
-- **master**: Production releases
-- **development**: Integration testing
-- Feature branches → development → master
+- **master**: All development and production releases; tagged commits (`vX.Y.Z`) trigger releases
+- Feature branches → master (PR) → tag for release
+- See `.claude/rules/workflow/branching.md` for the full workflow
 
 ---
 
@@ -805,6 +833,12 @@ python3 -m pytest --cov=src tests/
 | E2E Tests | 2026-01-07 | Playwright E2E Suite | ⚠️ 94% (14 failures) |
 | OctoPrint | 2026-01-08 | OctoPrint Integration (v2.25.0) | ✅ Complete |
 | Notifications | 2026-01-09 | Multi-channel Notifications (v2.26.0) | ✅ Complete |
+| Usage Stats P3 | 2026-01-15 | Analytics dashboard, email reports (v2.27.0) | ✅ Complete |
+| Themes | 2026-01-16 | Multi-Theme System (v2.28.0) | ✅ Complete |
+| Tools Page | 2026-02-07 | Tools & Helpers page (v2.29.0) | ✅ Complete |
+| Orders | 2026-03-21 | Orders Tracking + HA fixes (v2.30.0-2.30.7) | ✅ Complete |
+| Model Generator | 2026-06-13 to 06-22 | Parametric generator, moved to browser/JSCAD (v2.32.0-2.37.0) | ✅ Complete |
+| Slicer Epic | 2026-06-25 to 07-03 | Slicer microservice + slice→print pipeline (v2.38.0-2.41.7) | ✅ Complete |
 
 ### Sprint 1 Summary
 
@@ -959,6 +993,7 @@ Created comprehensive Playwright E2E test suite covering all 10 pages using Page
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 18.0 | 2026-07-05 | Refreshed to v2.41.7: Slicer Integration epic, Model Generator, Orders Tracking, Usage Stats Phase 3, Multi-Theme, Tools page; added Next Candidates; fixed branch strategy |
 | 17.0 | 2026-01-09 | Multi-channel Notifications complete (v2.26.0) |
 | 16.0 | 2026-01-09 | OctoPrint integration complete (v2.25.0), Phase 10 progress |
 | 15.0 | 2026-01-08 | CI/CD test fixes, database schema divergence documented |

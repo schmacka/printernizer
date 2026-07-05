@@ -185,6 +185,47 @@ jobs:
               });
             }
 
+      - name: Close resolved vulnerability issue
+        if: steps.check-vulnerabilities.outputs.has_vulnerabilities == 'false' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // A clean scan means any previously opened alert is resolved.
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security,dependencies'
+            });
+
+            const existingIssue = issues.data.find(issue =>
+              issue.title.includes('Security Alert: Vulnerable Dependencies')
+            );
+
+            if (existingIssue) {
+              let body = `## ✅ Vulnerabilities Resolved\n\n`;
+              body += `The latest weekly security scan found **no known vulnerabilities** `;
+              body += `in \`requirements.txt\`. Closing this alert automatically.\n\n`;
+              body += `See the [workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}) for details.\n\n`;
+              body += `---\n`;
+              body += `*This issue was automatically closed by the dependency security scan workflow.*`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: body
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                state: 'closed',
+                state_reason: 'completed'
+              });
+            }
+
   # Check for outdated dependencies
   outdated-check:
     name: Check Outdated Dependencies
