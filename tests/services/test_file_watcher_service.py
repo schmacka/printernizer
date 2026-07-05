@@ -1004,6 +1004,135 @@ class TestFileWatcherServiceFolderRules:
         library.assign_tag_by_name.assert_not_awaited()
 
 
+class TestFileWatcherServiceAutoSlice:
+    """Test the auto-slice workflow (Phase 7c)."""
+
+    def _make_service(self, folder, slicers='default'):
+        mock_config = MagicMock()
+        mock_config.watch_folder_db.get_watch_folder_by_path = AsyncMock(return_value=folder)
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        library = MagicMock()
+        library.enabled = True
+        library.assign_tag_by_name = AsyncMock(return_value=True)
+
+        service = FileWatcherService(mock_config, mock_event, library)
+
+        queue = MagicMock()
+        job = MagicMock()
+        job.id = "job_1"
+        queue.create_job = AsyncMock(return_value=job)
+
+        slicer_service = MagicMock()
+        if slicers == 'default':
+            slicer = MagicMock()
+            slicer.id = "slicer_1"
+            slicers = [slicer]
+        slicer_service.list_slicers = AsyncMock(return_value=slicers)
+
+        service.set_slicing_services(queue, slicer_service)
+        return service, queue
+
+    def _local_file(self, relative_path="vases/spiral.stl", checksum="abc123"):
+        return LocalFile(
+            file_id="local_1",
+            filename=Path(relative_path).name,
+            file_path=f"/watch/{relative_path}",
+            file_size=100,
+            file_type=Path(relative_path).suffix.lower(),
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path=relative_path,
+            checksum=checksum
+        )
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_queues_new_model_and_never_prints(self):
+        """Test a new model is queued with auto_start/auto_upload off."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1", default_printer_id="printer_1")
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+        queue.create_job.assert_awaited_once()
+        request = queue.create_job.await_args.args[0]
+        assert request.profile_id == "prof_1"
+        assert request.target_printer_id == "printer_1"
+        assert request.slicer_id == "slicer_1"
+        # The safety rule: watch-folder automation never starts prints
+        assert request.auto_start is False
+        assert request.auto_upload is False
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_skips_duplicate_content(self):
+        """Test re-ingested/duplicate content is not sliced again."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file(), is_new_file=False)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_requires_default_profile(self):
+        """Test auto_slice without a default profile does nothing."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True)
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_skips_printfiles(self):
+        """Test gcode files are never auto-sliced."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        service, queue = self._make_service(folder)
+        await service._apply_folder_rules(
+            self._local_file("prints/part.gcode"), is_new_file=True)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_skips_without_available_slicer(self):
+        """Test missing slicer configuration skips gracefully."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        service, queue = self._make_service(folder, slicers=[])
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+        queue.create_job.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_auto_slice_without_injected_services(self):
+        """Test auto_slice is a no-op when slicing services are absent."""
+        from src.models.watch_folder import WatchFolder
+        folder = WatchFolder(folder_path="/watch", auto_slice=True,
+                             default_profile_id="prof_1")
+
+        mock_config = MagicMock()
+        mock_config.watch_folder_db.get_watch_folder_by_path = AsyncMock(return_value=folder)
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        library = MagicMock()
+        library.enabled = True
+        library.assign_tag_by_name = AsyncMock(return_value=True)
+
+        service = FileWatcherService(mock_config, mock_event, library)
+        # No set_slicing_services call — should not raise
+        await service._apply_folder_rules(self._local_file(), is_new_file=True)
+
+
 class TestWatchFolderModelRules:
     """Test WatchFolder model rule fields (migration 038)."""
 

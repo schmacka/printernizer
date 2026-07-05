@@ -406,6 +406,14 @@ class ApiClient {
         return this.post('files/watch-folders/rescan?folder_path=' + encodeURIComponent(folderPath));
     }
 
+    async getSlicers() {
+        return this.get('slicing');
+    }
+
+    async getSlicerProfiles(slicerId) {
+        return this.get('slicing/' + encodeURIComponent(slicerId) + '/profiles');
+    }
+
     // Statistics Endpoints
     async getStatisticsOverview(period = 'month') {
         return this.get(CONFIG.ENDPOINTS.STATISTICS_OVERVIEW, { period });

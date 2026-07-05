@@ -87,6 +87,8 @@ class BaseNotificationAdapter(ABC):
             'printer_error': 'Printer Error',
             'material_low_stock': 'Material Low Stock',
             'file_downloaded': 'File Downloaded',
+            'slicing_completed': 'Slicing Completed',
+            'slicing_failed': 'Slicing Failed',
             'test': 'Test Notification',
         }
         return titles.get(event_type, event_type.replace('_', ' ').title())
@@ -111,6 +113,8 @@ class BaseNotificationAdapter(ABC):
             'printer_error': '\u26a0\ufe0f',    # Warning sign
             'material_low_stock': '\ud83e\uddf5',  # Thread/spool
             'file_downloaded': '\ud83d\udce5',  # Inbox tray
+            'slicing_completed': '\ud83e\uddc1',  # Layered cake slice
+            'slicing_failed': '\u26a0\ufe0f',   # Warning sign
             'test': '\ud83d\udd14',             # Bell
         }
         return emojis.get(event_type, '\ud83d\udce2')  # Default: megaphone

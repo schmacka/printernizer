@@ -162,8 +162,18 @@ class FileWatcherService:
 
         self._fallback_scan_task: Optional[asyncio.Task] = None
 
+        # Slicing services for auto-slice workflows; injected after startup
+        # via set_slicing_services() (they are constructed after the watcher).
+        self._slicing_queue = None
+        self._slicer_service = None
+
         # Initialize file handler
         self._file_handler = PrintFileHandler(self)
+
+    def set_slicing_services(self, slicing_queue, slicer_service) -> None:
+        """Inject slicing services for the auto-slice workflow (Phase 7c)."""
+        self._slicing_queue = slicing_queue
+        self._slicer_service = slicer_service
 
     @staticmethod
     def _make_file_id(file_path: str) -> str:
@@ -505,6 +515,10 @@ class FileWatcherService:
             # Store file
             self._local_files[file_id] = local_file
 
+            # Whether this content is new to the library (vs a duplicate of
+            # an existing file); workflows only run for new content.
+            is_new_library_file = False
+
             # Add to library if library service is available and enabled
             if self.library_service and self.library_service.enabled:
                 try:
@@ -537,6 +551,7 @@ class FileWatcherService:
                                     checksum=checksum[:16])
                     else:
                         # New file - copy to library
+                        is_new_library_file = True
                         source_info = {
                             'type': 'watch_folder',
                             'folder_path': watch_folder_path,
@@ -562,9 +577,10 @@ class FileWatcherService:
                                 error=str(e))
                     # Continue anyway - file still tracked locally
 
-                # Apply per-folder processing rules (auto-tags, classification)
+                # Apply per-folder processing rules (auto-tags, classification,
+                # auto-slice for new content)
                 if local_file.checksum:
-                    await self._apply_folder_rules(local_file)
+                    await self._apply_folder_rules(local_file, is_new_file=is_new_library_file)
 
             # Emit file discovered event
             await self._emit_file_event('file_discovered', local_file)
@@ -576,13 +592,14 @@ class FileWatcherService:
             logger.error("Error processing discovered file",
                        file_path=file_path, error=str(e))
 
-    async def _apply_folder_rules(self, local_file: LocalFile) -> None:
+    async def _apply_folder_rules(self, local_file: LocalFile, is_new_file: bool = False) -> None:
         """Apply the watch folder's processing rules to an ingested file.
 
-        Rules (configured per folder, migration 038):
+        Rules (configured per folder, migrations 038/039):
         - auto_tag: tag the file with its first-level subfolder name
           (e.g. ``vases/spiral.stl`` -> tag ``vases``).
         - classification: tag the file as ``business`` or ``private``.
+        - auto_slice: queue new model files for slicing (never starts a print).
         """
         watch_folder_db = getattr(self.config_service, 'watch_folder_db', None)
         if watch_folder_db is None or not local_file.checksum:
@@ -621,6 +638,74 @@ class FileWatcherService:
                        filename=local_file.filename,
                        folder_path=local_file.watch_folder_path,
                        tags=tags)
+
+        # Auto-slice only fires the first time content enters the library,
+        # so rescans and duplicate copies never re-queue slicing jobs.
+        if is_new_file and getattr(folder, 'auto_slice', False):
+            await self._maybe_auto_slice(local_file, folder)
+
+    async def _maybe_auto_slice(self, local_file: LocalFile, folder) -> None:
+        """Queue a slicing job for a newly ingested model file.
+
+        Safety rule: watch-folder automation prepares gcode and notifies —
+        it NEVER uploads to a printer or starts a print (auto_upload and
+        auto_start are always False).
+        """
+        if self._slicing_queue is None or self._slicer_service is None:
+            logger.debug("auto_slice enabled but slicing services not available",
+                        folder_path=local_file.watch_folder_path)
+            return
+
+        profile_id = getattr(folder, 'default_profile_id', None)
+        if not profile_id:
+            logger.info("auto_slice enabled but no default profile configured, skipping",
+                       folder_path=local_file.watch_folder_path,
+                       filename=local_file.filename)
+            return
+
+        # Only slice source models (not gcode or already-sliced 3mf bundles)
+        from src.services.file_role_classifier import classify_role, threemf_has_gcode
+        has_gcode = None
+        if local_file.file_type == '.3mf':
+            has_gcode = threemf_has_gcode(Path(local_file.file_path))
+        if classify_role(local_file.file_type, has_gcode) != 'model':
+            return
+
+        try:
+            slicers = await self._slicer_service.list_slicers(available_only=True)
+            if not slicers:
+                logger.warning("auto_slice: no available slicer configured, skipping",
+                             filename=local_file.filename)
+                return
+
+            from src.models.slicer import SlicingJobRequest
+            request = SlicingJobRequest(
+                file_checksum=local_file.checksum,
+                slicer_id=slicers[0].id,
+                profile_id=profile_id,
+                target_printer_id=getattr(folder, 'default_printer_id', None),
+                auto_upload=False,
+                auto_start=False  # Watch-folder automation never starts prints
+            )
+            job = await self._slicing_queue.create_job(request)
+
+            await self.event_service.emit_event('watch_folder.auto_slice_queued', {
+                'job_id': job.id,
+                'filename': local_file.filename,
+                'checksum': local_file.checksum,
+                'folder_path': local_file.watch_folder_path,
+                'profile_id': profile_id,
+                'target_printer_id': getattr(folder, 'default_printer_id', None)
+            })
+
+            logger.info("Queued auto-slice for watch folder file",
+                       filename=local_file.filename,
+                       job_id=job.id,
+                       profile_id=profile_id)
+
+        except Exception as e:
+            logger.error("Failed to queue auto-slice",
+                        filename=local_file.filename, error=str(e))
 
     def _find_watch_folder_for_file(self, file_path: str) -> Optional[str]:
         """Find which watch folder contains the given file."""

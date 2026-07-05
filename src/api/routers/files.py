@@ -1024,6 +1024,7 @@ async def update_watch_folder(
     folder_path: str = Query(..., description="Folder path to update"),
     is_active: Optional[bool] = Query(None, description="Whether to activate or deactivate the folder"),
     auto_tag: Optional[bool] = Query(None, description="Tag ingested files with their first-level subfolder name"),
+    auto_slice: Optional[bool] = Query(None, description="Queue new model files for slicing with the folder's default profile (never starts a print)"),
     classification: Optional[str] = Query(None, description="Tag ingested files as 'business' or 'private'; empty string clears"),
     default_printer_id: Optional[str] = Query(None, description="Default printer for folder workflows; empty string clears"),
     default_profile_id: Optional[str] = Query(None, description="Default slicer profile for folder workflows; empty string clears"),
@@ -1046,6 +1047,8 @@ async def update_watch_folder(
         updates["is_active"] = is_active
     if auto_tag is not None:
         updates["auto_tag"] = auto_tag
+    if auto_slice is not None:
+        updates["auto_slice"] = auto_slice
     if classification is not None:
         if classification not in ("", "business", "private"):
             raise PrinternizerValidationError(

@@ -50,6 +50,9 @@ class WatchFolder:
     default_printer_id: Optional[str] = None  # Default printer for workflows (Phase 7c)
     default_profile_id: Optional[str] = None  # Default slicer profile (Phase 7c)
 
+    # Workflows (Phase 7c)
+    auto_slice: bool = False                  # Queue new model files for slicing
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {
@@ -70,7 +73,8 @@ class WatchFolder:
             'auto_tag': self.auto_tag,
             'classification': self.classification,
             'default_printer_id': self.default_printer_id,
-            'default_profile_id': self.default_profile_id
+            'default_profile_id': self.default_profile_id,
+            'auto_slice': self.auto_slice
         }
     
     @classmethod
@@ -94,7 +98,8 @@ class WatchFolder:
             auto_tag=bool(data.get('auto_tag', False)),
             classification=data.get('classification'),
             default_printer_id=data.get('default_printer_id'),
-            default_profile_id=data.get('default_profile_id')
+            default_profile_id=data.get('default_profile_id'),
+            auto_slice=bool(data.get('auto_slice', False))
         )
 
     @classmethod
@@ -122,7 +127,8 @@ class WatchFolder:
             auto_tag=bool(row[14]) if len(row) > 14 else False,
             classification=row[15] if len(row) > 15 else None,
             default_printer_id=row[16] if len(row) > 16 else None,
-            default_profile_id=row[17] if len(row) > 17 else None
+            default_profile_id=row[17] if len(row) > 17 else None,
+            auto_slice=bool(row[18]) if len(row) > 18 else False
         )
     
     def get_display_name(self) -> str:

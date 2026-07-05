@@ -595,7 +595,11 @@
     "lastScan": "Last scan",
     "fileCount": "Files",
     "invalidFolder": "Invalid",
-    "neverScanned": "never"
+    "neverScanned": "never",
+    "autoSliceLabel": "Auto-slice",
+    "autoSliceHint": "Queue new model files for slicing with the default profile (never starts a print)",
+    "defaultProfileLabel": "Profile",
+    "defaultPrinterLabel": "Printer"
   },
   "materials": {
     "actions": "Actions",

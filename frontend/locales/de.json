@@ -595,7 +595,11 @@
     "lastScan": "Letzter Scan",
     "fileCount": "Dateien",
     "invalidFolder": "Ungültig",
-    "neverScanned": "nie"
+    "neverScanned": "nie",
+    "autoSliceLabel": "Auto-Slice",
+    "autoSliceHint": "Neue Modelldateien automatisch mit dem Standardprofil slicen (startet nie einen Druck)",
+    "defaultProfileLabel": "Profil",
+    "defaultPrinterLabel": "Drucker"
   },
   "materials": {
     "actions": "Aktionen",

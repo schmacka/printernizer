@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Watcher file IDs changed on every restart.** IDs were derived from Python's salted `hash()`; they are now a deterministic digest of the file path.
 
 ### Added
+- **Watch folders (Phase 7c): auto-slice workflow** (migration 039). A watch folder can be set to **auto-slice** — when a *new* model file (STL/OBJ/STEP or an unsliced 3MF) lands in it, it is automatically queued for slicing using the folder's default slicer profile, and the resulting gcode is registered in the library linked to its source model (via the existing Phase 3a relation).
+  - **Safety: auto-slice never starts a print.** The queued job always has `auto_upload=False` and `auto_start=False` — watch-folder automation prepares gcode and notifies; sending to a printer and starting a print stay manual actions.
+  - Auto-slice only fires the first time content enters the library, so rescans and duplicate copies never re-queue slicing jobs; gcode/already-sliced files are skipped.
+  - **New notification events `slicing_completed` / `slicing_failed`** (subscribable per channel like the existing job/printer events), so you get a Discord/Slack/ntfy ping when an auto-slice (or any slice) finishes or fails. Slicing completion/failure events now carry the filename, output file, profile and target printer.
+  - Watch-folder cards gain an **Auto-slice** toggle plus **default profile** and **default printer** pickers.
 - **Watch folders (Phase 7b): per-folder processing rules** (migration 038). Each watch folder can now be configured (Files page → watch folder card, or `PATCH /api/v1/files/watch-folders/update`) with:
   - **Auto-tagging** — ingested files are tagged with their first-level subfolder name (`vases/spiral.stl` → tag `vases`), feeding the existing Library tag filter.
   - **Business/private classification** — ingested files are tagged `business` or `private`, so watch-folder files finally participate in the business-vs-private distinction.

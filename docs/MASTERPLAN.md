@@ -152,14 +152,20 @@
 
 ## In Progress
 
-> No tasks currently in progress. The Slicer Integration epic (Phase 1-3b) shipped in v2.38.0-2.41.0, followed by the v2.41.x stabilization series (dashboard fixes, slicer detection, model-detail actions). Master is on v2.41.7 with CI green and no open PRs.
+> **Watch Folders Enhancement (Phase 7)** is being built on branch `claude/whats-next-waejsb` (not yet released). 7a/7b/7c complete; see below.
+
+### Watch Folders Enhancement (Phase 7) — in progress
+
+- [x] **7a — Foundation**: fixed real-time monitoring (watchdog thread → event-loop bridge), write-stability check before ingest, delete/move/modify reconciliation with the library, deterministic file IDs, `.bgcode` support, on-demand rescan endpoint, periodic fallback rescan, folder scan statistics.
+- [x] **7b — Per-folder rules** (migration 038): auto-tagging from first-level subfolder, business/private classification, default printer/profile per folder, richer settings UI (status, scan stats, rescan button).
+- [x] **7c — Auto-slice workflow** (migration 039): new model files auto-queued for slicing with the folder's default profile; **never auto-prints** (`auto_upload`/`auto_start` always false); `slicing_completed`/`slicing_failed` notification events; auto-slice toggle + printer/profile pickers in the UI.
+- [ ] **7d — External sources** (deferred/stretch): Thingiverse/Printables "save URL → library" reusing the ingest pipeline.
 
 ### Next Candidates
 
 Realistic next epics from the roadmap below, roughly in order of continuity with recent work:
 
-- [ ] **Watch Folders Enhancement** (Phase 7) - auto-slice/auto-upload workflows, auto-tagging, duplicate detection
-- [ ] **Advanced Home Assistant Integration** (Phase 6) - MQTT discovery, sensor entities, automation triggers
+- [ ] **Advanced Home Assistant Integration** (Phase 6) - MQTT discovery, sensor entities, automation triggers (can republish the Phase 7c `watch_folder.*` / `slicing_job.*` events)
 - [ ] **Print Queue System** - manual reordering, priority levels, queue dashboard
 - [ ] **Expanded Printer Support** (Phase 10) - Klipper via Moonraker API
 - [ ] **Printer Error Message Handling** - capture/display error codes with suggested fixes

@@ -1056,9 +1056,26 @@ class FileManager {
                 api.getWatchFolderSettings(),
                 api.getWatchFolderStatus()
             ]);
-            
+
+            // Best-effort: printers + slicer profiles for the auto-slice pickers
+            let printers = [];
+            let profiles = [];
+            try {
+                const printersResp = await api.getPrinters();
+                printers = printersResp.printers || printersResp || [];
+            } catch (e) { /* pickers render empty */ }
+            try {
+                const slicersResp = await api.getSlicers();
+                const slicers = slicersResp.slicers || [];
+                const slicer = slicers.find(s => s.is_available) || slicers[0];
+                if (slicer) {
+                    const profilesResp = await api.getSlicerProfiles(slicer.id);
+                    profiles = profilesResp.profiles || [];
+                }
+            } catch (e) { /* pickers render empty */ }
+
             // Render watch folders display
-            container.innerHTML = this.renderWatchFolders(settings, status);
+            container.innerHTML = this.renderWatchFolders(settings, status, printers, profiles);
             
         } catch (error) {
             Logger.error('Failed to load watch folders:', error);
@@ -1072,7 +1089,7 @@ class FileManager {
     /**
      * Render watch folders display
      */
-    renderWatchFolders(settings, status) {
+    renderWatchFolders(settings, status, printers = [], slicerProfiles = []) {
         const watchFolders = settings.watch_folders || [];
         const isEnabled = settings.enabled;
         const isRecursive = settings.recursive;
@@ -1154,6 +1171,12 @@ class FileManager {
                     let rulesRow = '';
                     if (isObject) {
                         const classification = folder.classification || '';
+                        const printerOptions = printers.map(p =>
+                            `<option value="${escapeHtml(p.id)}" ${folder.default_printer_id === p.id ? 'selected' : ''}>${escapeHtml(p.name || p.id)}</option>`
+                        ).join('');
+                        const profileOptions = slicerProfiles.map(p =>
+                            `<option value="${escapeHtml(p.id)}" ${folder.default_profile_id === p.id ? 'selected' : ''}>${escapeHtml(p.profile_name || p.name || p.id)}</option>`
+                        ).join('');
                         rulesRow = `
                             <div class="folder-rules">
                                 <label class="folder-rule" title="${t('files.autoTagHint')}">
@@ -1167,6 +1190,25 @@ class FileManager {
                                         <option value="" ${classification === '' ? 'selected' : ''}>${t('files.classificationNone')}</option>
                                         <option value="business" ${classification === 'business' ? 'selected' : ''}>${t('files.classificationBusiness')}</option>
                                         <option value="private" ${classification === 'private' ? 'selected' : ''}>${t('files.classificationPrivate')}</option>
+                                    </select>
+                                </label>
+                                <label class="folder-rule" title="${t('files.autoSliceHint')}">
+                                    <input type="checkbox" ${folder.auto_slice ? 'checked' : ''}
+                                           onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'auto_slice', this.checked)">
+                                    ${t('files.autoSliceLabel')}
+                                </label>
+                                <label class="folder-rule">
+                                    ${t('files.defaultProfileLabel')}:
+                                    <select onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'default_profile_id', this.value)">
+                                        <option value="" ${!folder.default_profile_id ? 'selected' : ''}>${t('files.classificationNone')}</option>
+                                        ${profileOptions}
+                                    </select>
+                                </label>
+                                <label class="folder-rule">
+                                    ${t('files.defaultPrinterLabel')}:
+                                    <select onchange="updateWatchFolderRule('${escapeHtml(folderPath)}', 'default_printer_id', this.value)">
+                                        <option value="" ${!folder.default_printer_id ? 'selected' : ''}>${t('files.classificationNone')}</option>
+                                        ${printerOptions}
                                     </select>
                                 </label>
                             </div>
