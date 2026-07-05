@@ -602,6 +602,41 @@ class LibraryService:
             'metadata': json.dumps(source_info)
         })
 
+    async def remove_file_source(self, checksum: str, source_type: str, source_id: str) -> None:
+        """
+        Remove a source from an existing file (the file itself is kept).
+
+        Used e.g. when a watch-folder original is deleted: the library copy
+        stays, but the folder is no longer a valid source for it.
+
+        Args:
+            checksum: File checksum
+            source_type: Source type (e.g. 'watch_folder', 'printer')
+            source_id: Source identifier (folder path or printer id)
+        """
+        file_record = await self.get_file_by_checksum(checksum)
+        if not file_record:
+            return
+
+        # Update sources JSON array in main record
+        sources = json.loads(file_record.get('sources', '[]') or '[]')
+        remaining = [
+            s for s in sources
+            if not (s.get('type') == source_type
+                    and (s.get('printer_id') or s.get('folder_path')) == source_id)
+        ]
+
+        if len(remaining) != len(sources):
+            await self.library_repo.update_file(checksum, {
+                'sources': json.dumps(remaining)
+            })
+
+        # Remove from junction table
+        await self.library_repo.delete_file_source(checksum, source_type, source_id)
+
+        logger.info("Removed source from file", checksum=checksum[:16],
+                   source_type=source_type, source_id=source_id)
+
     async def delete_file(self, checksum: str, delete_physical: bool = True) -> bool:
         """
         Delete file from library.

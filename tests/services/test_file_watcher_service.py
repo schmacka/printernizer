@@ -21,8 +21,13 @@ class TestPrintFileHandler:
 
     def test_supported_extensions(self):
         """Test supported file extensions are defined."""
-        expected = {'.stl', '.3mf', '.gcode', '.obj', '.ply'}
+        expected = {'.stl', '.3mf', '.gcode', '.bgcode', '.obj', '.ply'}
         assert PrintFileHandler.SUPPORTED_EXTENSIONS == expected
+
+    def test_should_process_file_valid_bgcode(self):
+        """Test BGCODE files are processed."""
+        handler = PrintFileHandler(MagicMock())
+        assert handler.should_process_file("/path/to/model.bgcode") is True
 
     def test_should_process_file_valid_stl(self):
         """Test STL files are processed."""
@@ -630,6 +635,268 @@ class TestFileWatcherServiceScan:
 
             # Should only find root file
             assert len(service._local_files) == 1
+
+
+class TestFileWatcherServiceStability:
+    """Test write-stability handling and thread-safe scheduling."""
+
+    @pytest.mark.asyncio
+    async def test_wait_for_file_stable_returns_true_for_finished_file(self):
+        """Test stability check passes for a file that is not changing."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.05
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_file = Path(tmpdir) / "stable.stl"
+            test_file.write_bytes(b"content")
+
+            assert await service._wait_for_file_stable(test_file) is True
+
+    @pytest.mark.asyncio
+    async def test_wait_for_file_stable_returns_false_for_missing_file(self):
+        """Test stability check fails for a nonexistent file."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.05
+
+        assert await service._wait_for_file_stable(Path("/nonexistent/file.stl")) is False
+
+    @pytest.mark.asyncio
+    async def test_wait_for_file_stable_waits_for_write_to_finish(self):
+        """Test stability check keeps waiting while the file grows."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.1
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            test_file = Path(tmpdir) / "growing.stl"
+            test_file.write_bytes(b"start")
+
+            async def keep_writing():
+                for i in range(3):
+                    await asyncio.sleep(0.03)
+                    with open(test_file, 'ab') as f:
+                        f.write(b"more data")
+
+            writer = asyncio.create_task(keep_writing())
+            result = await service._wait_for_file_stable(test_file)
+            await writer
+
+            assert result is True
+            # The full content must have been present when stability was declared
+            assert test_file.stat().st_size == len(b"start") + 3 * len(b"more data")
+
+    @pytest.mark.asyncio
+    async def test_handle_file_created_in_flight_guard(self):
+        """Test concurrent created events for the same path process once."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service.STABILITY_CHECK_INTERVAL = 0.05
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            service._watched_folders[tmpdir] = {
+                'watch': None,
+                'path': Path(tmpdir),
+                'recursive': True
+            }
+            test_file = Path(tmpdir) / "test.stl"
+            test_file.write_bytes(b"test content")
+
+            with patch.object(service, '_process_discovered_file',
+                              new_callable=AsyncMock) as mock_process:
+                await asyncio.gather(
+                    service._handle_file_created(str(test_file)),
+                    service._handle_file_created(str(test_file)),
+                    service._handle_file_created(str(test_file)),
+                )
+
+                assert mock_process.call_count == 1
+
+    def test_schedule_from_thread_without_loop_drops_coroutine(self):
+        """Test scheduling from a foreign thread with no captured loop drops safely."""
+        import threading as _threading
+
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service._loop = None
+
+        async def dummy():
+            pass
+
+        errors = []
+
+        def run_in_thread():
+            try:
+                service._schedule_from_thread(dummy())
+            except Exception as e:
+                errors.append(e)
+
+        thread = _threading.Thread(target=run_in_thread)
+        thread.start()
+        thread.join()
+
+        assert errors == []
+
+    @pytest.mark.asyncio
+    async def test_schedule_from_thread_bridges_to_loop(self):
+        """Test a coroutine scheduled from a foreign thread runs on the loop."""
+        import threading as _threading
+
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+        service._loop = asyncio.get_running_loop()
+
+        ran = asyncio.Event()
+
+        async def marker():
+            ran.set()
+
+        thread = _threading.Thread(
+            target=lambda: service._schedule_from_thread(marker())
+        )
+        thread.start()
+        thread.join()
+
+        await asyncio.wait_for(ran.wait(), timeout=2.0)
+
+
+class TestFileWatcherServiceStableIds:
+    """Test deterministic file IDs."""
+
+    def test_make_file_id_deterministic(self):
+        """Test the same path always yields the same ID."""
+        id1 = FileWatcherService._make_file_id("/watch/model.stl")
+        id2 = FileWatcherService._make_file_id("/watch/model.stl")
+        assert id1 == id2
+        assert id1.startswith("local_")
+
+    def test_make_file_id_differs_per_path(self):
+        """Test different paths yield different IDs."""
+        id1 = FileWatcherService._make_file_id("/watch/a.stl")
+        id2 = FileWatcherService._make_file_id("/watch/b.stl")
+        assert id1 != id2
+
+
+class TestFileWatcherServiceRescan:
+    """Test on-demand folder rescan."""
+
+    @pytest.mark.asyncio
+    async def test_rescan_folder_unknown_folder_raises(self):
+        """Test rescanning an unwatched folder raises ValueError."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+
+        with pytest.raises(ValueError):
+            await service.rescan_folder("/not/watched")
+
+    @pytest.mark.asyncio
+    async def test_rescan_folder_finds_new_files(self):
+        """Test rescan discovers files added after the initial scan."""
+        mock_config = MagicMock()
+        mock_config.watch_folder_db = None
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            service._watched_folders[tmpdir] = {
+                'watch': None,
+                'path': Path(tmpdir),
+                'recursive': True
+            }
+
+            (Path(tmpdir) / "first.stl").write_bytes(b"one")
+            await service._scan_folder(Path(tmpdir), recursive=True)
+
+            (Path(tmpdir) / "second.stl").write_bytes(b"two")
+            result = await service.rescan_folder(tmpdir)
+
+            assert result['files_found'] == 2
+            assert result['new_files'] == 1
+            assert len(service._local_files) == 2
+
+
+class TestFileWatcherServiceLibraryReconciliation:
+    """Test that deletes/moves are reconciled with the library."""
+
+    @pytest.mark.asyncio
+    async def test_handle_file_deleted_removes_library_source(self):
+        """Test deleting a watched original removes its watch_folder source."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        mock_library = MagicMock()
+        mock_library.enabled = True
+        mock_library.remove_file_source = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event, mock_library)
+
+        local_file = LocalFile(
+            file_id="local_123",
+            filename="test.stl",
+            file_path="/watch/test.stl",
+            file_size=1024,
+            file_type=".stl",
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path="test.stl",
+            checksum="abc123"
+        )
+        service._local_files["local_123"] = local_file
+
+        await service._handle_file_deleted("/watch/test.stl")
+
+        assert "local_123" not in service._local_files
+        mock_library.remove_file_source.assert_awaited_once_with(
+            "abc123", "watch_folder", "/watch"
+        )
+
+    @pytest.mark.asyncio
+    async def test_handle_file_deleted_without_checksum_skips_library(self):
+        """Test deletion of a file with unknown checksum touches no library."""
+        mock_config = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+
+        mock_library = MagicMock()
+        mock_library.enabled = True
+        mock_library.remove_file_source = AsyncMock()
+
+        service = FileWatcherService(mock_config, mock_event, mock_library)
+
+        local_file = LocalFile(
+            file_id="local_123",
+            filename="test.stl",
+            file_path="/watch/test.stl",
+            file_size=1024,
+            file_type=".stl",
+            modified_time=datetime.now(),
+            watch_folder_path="/watch",
+            relative_path="test.stl"
+        )
+        service._local_files["local_123"] = local_file
+
+        await service._handle_file_deleted("/watch/test.stl")
+
+        mock_library.remove_file_source.assert_not_awaited()
 
 
 class TestFileWatcherServiceLibraryIntegration:

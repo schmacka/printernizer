@@ -572,6 +572,30 @@ class LibraryRepository(BaseRepository):
                         error=str(e), exc_info=True)
             return False
 
+    async def delete_file_source(self, checksum: str, source_type: str, source_id: str) -> bool:
+        """Delete a single source record for a library file.
+
+        Args:
+            checksum: File checksum
+            source_type: Source type (e.g. 'watch_folder', 'printer')
+            source_id: Source identifier (folder path or printer id)
+
+        Returns:
+            True if deletion succeeded, False otherwise
+        """
+        try:
+            await self._execute_write(
+                """DELETE FROM library_file_sources
+                WHERE file_checksum = ? AND source_type = ? AND source_id = ?""",
+                (checksum, source_type, source_id)
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to delete library file source", checksum=checksum,
+                        source_type=source_type, source_id=source_id,
+                        error=str(e), exc_info=True)
+            return False
+
     async def delete_file_sources(self, checksum: str) -> bool:
         """Delete all sources for a library file.
 

@@ -5,6 +5,22 @@ All notable changes to Printernizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Real-time watch-folder monitoring never worked.** Watchdog delivers file events on its own observer thread, but the handlers called `asyncio.create_task()` there — where no event loop runs — so every created/modified/deleted/moved event raised `RuntimeError` and was lost. Files dropped into a watch folder were only picked up at the next application restart's initial scan. Events are now bridged to the main loop via `asyncio.run_coroutine_threadsafe()`.
+- **Watch-folder files could be ingested mid-copy.** A file still being copied into a watch folder was ingested as soon as the first event fired, storing a truncated copy with a wrong checksum in the library. Ingest now waits until the file's size/mtime are stable, and an in-flight guard prevents duplicate processing of the same path during event bursts.
+- **Deleting or moving a watched original left stale library sources.** The library keeps its copy (by design), but the watch-folder source entry now gets removed on delete, swapped on cross-folder moves, and refreshed when a file's content changes (new `LibraryService.remove_file_source()`).
+- **Watcher file IDs changed on every restart.** IDs were derived from Python's salted `hash()`; they are now a deterministic digest of the file path.
+
+### Added
+- **Watch folders (Phase 7a foundation):**
+  - `.bgcode` files are now picked up from watch folders.
+  - `POST /api/v1/files/watch-folders/rescan?folder_path=…` — rescan a single watch folder on demand.
+  - Periodic automatic rescan (every 5 minutes) when the watchdog observer is unavailable (fallback mode was previously blind between restarts).
+  - Per-folder `file_count` / `last_scan_at` statistics are now actually maintained in the `watch_folders` table; watch status reports whether real-time monitoring is active (`realtime_monitoring`).
+  - Watcher events now include the file's library `checksum`, groundwork for per-folder processing rules (Phase 7b).
+
 ## [2.41.7] - 2026-07-03
 
 ### Fixed

@@ -943,6 +943,22 @@ async def reload_watch_folders(
     return result
 
 
+@router.post("/watch-folders/rescan")
+async def rescan_watch_folder(
+    folder_path: str = Query(..., description="Watch folder path to rescan"),
+    file_service: FileService = Depends(get_file_service)
+):
+    """Rescan a single watch folder on demand."""
+    try:
+        result = await file_service.rescan_watch_folder(folder_path)
+    except ValueError as e:
+        raise PrinternizerValidationError(
+            field="folder_path",
+            error=str(e)
+        )
+    return result
+
+
 @router.post("/watch-folders/validate")
 async def validate_watch_folder(
     folder_path: str = Query(..., description="Folder path to validate"),
