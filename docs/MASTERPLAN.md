@@ -1,7 +1,7 @@
 # Printernizer Development Masterplan
 
 **Last Updated**: 2026-07-05
-**Current Version**: v2.41.7
+**Current Version**: v2.42.0
 **E2E Test Suite**: v2.24.2 (~90% passing, debug tests excluded)
 **Status**: Production Ready
 
@@ -152,14 +152,14 @@
 
 ## In Progress
 
-> **Watch Folders Enhancement (Phase 7)** is being built on branch `claude/whats-next-waejsb` (not yet released). 7a/7b/7c complete; see below.
+> No tasks currently in progress. Watch Folders Enhancement (Phase 7) merged via PR #375 and released as v2.42.0.
 
-### Watch Folders Enhancement (Phase 7) — in progress
+### Watch Folders Enhancement (Phase 7) — 7a/7b/7c complete ✅ (v2.42.0)
 
 - [x] **7a — Foundation**: fixed real-time monitoring (watchdog thread → event-loop bridge), write-stability check before ingest, delete/move/modify reconciliation with the library, deterministic file IDs, `.bgcode` support, on-demand rescan endpoint, periodic fallback rescan, folder scan statistics.
 - [x] **7b — Per-folder rules** (migration 038): auto-tagging from first-level subfolder, business/private classification, default printer/profile per folder, richer settings UI (status, scan stats, rescan button).
 - [x] **7c — Auto-slice workflow** (migration 039): new model files auto-queued for slicing with the folder's default profile; **never auto-prints** (`auto_upload`/`auto_start` always false); `slicing_completed`/`slicing_failed` notification events; auto-slice toggle + printer/profile pickers in the UI.
-- [ ] **7d — External sources** (deferred/stretch): Thingiverse/Printables "save URL → library" reusing the ingest pipeline.
+- [ ] **7d — External sources** (deferred/stretch): Thingiverse/Printables "save URL → library" reusing the ingest pipeline. See `docs/plans/WATCH_FOLDERS_PHASE7.md` for the follow-up plan.
 
 ### Next Candidates
 
@@ -845,6 +845,7 @@ python3 -m pytest --cov=src tests/
 | Orders | 2026-03-21 | Orders Tracking + HA fixes (v2.30.0-2.30.7) | ✅ Complete |
 | Model Generator | 2026-06-13 to 06-22 | Parametric generator, moved to browser/JSCAD (v2.32.0-2.37.0) | ✅ Complete |
 | Slicer Epic | 2026-06-25 to 07-03 | Slicer microservice + slice→print pipeline (v2.38.0-2.41.7) | ✅ Complete |
+| Watch Folders Phase 7 | 2026-07-05 | Real-time fix, per-folder rules, auto-slice workflow (v2.42.0) | ✅ Complete |
 
 ### Sprint 1 Summary
 
@@ -999,6 +1000,7 @@ Created comprehensive Playwright E2E test suite covering all 10 pages using Page
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 19.0 | 2026-07-05 | Watch Folders Phase 7 (7a/7b/7c) merged and released as v2.42.0 |
 | 18.0 | 2026-07-05 | Refreshed to v2.41.7: Slicer Integration epic, Model Generator, Orders Tracking, Usage Stats Phase 3, Multi-Theme, Tools page; added Next Candidates; fixed branch strategy |
 | 17.0 | 2026-01-09 | Multi-channel Notifications complete (v2.26.0) |
 | 16.0 | 2026-01-09 | OctoPrint integration complete (v2.25.0), Phase 10 progress |

@@ -5,7 +5,7 @@ All notable changes to Printernizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.42.0] - 2026-07-05
 
 ### Fixed
 - **Real-time watch-folder monitoring never worked.** Watchdog delivers file events on its own observer thread, but the handlers called `asyncio.create_task()` there — where no event loop runs — so every created/modified/deleted/moved event raised `RuntimeError` and was lost. Files dropped into a watch folder were only picked up at the next application restart's initial scan. Events are now bridged to the main loop via `asyncio.run_coroutine_threadsafe()`.

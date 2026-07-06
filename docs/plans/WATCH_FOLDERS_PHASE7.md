@@ -1,6 +1,6 @@
 # Watch Folders Enhancement (Phase 7)
 
-**Status**: 7a / 7b / 7c complete (branch `claude/whats-next-waejsb`, unreleased). 7d deferred.
+**Status**: 7a / 7b / 7c complete — merged via PR #375, released as **v2.42.0**. 7d deferred.
 **Last Updated**: 2026-07-05
 
 This document records what shipped in Phase 7 and the concrete follow-up
@@ -80,17 +80,11 @@ pipeline 7a–7c built.
   a watch-folder concept — revisit whether it belongs under Phase 7 at
   all or as its own small feature.
 
-### Release checklist for Phase 7 (when ready)
+### Release checklist for Phase 7 — done ✅
 
-Nothing here is tagged or version-bumped yet — the branch carries the
-work under `CHANGELOG.md`'s `[Unreleased]` section. To release:
-
-1. Decide the version (minor bump — new feature, no breaking changes).
-2. Move the `[Unreleased]` block in `CHANGELOG.md` under the new version
-   heading with the date.
-3. Update the fallback version in `src/main.py` (`get_version(fallback=…)`).
-4. Commit (`chore: Bump version to X.Y.Z`), tag `vX.Y.Z`, push tags.
-   GitHub Actions handles the GitHub release + HA-repo sync.
+Released as **v2.42.0** (2026-07-05): `CHANGELOG.md` moved under the
+`[2.42.0]` heading, `src/main.py` fallback bumped, tagged `v2.42.0`,
+pushed. GitHub Actions handles the GitHub release + HA-repo sync.
 
 **Migrations 038 and 039** apply cleanly on top of 031 and are guarded
 by the migration runner's duplicate-column tolerance; `WatchFolder`'s
