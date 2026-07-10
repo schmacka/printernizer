@@ -67,8 +67,17 @@ function ringPoints(radius, facets) {
     return pts;
 }
 
+// Resolve how many sides the vase cross-section has (0 = round). The "polygon"
+// surface style uses `sides`; the legacy `facets` field (0 = round) is still
+// honored for parameter presets saved before the surface selector existed.
+function vaseFacetCount(p) {
+    if (p.surface === 'polygon') return Math.max(3, Math.round(p.sides || 6));
+    if (p.surface === 'round') return 0;
+    return (p.facets && p.facets >= 3) ? Math.round(p.facets) : 0;
+}
+
 function vaseSolid(baseRadius, p) {
-    const base = slice.fromPoints(ringPoints(baseRadius, p.facets));
+    const base = slice.fromPoints(ringPoints(baseRadius, vaseFacetCount(p)));
     return extrudeFromSlices({
         numberOfSlices: 48,
         callback: (progress) => {
@@ -355,18 +364,27 @@ const TEMPLATES = {
     },
     vase: {
         name: 'Parametric Vase',
-        description: 'A round or faceted vase with configurable taper, twist and wall thickness.',
+        description: 'A round or polygon vase with configurable taper, twist, wall thickness and inner diameter.',
         parameters: [
-            { name: 'diameter', type: 'number', default: 60, min: 20, max: 250, step: 1, group: 'Dimensions', description: 'Base diameter (mm)' },
+            { name: 'diameter', type: 'number', default: 60, min: 20, max: 250, step: 1, group: 'Dimensions', description: 'Base (outer) diameter (mm)' },
             { name: 'height', type: 'number', default: 120, min: 20, max: 400, step: 1, group: 'Dimensions', description: 'Height (mm)' },
-            { name: 'wall_thickness', type: 'number', default: 2, min: 1, max: 8, step: 0.5, group: 'Dimensions', description: 'Wall thickness (mm)' },
+            { name: 'wall_thickness', type: 'number', default: 2, min: 1, max: 8, step: 0.5, group: 'Dimensions', description: 'Wall / floor thickness (mm)' },
+            { name: 'inner_diameter', type: 'number', default: 0, min: 0, max: 248, step: 1, group: 'Dimensions', description: 'Inner cavity diameter (mm, 0 = auto from wall thickness)' },
             { name: 'top_scale', type: 'number', default: 0.7, min: 0.2, max: 2, step: 0.05, group: 'Shape', description: 'Top radius relative to base (1 = straight)' },
-            { name: 'facets', type: 'number', default: 0, min: 0, max: 12, step: 1, group: 'Shape', description: 'Number of sides (0 = round)' },
+            { name: 'surface', type: 'select', default: 'round', group: 'Shape', description: 'Surface style', options: [{ value: 'round', label: 'Round (smooth)' }, { value: 'polygon', label: 'Polygon (flat sides)' }] },
+            { name: 'sides', type: 'number', default: 6, min: 3, max: 12, step: 1, group: 'Shape', description: 'Number of sides (used when Surface = Polygon)' },
             { name: 'twist', type: 'number', default: 0, min: -360, max: 360, step: 5, group: 'Shape', description: 'Total twist over the height (degrees)' },
         ],
         build(p) {
-            const outer = vaseSolid(p.diameter / 2, p);
-            let inner = vaseSolid(p.diameter / 2 - p.wall_thickness, p);
+            const outerR = p.diameter / 2;
+            // Inner diameter can be set directly; 0 derives it from the wall thickness.
+            const innerR = (p.inner_diameter && p.inner_diameter > 0)
+                ? p.inner_diameter / 2
+                : outerR - p.wall_thickness;
+            // Always keep a positive inner radius and a printable outer wall.
+            const safeInnerR = Math.max(0.5, Math.min(innerR, outerR - 0.4));
+            const outer = vaseSolid(outerR, p);
+            let inner = vaseSolid(safeInnerR, p);
             inner = translate([0, 0, p.wall_thickness], inner);
             return subtract(outer, inner);
         },

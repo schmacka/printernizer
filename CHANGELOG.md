@@ -5,6 +5,17 @@ All notable changes to Printernizer will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Model generator — vase template: inner diameter and polygon surface.** The
+  parametric vase now exposes an **Inner cavity diameter** field (`0` = derive it
+  from the wall thickness, as before) so the bore can be set independently of the
+  outer diameter, and a **Surface** selector (**Round** / **Polygon**) with a
+  **Sides** count replaces the old numeric "facets" field, making the flat-sided
+  polygon vase an explicit option. Parameter presets saved with the previous
+  `facets` value still build correctly.
+
 ## [2.42.0] - 2026-07-05
 
 ### Fixed
