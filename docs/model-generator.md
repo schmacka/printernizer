@@ -28,7 +28,9 @@ including Raspberry Pi (aarch64) and armv7 Home Assistant hosts.
 Templates live in the frontend (`frontend/js/generator.js`) as JSCAD build
 functions plus a parameter schema (`name`, `type`, `min`/`max`/`step`, `default`,
 `group`). Bundled: **box** (parametric box) and **vase** (parametric vase with
-taper/twist/faceting). Adding a template is a small JS function + schema entry.
+taper/twist, a round-or-polygon surface, and a configurable inner diameter),
+plus text, QR, Gridfinity, calibration and utility templates. Adding a template
+is a small JS function + schema entry.
 
 ## API
 
