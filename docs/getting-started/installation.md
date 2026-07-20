@@ -8,7 +8,7 @@ Before you begin, ensure you have:
 
 - Network connectivity to your 3D printers
 - One of the following:
-  - Python 3.8 or higher (for Python standalone)
+  - Python 3.11 or higher (for Python standalone)
   - Docker and Docker Compose (for Docker deployment)
   - Home Assistant OS (for add-on deployment)
   - Raspberry Pi 3 or newer (for Pi deployment)

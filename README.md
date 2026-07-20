@@ -31,7 +31,7 @@ Printernizer is a **production-ready** 3D printer management system that transfo
 - **🌐 Multi-Deployment** - Docker, Home Assistant, Raspberry Pi, or standalone Python
 - **📱 Mobile Ready** - Fully responsive interface works on any device
 
-### Status: Production Ready (v2.14.3)
+### Status: Production Ready (v2.42.0)
 
 ✅ **Stable** • ✅ **Tested** • ✅ **Documented** • ✅ **Multi-Platform**
 
@@ -45,29 +45,27 @@ Real-time monitoring of your printer fleet with live status updates, temperature
 
 ![Dashboard](screenshots/01-dashboard.png)
 
-### File Management
+### Printer Management
 
-Unified file browser with smart filtering, status tracking, and one-click downloads from all your printers.
+Per-printer cards showing connection type (MQTT / HTTP), live temperatures, current state, and quick actions.
 
-![File Management](screenshots/02-file-management.png)
+![Printers](screenshots/03-printers.png)
 
-### Jobs & Printer Management
+### Model Generator
 
-Comprehensive job history and detailed printer status cards with live monitoring.
+Generate parametric models in your browser from 20+ templates (Gridfinity, vases, calibration towers, lithophanes, QR tags, and more) and save them straight into the library.
 
-![Jobs & Printers](screenshots/03-jobs-printers.png)
-
-### Printer Status Cards
-
-Detailed printer information including temperatures, current job progress, and quick actions.
-
-![Printer Status Card](screenshots/04-printer-status-card.png)
+![Model Generator](screenshots/07-generator.png)
 
 ### Mobile Responsive Design
 
 Full functionality on mobile devices with optimized responsive layout.
 
-![Mobile View](screenshots/05-mobile-view.png)
+![Mobile View](screenshots/08-mobile-view.png)
+
+> Screenshots are regenerated with `python scripts/testing/capture_screenshots.py`
+> against a running instance. Additional captures (library, jobs, files,
+> filaments) live in [`screenshots/`](screenshots/).
 
 ---
 
@@ -77,6 +75,7 @@ Full functionality on mobile devices with optimized responsive layout.
 
 - **Bambu Lab Printers** - Full MQTT integration with real-time status updates
 - **Prusa Printers** - Complete PrusaLink HTTP API integration
+- **OctoPrint** - OctoPrint-managed printers via REST + SockJS live updates
 - **Auto-Discovery** - Automatic printer detection via SSDP + mDNS
 - **Multi-Printer Fleet** - Monitor unlimited printers simultaneously
 - **Connection Health** - Automatic retry, reconnection, and error handling
@@ -104,6 +103,67 @@ Full functionality on mobile devices with optimized responsive layout.
 - **3D Preview System** - Automatic thumbnail generation for STL, 3MF, GCODE, BGCODE
 - **Metadata Extraction** - Comprehensive metadata parsing from 3D files
 - **Storage Analytics** - Track storage usage and optimize disk space
+
+### 🗄️ Library
+
+- **Checksum-Based Store** - One central library for every 3D file, deduplicated by content
+- **Watch Folders** - Drop files into a watched folder and they are ingested automatically
+- **Per-Folder Rules** - Auto-tagging by subfolder, business/private classification, default printer and slicer profile
+- **Auto-Slice** - New model files can be queued for slicing automatically (never starts a print on its own)
+- **Tags** - User-defined tags with tag-filtered search
+- **Metadata & Previews** - Automatic analysis and thumbnail extraction
+
+### 🔪 Slicer Integration
+
+- **Local Slicers** - Auto-detects installed PrusaSlicer / OrcaSlicer and slices via CLI
+- **Remote Slicer Service** - Optional sidecar container for deployments without a local slicer
+- **Profiles** - Import, upload, and manage slicer profiles grouped by printer model
+- **Slice Queue** - Queued slicing with status tracking, plus slice-and-print in one action
+
+> Requires either a detected local slicer or the optional `slicer-service` sidecar.
+
+### 🧩 Model Generator (Experimental)
+
+- **20+ Parametric Templates** - Gridfinity bins and baseplates, vases, boxes, brackets, standoffs, cable clips, lithophanes, QR tags, calibration towers, and more
+- **Runs in Your Browser** - Geometry is generated client-side with JSCAD, so it works on any architecture including Raspberry Pi
+- **Save to Library** - Generated STLs land directly in the library
+- **Presets** - Save and reuse named parameter sets
+
+> The generator is explicitly marked experimental in the UI: geometry, fit, and
+> cost/time estimates are not guaranteed. Always inspect models before printing.
+
+### 📦 Orders & Customers
+
+- **Customer Orders** - Track orders through `new → planned → printed → delivered`
+- **Customers** - Customer records and order sources
+- **Linked Work** - Orders link to the print jobs and library files that fulfil them
+- **Commercial Data** - Quoted price, payment status, and due dates
+
+### 🧵 Material Inventory
+
+- **Spool Tracking** - Type, brand, color, diameter, remaining weight, and location
+- **Consumption History** - Record usage and track it over time
+- **Low-Stock Events** - Get notified when a spool runs low
+- **Excel Export** - XLSX export for inventory reporting
+
+### 🔔 Notifications
+
+- **Multi-Channel** - Discord, Slack, and ntfy adapters
+- **Per-Channel Subscriptions** - Choose which events each channel receives
+- **Events** - Job started/completed, printer online/offline, low material, file downloaded, slicing completed/failed
+- **Delivery History** - Review what was sent, and send test messages
+
+### 💡 Ideas & Search
+
+- **Idea Board** - Collect print ideas with a status workflow and tags
+- **URL Import** - Paste a MakerWorld/Printables model URL to import it as an idea
+- **Unified Search** - Search across local/library files and ideas, with history and suggestions
+
+### 📷 Camera & Timelapse
+
+- **Live Preview** - Stream/snapshot proxy for printer cameras
+- **External Webcams** - HTTP snapshot and RTSP sources
+- **Snapshots** - On-demand captures with listing, download, and diagnostics
 
 ### 🎬 Timelapse Management
 
@@ -242,6 +302,15 @@ cp src/.env.development src/.env
 **Troubleshooting:**
 - If you get "permission denied" on `run.sh`, run: `chmod +x run.sh`
 - If you get "python: command not found", ensure your virtual environment is activated
+- If startup aborts with `PermissionError: [Errno 13] Permission denied: '/data'`,
+  export a writable slicing output directory before starting. This value is read
+  from the process environment (not from `src/.env`), and its stored default is a
+  container path:
+  ```bash
+  export SLICING_OUTPUT_DIR="$PWD/src/data/sliced"
+  ```
+- STL/3MF preview thumbnails need the optional render dependencies:
+  `pip install -r requirements-optional.txt`
 
 For detailed installation instructions, see the [**Installation Guide**](https://schmacka.github.io/printernizer/getting-started/installation/).
 
@@ -525,6 +594,42 @@ POST /api/v1/printers/{id}/files/{name}/download  # Download file
 GET  /api/v1/files/{id}/metadata           # Get file metadata
 POST /api/v1/files/{id}/thumbnail/extract  # Extract thumbnail
 
+# Library
+GET  /api/v1/library/files                 # List library files
+GET  /api/v1/library/files/{checksum}      # Get file by checksum
+POST /api/v1/library/files/{checksum}/reprocess  # Re-extract metadata
+GET  /api/v1/library/statistics            # Library statistics
+
+# Watch Folders (under /files)
+GET  /api/v1/files/watch-folders/status    # Watch status
+POST /api/v1/files/watch-folders/rescan    # Rescan a folder
+PATCH /api/v1/files/watch-folders/update   # Per-folder rules
+
+# Slicing
+GET  /api/v1/slicing/jobs                  # Slicing queue
+POST /api/v1/slicing/library/{checksum}/slice    # Slice a library file
+POST /api/v1/slicing/slice-and-print       # Slice then send to printer
+
+# Model Generator
+GET  /api/v1/generator/status              # Generator availability
+GET  /api/v1/generator/presets             # Parameter presets
+POST /api/v1/generator/save                # Save generated STL to library
+
+# Orders, Customers & Materials
+GET  /api/v1/orders                        # List orders
+GET  /api/v1/customers                     # List customers
+GET  /api/v1/materials                     # Material inventory
+
+# Ideas, Tags & Search
+GET  /api/v1/ideas                         # List ideas
+POST /api/v1/ideas/url/preview             # Preview an idea from a URL
+GET  /api/v1/tags                          # List tags
+GET  /api/v1/search                        # Unified search
+
+# Notifications
+GET  /api/v1/notifications/channels        # Notification channels
+POST /api/v1/notifications/channels/{id}/test    # Send a test notification
+
 # Timelapse Management
 GET  /api/v1/timelapses                    # List timelapses
 GET  /api/v1/timelapses/{id}               # Get timelapse details
@@ -604,11 +709,11 @@ For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.
 
 ## 🗺️ Roadmap
 
-### Current Version: 2.14.3 (Production Ready) ✅
+### Current Version: 2.42.0 (Production Ready) ✅
 
 **Completed Features:**
 - ✅ Complete backend with FastAPI + async SQLite
-- ✅ Full printer integration (Bambu Lab & Prusa manufacturers)
+- ✅ Full printer integration (Bambu Lab, Prusa, and OctoPrint)
 - ✅ Real-time monitoring with WebSocket updates
 - ✅ Advanced file management and download system
 - ✅ Automated job creation and tracking
@@ -624,14 +729,20 @@ For more troubleshooting tips, see [**Troubleshooting Guide**](https://schmacka.
 - ✅ Filament display with AMS support
 - ✅ Camera diagnostics and snapshot system
 - ✅ Material inventory with Excel export
+- ✅ Central library with checksum-based deduplication and tagging
+- ✅ Watch folders with per-folder rules and auto-slice (v2.42.0)
+- ✅ Customer orders, customers, and order sources
+- ✅ Multi-channel notifications (Discord, Slack, ntfy)
+- ✅ Browser-based parametric model generator (experimental)
+- ✅ Ideas board with URL import and unified search
 
 ### Coming Soon
 
 - 🔄 **Advanced Home Assistant Integration** - MQTT discovery, sensors, automations
-- 🔄 **Watch Folders** - Automatic file monitoring and processing
 - 🔄 **Kubernetes Orchestration** - Production-grade orchestration
-- 🔄 **Multi-User Authentication** - Role-based access control
+- 🔄 **Multi-User Authentication** - Role-based access control (not implemented today; Printernizer currently has no built-in user accounts)
 - 🔄 **Advanced Analytics** - Predictive maintenance, failure analysis
+- 🔄 **Trending Models** - Platform scraping is built but disabled; manual URL import is the supported path
 - 🔄 **Additional Printer Support** - More printer models and brands
 
 ### Future Vision

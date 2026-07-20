@@ -189,11 +189,25 @@ class PrinterConnectionService:
         """
         async with self.database._connection.cursor() as cursor:
             for printer_id, instance in self.printer_instances.items():
-                # Insert or update printer in database
+                # Upsert the printer row.
+                # NOTE: this must NOT be `INSERT OR REPLACE`. SQLite implements
+                # that as DELETE + INSERT, and jobs.printer_id is declared
+                # `REFERENCES printers(id) ON DELETE CASCADE`, so replacing a
+                # printer here silently deleted that printer's entire job
+                # history on every application start. An ON CONFLICT upsert
+                # updates the existing row in place and keeps the FK intact.
                 await cursor.execute("""
-                    INSERT OR REPLACE INTO printers
+                    INSERT INTO printers
                     (id, name, type, ip_address, api_key, access_code, serial_number, is_active)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        type = excluded.type,
+                        ip_address = excluded.ip_address,
+                        api_key = excluded.api_key,
+                        access_code = excluded.access_code,
+                        serial_number = excluded.serial_number,
+                        is_active = excluded.is_active
                 """, (
                     printer_id,
                     instance.name,

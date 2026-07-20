@@ -118,7 +118,7 @@ When contributing to Printernizer:
 3. Place changes in the "Unreleased" section
 4. Categorize properly (Added, Changed, Fixed, etc.)
 
-See [Contributing Guide](development/contributing.md) for details.
+See [Contributing Guide](https://github.com/schmacka/printernizer/blob/master/CONTRIBUTING.md) for details.
 
 ## Archive
 

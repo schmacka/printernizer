@@ -157,12 +157,12 @@
             <div class="overview-cards">
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Drucker Status</h3>
+                        <h3 data-i18n="dashboard.printerStatusTitle">Drucker Status</h3>
                         <span class="card-icon">🖨️</span>
                     </div>
                     <div class="card-body">
                         <div class="stat-number" id="printerCount">-</div>
-                        <div class="stat-label">Drucker Online</div>
+                        <div class="stat-label" data-i18n="dashboard.printersOnlineLabel">Drucker Online</div>
                         <div class="stat-detail" id="printerDetail">Lade...</div>
                     </div>
                 </div>
@@ -181,7 +181,7 @@
 
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Dateien</h3>
+                        <h3 data-i18n="dashboard.filesTitle">Dateien</h3>
                         <span class="card-icon">📁</span>
                     </div>
                     <div class="card-body">
@@ -193,7 +193,7 @@
 
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Heute</h3>
+                        <h3 data-i18n="dashboard.todayTitle">Heute</h3>
                         <span class="card-icon">📈</span>
                     </div>
                     <div class="card-body">
@@ -207,7 +207,7 @@
             <!-- Printer Status Cards -->
             <div class="section">
                 <div class="section-header">
-                    <h2>Drucker Status</h2>
+                    <h2 data-i18n="dashboard.printerStatusSection">Drucker Status</h2>
                     <button class="btn btn-primary" id="addPrinterBtnDashboard" data-action="add-printer" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
                         <span data-i18n="printers.addPrinter">Drucker hinzufügen</span>
@@ -225,7 +225,7 @@
             <div class="section">
                 <div class="section-header">
                     <h2 data-i18n="dashboard.recentJobsHeading">Aktuelle Aufträge</h2>
-                    <a href="#jobs" class="btn btn-secondary" onclick="showPage('jobs')">
+                    <a href="#jobs" class="btn btn-secondary" onclick="showPage('jobs')" data-i18n="dashboard.showAll">
                         Alle anzeigen
                     </a>
                 </div>
@@ -241,7 +241,7 @@
             <div class="section">
                 <div class="section-header">
                     <h2 data-i18n="dashboard.recentPrintedFilesHeading">Kürzlich gedruckte Dateien</h2>
-                    <a href="#files" class="btn btn-secondary" onclick="showPage('files')">
+                    <a href="#files" class="btn btn-secondary" onclick="showPage('files')" data-i18n="dashboard.showAll">
                         Alle anzeigen
                     </a>
                 </div>

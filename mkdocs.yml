@@ -108,10 +108,16 @@ nav:
       - Frontend Auto Reload: features/FRONTEND_AUTO_RELOAD.md
       - GCode Optimization: features/GCODE_OPTIMIZATION.md
       - Trending Models Workflow: features/trending-models-workflow.md
+      - Orders: features/ORDERS.md
+      - Model Generator: model-generator.md
+      - Camera Setup: CAMERA_SETUP.md
+      - Slicer Integration: SLICER_INTEGRATION.md
+      - Slicer Setup: SLICER-SETUP.md
+      - Slicer API Examples: SLICER_API_EXAMPLES.md
   - Development:
       - Overview: development/index.md
-      - Current State: development/CURRENT_STATE.md
-      - Development Plan: development/development-plan.md
+      - Current State: archive/CURRENT_STATE.md
+      - Development Plan: archive/development-plan.md
       - Integration Patterns: development/integration_patterns.md
       - File Operations Guide: development/FILE_OPERATIONS_GUIDE.md
       - Debug Procedures: development/DEBUG_PROCEDURES.md

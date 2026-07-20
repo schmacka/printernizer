@@ -1221,7 +1221,11 @@
     "discoveredOnStartup": "discovered on startup",
     "autoJobCreated": "⚡ Job auto-created",
     "autoJobTipTitle": "ℹ️ Automatic job creation",
-    "autoJobTipMessage": "Jobs are now created automatically! Find them with the ⚡ Auto badge in the job list. This feature can be disabled in settings."
+    "autoJobTipMessage": "Jobs are now created automatically! Find them with the ⚡ Auto badge in the job list. This feature can be disabled in settings.",
+    "statusConnecting": "Connecting…",
+    "statusConnected": "Connected",
+    "statusDisconnected": "Disconnected",
+    "statusFailed": "Connection failed"
   },
   "printerForm": {
     "invalidIpAddress": "Invalid IP address (format: xxx.xxx.xxx.xxx)",

@@ -1221,7 +1221,11 @@
     "discoveredOnStartup": "beim Start entdeckt",
     "autoJobCreated": "⚡ Auftrag automatisch erstellt",
     "autoJobTipTitle": "ℹ️ Automatische Auftrags-Erstellung",
-    "autoJobTipMessage": "Aufträge werden jetzt automatisch erstellt! Sie finden sie mit dem ⚡ Auto Badge in der Auftragsliste. Diese Funktion kann in den Einstellungen deaktiviert werden."
+    "autoJobTipMessage": "Aufträge werden jetzt automatisch erstellt! Sie finden sie mit dem ⚡ Auto Badge in der Auftragsliste. Diese Funktion kann in den Einstellungen deaktiviert werden.",
+    "statusConnecting": "Verbinde…",
+    "statusConnected": "Verbunden",
+    "statusDisconnected": "Getrennt",
+    "statusFailed": "Verbindung fehlgeschlagen"
   },
   "printerForm": {
     "invalidIpAddress": "Ungültige IP-Adresse (Format: xxx.xxx.xxx.xxx)",

@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **All print jobs were silently deleted on every application start.** The
+  startup printer sync used `INSERT OR REPLACE INTO printers`, which SQLite
+  implements as DELETE + INSERT. Because `jobs.printer_id` is declared
+  `REFERENCES printers(id) ON DELETE CASCADE` and `PRAGMA foreign_keys` is ON,
+  replacing each configured printer cascade-deleted that printer's entire job
+  history — so job history never survived a restart. `_sync_database_printers()`
+  now uses an `ON CONFLICT(id) DO UPDATE` upsert, which updates the row in place
+  (`src/services/printer_connection_service.py`).
+- **Dashboard headings and the connection indicator ignored the selected
+  language.** Several dashboard headings ("Drucker Status", "Dateien", "Heute",
+  "Alle anzeigen") were hardcoded German with no `data-i18n` attribute, and the
+  WebSocket status label was hardcoded German in JS, so they stayed German with
+  the UI set to English. They now resolve through i18n (`frontend/index.html`,
+  `frontend/js/websocket.js`); added the missing `websocket.status*` keys.
+
+### Changed
+- **README and documentation refreshed for 2.42.0.** The README still described
+  v2.14.3 and omitted every subsystem shipped since (library, watch folders,
+  slicing, orders, materials, notifications, ideas/search, model generator, and
+  OctoPrint printer support); its API list and roadmap were likewise stale —
+  watch folders were listed as "coming soon" despite shipping in 2.42.0.
+  Corrected the docs' claim of built-in role-based access control, which is not
+  implemented. Repointed broken MkDocs nav entries and landing-page links, and
+  rewrote `docs/features/index.md`, whose links all pointed at files that were
+  never authored.
+- **Screenshots regenerated** against 2.42.0 in English, now covering the
+  dashboard, printers, library, jobs, files, filaments, model generator, and
+  mobile. `scripts/testing/capture_screenshots.py` was rewritten accordingly: it
+  targeted a frontend on port 3000 (the app serves the UI on 8000) and wrote to
+  `docs/screenshots/` rather than the `screenshots/` directory the README uses.
+- **`src/.env.development` now sets `GENERATOR_OUTPUT_DIR`**, which otherwise
+  defaults to `/data/printernizer/generator` and made "Save to library" in the
+  model generator fail with HTTP 500 on a standard Linux dev machine. Documented
+  that `SLICING_OUTPUT_DIR` must be exported in the shell — `SlicingQueue` reads
+  the process environment directly and falls back to a database-seeded `/data`
+  path, so a local run aborts with `PermissionError` without it.
+
 ### Added
 - **Model generator — vase template: inner diameter and polygon surface.** The
   parametric vase now exposes an **Inner cavity diameter** field (`0` = derive it

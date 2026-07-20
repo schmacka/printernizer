@@ -66,6 +66,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 ### Printer Support
 - **Bambu Lab Printers** - Full MQTT integration with real-time status updates
 - **Prusa Printers** - HTTP API integration via PrusaLink
+- **OctoPrint** - OctoPrint-managed printers via REST API with SockJS live updates
 - **Auto-discovery** - Automatically find printers on your network (SSDP + mDNS)
 - **Multi-printer management** - Simultaneous monitoring of multiple printers
 - **Connection health monitoring** - Automatic retry and error handling
@@ -89,8 +90,14 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 ### Business Features
 - **Professional dashboard** - Clean, business-ready interface
 - **Analytics and reporting** - Usage statistics and performance metrics
-- **Multi-user support** - Role-based access control
+- **Customer orders** - Track orders from `new` through to `delivered`, linked to jobs and files
+- **Material inventory** - Spool tracking, consumption history, and Excel export
 - **GDPR compliance** - Data privacy and retention controls
+
+!!! note "No built-in user accounts"
+    Printernizer does not currently ship authentication or role-based access
+    control. Restrict access at the network layer, or run it behind Home
+    Assistant Ingress, which handles authentication for you.
 
 ---
 
@@ -112,7 +119,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
     **Setup time:** 5 minutes
 
-    [Learn More →](deployment/docker.md)
+    [Learn More →](deployment/index.md)
 
 === "Home Assistant"
 
@@ -120,7 +127,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
     **Setup time:** 10 minutes
 
-    [Learn More →](deployment/home-assistant.md)
+    [Learn More →](deployment/index.md)
 
 === "Raspberry Pi"
 
@@ -128,7 +135,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
     **Setup time:** 10 minutes
 
-    [Learn More →](deployment/raspberry-pi.md)
+    [Learn More →](deployment/index.md)
 
 ---
 
@@ -145,7 +152,7 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 
 - [**Architecture**](architecture/index.md) - System design and technical overview
 - [**API Reference**](api-reference/index.md) - Complete API documentation
-- [**Development**](development/contributing.md) - Contributing guidelines and development workflow
+- [**Development**](development/index.md) - Contributing guidelines and development workflow
 - [**Testing**](testing/index.md) - Testing guide and coverage reports
 
 ### Additional Resources
@@ -170,19 +177,24 @@ Printernizer is a **complete production-ready** 3D printer management system tha
 - ✅ Business analytics and reporting features
 - ✅ Docker containerization (standalone & Home Assistant)
 - ✅ Multi-architecture support (x86_64, ARM64, ARMv7)
+- ✅ Central library with deduplication, tagging, and metadata extraction
+- ✅ Watch folders with per-folder rules and auto-slice
+- ✅ Slicer integration (local PrusaSlicer/OrcaSlicer or remote slicer service)
+- ✅ Customer orders, material inventory, and multi-channel notifications
+- ✅ Browser-based parametric model generator (experimental)
 
 **Coming Soon:**
 
 - 🔄 Kubernetes orchestration
 - 🔄 Advanced HA integration (MQTT discovery, sensors, automations)
-- 🔄 Watch folders and automation
+- 🔄 Authentication and role-based access control
 
 ---
 
 ## Support & Contributing
 
 - **Report Issues:** [GitHub Issues](https://github.com/schmacka/printernizer/issues)
-- **Contribute:** [Contributing Guide](development/contributing.md)
+- **Contribute:** [Contributing Guide](https://github.com/schmacka/printernizer/blob/master/CONTRIBUTING.md)
 - **License:** [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0)
 
 ---
