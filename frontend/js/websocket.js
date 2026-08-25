@@ -289,13 +289,17 @@ class WebSocketClient {
         }
 
         if (statusText) {
-            const statusTexts = {
-                'connecting': 'Verbinde...',
-                'connected': 'Verbunden',
-                'disconnected': 'Getrennt',
-                'failed': 'Verbindung fehlgeschlagen'
+            const statusKeys = {
+                'connecting': 'websocket.statusConnecting',
+                'connected': 'websocket.statusConnected',
+                'disconnected': 'websocket.statusDisconnected',
+                'failed': 'websocket.statusFailed'
             };
-            statusText.textContent = statusTexts[status] || 'Unbekannt';
+            // Keep data-i18n in sync so a later language switch retranslates the
+            // current state instead of resetting it to the initial one.
+            const statusKey = statusKeys[status] || 'common.unknown';
+            statusText.setAttribute('data-i18n', statusKey);
+            statusText.textContent = t(statusKey);
         }
     }
 

@@ -49,7 +49,7 @@ class AutoDownloadUI {
                     <div class="stat-label" id="auto-download-label">Initializing</div>
                     <div class="stat-detail" id="auto-download-detail">System starting...</div>
                     <button class="btn btn-sm btn-secondary" onclick="autoDownloadUI.showManagementPanel()" style="margin-top: 1rem;">
-                        <span class="btn-icon">⚙️</span> Verwalten
+                        <span class="btn-icon">⚙️</span> ${t('common.manage')}
                     </button>
                 </div>
             `;

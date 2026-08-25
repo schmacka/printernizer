@@ -109,20 +109,20 @@
             <!-- Screen reader descriptions -->
             <div class="sr-only">
                 <div id="nav-dashboard-desc" data-i18n="navDescriptions.dashboard">Übersichtsseite mit Druckerstatus und aktuellen Aufträgen</div>
-                <div id="nav-printers-desc">Verwaltung und Konfiguration der 3D-Drucker</div>
+                <div id="nav-printers-desc" data-i18n="navDescriptions.printers">Verwaltung und Konfiguration der 3D-Drucker</div>
                 <div id="nav-jobs-desc" data-i18n="navDescriptions.jobs">Übersicht und Verwaltung der Druckaufträge</div>
-                <div id="nav-files-desc">Dateiverwaltung und Downloads von den Druckern</div>
+                <div id="nav-files-desc" data-i18n="navDescriptions.files">Dateiverwaltung und Downloads von den Druckern</div>
                 <div id="nav-library-desc" data-i18n="navDescriptions.library">Zentrale Bibliothek für alle 3D-Dateien mit Metadaten</div>
                 <div id="nav-materials-desc" data-i18n="navDescriptions.materials">Filament-Verwaltung und Bestandsübersicht</div>
-                <div id="nav-ideas-desc">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
+                <div id="nav-ideas-desc" data-i18n="navDescriptions.ideas">Ideenverwaltung, Lesezeichen und Modell-Entdeckung</div>
                 <div id="nav-tools-desc" data-i18n="navDescriptions.tools">Externe Tools und Helfer für den 3D-Druck</div>
-                <div id="nav-settings-desc">Anwendungseinstellungen und Konfiguration</div>
-                <div id="nav-debug-desc">Debug-Informationen und Systemprotokolle</div>
+                <div id="nav-settings-desc" data-i18n="navDescriptions.settings">Anwendungseinstellungen und Konfiguration</div>
+                <div id="nav-debug-desc" data-i18n="navDescriptions.debug">Debug-Informationen und Systemprotokolle</div>
             </div>
             <div class="nav-status">
                 <div class="connection-status" id="connectionStatus">
                     <div class="status-dot disconnected"></div>
-                    <span class="status-text">Verbindung...</span>
+                    <span class="status-text" data-i18n="loading.connecting">Verbindung...</span>
                 </div>
                 <div class="support-button">
                     <a href="https://buymeacoffee.com/porcus3d" target="_blank" class="btn btn-support"
@@ -132,7 +132,7 @@
                 </div>
                 <button id="themeToggle" class="theme-toggle" aria-label="Theme umschalten" title="Theme umschalten">
                     <span class="theme-icon" id="themeIcon">🌙</span>
-                    <span class="theme-text" id="themeText">Dunkel</span>
+                    <span class="theme-text" id="themeText" data-i18n="theme.dark">Dunkel</span>
                 </button>
                 <div class="system-time" id="systemTime"></div>
             </div>
@@ -157,12 +157,12 @@
             <div class="overview-cards">
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Drucker Status</h3>
+                        <h3 data-i18n="dashboard.printerStatusTitle">Drucker Status</h3>
                         <span class="card-icon">🖨️</span>
                     </div>
                     <div class="card-body">
                         <div class="stat-number" id="printerCount">-</div>
-                        <div class="stat-label">Drucker Online</div>
+                        <div class="stat-label" data-i18n="dashboard.printersOnlineLabel">Drucker Online</div>
                         <div class="stat-detail" id="printerDetail">Lade...</div>
                     </div>
                 </div>
@@ -181,7 +181,7 @@
 
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Dateien</h3>
+                        <h3 data-i18n="dashboard.filesTitle">Dateien</h3>
                         <span class="card-icon">📁</span>
                     </div>
                     <div class="card-body">
@@ -193,7 +193,7 @@
 
                 <div class="card overview-card">
                     <div class="card-header">
-                        <h3>Heute</h3>
+                        <h3 data-i18n="dashboard.todayTitle">Heute</h3>
                         <span class="card-icon">📈</span>
                     </div>
                     <div class="card-body">
@@ -207,7 +207,7 @@
             <!-- Printer Status Cards -->
             <div class="section">
                 <div class="section-header">
-                    <h2>Drucker Status</h2>
+                    <h2 data-i18n="dashboard.printerStatusSection">Drucker Status</h2>
                     <button class="btn btn-primary" id="addPrinterBtnDashboard" data-action="add-printer" onclick="showAddPrinter()">
                         <span class="btn-icon">➕</span>
                         <span data-i18n="printers.addPrinter">Drucker hinzufügen</span>
@@ -226,7 +226,7 @@
                 <div class="section-header">
                     <h2 data-i18n="dashboard.recentJobsHeading">Aktuelle Aufträge</h2>
                     <a href="#jobs" class="btn btn-secondary" onclick="showPage('jobs')">
-                        Alle anzeigen
+                        <span data-i18n="dashboard.showAll">Alle anzeigen</span>
                     </a>
                 </div>
                 <div class="jobs-preview" id="recentJobs">
@@ -242,7 +242,7 @@
                 <div class="section-header">
                     <h2 data-i18n="dashboard.recentPrintedFilesHeading">Kürzlich gedruckte Dateien</h2>
                     <a href="#files" class="btn btn-secondary" onclick="showPage('files')">
-                        Alle anzeigen
+                        <span data-i18n="dashboard.showAll">Alle anzeigen</span>
                     </a>
                 </div>
                 <div class="printed-files-preview" id="recentPrintedFiles">
@@ -343,7 +343,7 @@
                     <thead>
                         <tr>
                             <th data-i18n="jobs.colJob">Auftrag</th>
-                            <th>Drucker</th>
+                            <th data-i18n="jobs.colPrinter">Drucker</th>
                             <th data-i18n="jobs.colStatus">Status</th>
                             <th data-i18n="jobs.colFile">Datei</th>
                             <th data-i18n="jobs.colProgress">Fortschritt</th>

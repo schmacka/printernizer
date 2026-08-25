@@ -73,8 +73,11 @@ class FileManager {
             // Load file statistics from API
             const response = await api.getFileStatistics();
 
-            if (response && response.statistics) {
-                statsContainer.innerHTML = this.renderFileStatistics(response.statistics);
+            // API wraps payloads in {status, data: {...}}; older responses were flat
+            const statistics = response?.data?.statistics || response?.statistics;
+
+            if (statistics) {
+                statsContainer.innerHTML = this.renderFileStatistics(statistics);
             } else {
                 statsContainer.innerHTML = this.renderFileStatisticsError();
             }
