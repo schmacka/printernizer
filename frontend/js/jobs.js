@@ -3,6 +3,10 @@
  * Handles job monitoring, filtering, and real-time updates
  */
 
+// A job the printer is working on right now. The backend reports "running";
+// "printing" is kept for older records and printer-sourced updates.
+const ACTIVE_JOB_STATUSES = ['printing', 'running'];
+
 class JobManager {
     constructor() {
         this.jobs = new Map();
@@ -240,7 +244,7 @@ class JobManager {
         
         // Progress
         const progressCell = document.createElement('td');
-        if (job.progress !== undefined && job.status === 'printing') {
+        if (job.progress !== undefined && ACTIVE_JOB_STATUSES.includes(job.status)) {
             progressCell.innerHTML = `
                 <div class="progress-container">
                     <div class="progress">
@@ -258,10 +262,10 @@ class JobManager {
         const actionsCell = document.createElement('td');
         actionsCell.innerHTML = `
             <div class="action-buttons">
-                ${job.status === 'printing' ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(\'' + sanitizeAttribute(job.id) + '\')">⏸️</button>' : ''}
+                ${ACTIVE_JOB_STATUSES.includes(job.status) ? '<button class="btn-icon" title="Pause" onclick="jobManager.pauseJob(\'' + sanitizeAttribute(job.id) + '\')">⏸️</button>' : ''}
                 ${job.status === 'paused' ? '<button class="btn-icon" title="' + t('jobs.resume') + '" onclick="jobManager.resumeJob(\'' + sanitizeAttribute(job.id) + '\')">▶️</button>' : ''}
-                ${['printing', 'paused', 'queued'].includes(job.status) ? '<button class="btn-icon" title="' + t('common.cancel') + '" onclick="jobManager.cancelJob(\'' + sanitizeAttribute(job.id) + '\')">⏹️</button>' : ''}
-                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails(\'' + sanitizeAttribute(job.id) + '\')">ℹ️</button>
+                ${[...ACTIVE_JOB_STATUSES, 'paused', 'queued', 'pending'].includes(job.status) ? '<button class="btn-icon" title="' + t('common.cancel') + '" onclick="jobManager.cancelJob(\'' + sanitizeAttribute(job.id) + '\')">⏹️</button>' : ''}
+                <button class="btn-icon" title="Details" onclick="jobManager.showJobDetails('${sanitizeAttribute(job.id)}')">ℹ️</button>
             </div>
         `;
         row.appendChild(actionsCell);
@@ -501,18 +505,27 @@ class JobManager {
             const response = await api.getJobs(filters);
             
             if (response.jobs) {
-                // Update existing jobs or add new ones
-                response.jobs.forEach(jobData => {
-                    const existingJob = this.jobs.get(jobData.id);
-                    if (existingJob) {
-                        existingJob.update(jobData);
-                    }
-                    // Note: New jobs would require a full reload to maintain proper order
-                });
+                // Update rows already on screen; new jobs need a full reload to
+                // keep the ordering intact
+                response.jobs.forEach(jobData => this.updateJobRow(jobData));
             }
         } catch (error) {
             Logger.error('Failed to refresh jobs:', error);
         }
+    }
+
+    /**
+     * Replace a rendered job row with fresh data
+     */
+    updateJobRow(jobData) {
+        if (!jobData || !this.jobs.has(jobData.id)) return;
+
+        const tableBody = document.getElementById('jobsTableBody');
+        const existingRow = tableBody?.querySelector(`tr[data-job-id="${CSS.escape(jobData.id)}"]`);
+        if (!existingRow) return;
+
+        existingRow.replaceWith(this.renderJobRow(jobData));
+        this.jobs.set(jobData.id, jobData);
     }
 
     /**
@@ -521,13 +534,8 @@ class JobManager {
     setupWebSocketListeners() {
         // Listen for job updates
         document.addEventListener('jobUpdate', (event) => {
-            const jobData = event.detail;
-            const jobItem = this.jobs.get(jobData.id);
-            
-            if (jobItem) {
-                jobItem.update(jobData);
-            }
-            // If job doesn't exist in current view, could trigger refresh
+            // If the job isn't in the current view, updateJobRow is a no-op
+            this.updateJobRow(event.detail);
         });
     }
 

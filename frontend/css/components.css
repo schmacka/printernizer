@@ -917,13 +917,13 @@
     gap: var(--spacing-3);
 }
 
-.header-actions .btn {
+.file-manager-header .header-actions .btn {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: var(--white);
 }
 
-.header-actions .btn:hover {
+.file-manager-header .header-actions .btn:hover {
     background: rgba(255, 255, 255, 0.3);
 }
 

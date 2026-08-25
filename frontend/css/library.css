@@ -160,8 +160,8 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* Status Badge */
-.status-badge {
+/* Status Badge (overlays the card thumbnail - keep scoped, the class is global) */
+.file-card-thumbnail .status-badge {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
@@ -174,19 +174,19 @@
     backdrop-filter: blur(4px);
 }
 
-.status-badge.status-available {
+.file-card-thumbnail .status-badge.status-available {
     background: rgba(59, 130, 246, 0.9);
 }
 
-.status-badge.status-downloaded {
+.file-card-thumbnail .status-badge.status-downloaded {
     background: rgba(34, 197, 94, 0.9);
 }
 
-.status-badge.status-local {
+.file-card-thumbnail .status-badge.status-local {
     background: rgba(168, 85, 247, 0.9);
 }
 
-.status-badge.status-error {
+.file-card-thumbnail .status-badge.status-error {
     background: rgba(239, 68, 68, 0.9);
 }
 
