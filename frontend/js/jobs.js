@@ -275,6 +275,8 @@ class JobManager {
     getStatusBadge(status) {
         const statusMap = {
             'printing': { label: t('status.job.printing'), icon: '🖨️', class: 'status-printing' },
+            'running': { label: t('status.job.running'), icon: '🖨️', class: 'status-printing' },
+            'pending': { label: t('status.job.pending'), icon: '⏳', class: 'status-queued' },
             'queued': { label: t('status.job.queued'), icon: '⏳', class: 'status-queued' },
             'completed': { label: t('status.job.completed'), icon: '✅', class: 'status-completed' },
             'failed': { label: t('status.job.failed'), icon: '❌', class: 'status-failed' },
