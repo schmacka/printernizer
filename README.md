@@ -47,15 +47,15 @@ Real-time monitoring of your printer fleet with live status updates, temperature
 
 ### File Management
 
-Unified file browser with smart filtering, status tracking, and one-click downloads from all your printers.
+Watch folders pick up new models automatically, printer files show 3D previews and download status, all in one browser.
 
 ![File Management](screenshots/02-file-management.png)
 
-### Jobs & Printer Management
+### Job History
 
-Comprehensive job history and detailed printer status cards with live monitoring.
+Complete print history across all printers, with live progress for running jobs and business orders marked for reporting.
 
-![Jobs & Printers](screenshots/03-jobs-printers.png)
+![Jobs](screenshots/03-jobs-printers.png)
 
 ### Printer Status Cards
 
