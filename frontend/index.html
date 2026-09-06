@@ -1167,6 +1167,10 @@
                         <span class="tab-icon">📋</span>
                         <span class="tab-label">Orders</span>
                     </button>
+                    <button class="settings-tab" data-tab="integrations" onclick="settingsManager.switchTab('integrations')">
+                        <span class="tab-icon">🔌</span>
+                        <span class="tab-label" data-i18n="settings.tabIntegrations">Integrations</span>
+                    </button>
                 </div>
 
                 <div class="settings-tab-content">
@@ -1994,6 +1998,39 @@
                                     <option value="de" data-i18n="settings.german">Deutsch</option>
                                     <option value="en" data-i18n="settings.english">Englisch</option>
                                 </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Integrations Tab -->
+                    <div class="tab-pane" id="integrations-tab">
+                        <div class="card settings-section">
+                            <div class="card-header">
+                                <h3 data-i18n="settings.apiKeysHeading">🔑 API Keys</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="form-text text-muted" data-i18n="settings.apiKeysDescription">
+                                    API keys let Printernizer Connect upload from PrusaSlicer. A key is shown once, when you create it.
+                                </p>
+
+                                <div class="form-group">
+                                    <label for="apiKeyName" data-i18n="settings.apiKeyNameLabel">Name</label>
+                                    <input type="text" id="apiKeyName" class="form-control" maxlength="100"
+                                           data-i18n-placeholder="settings.apiKeyNamePlaceholder"
+                                           placeholder="e.g. Workshop laptop">
+                                    <button class="btn btn-primary" style="margin-top:0.5rem;" onclick="createApiKey()">
+                                        <span class="btn-icon">➕</span>
+                                        <span data-i18n="settings.apiKeyCreate">Create key</span>
+                                    </button>
+                                </div>
+
+                                <div id="apiKeyReveal" style="display:none;" class="alert alert-warning">
+                                    <strong data-i18n="settings.apiKeyRevealTitle">Copy this key now</strong>
+                                    <p data-i18n="settings.apiKeyRevealBody">It will not be shown again.</p>
+                                    <code id="apiKeyRevealValue" style="word-break:break-all;"></code>
+                                </div>
+
+                                <div id="apiKeyList"></div>
                             </div>
                         </div>
                     </div>
@@ -3051,6 +3088,7 @@
     <script src="js/ideas.js"></script>
     <script src="js/tools.js"></script>
     <script src="js/settings.js?v=1.1"></script>
+    <script src="js/api-keys.js"></script>
     <script src="js/notifications.js?v=1.0"></script>
     <script src="js/usage-statistics.js"></script>
     <!-- Chart.js for statistics visualization -->
