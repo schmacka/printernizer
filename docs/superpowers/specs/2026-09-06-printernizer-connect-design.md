@@ -83,8 +83,9 @@ dialog is shown even with zero params. `execute`'s return value is ignored.
 state with **no `api` and no `require`** — file level may only declare `info`,
 functions and constants. On Run, a **fresh Lua state** is created, `api` and a
 restricted `require` are registered, and the entry script is re-evaluated. Nothing
-survives between runs. `require("lib/x")` resolves `lib/x.lua` relative to the
-entry script directory (forward slash = subdirectory; dots are literal).
+survives between runs. `require("x")` resolves `x.lua` relative to the
+entry script directory (forward slash would mean a subdirectory; dots are literal).
+Prusa's own plugins use bare flat names.
 
 **Discovery.** Bundles are scanned at startup; `Plugins ▸ Rescan Plugins`
 rescans without restart (one source says restart — spike item S2). Execution code
@@ -95,9 +96,9 @@ removing command files or changing `info` does.
 
 | Call | Notes |
 |---|---|
-| `api.load_stl(path)` → Mesh | STL only. Path inside the entry directory; parent traversal, absolute paths and symlinks resolving outside are rejected. Subdirectory support unverified (S1). |
+| `api.load_stl(path)` → Mesh | STL only. Path inside the entry directory; parent traversal, absolute paths and symlinks resolving outside are rejected. **Flat filenames at bundle root are the proven pattern** — Prusa's own `temp_tower.lua` calls `api.load_stl("temp_tower-base.stl")`. Subdirectories unverified and not used by this design. |
 | `api.project:add_object{mesh, translate?, rotate?, object_params?, other_volumes?}` | Object is auto-centred on the selected bed in X/Y. No naming, no return of a usable handle, no scene listing. |
-| `object_params` / `bed:print_presets():set(key, value)` | Writes numbers, percentages (`"15%"`), number-or-percent and enums. **Cannot write booleans or strings.** Unknown keys fail silently. Changes are project-scoped, not saved to presets. |
+| `add_object{… params=, object_params=}` / `bed:print_presets():set(key, value)` | Writes numbers, percentages (`"15%"`), number-or-percent and enum strings (`brim_type="outer_only"`) — all confirmed in Prusa's own `flow_tower.lua`/`temp_tower.lua`. Plain booleans/strings are not writable. Unknown keys fail silently. Changes are project-scoped, not saved to presets. Prusa's code uses **both** `params` and `object_params` on `add_object`; which one applies is spike S3. |
 | `bed:printer_presets():value(key)`, `bed:printer_config().tools[1]:nozzle_diameter()` | Read active printer preset values and nozzle. |
 | `api.project:insert_layer_custom_gcode(bed, z_mm, gcode)` | Appends a custom G-code entry at a height; emitted in exported G-code and saved in the project 3MF. |
 | `print(...)` | Goes to process stdout only; no in-app console. `execute` errors are logged, never shown to the user. |
@@ -114,7 +115,7 @@ Two repositories, one HTTP boundary, no background process.
 ┌──────────────── slicing machine ─────────────────┐      ┌──── Printernizer box ────┐
 │ PrusaSlicer 3.0                                   │      │ printernizer (FastAPI)   │
 │  ├─ Plugins ▸ Printernizer ▸ … (generated bundle) │      │  /api/v1/connect/*  (new)│
-│  │     lib/printernizer.lua  ← reads only bundle  │      │  /api/v1/library/*       │
+│  │     printernizer_lib.lua  ← reads only bundle  │      │  /api/v1/library/*       │
 │  └─ post_process ──► printernizer-connect hook ───┼─HTTP─┤  /api/v1/slicing/*  (+2) │
 │                                                   │      │  /printhost/* (optional) │
 │ printernizer-connect CLI (Python, no daemon)      │      │  API keys           (new)│
@@ -126,7 +127,7 @@ Two repositories, one HTTP boundary, no background process.
 
 1. **The Lua plugin knows nothing about Printernizer.** It reads generated command
    files and assets in its own bundle. It never sees a hostname or key. A breaking
-   Lua API change touches `lib/printernizer.lua` and one template; push and profile
+   Lua API change touches `printernizer_lib.lua` and one template; push and profile
    sync are unaffected.
 2. **`client.py` is the only module that speaks HTTP.** Every other module takes a
    client object, so the whole tool is testable against a fake transport.
@@ -160,7 +161,7 @@ printernizer-connect/
 │       └── postprocess.py            # `hook` implementation
 ├── bundle_template/
 │   ├── manifest.json                 # id com.printernizer.library
-│   ├── lib/printernizer.lua          # the only hand-written Lua logic
+│   ├── printernizer_lib.lua          # the only hand-written Lua logic
 │   ├── tag_project.lua               # static command
 │   └── model_command.lua.j2          # per-model command template
 └── tests/  (see §10)
@@ -206,15 +207,23 @@ bundle manifest version. Log file: `printernizer-connect.log` (rotating, 1 MB×3
 
 ### 4.4 PrusaSlicer datadir discovery (`paths.py`)
 
-Order: config override → `--datadir` flag → per-OS candidates, preferring 3.0
-names. Candidates are directories containing `PrusaSlicer.ini`:
+**PrusaSlicer 3.0 has no `PrusaSlicer.ini`.** Verified on 3.0.0-alpha11: the
+application config is `<datadir>/shared_runtime/PrusaSlicer.json`, whose
+`app_config_settings.version` field carries the exact slicer version
+(`"3.0.0-alpha11"`). The 2.x heuristic of "find the folder containing
+`PrusaSlicer.ini`" therefore fails on 3.0 and must not be used.
+
+Discovery order: config override → `--datadir` flag → per-OS candidates. A
+candidate is a directory containing **either** `shared_runtime/PrusaSlicer.json`
+(3.0) **or** `PrusaSlicer.ini` (2.x):
 
 - macOS: `~/Library/Application Support/{PrusaSlicer3-dev, PrusaSlicer3-alpha, PrusaSlicer3, PrusaSlicer}`
 - Linux: `~/.config/{same names}`
 - Windows: `%APPDATA%\{same names}`
 
-The exact alpha names are confirmed in spike S6; the list is data, not code. If
-several exist, `setup` asks. The plugin folder is `<datadir>/lua/`.
+`PrusaSlicer3-dev` is confirmed as the alpha11 name on macOS. The list is data,
+not code. If several exist, `setup` asks. The plugin folder is `<datadir>/lua/`;
+it exists (empty) on a fresh alpha install.
 
 ## 5. Pull — the library bundle
 
@@ -223,15 +232,17 @@ several exist, `setup` asks. The plugin folder is `<datadir>/lua/`.
 ```
 <datadir>/lua/com.printernizer.library/
 ├── manifest.json                 # version = generator version + sync timestamp
-├── lib/printernizer.lua          # copied verbatim from bundle_template
+├── printernizer_lib.lua          # copied verbatim from bundle_template
 ├── tag_project.lua               # copied verbatim
-├── models/<checksum>-<i>.stl     # one per object (multi-object 3MF → several)
+├── <checksum>-<i>.stl            # one per object (multi-object 3MF → several)
 └── m_<checksum8>.lua             # one command file per library entry
 ```
 
-If S1 shows `load_stl` cannot read subdirectories, the generator flattens to
-`<checksum>-<i>.stl` at bundle root and `lib_printernizer.lua`; the template is the
-only thing that changes.
+**Flat by design.** Prusa's own calibration bundle keeps its `.stl`, `.svg` and
+helper `.lua` files at the bundle root and loads them by bare filename
+(`api.load_stl("temp_tower-base.stl")`, `require('note_badge')`). This design
+copies that layout exactly rather than relying on unverified subdirectory
+support. Asset filenames are `[A-Za-z0-9.-_ ]` only, which checksums satisfy.
 
 ### 5.2 Per-model command (rendered from `model_command.lua.j2`)
 
@@ -246,10 +257,10 @@ info = {
   },
 }
 function execute(opts)
-  local lib = require("lib/printernizer")
+  local lib = require("printernizer_lib")
   lib.load{
     checksum = "3fa2c9e1…",
-    stls     = {"models/3fa2c9e1-0.stl"},
+    stls     = {"3fa2c9e1-0.stl"},
     settings = {layer_height=0.2, fill_density="15%", perimeters=3},
     opts     = opts,
   }
@@ -268,7 +279,7 @@ end
 - Menu labels have `/` replaced with `∕` (U+2215) and are truncated to 60 chars.
 - `id` is `m_` + first 8 hex chars of the checksum, extended on collision.
 
-### 5.3 `lib/printernizer.lua`
+### 5.3 `printernizer_lib.lua`
 
 ```lua
 local M = {}
@@ -276,7 +287,8 @@ function M.load(spec)
   local bed = api.project:current_bed()
   local params = (spec.opts.apply_settings and spec.settings) or nil
   for _, path in ipairs(spec.stls) do
-    api.project:add_object{ mesh = api.load_stl(path), object_params = params }
+    -- Prusa's own plugins use both keys; set both until S3 says which applies.
+    api.project:add_object{ mesh = api.load_stl(path), params = params, object_params = params }
   end
   if spec.opts.tag then M.stamp(bed, { src = spec.checksum }) end
 end
@@ -345,10 +357,19 @@ loading still fails inside PrusaSlicer the only symptom is "nothing happened" �
 
 ## 6. Push — the post-processing hook
 
-`setup` appends `"<path-to-printernizer-connect>" hook` to `post_process` in each
-selected user print profile (`<datadir>/print/*.ini`). `post_process` is a
-`;`-separated list; existing scripts are preserved; the entry is added once.
-Vendor profiles are never modified.
+**Confirmed present in 3.0.0-alpha11:** the binary carries the `post_process`
+config key, the "A post-processing script has been detected in the config data"
+warning, the `SLIC3R_` environment-variable prefix, and the full physical-printer
+/ print-host stack (`physical_printer`, `print_host`, `printhost_apikey`,
+`host_type`, `octoprint`, `prusalink`). Push and the optional shim are both
+viable on 3.0.
+
+`setup` appends `"<path-to-printernizer-connect>" hook` to the `post_process`
+key of each selected user print preset. `post_process` is a `;`-separated list;
+existing scripts are preserved; the entry is added once. Vendor/system presets
+are never modified. **The on-disk preset location and format changed in 3.0**
+(see §7) — `prusaslicer/profiles.py` owns that difference, and spike S3b pins it
+down on a wizard-completed install.
 
 `hook <gcode-path>`:
 
@@ -377,8 +398,17 @@ Vendor profiles are never modified.
   `backend_type="connect"`, `name="PrusaSlicer on <hostname>"`,
   `version=<from PrusaSlicer.ini or binary>`, `executable_path=""`. The id is
   stored in `state.json`.
-- **push.** Enumerate `<datadir>/{print,filament,printer}/*.ini` (user profiles
-  only). Upload each as raw text with `(type, name, sha256)` to
+- **Preset layout changed in 3.0.** Verified on a fresh alpha11 install: there
+  are no top-level `print/`, `filament/`, `printer/` or `physical_printer/`
+  directories. Presets live under `<datadir>/presets/user/` and
+  `<datadir>/presets/local/<vendor>/` (the latter holding vendor bundles such as
+  `prusa-research-fff/PrusaResearch.idx`). The fresh install has no user presets,
+  so the per-preset file format is **not yet verified** — spike S3b runs the
+  configuration wizard, saves one custom preset of each type, and records the
+  resulting paths and format. `profiles.py` supports both the 2.x
+  `{print,filament,printer}/*.ini` layout and the 3.0 `presets/user/` layout.
+- **push.** Enumerate user presets in whichever layout was detected. Upload each
+  as raw text with `(type, name, sha256)` to
   `POST /api/v1/slicing/{slicer_id}/profiles/import-ini`. Server parses settings
   into `settings_json` and stores `raw_content`.
 - **pull.** `GET /api/v1/slicing/{slicer_id}/profiles` + `/profiles/{id}/raw`.
@@ -451,7 +481,7 @@ Mounted at `/printhost/{printer_id}`: `GET api/version` → `{api:"0.1", server:
   Server: keys hashed; `/exports` validates extension and size like `/files/upload`.
 - **Logging.** All CLI output is human-readable; `--json` for `doctor`/`status`.
   The hook writes only to the log file.
-- **API instability.** The Lua surface is `lib/printernizer.lua` (~40 lines),
+- **API instability.** The Lua surface is `printernizer_lib.lua` (~40 lines),
   `tag_project.lua` and one template. Everything else is Python and survives an
   API break; if a break lands, `sync` keeps generating for the last known-good API
   version and `doctor` reports the mismatch.
@@ -464,7 +494,7 @@ Mounted at `/printhost/{printer_id}`: `GET api/version` → `{api:"0.1", server:
   every command; tmp-datadir fixtures for `ini.py` (round-trip, idempotent
   `post_process` edit, existing scripts preserved); `scope.py` selection and budget;
   `convert.py` with small fixture 3MFs; **snapshot tests of rendered bundles**.
-- **Lua:** `lib/printernizer.lua` and `tag_project.lua` run under `lua5.4` in CI
+- **Lua:** `printernizer_lib.lua` and `tag_project.lua` run under `lua5.4` in CI
   against a `mock_api.lua` that records `load_stl`/`add_object`/`insert_layer_custom_gcode`
   calls; `luac -p` over the templates and a rendered sample bundle.
 - **Integration:** CI service container running `ghcr.io/schmacka/printernizer`;
@@ -474,20 +504,38 @@ Mounted at `/printhost/{printer_id}`: `GET api/version` → `{api:"0.1", server:
 - **Manual acceptance:** `docs/acceptance-prusaslicer-3.md` checklist run against
   the current alpha before each release.
 
-## 11. Spike S0 — verify before building (≈ half a day)
+## 11. Spike S0 — verify before building
+
+Five of the eight original questions were answered on 2026-09-06 by reading
+PrusaSlicer 3.0.0-alpha11 itself (`/Applications/PrusaSlicer-3.0.0-alpha11.app`)
+— its shipped calibration plugins, its data directory, and its binary. Those
+answers are folded into §2, §4.4, §5 and §6 above. What remains needs a running
+GUI and a human.
+
+**Resolved without a spike** (evidence in §2, §4.4, §5.1, §6, §7):
+
+| Was | Answer |
+|---|---|
+| S1 subdirectory assets | Not needed — Prusa's own bundle is flat; design is flat |
+| S6 datadir name / app config | `PrusaSlicer3-dev`; no `PrusaSlicer.ini`, config is `shared_runtime/PrusaSlicer.json` |
+| S6 post-processing exists in 3.0 | Yes — `post_process` key, `SLIC3R_` prefix, warning string all present |
+| S7 print host exists in 3.0 | Yes — `physical_printer`, `print_host`, `host_type`, `octoprint`, `prusalink` all present |
+| Preset writes from Lua | Numbers, `"15%"` percentages and enum strings all work (Prusa's own plugins do it) |
+
+**Still open — GUI probes (≈ half a day, human at the keyboard):**
 
 | # | Question | If no |
 |---|---|---|
-| S1 | `api.load_stl("models/x.stl")` reads a subdirectory | Flatten bundle (§5.1) |
-| S2 | `Plugins ▸ Rescan Plugins` exists and picks up new command files without restart | `sync` tells the user to restart PrusaSlicer |
-| S3 | `object_params` accepts `layer_height`, `fill_density`, `perimeters`, `fill_pattern`, `brim_type` | Fall back to `bed:print_presets():set` for unsupported keys, or drop them |
-| S4 | Menu entries sort alphabetically | Prefix labels with zero-padded ordinals for the Recent group |
-| S5 | A ~80-char `title` renders acceptably in the dialog | Shorten to name + time |
-| S6 | 3.0 alpha datadir names and profile directory layout (`print/`, `filament/`, `printer/`, `post_process` key) | Update `paths.py` candidates / `profiles.py`; if `post_process` is unported, push waits for 3.x and works on 2.9 |
-| S7 | Custom first-layer G-code survives into exported G-code and the saved 3MF | Drop stamping; provenance comes only from hook metadata and `tag_project.lua` is removed |
-| S8 | `SLIC3R_PRINT_HOST` is exported to post-processing scripts | Stand-down uses `SLIC3R_PP_HOST` presence instead |
+| S2 | Does `Plugins ▸ Rescan Plugins` exist, and does it pick up newly added command files without restarting? | `sync` tells the user to restart PrusaSlicer |
+| S3 | On `add_object`, does `params`, `object_params`, or both apply per-object settings? | Use whichever works; if neither, fall back to `print_presets():set` and warn that it dirties the preset |
+| S3b | On a wizard-completed install, where do user presets land under `presets/user/` and in what format? | Determines `profiles.py`; blocks M4 only |
+| S4 | Do menu entries sort alphabetically or in scan order? | Prefix labels with zero-padded ordinals for the Recent group |
+| S5 | Does a ~80-char `title` render acceptably as the dialog heading? | Shorten to name + print time |
+| S8 | Which `SLIC3R_*` variables reach a post-processing script, and is `SLIC3R_PRINT_HOST` among them? | Stand-down check uses whatever host variable is exported, or is dropped |
 
-Findings are recorded in the spike doc and the affected sections updated before M1.
+Findings are recorded in `docs/superpowers/spikes/2026-09-06-prusaslicer-api/FINDINGS.md`
+and the affected sections updated before M2. **M1 does not depend on any of them**
+and can proceed in parallel.
 
 ## 12. Milestones
 
