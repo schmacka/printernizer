@@ -36,7 +36,7 @@ Spec §8.2 describes `POST /connect/exports` applying order/customer links and `
 | `src/database/repositories/__init__.py` | Export the new repository |
 | `src/services/api_key_service.py` | Key generation, hashing, verification — the only place that knows the key format |
 | `src/utils/dependencies.py` | `get_api_key_repository`, `get_api_key_service` |
-| `src/api/dependencies/auth.py` | `require_api_key` — new package, since this is the first cross-router dependency of its kind |
+| `src/api/auth.py` | `require_api_key` — the only cross-router auth dependency |
 | `src/api/routers/connect.py` | `GET /info`, `POST /exports` |
 | `src/api/routers/settings.py` | Key management endpoints (append to the existing router) |
 | `src/main.py` | Register the connect router |
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     last_used_at TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON api_keys(key_hash);
+-- No separate index on key_hash: the UNIQUE constraint already creates one.
 ```
 
 - [ ] **Step 3: Write the failing repository test**
@@ -538,8 +538,7 @@ git commit -m "feat: Add API key service with generation and verification"
 ### Task 3: `require_api_key` dependency
 
 **Files:**
-- Create: `src/api/dependencies/__init__.py`
-- Create: `src/api/dependencies/auth.py`
+- Create: `src/api/auth.py`
 - Test: `tests/backend/test_require_api_key.py`
 
 **Interfaces:**
@@ -558,9 +557,9 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from src.api.dependencies.auth import require_api_key
+from src.api.auth import require_api_key
 from src.utils.dependencies import get_api_key_service
-from src.utils.errors import setup_exception_handlers
+from src.utils.errors import PrinternizerError, printernizer_exception_handler
 
 VALID = {"id": "key1", "name": "Laptop",
          "created_at": "2026-09-06T00:00:00+00:00", "last_used_at": None}
@@ -570,7 +569,9 @@ VALID = {"id": "key1", "name": "Laptop",
 def app_and_service():
     """A minimal app with one protected route and a stubbed key service."""
     app = FastAPI()
-    setup_exception_handlers(app)
+    # Without this, an AuthenticationError propagates out of the route and
+    # TestClient re-raises it instead of producing a 401 response.
+    app.add_exception_handler(PrinternizerError, printernizer_exception_handler)
 
     @app.get("/protected")
     async def protected(key=Depends(require_api_key)):
@@ -640,35 +641,24 @@ class TestRequireApiKey:
         assert "message" in body
 ```
 
-- [ ] **Step 2: Confirm the error-handler helper name before running**
-
-The test imports `setup_exception_handlers`. Verify the real name:
-
-```bash
-grep -n "^def setup_exception\|^def register_exception\|add_exception_handler" src/utils/errors.py | head
-```
-
-If it is named differently, update the import in the test to the real name. If no such helper exists, drop that import and the `test_error_body_uses_the_project_envelope` case, and instead assert only on status codes.
-
-- [ ] **Step 3: Run the test and confirm it fails**
+- [ ] **Step 2: Run the test and confirm it fails**
 
 ```bash
 pytest tests/backend/test_require_api_key.py -v
 ```
 
-Expected: `ModuleNotFoundError: No module named 'src.api.dependencies'`.
+Expected: `ModuleNotFoundError: No module named 'src.api.auth'`.
 
-- [ ] **Step 4: Create the package**
+There is no `setup_exception_handlers` helper in this codebase — `src/main.py`
+registers handlers inline (`app.add_exception_handler(PrinternizerError, ...)`,
+line ~835). That is why the fixture above registers
+`printernizer_exception_handler` itself: on a bare `FastAPI()` the
+`AuthenticationError` would propagate and `TestClient` would re-raise it, so the
+test would error instead of seeing a 401.
 
-`src/api/dependencies/__init__.py`:
+- [ ] **Step 3: Implement the dependency**
 
-```python
-"""Shared FastAPI dependencies for API routers."""
-```
-
-- [ ] **Step 5: Implement the dependency**
-
-`src/api/dependencies/auth.py`:
+`src/api/auth.py`:
 
 ```python
 """
@@ -723,18 +713,18 @@ async def require_api_key(
     return record
 ```
 
-- [ ] **Step 6: Run the tests and confirm they pass**
+- [ ] **Step 4: Run the tests and confirm they pass**
 
 ```bash
 pytest tests/backend/test_require_api_key.py -v
 ```
 
-Expected: 7 passed (6 if you dropped the envelope test in Step 2).
+Expected: 7 passed.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/api/dependencies tests/backend/test_require_api_key.py
+git add src/api/auth.py tests/backend/test_require_api_key.py
 git commit -m "feat: Add require_api_key authentication dependency"
 ```
 
@@ -850,7 +840,7 @@ from fastapi import status
 from pydantic import Field
 from src.services.api_key_service import ApiKeyService
 from src.utils.dependencies import get_api_key_service
-from src.utils.errors import ResourceConflictError
+from src.utils.errors import NotFoundError
 ```
 
 then at the end of the file:
@@ -917,41 +907,14 @@ async def delete_api_key(
     """Revoke an API key. Any companion using it stops working immediately."""
     deleted = await api_key_service.delete_key(key_id)
     if not deleted:
-        raise PrinternizerValidationError(
-            message=f"API key not found: {key_id}",
-            field="key_id",
-        )
+        # NotFoundError(resource_type, resource_id) -> 404 with the standard envelope.
+        raise NotFoundError("api_key", key_id)
 
     logger.info("API key deleted", key_id=key_id)
     return success_response(data={"id": key_id}, message="API key revoked")
 ```
 
-- [ ] **Step 4: Make the not-found case return 404**
-
-`PrinternizerValidationError` renders 422, not 404. Check what the codebase offers:
-
-```bash
-grep -n "status.HTTP_404" src/utils/errors.py | head
-```
-
-Use whichever existing error class maps to 404 (e.g. `LibraryItemNotFoundError`'s base pattern). If none is generic enough, add a small one next to the others in `src/utils/errors.py`:
-
-```python
-class ApiKeyNotFoundError(PrinternizerError):
-    """API key not found."""
-
-    def __init__(self, key_id: str):
-        super().__init__(
-            message=f"API key not found: {key_id}",
-            status_code=status.HTTP_404_NOT_FOUND,
-            error_code="API_KEY_NOT_FOUND",
-            details={"key_id": key_id},
-        )
-```
-
-Match the constructor signature of the neighbouring classes — check whether they pass `error_code` explicitly or derive it. Then use it in `delete_api_key`.
-
-- [ ] **Step 5: Run the tests and confirm they pass**
+- [ ] **Step 4: Run the tests and confirm they pass**
 
 ```bash
 pytest tests/backend/test_api_keys.py -v
@@ -959,10 +922,10 @@ pytest tests/backend/test_api_keys.py -v
 
 Expected: 7 passed.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/api/routers/settings.py src/utils/errors.py tests/backend/test_api_keys.py
+git add src/api/routers/settings.py tests/backend/test_api_keys.py
 git commit -m "feat: Add API key management endpoints"
 ```
 
@@ -979,7 +942,7 @@ git commit -m "feat: Add API key management endpoints"
 - Consumes: `require_api_key` (Task 3), `get_printer_service`, `APP_VERSION` from `src.main`.
 - Produces: `GET /api/v1/connect/info` → `{status, data: {server_version, min_connect_version, capabilities: {exports, profiles, printhost}, printers: [{id, name, type, is_active}]}}`. Module constant `MIN_CONNECT_VERSION = "0.1.0"`.
 
-**Note on printer fields:** spec §8.2 lists `printer_model` and `manufacturer`. The `Printer` model (`src/models/printer.py`) has **no such fields** — it has `type: PrinterType` (`bambu_lab` / `prusa`). Return `id`, `name`, `type`, `is_active` and correct the spec in Task 8.
+**Note on printer fields:** spec §8.2 lists `printer_model` and `manufacturer`. The `Printer` model (`src/models/printer.py`) has **no such fields** — it has `type: PrinterType`, whose values are `bambu_lab`, `prusa_core`, `octoprint`, `unknown` (`src/models/printer.py:11-16`). Return `id`, `name`, `type`, `is_active` and correct the spec in Task 8.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1052,7 +1015,7 @@ class TestConnectInfo:
         printer = MagicMock()
         printer.id = "printer-1"
         printer.name = "Core One"
-        printer.type = MagicMock(value="prusa")
+        printer.type = MagicMock(value="prusa_core")
         printer.is_active = True
         printer_service.list_printers.return_value = [printer]
 
@@ -1060,7 +1023,7 @@ class TestConnectInfo:
                               headers=AUTH).json()["data"]["printers"]
         assert printers == [{
             "id": "printer-1", "name": "Core One",
-            "type": "prusa", "is_active": True,
+            "type": "prusa_core", "is_active": True,
         }]
 
     def test_returns_empty_printer_list_when_none_configured(
@@ -1093,9 +1056,9 @@ key; the rest of the API is unauthenticated (see spec section 8.1).
 from typing import Any, Dict, List
 
 import structlog
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
-from src.api.dependencies.auth import require_api_key
+from src.api.auth import require_api_key
 from src.services.printer_service import PrinterService
 from src.utils.dependencies import get_printer_service
 from src.utils.errors import success_response
@@ -1109,6 +1072,7 @@ MIN_CONNECT_VERSION = "0.1.0"
 
 @router.get("/info")
 async def get_connect_info(
+    request: Request,
     key=Depends(require_api_key),
     printer_service: PrinterService = Depends(get_printer_service),
 ):
@@ -1118,8 +1082,6 @@ async def get_connect_info(
     Connect calls this before every command to check version compatibility and
     to resolve printer ids.
     """
-    from src.main import APP_VERSION
-
     printers: List[Dict[str, Any]] = []
     for printer in await printer_service.list_printers():
         printer_type = getattr(printer.type, "value", printer.type)
@@ -1131,7 +1093,7 @@ async def get_connect_info(
         })
 
     return success_response(data={
-        "server_version": APP_VERSION,
+        "server_version": request.app.version,
         "min_connect_version": MIN_CONNECT_VERSION,
         "capabilities": {
             "exports": True,
@@ -1142,7 +1104,10 @@ async def get_connect_info(
     })
 ```
 
-The `APP_VERSION` import is inside the function deliberately: `src.main` imports the routers, so a module-level import would be circular.
+`request.app.version` is the app version FastAPI was constructed with
+(`src/main.py:641` passes `version=APP_VERSION`). Reading it off the request
+avoids importing `src.main` from a router — which would be circular, since
+`src.main` imports the routers.
 
 - [ ] **Step 4: Register the router**
 
@@ -1170,10 +1135,15 @@ Expected: 6 passed.
 
 The project's routing rule exists because `redirect_slashes=False` turns a stray `/` into a 405.
 
+Included routers are lazy in this FastAPI version, so `app.routes` yields
+`_IncludedRouter` objects with no `.path`. Read the generated OpenAPI schema
+instead — and match on the full prefix, since `/api/v1/printers/{printer_id}/connect`
+already exists and would match a naive `'/connect' in path` test.
+
 ```bash
 python3 -c "
 from src.main import create_application
-paths = [r.path for r in create_application().routes if '/connect' in r.path]
+paths = sorted(p for p in create_application().openapi()['paths'] if p.startswith('/api/v1/connect'))
 print(paths)
 assert paths == ['/api/v1/connect/info'], paths
 print('routing OK')
@@ -1202,6 +1172,8 @@ git commit -m "feat: Add connect router with capability discovery endpoint"
 - Produces: `POST /api/v1/connect/exports`, multipart with `file` (single `UploadFile`) and `metadata` (a JSON string form field). Returns 201 with the uploaded file record. Pydantic model `ExportMetadata` with `extra = "forbid"`.
 
 **Contract note:** M1 accepts only `is_business` and `notes`. Unknown fields are rejected with 422 rather than silently dropped, so the M3 hook cannot believe it stored something it did not. M3 widens this model together with the migration that backs the extra fields.
+
+**`.bgcode` is not currently uploadable.** `allowed_upload_extensions` defaults to `".3mf,.stl,.gcode,.obj,.ply"` (`src/utils/config.py:140`) and `FileUploadService.validate_file` enforces it. A Core One export would pass this router's own extension check and then be rejected downstream, surfacing as a confusing 400. Step 3a fixes the default. Note that a mocked `upload_files` cannot catch this class of bug — hence the real-validator test in Step 4a.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1350,10 +1322,11 @@ import json
 from typing import Optional
 
 from fastapi import File as FastAPIFile, Form, HTTPException, UploadFile, status
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from src.services.file_service import FileService
 from src.utils.dependencies import get_file_service
+from src.utils.errors import PrinternizerError
 ```
 
 then append:
@@ -1372,11 +1345,10 @@ class ExportMetadata(BaseModel):
     client is never told something was stored when it was not. M3 widens this
     alongside the migration that backs the extra fields.
     """
+    model_config = ConfigDict(extra="forbid")
+
     is_business: bool = False
     notes: Optional[str] = None
-
-    class Config:
-        extra = "forbid"
 
 
 @router.post("/exports", status_code=status.HTTP_201_CREATED)
@@ -1407,7 +1379,9 @@ async def create_export(
         )
 
     try:
-        parsed = ExportMetadata(**json.loads(metadata))
+        # model_validate, not ExportMetadata(**...): a JSON body of `[]`, `null`
+        # or `"x"` would make the ** unpack raise TypeError and surface as a 500.
+        parsed = ExportMetadata.model_validate(json.loads(metadata))
     except json.JSONDecodeError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -1429,10 +1403,14 @@ async def create_export(
     )
 
     if result["success_count"] == 0:
-        raise HTTPException(
+        # PrinternizerError keeps `message` a string and puts the detail under
+        # `details`, matching the project's error envelope. Passing a dict as
+        # HTTPException.detail would put an object in `message`.
+        raise PrinternizerError(
+            message="Export upload failed",
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"message": "Export upload failed",
-                    "failed_files": result["failed_files"]},
+            error_code="EXPORT_UPLOAD_FAILED",
+            details={"failed_files": result["failed_files"]},
         )
 
     return success_response(
@@ -1442,6 +1420,20 @@ async def create_export(
     )
 ```
 
+- [ ] **Step 3a: Allow `.bgcode` uploads**
+
+In `src/utils/config.py:140`, add `.bgcode` to the default:
+
+```python
+    allowed_upload_extensions: str = Field(
+        default=".3mf,.stl,.gcode,.bgcode,.obj,.ply",
+        env="ALLOWED_UPLOAD_EXTENSIONS",
+        description="Comma-separated list of allowed file extensions for upload (with leading dot)."
+    )
+```
+
+The rest of the pipeline already understands `.bgcode` (`src/constants.py:532`, `library_service.py`, `file_repository.py`) — only the upload gate was missing it.
+
 - [ ] **Step 4: Run the tests and confirm they pass**
 
 ```bash
@@ -1449,6 +1441,34 @@ pytest tests/backend/test_api_connect.py -v
 ```
 
 Expected: 16 passed.
+
+- [ ] **Step 4a: Prove `.bgcode` survives the real validator**
+
+Every test above mocks `upload_files`, so none of them exercise the extension
+gate that actually rejected `.bgcode`. Add this to `tests/backend/test_api_connect.py`:
+
+```python
+class TestUploadValidatorAcceptsBgcode:
+    """Guards the real extension gate, which the mocked tests above cannot see."""
+
+    def test_bgcode_is_in_the_allowed_upload_extensions(self):
+        from src.utils.config import Settings
+
+        allowed = Settings().allowed_upload_extensions_list
+        assert ".bgcode" in allowed, (
+            "Core One exports are .bgcode; without this the router accepts the "
+            "file and FileUploadService then rejects it as an unsupported type"
+        )
+```
+
+Run it:
+
+```bash
+pytest tests/backend/test_api_connect.py::TestUploadValidatorAcceptsBgcode -v
+```
+
+Expected: PASS. If `Settings()` requires environment variables, construct it the
+way `tests/conftest.py` does and read the same property.
 
 - [ ] **Step 5: Run the whole backend suite for regressions**
 
@@ -1461,8 +1481,10 @@ Expected: no new failures. If `tests/backend` has pre-existing failures, capture
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/api/routers/connect.py tests/backend/test_api_connect.py
-git commit -m "feat: Add authenticated export upload endpoint"
+git add src/api/routers/connect.py src/utils/config.py tests/backend/test_api_connect.py
+git commit -m "feat: Add authenticated export upload endpoint
+
+Also allows .bgcode uploads, which Prusa Core One exports by default."
 ```
 
 ---
@@ -1475,7 +1497,15 @@ git commit -m "feat: Add authenticated export upload endpoint"
 - Modify: `frontend/locales/en.json`, `frontend/locales/de.json`
 
 **Interfaces:**
-- Consumes: the endpoints from Task 4, and the global `api` client (`frontend/js/api.js`, `const api = new ApiClient()`), `showToast(type, title, message)`, and `settingsManager.switchTab(name)`.
+- Consumes: the endpoints from Task 4, and these **verified** globals:
+  `api` (`frontend/js/api.js:821`) with `get(endpoint)`, `post(endpoint, data)`, `delete(endpoint)` helpers that JSON-encode and set headers;
+  `showToast(type, title, message)` (`frontend/js/utils.js:405`);
+  `escapeHtml(unsafe)` (`frontend/js/utils.js:935`);
+  `t(key)` (`frontend/js/i18n.js:154`);
+  `Logger` (`frontend/js/logger.js`);
+  `settingsManager.switchTab(name)`, which shows the pane with id `<tabName>-tab` (`frontend/js/settings.js:52`).
+
+  **`CONFIG.API_BASE_URL` already ends in `/api/v1`** (`frontend/js/config.js`). Endpoints passed to the `api` client must therefore be **relative to that** — `/settings/api-keys`, never `/api/v1/settings/api-keys`, which would request `/api/v1/api/v1/settings/api-keys` and 404.
 - Produces: an **Integrations** settings tab listing keys with a create form and per-row revoke.
 
 - [ ] **Step 1: Add the tab button**
@@ -1546,22 +1576,26 @@ async function loadApiKeys() {
     if (!container) return;
 
     try {
-        const response = await api.request('/api/v1/settings/api-keys');
+        // CONFIG.API_BASE_URL already ends in /api/v1 — endpoints are relative to it.
+        const response = await api.get('/settings/api-keys');
         const keys = response.data.keys || [];
 
         if (keys.length === 0) {
             container.innerHTML =
-                `<p class="form-text text-muted" data-i18n="settings.apiKeysEmpty">No API keys yet.</p>`;
+                `<p class="form-text text-muted">${escapeHtml(t('settings.apiKeysEmpty'))}</p>`;
             return;
         }
 
+        // Translate via t() rather than data-i18n: applyTranslations() runs once
+        // over the static document at load and is never re-applied to markup
+        // inserted later, so data-i18n here would leave English for German users.
         container.innerHTML = `
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th data-i18n="settings.apiKeyNameLabel">Name</th>
-                        <th data-i18n="settings.apiKeyCreated">Created</th>
-                        <th data-i18n="settings.apiKeyLastUsed">Last used</th>
+                        <th>${escapeHtml(t('settings.apiKeyNameLabel'))}</th>
+                        <th>${escapeHtml(t('settings.apiKeyCreatedCol'))}</th>
+                        <th>${escapeHtml(t('settings.apiKeyLastUsed'))}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -1574,7 +1608,7 @@ async function loadApiKeys() {
                             <td>
                                 <button class="btn btn-danger btn-sm"
                                         onclick="revokeApiKey('${escapeHtml(key.id)}')">
-                                    <span data-i18n="settings.apiKeyRevoke">Revoke</span>
+                                    ${escapeHtml(t('settings.apiKeyRevoke'))}
                                 </button>
                             </td>
                         </tr>`).join('')}
@@ -1596,10 +1630,7 @@ async function createApiKey() {
     }
 
     try {
-        const response = await api.request('/api/v1/settings/api-keys', {
-            method: 'POST',
-            body: JSON.stringify({ name })
-        });
+        const response = await api.post('/settings/api-keys', { name });
 
         document.getElementById('apiKeyRevealValue').textContent = response.data.key;
         document.getElementById('apiKeyReveal').style.display = 'block';
@@ -1617,8 +1648,7 @@ async function revokeApiKey(keyId) {
     if (!confirm(t('settings.apiKeyRevokeConfirm'))) return;
 
     try {
-        await api.request(`/api/v1/settings/api-keys/${encodeURIComponent(keyId)}`,
-                          { method: 'DELETE' });
+        await api.delete(`/settings/api-keys/${encodeURIComponent(keyId)}`);
         showToast('success', t('common.success'), t('settings.apiKeyRevoked'));
         await loadApiKeys();
     } catch (error) {
@@ -1636,29 +1666,18 @@ function formatKeyDate(value) {
     }
 }
 
-function escapeHtml(value) {
-    const div = document.createElement('div');
-    div.textContent = String(value ?? '');
-    return div.innerHTML;
-}
 ```
 
-- [ ] **Step 4: Check the helper names actually exist before wiring it up**
+Note there is deliberately **no local `escapeHtml`** here. A global one already
+exists in `frontend/js/utils.js:935` and escapes `&<>"'`; `api-keys.js` loads
+after `utils.js`, so declaring a second one would replace it app-wide with a
+weaker version — and this file interpolates ids into an `onclick="...('…')"`
+attribute, where unescaped quotes matter.
 
-`escapeHtml`, `t`, `showToast` and `Logger` may already be defined globally; a duplicate `escapeHtml` would shadow or clash.
+- [ ] **Step 4: Load the script**
 
-```bash
-cd /Users/sebastianseubert/Developer/printernizer
-grep -rn "function escapeHtml\|const escapeHtml" frontend/js/ | head
-grep -rn "function t(\|window.t =" frontend/js/i18n.js | head -3
-grep -rn "function showToast" frontend/js/ | head -3
-```
-
-If `escapeHtml` already exists globally, delete the local copy from `api-keys.js` and use the existing one. If `t` is not a global function, use the accessor the codebase actually provides.
-
-- [ ] **Step 5: Load the script**
-
-In `frontend/index.html`, next to the other `settings`-related script tags:
+In `frontend/index.html`, next to the other `settings`-related script tags and
+**after** `js/utils.js` (which provides `escapeHtml` and `showToast`):
 
 ```html
     <script src="js/api-keys.js"></script>
@@ -1672,7 +1691,7 @@ Then make the tab load its data. In `frontend/js/settings.js`, inside `switchTab
             }
 ```
 
-- [ ] **Step 6: Add the translation strings**
+- [ ] **Step 5: Add the translation strings**
 
 Add to the `settings` object in **both** `frontend/locales/en.json` and `frontend/locales/de.json`. English:
 
@@ -1698,9 +1717,14 @@ Add to the `settings` object in **both** `frontend/locales/en.json` and `fronten
 "apiKeyRevokeFailed": "Could not revoke the API key"
 ```
 
-German equivalents go in `de.json` under the same keys. Note the HTML uses `data-i18n="settings.apiKeyCreated"` for the table column — rename that attribute to `settings.apiKeyCreatedCol` so it does not collide with the toast message key.
+German equivalents go in `de.json` under the same keys.
 
-- [ ] **Step 7: Verify both locale files are still valid JSON and have matching keys**
+Two keys are deliberately distinct: `apiKeyCreated` is the toast ("API key
+created"), `apiKeyCreatedCol` is the table column header ("Created"). The
+script above uses `t('settings.apiKeyCreatedCol')` for the column — do not
+collapse them.
+
+- [ ] **Step 6: Verify both locale files are still valid JSON and have matching keys**
 
 ```bash
 cd /Users/sebastianseubert/Developer/printernizer
@@ -1718,7 +1742,20 @@ print('locales OK')
 
 Expected: `locales OK`
 
-- [ ] **Step 8: Verify the UI by hand**
+- [ ] **Step 6a: Register the tab with settings search**
+
+`indexSettings()` in `frontend/js/settings.js` (around line 125) is a hard-coded
+list; a tab missing from it is invisible to the settings search box. Add:
+
+```javascript
+            { id: 'apiKeyName', tab: 'integrations',
+              keywords: ['api', 'key', 'connect', 'prusaslicer', 'integration'] },
+```
+
+Match the exact shape of the neighbouring entries — read two of them first, the
+field names may differ from this sketch.
+
+- [ ] **Step 7: Verify the UI by hand**
 
 Start the server, open Settings → Integrations, create a key, confirm the plaintext appears once and the row shows up, then revoke it.
 
@@ -1728,7 +1765,7 @@ python src/main.py
 
 Check: the key value is shown exactly once; reloading the page does not show it again; the list shows name/created/last-used; revoke removes the row.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add frontend/index.html frontend/js/api-keys.js frontend/js/settings.js \
@@ -1743,7 +1780,7 @@ git commit -m "feat: Add API key management UI to settings"
 **Files:**
 - Modify: `CHANGELOG.md`
 - Modify: `docs/superpowers/specs/2026-09-06-printernizer-connect-design.md` (§8.2 printer fields)
-- Create: `docs/api/connect.md`
+- Create: `docs/api-reference/connect.md`
 
 **Interfaces:**
 - Consumes: the endpoints built in Tasks 4–6.
@@ -1761,7 +1798,7 @@ Also note in §8.2 that M1's `/exports` accepts only `is_business` and `notes`, 
 
 - [ ] **Step 2: Write the API documentation**
 
-`docs/api/connect.md`, covering: what Connect is, how to create a key in the UI, both auth header forms, and each endpoint with a `curl` example. Include this working example:
+`docs/api-reference/connect.md`, covering: what Connect is, how to create a key in the UI, both auth header forms, and each endpoint with a `curl` example. Include this working example:
 
 ```bash
 # Discover capabilities
@@ -1776,7 +1813,18 @@ curl -s -X POST \
   http://printernizer.local:8000/api/v1/connect/exports | jq
 ```
 
-State plainly that only `/api/v1/connect/*` requires a key and the rest of the API does not, so nobody mistakes this for site-wide authentication.
+State plainly, in the document itself:
+
+- Only `/api/v1/connect/*` requires a key. The rest of the API and the whole web
+  UI are unauthenticated.
+- **Creating a key is itself unauthenticated** (`POST /settings/api-keys` sits in
+  the open settings router), so anyone who can reach Printernizer on the network
+  can mint one. The key therefore identifies *which companion* is talking, and
+  gives Connect a credential to hold — it is **not** an access control boundary.
+  Do not describe it as securing the server.
+- Home Assistant add-on users must expose Printernizer's direct port: ingress
+  URLs (`/api/hassio_ingress/...`) are session-authenticated in the browser and
+  a CLI cannot use them (spec §9).
 
 - [ ] **Step 3: Add the changelog entry**
 
@@ -1803,7 +1851,7 @@ Expected: no new failures relative to the baseline captured in Task 6 Step 5.
 - [ ] **Step 5: Commit and push**
 
 ```bash
-git add CHANGELOG.md docs/api/connect.md \
+git add CHANGELOG.md docs/api-reference/connect.md \
         docs/superpowers/specs/2026-09-06-printernizer-connect-design.md
 git commit -m "docs: Document the Connect API and correct spec printer fields"
 git push -u origin feature/connect-m1-server
@@ -1827,8 +1875,13 @@ the PrusaSlicer desktop companion.
 - Key management under Settings → Integrations
 
 Scope: API keys protect only `/api/v1/connect/*`. The rest of the API and the
-web UI stay unauthenticated, as agreed in the design (§8.1). Order/customer
-linking and `print_on` land in M3 with the provenance stamps that feed them.
+web UI stay unauthenticated, as agreed in the design (§8.1) — and since key
+creation is itself unauthenticated, the key identifies a companion rather than
+guarding the server. Order/customer linking and `print_on` land in M3 with the
+provenance stamps that feed them.
+
+Also allows `.bgcode` uploads (`ALLOWED_UPLOAD_EXTENSIONS`), which Prusa Core
+One exports by default and which the upload validator previously rejected.
 
 Spec: `docs/superpowers/specs/2026-09-06-printernizer-connect-design.md`
 Plan: `docs/superpowers/plans/2026-09-06-connect-m1-server.md`

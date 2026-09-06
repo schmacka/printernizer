@@ -398,15 +398,20 @@ down on a wizard-completed install.
   `backend_type="connect"`, `name="PrusaSlicer on <hostname>"`,
   `version=<from PrusaSlicer.ini or binary>`, `executable_path=""`. The id is
   stored in `state.json`.
-- **Preset layout changed in 3.0.** Verified on a fresh alpha11 install: there
+- **Preset layout and format both changed in 3.0.** Verified on alpha11: there
   are no top-level `print/`, `filament/`, `printer/` or `physical_printer/`
   directories. Presets live under `<datadir>/presets/user/` and
-  `<datadir>/presets/local/<vendor>/` (the latter holding vendor bundles such as
-  `prusa-research-fff/PrusaResearch.idx`). The fresh install has no user presets,
-  so the per-preset file format is **not yet verified** — spike S3b runs the
-  configuration wizard, saves one custom preset of each type, and records the
-  resulting paths and format. `profiles.py` supports both the 2.x
-  `{print,filament,printer}/*.ini` layout and the 3.0 `presets/user/` layout.
+  `<datadir>/presets/local/<vendor>/`, and the shipped vendor presets are
+  **YAML, not INI** — `presets/local/prusa-research-fff/PrusaResearch/` contains
+  ~326 `preset-*.yaml` files keyed by `kind:` / `inherits:` / `values:`, beside a
+  `vendor.yaml`. User presets are very likely YAML too, but a fresh install has
+  none, so that is confirmed by spike S3b.
+
+  **Consequence:** the INI assumption elsewhere in this spec is wrong for 3.0.
+  `prusaslicer/ini.py` becomes `prusaslicer/presets.py` handling both the 2.x
+  INI layout and the 3.0 YAML one; the endpoint below is `import-preset`, not
+  `import-ini`; and §8.4's "existing PrusaSlicer ini parser" does not apply to
+  3.0 input. M4 is designed after S3b reports, not before.
 - **push.** Enumerate user presets in whichever layout was detected. Upload each
   as raw text with `(type, name, sha256)` to
   `POST /api/v1/slicing/{slicer_id}/profiles/import-ini`. Server parses settings
@@ -456,10 +461,12 @@ what makes provenance survive SD-card and Prusa Connect routes.
 ### 8.4 Profiles
 
 - Migration: `slicer_profiles.raw_content TEXT NULL`, `content_hash TEXT NULL`.
-- `POST /api/v1/slicing/{slicer_id}/profiles/import-ini` (multipart, one or more
-  `.ini`, form field `profile_type`) — parses with the existing PrusaSlicer ini
-  parser into `settings_json`, stores raw text and hash; upsert by
-  `(slicer_id, profile_type, profile_name)`.
+- `POST /api/v1/slicing/{slicer_id}/profiles/import-preset` (multipart, one or
+  more preset files, form fields `profile_type` and `format` ∈ `ini | yaml`) —
+  parses into `settings_json` with the parser matching `format`, stores raw text
+  and hash; upsert by `(slicer_id, profile_type, profile_name)`. The 3.0 YAML
+  parser is written against whatever S3b reports; the existing INI parser covers
+  2.x only.
 - `GET /api/v1/slicing/profiles/{profile_id}/raw` → `text/plain`.
 - `backend_type="connect"` is accepted by `register_slicer`; `verify_slicer_availability`
   returns true for it without touching the filesystem.

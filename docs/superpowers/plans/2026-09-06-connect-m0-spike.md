@@ -18,7 +18,11 @@
 - Bundle id `com.printernizer.spike`; every command file needs a non-empty `menu` (empty menu paths crash registration in alpha11).
 - Top-level Lua may only declare `info`, functions and constants. **Never call `api` or `require` at file level** — scanning runs in a state where neither exists, and the failure is silent.
 - Directory-copy installation needs no signing. Do not use ZIP import.
-- This is throwaway code. It lives in `docs/superpowers/spikes/` and is deleted after M2 starts.
+- This is throwaway code. It lives in **this** repo under
+  `docs/superpowers/spikes/` — not in the `printernizer-connect` repo, which
+  does not exist yet — and is deleted once M2 starts. (Spec §12 assigns M0 to
+  the connect repo; the findings are what matter and they belong next to the
+  spec, so this plan overrides that.)
 
 ## Human-in-the-loop notice
 
@@ -30,7 +34,7 @@
 |---|---|
 | `docs/superpowers/spikes/2026-09-06-prusaslicer-api/bundle/manifest.json` | Bundle metadata |
 | `.../bundle/probe.stl` | Tetrahedron mesh used by the load probe |
-| `.../bundle/s3_params.lua` | S3: which key applies per-object settings |
+| `.../bundle/s3_params.lua`, `s3_object_params.lua` | S3: which key applies per-object settings |
 | `.../bundle/s4_alpha.lua`, `s4_mike.lua`, `s4_zeta.lua` | S4: menu ordering |
 | `.../bundle/s5_long_title.lua` | S5: long dialog heading |
 | `.../bundle/s7_stamp.lua` | Stamp mechanics + `first_layer_height` value type |
@@ -165,6 +169,7 @@ git commit -m "spike: Add PrusaSlicer 3.0 probe bundle skeleton"
 
 **Files:**
 - Create: `docs/superpowers/spikes/2026-09-06-prusaslicer-api/bundle/s3_params.lua`
+- Create: `docs/superpowers/spikes/2026-09-06-prusaslicer-api/bundle/s3_object_params.lua`
 - Create: `docs/superpowers/spikes/2026-09-06-prusaslicer-api/bundle/s4_alpha.lua`
 - Create: `docs/superpowers/spikes/2026-09-06-prusaslicer-api/bundle/s4_mike.lua`
 - Create: `docs/superpowers/spikes/2026-09-06-prusaslicer-api/bundle/s4_zeta.lua`
@@ -178,38 +183,67 @@ git commit -m "spike: Add PrusaSlicer 3.0 probe bundle skeleton"
 
 **Design note — how each probe reports:** `execute` errors are logged, never shown. So every probe that could abort mid-way **adds a marker cube first**. If the marker appears alone, the call after it failed. Object count on the plate is the signal.
 
-- [ ] **Step 1: Write the S3 params probe**
+- [ ] **Step 1: Write the S3 params probes**
 
-`bundle/s3_params.lua` — sets the same five keys through `params` on one object and `object_params` on another, so the human can compare them side by side:
+Prusa's own plugins use **both** keys — `flow_tower.lua` passes `params`,
+`temp_tower.lua` passes `object_params` — so the probe has to tell them apart.
+
+Two things make that harder than it looks. `add_object` auto-centres each object
+on the bed in X/Y (spec §2), so `translate={x=…}` will not reliably place two
+cubes side by side for comparison. And if one call throws, `execute` aborts and
+the *other* object never appears either, so a single command would confound the
+two results. Hence: **two separate command files**, each adding one
+differently-sized cube, each preceded by a marker cube.
+
+`bundle/s3_params.lua`:
 
 ```lua
 info = {
     id = "s3_params",
     type = "project.plugin",
-    title = "S3: params vs object_params",
+    title = "S3a: settings via params (20 mm cube)",
     menu = "Spike/S3 Params",
 }
 
-local SETTINGS = {
-    layer_height = 0.3,
-    fill_density = "55%",
-    perimeters = 6,
-    fill_pattern = "gyroid",
-    brim_type = "outer_only",
+function execute(opts)
+    -- Marker first: if the settings call throws, this 5 mm cube still appears
+    -- and we know execute ran at all.
+    api.project:add_object{ mesh = api.make_cube(5, 5, 5) }
+    api.project:add_object{
+        mesh = api.make_cube(20, 20, 20),
+        params = {
+            layer_height = 0.3,
+            fill_density = "55%",
+            perimeters = 6,
+            fill_pattern = "gyroid",
+            brim_type = "outer_only",
+        },
+    }
+end
+```
+
+`bundle/s3_object_params.lua` — identical but for the key and the cube size, so
+the two are distinguishable by size rather than by placement:
+
+```lua
+info = {
+    id = "s3_object_params",
+    type = "project.plugin",
+    title = "S3b: settings via object_params (25 mm cube)",
+    menu = "Spike/S3 Object params",
 }
 
 function execute(opts)
-    -- Left object: settings via `params` (used by Prusa's flow_tower.lua)
+    api.project:add_object{ mesh = api.make_cube(5, 5, 5) }
     api.project:add_object{
-        mesh = api.make_cube(20, 20, 20),
-        translate = { x = -15 },
-        params = SETTINGS,
-    }
-    -- Right object: settings via `object_params` (used by Prusa's temp_tower.lua)
-    api.project:add_object{
-        mesh = api.make_cube(20, 20, 20),
-        translate = { x = 15 },
-        object_params = SETTINGS,
+        mesh = api.make_cube(25, 25, 25),
+        object_params = {
+            layer_height = 0.3,
+            fill_density = "55%",
+            perimeters = 6,
+            fill_pattern = "gyroid",
+            brim_type = "outer_only",
+        },
     }
 end
 ```
@@ -316,33 +350,41 @@ end
 
 PrusaSlicer bundles Lua but exposes no checker, so use the system one if present; otherwise the check is deferred to the GUI run.
 
+`luac` is **not** installed on this machine, so install it first — do not skip
+this step, a syntax error makes a command vanish from the menu with no visible
+error.
+
 ```bash
+command -v luac >/dev/null 2>&1 || brew install lua
 cd docs/superpowers/spikes/2026-09-06-prusaslicer-api
-if command -v luac >/dev/null 2>&1; then
-  luac -p bundle/*.lua s2_added_later.lua && echo "LUA SYNTAX OK"
-else
-  echo "luac not installed — run: brew install lua"
-fi
+luac -p bundle/*.lua s2_added_later.lua && echo "LUA SYNTAX OK"
 ```
 
-Expected: `LUA SYNTAX OK`. If `luac` is missing, install Lua and re-run — do not skip this, a syntax error makes a command silently vanish from the menu.
+Expected: `LUA SYNTAX OK`
 
 - [ ] **Step 7: Verify no probe touches `api` or `require` at file level**
 
 This is the single most common way a bundle silently fails to register.
+
+Do **not** track block depth by counting `function`/`end` — every `if … end`
+inside a function drops the count to zero and reports the following line as a
+false positive. In these probes every file-scope statement starts at column 0
+and everything inside `execute` is indented, so indentation is the reliable
+signal:
 
 ```bash
 cd docs/superpowers/spikes/2026-09-06-prusaslicer-api
 python3 - <<'PY'
 import pathlib, re, sys
 bad = []
-for f in sorted(list(pathlib.Path('bundle').glob('*.lua')) + [pathlib.Path('s2_added_later.lua')]):
-    depth, offenders = 0, []
-    for n, line in enumerate(f.read_text().splitlines(), 1):
-        stripped = line.strip()
-        if depth == 0 and re.search(r'\b(api\.|require\s*\()', stripped) and not stripped.startswith('--'):
-            offenders.append(n)
-        depth += len(re.findall(r'\bfunction\b', line)) - len(re.findall(r'\bend\b', line))
+files = sorted(pathlib.Path('bundle').glob('*.lua')) + [pathlib.Path('s2_added_later.lua')]
+for f in files:
+    offenders = [
+        n for n, line in enumerate(f.read_text().splitlines(), 1)
+        # column 0 == file scope in these probes; indented lines sit inside execute()
+        if line[:1] not in (' ', '\t', '', '-')
+        and re.search(r'\b(api\.|require\s*\()', line)
+    ]
     if offenders:
         bad.append(f"{f}: lines {offenders}")
 print("\n".join(bad) if bad else "NO FILE-LEVEL api/require — OK")
@@ -351,6 +393,10 @@ PY
 ```
 
 Expected: `NO FILE-LEVEL api/require — OK`
+
+Keep every `api`/`require` call indented inside `execute` and this stays
+accurate. It is a lint, not a proof — the authoritative check is whether the
+command actually appears in the Plugins menu (checklist step S0).
 
 - [ ] **Step 8: Reinstall and commit**
 
@@ -390,8 +436,12 @@ OUT="$HOME/printernizer-spike-postprocess.txt"
   env | grep '^SLIC3R_' | sort
   echo "--- all other variables ---"
   env | grep -v '^SLIC3R_' | sort
-  echo "--- first 40 lines of the g-code it was handed ---"
-  [ -n "${1:-}" ] && [ -f "$1" ] && head -40 "$1"
+  echo "--- what it was handed (may be binary .bgcode) ---"
+  if [ -n "${1:-}" ] && [ -f "$1" ]; then
+    file "$1"
+    # od, not head: a .bgcode file would otherwise dump raw binary into this log.
+    head -c 512 "$1" | od -c | head -20
+  fi
   echo
 } >> "$OUT" 2>&1
 exit 0
@@ -450,8 +500,19 @@ in the right-hand object list, not shapes on the plate.
 2. Quit PrusaSlicer completely if it is running.
 3. Start it **from a terminal** so `print()` output is visible:
    `/Applications/PrusaSlicer-3.0.0-alpha11.app/Contents/MacOS/PrusaSlicer`
-4. Complete the configuration wizard if it appears (needed for S3b anyway).
+4. In a second terminal, tail the plugin log — scan and registration errors go
+   here, not to stdout:
+   ```sh
+   tail -f "$HOME/Library/Application Support/PrusaSlicer3-dev/shared_runtime/log.txt"
+   ```
+   (Confirmed format, e.g. `PluginBundle.cpp:308 Parsing metadata of plugin
+   …/note_badge.lua unsuccessful: Missing info table`.)
+5. Complete the configuration wizard if it appears (needed for S3b anyway).
    Pick a Prusa printer and accept the defaults.
+6. **Turn off binary G-code** for this session: Printer Settings → General →
+   untick "Supports binary G-code". Prusa MK4/Core One profiles default it on,
+   which would make the S7 and S8 `grep`s below useless. If you leave it on,
+   record that fact in the answers.
 
 ## S0 — does the bundle register at all?
 
@@ -460,8 +521,9 @@ Open the **Plugins** menu.
 - Is there a `Spike` submenu? **Answer:** ___
 - List every entry you see under it. **Answer:** ___
 
-If `Spike` is missing, the bundle failed to register — check the terminal for
-scan errors and stop here.
+If `Spike` is missing, the bundle failed to register. Check `log.txt` (the
+tail from Setup step 4) for a `PluginBundle.cpp` line naming the offending file,
+and stop here.
 
 ## S4 — menu ordering
 
@@ -484,16 +546,20 @@ Click Run, then **File ▸ New Project** to clear the plate.
 
 ## S3 — params vs object_params
 
-Run `Plugins ▸ Spike ▸ S3 Params`. Two 20 mm cubes appear, left and right.
+Run `Plugins ▸ Spike ▸ S3 Params`. Expect a 5 mm marker cube and a 20 mm cube.
 
-For **each** cube: right-click it → check its per-object settings (the gear /
-"Object Settings" entry in the object list).
-
-- Left cube (`params`) — which of these are present and set?
-  `layer_height=0.3`, `fill_density=55%`, `perimeters=6`, `fill_pattern=gyroid`,
+- How many objects appeared? (1 = the settings call threw) **Answer:** ___
+- Right-click the **20 mm** cube → its per-object settings (the gear entry in
+  the object list). Which of these are present and set? `layer_height=0.3`,
+  `fill_density=55%`, `perimeters=6`, `fill_pattern=gyroid`,
   `brim_type=outer_only`. **Answer:** ___
-- Right cube (`object_params`) — same five keys. **Answer:** ___
-- Any errors in the terminal? **Answer:** ___
+
+**File ▸ New Project**, then run `Plugins ▸ Spike ▸ S3 Object params`. Expect a
+5 mm marker and a 25 mm cube.
+
+- How many objects appeared? **Answer:** ___
+- Right-click the **25 mm** cube → same five keys. **Answer:** ___
+- Any errors in the terminal or in `log.txt` (see Setup)? **Answer:** ___
 
 Then **File ▸ New Project**.
 
@@ -508,8 +574,9 @@ Run `Plugins ▸ Spike ▸ S7 Stamp`.
 - Slice the plate. Does the layer slider show a custom-G-code marker near the
   first layer? **Answer:** ___
 - Export the G-code to `~/spike-s7.gcode`, then run:
-  `grep -n PRINTERNIZER ~/spike-s7.gcode`
-  Paste the output. **Answer:** ___
+  `file ~/spike-s7.gcode && grep -na PRINTERNIZER ~/spike-s7.gcode`
+  Paste the output. (If `file` says binary, binary G-code is still on — turn it
+  off per Setup step 6 and re-export.) **Answer:** ___
 - Save the project as `~/spike-s7.3mf`, then run:
   `unzip -p ~/spike-s7.3mf '*' 2>/dev/null | grep -c PRINTERNIZER`
   Paste the number. **Answer:** ___
@@ -548,6 +615,10 @@ cp docs/superpowers/spikes/2026-09-06-prusaslicer-api/s2_added_later.lua "$D/"
 - Is `SLIC3R_PRINT_HOST` present? **Answer:** ___
 - Is `SLIC3R_PP_OUTPUT_NAME` present? **Answer:** ___
 - Is `ARGV1` the path to the G-code file? **Answer:** ___
+- Is `ARGV1` the **final export path**, or a temporary file that PrusaSlicer
+  moves afterwards? (Compare the `ARGV1=` line against `~/spike-s8.gcode`.)
+  M3's uploader depends on this. **Answer:** ___
+- What does the `file "$1"` line say — ASCII text or binary? **Answer:** ___
 
 ## S3b — where do user presets land?
 
@@ -555,14 +626,24 @@ You saved a custom print preset in S8. Now also save a custom filament preset
 and a custom printer preset (change any value, click the save icon, give it a
 name starting with `Spike `).
 
+**Heads-up:** the vendor presets shipped with alpha11 are **YAML**, not INI —
+`presets/local/prusa-research-fff/PrusaResearch/` holds ~326 `preset-*.yaml`
+files with `kind:` / `inherits:` / `values:` keys, plus `vendor.yaml`. User
+presets are very likely YAML too. Spec §4.1 (`ini.py`), §7 (`import-ini`) and
+§8.4 ("existing PrusaSlicer ini parser") all still assume INI and will need
+rewriting for M4 — this question is what settles it.
+
 ```sh
 D="$HOME/Library/Application Support/PrusaSlicer3-dev"
-find "$D/presets" -type f | head -40
+find "$D/presets/user" -type f | head -40
 ```
 
 - Paste the output. **Answer:** ___
-- Pick one file you saved and paste its first 15 lines
-  (`head -15 <path>`) — we need the format, INI or JSON. **Answer:** ___
+- Pick one preset you saved and paste its first 20 lines (`head -20 <path>`) —
+  we need the exact format. **Answer:** ___
+- Is the format YAML, INI, or JSON? **Answer:** ___
+- Does a saved user preset record its parent via an `inherits:` key?
+  **Answer:** ___
 - Is there a `physical_printer` directory or key anywhere under `$D`?
   (`find "$D" -iname '*physical*'`) **Answer:** ___
 
