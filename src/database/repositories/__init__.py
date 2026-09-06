@@ -17,6 +17,7 @@ from .notification_repository import NotificationRepository
 from .customer_repository import CustomerRepository
 from .order_repository import OrderRepository
 from .generator_repository import GeneratorRepository
+from .api_key_repository import ApiKeyRepository
 
 __all__ = [
     'BaseRepository',
@@ -32,4 +33,5 @@ __all__ = [
     'CustomerRepository',
     'OrderRepository',
     'GeneratorRepository',
+    'ApiKeyRepository',
 ]
