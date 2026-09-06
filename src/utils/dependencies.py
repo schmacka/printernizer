@@ -11,6 +11,8 @@ from src.database.repositories import (
     JobRepository,
     FileRepository
 )
+from src.database.repositories import ApiKeyRepository
+from src.services.api_key_service import ApiKeyService
 from src.services.config_service import ConfigService
 from src.services.printer_service import PrinterService
 from src.services.job_service import JobService
@@ -75,6 +77,20 @@ async def get_file_repository(
 ) -> FileRepository:
     """Get file repository instance."""
     return FileRepository(database._connection)
+
+
+async def get_api_key_repository(
+    database: Database = Depends(get_database)
+) -> ApiKeyRepository:
+    """Get API key repository instance."""
+    return ApiKeyRepository(database._connection)
+
+
+async def get_api_key_service(
+    repository: ApiKeyRepository = Depends(get_api_key_repository)
+) -> ApiKeyService:
+    """Get API key service instance."""
+    return ApiKeyService(repository)
 
 
 async def get_config_service(request: Request) -> ConfigService:
