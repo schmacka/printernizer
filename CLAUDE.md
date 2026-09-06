@@ -56,7 +56,7 @@ Feature branch → master (PR) → Tag for release
 **Version is extracted from git tags** via `get_version()` utility.
 
 **Files to update when releasing:**
-- `src/main.py` - Update fallback version in `get_version(fallback="X.Y.Z")` (line ~94)
+- `src/utils/version.py` - Update `FALLBACK_VERSION = "X.Y.Z"` (the single source; call sites must not pass their own `fallback=`)
 - `CHANGELOG.md` - Add version section with release notes
 
 **Note**: The HA add-on version (`printernizer-ha/config.yaml`) is updated automatically by GitHub Actions.
@@ -68,7 +68,7 @@ See [Development Workflow](.claude/skills/printernizer-development-workflow.md) 
 **When ready to release a new version:**
 
 1. **Update CHANGELOG.md** - Add version section with release notes
-2. **Update fallback version** - Update `src/main.py` fallback version
+2. **Update fallback version** - Update `FALLBACK_VERSION` in `src/utils/version.py`
 3. **Commit**: `git commit -m "chore: Bump version to X.Y.Z"`
 4. **Tag**: `git tag -a vX.Y.Z -m "Release vX.Y.Z - Brief description"`
 5. **Push**: `git push origin master && git push --tags`

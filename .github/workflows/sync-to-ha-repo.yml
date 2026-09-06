@@ -74,11 +74,14 @@ jobs:
       - name: Extract version from main repository
         id: version
         run: |
-          # Extract version from src/main.py
-          VERSION=$(grep "APP_VERSION = get_version(fallback=" src/main.py | grep -oP 'fallback="\K[^"]+')
+          # Extract the version from the single fallback constant.
+          # It lives in src/utils/version.py; it used to be a per-call-site
+          # fallback= argument in src/main.py, which let the reported version
+          # drift between endpoints.
+          VERSION=$(grep -oP '^FALLBACK_VERSION = "\K[^"]+' src/utils/version.py)
 
           if [ -z "$VERSION" ]; then
-            echo "Error: Could not extract version from src/main.py"
+            echo "Error: Could not extract FALLBACK_VERSION from src/utils/version.py"
             exit 1
           fi
 

@@ -47,8 +47,8 @@ We follow **Semantic Versioning** (SemVer): `MAJOR.MINOR.PATCH`
 2. **Update all version references to match:**
    - `printernizer/config.yaml`: `version: "2.X.X"`
    - `src/utils/version.py`:
-     - `get_version(fallback="2.X.X")`
-     - `get_short_version(fallback="2.X.X")`
+     - `FALLBACK_VERSION = "2.X.X"` (the single source; `get_version()` and
+       `get_short_version()` both default to it)
 
 3. **Commit the version bump:**
    ```bash

@@ -217,7 +217,7 @@ async def system_info():
         preview_rendering_available = None
 
     return {
-        "app_version": get_version(fallback="unknown"),
+        "app_version": get_version(),
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
         "machine": platform.machine(),

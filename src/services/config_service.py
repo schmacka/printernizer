@@ -671,7 +671,7 @@ class ConfigService:
         uptime_seconds = int(max(0, time.time() - _PROCESS_START_TIME))
 
         return {
-            "version": get_version(fallback="unknown"),
+            "version": get_version(),
             "environment": settings.environment,
             "timezone": settings.timezone,
             "database_size_mb": database_size_mb,
