@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- API keys for authenticating external tools, managed under Settings → Integrations
+- `GET /api/v1/connect/info` — server capability and printer discovery
+- `POST /api/v1/connect/exports` — authenticated upload of slicer exports into the library
 - **Model generator — vase template: inner diameter and polygon surface.** The
   parametric vase now exposes an **Inner cavity diameter** field (`0` = derive it
   from the wall thickness, as before) so the bore can be set independently of the
@@ -15,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Sides** count replaces the old numeric "facets" field, making the flat-sided
   polygon vase an explicit option. Parameter presets saved with the previous
   `facets` value still build correctly.
+
+### Notes
+- API keys protect only `/api/v1/connect/*`. The rest of the API and the web UI remain unauthenticated.
 
 ## [2.42.0] - 2026-07-05
 

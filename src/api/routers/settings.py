@@ -1,14 +1,16 @@
 """Settings management endpoints."""
 
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, status
+from pydantic import BaseModel, Field
 import structlog
 
+from src.services.api_key_service import ApiKeyService
 from src.services.config_service import ConfigService, PrinterConfig
-from src.utils.dependencies import get_config_service
+from src.utils.dependencies import get_api_key_service, get_config_service
 from src.utils.errors import (
     ValidationError as PrinternizerValidationError,
+    NotFoundError,
     PrinterNotFoundError,
     success_response
 )
@@ -356,3 +358,70 @@ async def check_ffmpeg_installation():
         "error": result['error'],
         "message": "ffmpeg is installed and available" if result['installed'] else "ffmpeg is not installed or not in PATH"
     }
+
+# =============================================================================
+# API Keys — used by Printernizer Connect (the PrusaSlicer companion)
+# =============================================================================
+
+
+class ApiKeyResponse(BaseModel):
+    """An API key, without its hash."""
+    id: str
+    name: str
+    created_at: Optional[str] = None
+    last_used_at: Optional[str] = None
+
+
+class CreateApiKeyRequest(BaseModel):
+    """Request body for creating an API key."""
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+@router.get("/api-keys")
+async def list_api_keys(
+    api_key_service: ApiKeyService = Depends(get_api_key_service)
+):
+    """
+    List all API keys.
+
+    Key values themselves are never returned — only the metadata. A key's
+    plaintext is shown exactly once, when it is created.
+    """
+    keys = await api_key_service.list_keys()
+    return success_response(data={"keys": keys})
+
+
+@router.post("/api-keys", status_code=status.HTTP_201_CREATED)
+async def create_api_key(
+    request: CreateApiKeyRequest,
+    api_key_service: ApiKeyService = Depends(get_api_key_service)
+):
+    """
+    Create a new API key.
+
+    The returned `key` is the only time the plaintext is available; it cannot
+    be recovered afterwards.
+    """
+    plaintext, record = await api_key_service.create_key(request.name)
+    logger.info("API key created", key_id=record.get("id"), name=request.name)
+
+    return success_response(
+        data={**record, "key": plaintext},
+        status_code=status.HTTP_201_CREATED,
+        message="Store this key now — it will not be shown again",
+    )
+
+
+@router.delete("/api-keys/{key_id}")
+async def delete_api_key(
+    key_id: str,
+    api_key_service: ApiKeyService = Depends(get_api_key_service)
+):
+    """Revoke an API key. Any companion using it stops working immediately."""
+    deleted = await api_key_service.delete_key(key_id)
+    if not deleted:
+        # NotFoundError(resource_type, resource_id) -> 404 with the standard envelope.
+        raise NotFoundError("api_key", key_id)
+
+    logger.info("API key deleted", key_id=key_id)
+    return success_response(data={"id": key_id}, message="API key revoked")

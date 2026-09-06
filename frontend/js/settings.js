@@ -113,6 +113,10 @@ class SettingsManager {
                 this.renderThemePicker();
             }
 
+            if (tabName === 'integrations' && typeof loadApiKeys === 'function') {
+                loadApiKeys();
+            }
+
         } catch (error) {
             Logger.error('Error in switchTab:', error);
             showToast('error', t('common.error'), t('settings.tabSwitchFailed'));
@@ -165,7 +169,11 @@ class SettingsManager {
 
             // Watch folders
             { id: 'watchFoldersEnabled', tab: 'watch', keywords: ['watch', 'folder', 'überwachung', 'verzeichnis'] },
-            { id: 'watchFoldersRecursive', tab: 'watch', keywords: ['watch', 'recursive', 'rekursiv', 'unterordner'] }
+            { id: 'watchFoldersRecursive', tab: 'watch', keywords: ['watch', 'recursive', 'rekursiv', 'unterordner'] },
+
+            // Integrations
+            { id: 'apiKeyName', tab: 'integrations',
+              keywords: ['api', 'key', 'connect', 'prusaslicer', 'integration'] }
         ];
     }
 

@@ -61,6 +61,7 @@ from src.api.routers.orders import router as orders_router
 from src.api.routers.customers import router as customers_router
 from src.api.routers.order_sources import router as order_sources_router
 from src.api.routers.generator import router as generator_router
+from src.api.routers.connect import router as connect_router
 from src.database.database import Database
 from src.services.event_service import EventService
 from src.services.config_service import ConfigService
@@ -772,6 +773,7 @@ def create_application() -> FastAPI:
     app.include_router(errors_router, prefix="/api/v1/errors", tags=["Error Reporting"])
     app.include_router(usage_statistics_router, prefix="/api/v1/usage-stats", tags=["Usage Statistics"])
     app.include_router(slicing_router, prefix="/api/v1/slicing", tags=["Slicing"])
+    app.include_router(connect_router, prefix="/api/v1/connect", tags=["Connect"])
     app.include_router(tags_router, prefix="/api/v1", tags=["Tags"])  # File tagging system
     app.include_router(notifications_router, prefix="/api/v1/notifications", tags=["Notifications"])  # Multi-channel notifications
     app.include_router(orders_router, prefix="/api/v1/orders", tags=["Orders"])

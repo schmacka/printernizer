@@ -457,6 +457,50 @@ class TestPostUploadProcessing:
 
         mock_library.add_file_from_upload.assert_called_once_with("file_123", "/path/to/file.stl")
 
+    async def test_process_file_returns_the_library_checksum(self):
+        """The library computes the checksum synchronously; it must reach callers."""
+        mock_db = MagicMock()
+        mock_db._connection = MagicMock()
+        mock_event = MagicMock()
+        mock_library = MagicMock()
+        mock_library.add_file_from_upload = AsyncMock(
+            return_value={"checksum": "deadbeef", "filename": "file.stl"}
+        )
+
+        with patch('src.services.file_upload_service.get_settings', return_value=MockSettings()):
+            with patch('src.services.file_upload_service.FileRepository'):
+                service = FileUploadService(mock_db, mock_event, library_service=mock_library)
+
+        checksum = await service.process_file_after_upload("file_123", "/path/to/file.stl")
+
+        assert checksum == "deadbeef"
+
+    async def test_process_file_returns_none_without_a_library_service(self):
+        """Library ingestion is optional, so the checksum is nullable."""
+        mock_db = MagicMock()
+        mock_db._connection = MagicMock()
+        mock_event = MagicMock()
+
+        with patch('src.services.file_upload_service.get_settings', return_value=MockSettings()):
+            with patch('src.services.file_upload_service.FileRepository'):
+                service = FileUploadService(mock_db, mock_event)
+
+        assert await service.process_file_after_upload("file_123", "/p/f.stl") is None
+
+    async def test_process_file_returns_none_when_library_ingestion_fails(self):
+        """A failing library must not fail the upload, and must not fake a checksum."""
+        mock_db = MagicMock()
+        mock_db._connection = MagicMock()
+        mock_event = MagicMock()
+        mock_library = MagicMock()
+        mock_library.add_file_from_upload = AsyncMock(side_effect=Exception("boom"))
+
+        with patch('src.services.file_upload_service.get_settings', return_value=MockSettings()):
+            with patch('src.services.file_upload_service.FileRepository'):
+                service = FileUploadService(mock_db, mock_event, library_service=mock_library)
+
+        assert await service.process_file_after_upload("file_123", "/p/f.stl") is None
+
     @pytest.mark.asyncio
     async def test_process_file_with_thumbnail(self):
         """Test post-processing with thumbnail service."""
@@ -544,6 +588,40 @@ class TestMultiFileUpload:
             assert result['success_count'] == 2
             assert result['failure_count'] == 0
             assert len(result['uploaded_files']) == 2
+
+    async def test_uploaded_file_entries_carry_the_expected_fields(self):
+        """
+        Pins the shape API layers build their responses from — including the
+        library checksum, which used to be dropped on the floor.
+        """
+        mock_db = MagicMock()
+        mock_db._connection = MagicMock()
+        mock_event = MagicMock()
+        mock_event.emit_event = AsyncMock()
+        mock_repo = MagicMock()
+        mock_repo.create = AsyncMock(return_value=True)
+        mock_library = MagicMock()
+        mock_library.add_file_from_upload = AsyncMock(
+            return_value={"checksum": "cafebabe"}
+        )
+
+        settings = MockSettings()
+
+        with patch('src.services.file_upload_service.get_settings', return_value=settings):
+            with patch('src.services.file_upload_service.FileRepository', return_value=mock_repo):
+                service = FileUploadService(mock_db, mock_event, library_service=mock_library)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            settings.downloads_path = tmpdir
+            service.check_duplicate = AsyncMock(return_value=False)
+
+            result = await service.upload_files([MockUploadFile("model1.stl", b"content")])
+
+            assert result['success_count'] == 1
+            entry = result['uploaded_files'][0]
+            assert set(entry) == {"file_id", "filename", "file_path",
+                                  "file_size", "file_type", "checksum"}
+            assert entry['checksum'] == "cafebabe"
 
     @pytest.mark.asyncio
     async def test_upload_files_partial_failure(self):

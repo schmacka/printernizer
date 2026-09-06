@@ -12,7 +12,7 @@
 # ❌ INCORRECT (will fail with "entrypoint.sh not found"):
 #   cd docker && docker build -t printernizer .
 #
-# The build context must include: src/, frontend/, database_schema.sql, docker/
+# The build context must include: src/, frontend/, migrations/, database_schema.sql, docker/
 #
 # NOTE: This image uses a Debian (glibc) base. The model generator runs in the
 # browser (JSCAD), so there is no server-side CAD dependency; Debian is retained
@@ -84,6 +84,10 @@ COPY --from=builder /root/.local /home/appuser/.local
 COPY --chown=appuser:appuser src/ /app/src/
 COPY --chown=appuser:appuser frontend/ /app/frontend/
 COPY --chown=appuser:appuser assets/database/schema.sql /app/database_schema.sql
+# Required: several tables (api_keys, orders, customers, notifications, generator)
+# exist only as SQL migrations. Without this directory _run_sql_migrations finds
+# nothing and those features fail at runtime.
+COPY --chown=appuser:appuser migrations/ /app/migrations/
 COPY --chown=appuser:appuser docker/entrypoint.sh /app/
 
 RUN chmod +x /app/entrypoint.sh && chown -R appuser:appuser /home/appuser/.local

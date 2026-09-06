@@ -293,18 +293,29 @@ class FileUploadService:
 
         return file_id
 
-    async def process_file_after_upload(self, file_id: str, file_path: str) -> None:
+    async def process_file_after_upload(self, file_id: str, file_path: str) -> Optional[str]:
         """
         Trigger post-upload processing (thumbnails, metadata, library).
 
         Args:
             file_id: ID of the uploaded file
             file_path: Path to the uploaded file
+
+        Returns:
+            The library checksum of the file, or None when the library system is
+            unavailable, disabled, or failed to ingest the file. The checksum is
+            the library's primary key; callers that report it must tolerate None.
         """
+        checksum: Optional[str] = None
+
         # Add to library if service available
         if self.library_service:
             try:
-                await self.library_service.add_file_from_upload(file_id, file_path)
+                library_record = await self.library_service.add_file_from_upload(
+                    file_id, file_path
+                )
+                if isinstance(library_record, dict):
+                    checksum = library_record.get("checksum")
                 logger.info("File added to library", file_id=file_id)
             except Exception as e:
                 logger.warning(
@@ -337,6 +348,8 @@ class FileUploadService:
                     error=str(e)
                 )
 
+        return checksum
+
     async def upload_files(
         self,
         files: List[UploadFile],
@@ -364,7 +377,12 @@ class FileUploadService:
 
         Returns:
             Dict with upload results:
-                - uploaded_files: List of successfully uploaded file info
+                - uploaded_files: List of successfully uploaded file info, each
+                  entry being {file_id, filename, file_path, file_size,
+                  file_type, checksum}. `checksum` is the library checksum and
+                  is None when the library system is disabled or ingestion
+                  failed. `file_path` is a server-side absolute path — never
+                  hand it to a network client.
                 - failed_files: List of failed uploads with error messages
                 - total_count: Total number of files processed
                 - success_count: Number of successful uploads
@@ -459,8 +477,11 @@ class FileUploadService:
                     notes=notes
                 )
 
-                # Trigger post-processing
-                await self.process_file_after_upload(file_id, save_result["file_path"])
+                # Trigger post-processing. Returns the library checksum, or None
+                # when the library system is disabled or ingestion failed.
+                checksum = await self.process_file_after_upload(
+                    file_id, save_result["file_path"]
+                )
 
                 # Add to successful uploads
                 uploaded_files.append({
@@ -468,7 +489,8 @@ class FileUploadService:
                     "filename": filename,
                     "file_path": save_result["file_path"],
                     "file_size": save_result["file_size"],
-                    "file_type": validation["file_type"]
+                    "file_type": validation["file_type"],
+                    "checksum": checksum
                 })
 
                 # Emit success event
