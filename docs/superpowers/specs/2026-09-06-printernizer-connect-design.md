@@ -444,8 +444,15 @@ down on a wizard-completed install.
 
 | Endpoint | Behaviour |
 |---|---|
-| `GET /info` | `{server_version, min_connect_version, capabilities: {exports, profiles, printhost}, printers: [{id, name, printer_model, manufacturer}]}` |
+| `GET /info` | `{server_version, min_connect_version, capabilities: {exports, profiles, printhost}, printers: [{id, name, type, is_active}]}` — `type` is the `PrinterType` value (`bambu_lab`, `prusa_core`). The `Printer` model carries no `printer_model`/`manufacturer` fields. |
 | `POST /exports` | Multipart `file` + `metadata` JSON. Validates type (`.gcode`, `.bgcode`, `.3mf`), delegates to `FileService.upload_files` (source_type `connect`), then applies: `is_business`, notes/order/customer, `source_checksum` link, and if `print_on` is set calls the same code path as `POST /library/files/{checksum}/print`. Returns the library entry. |
+
+**M1 scope of `/exports`.** The shipped M1 endpoint accepts only `is_business`
+and `notes` in the `metadata` object, and **rejects unknown fields** (422)
+rather than dropping them silently — a client is never told something was
+stored when it was not. Order/customer linking, the `source_checksum`
+provenance link and `print_on` arrive in M3, together with the migration and
+the ingest stamps (§8.3) that back them.
 
 Library browsing and downloads for `sync` reuse the existing unauthenticated
 `/api/v1/library/*` endpoints unchanged.
