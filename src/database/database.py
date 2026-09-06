@@ -1934,7 +1934,11 @@ class Database:
             migrations_dir = Path(__file__).parent.parent.parent / "migrations"
 
             if not migrations_dir.exists():
-                logger.debug("Migrations directory not found, skipping SQL migrations")
+                # Not a debug detail: a deployment that ships no migrations is
+                # missing every migration-only table (api_keys, orders,
+                # customers, notifications, generator) and will fail at runtime.
+                logger.warning("Migrations directory not found, skipping SQL migrations",
+                               migrations_dir=str(migrations_dir))
                 return
 
             # Get all SQL migration files
