@@ -445,7 +445,7 @@ down on a wizard-completed install.
 | Endpoint | Behaviour |
 |---|---|
 | `GET /info` | `{server_version, min_connect_version, capabilities: {exports, profiles, printhost}, printers: [{id, name, type, is_active}]}` — `type` is the `PrinterType` value (`bambu_lab`, `prusa_core`). The `Printer` model carries no `printer_model`/`manufacturer` fields. |
-| `POST /exports` | Multipart `file` + `metadata` JSON. Validates type (`.gcode`, `.bgcode`, `.3mf`), delegates to `FileService.upload_files` (source_type `connect`), then applies: `is_business`, notes/order/customer, `source_checksum` link, and if `print_on` is set calls the same code path as `POST /library/files/{checksum}/print`. Returns the library entry. |
+| `POST /exports` | Multipart `file` + `metadata` JSON. Validates type (`.gcode`, `.bgcode`, `.3mf`), delegates to `FileService.upload_files` (source_type `connect`), then applies: `is_business`, notes/order/customer, `source_checksum` link, and if `print_on` is set calls the same code path as `POST /library/files/{checksum}/print`. Returns a summary of the stored file — `{file_id, filename, file_size, file_type, checksum}` — not the full library row, and never the server-side `file_path`. `checksum` is the library's primary key and is `null` when the library system is disabled or ingestion failed (`FileUploadService.process_file_after_upload` treats library ingest as best-effort). |
 
 **M1 scope of `/exports`.** The shipped M1 endpoint accepts only `is_business`
 and `notes` in the `metadata` object, and **rejects unknown fields** (422)

@@ -141,8 +141,21 @@ async def create_export(
             details={"failed_files": result["failed_files"]},
         )
 
+    # Build the response from named fields rather than passing the uploader's
+    # internal dict through: that dict carries `file_path`, an absolute
+    # server-side filesystem path that has no business reaching a network
+    # client, and its shape is free to change without notice.
+    uploaded = result["uploaded_files"][0]
     return success_response(
-        data={"file": result["uploaded_files"][0]},
+        data={"file": {
+            "file_id": uploaded.get("file_id"),
+            "filename": uploaded.get("filename"),
+            "file_size": uploaded.get("file_size"),
+            "file_type": uploaded.get("file_type"),
+            # The library's primary key. None when the library system is
+            # disabled or ingestion failed — the file is stored either way.
+            "checksum": uploaded.get("checksum"),
+        }},
         status_code=status.HTTP_201_CREATED,
         message="Export added to library",
     )

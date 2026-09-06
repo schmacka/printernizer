@@ -211,14 +211,27 @@ curl -s -X POST \
     "file": {
       "file_id": "6f1b0f2c-6f2b-4e1e-9a1c-1d2e3f4a5b6c",
       "filename": "benchy.gcode",
-      "file_path": "/data/library/models/6f/1b/benchy.gcode",
       "file_size": 2841923,
-      "file_type": "gcode"
+      "file_type": "gcode",
+      "checksum": "9f2c…"
     }
   },
   "message": "Export added to library"
 }
 ```
+
+Field notes:
+
+| Field | Meaning |
+|---|---|
+| `file_id` | Id of the row in the `files` table for this upload. |
+| `filename` | The name the file was stored under. |
+| `file_size` | Size in bytes. |
+| `file_type` | Extension without the dot, e.g. `gcode`. |
+| `checksum` | The library entry's primary key — use it with `/api/v1/library/*`. **May be `null`**: library ingestion is best-effort, so a server with the library system disabled, or one where ingestion failed, still stores the file and still returns `201`, but has no checksum to report. Clients that rely on the checksum for provenance must handle `null` rather than assume it is present. |
+
+The response is a summary of the stored file, not the full library row. The
+server-side filesystem path is deliberately not included.
 
 Responses:
 

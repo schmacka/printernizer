@@ -87,9 +87,18 @@ import json
 
 from src.utils.dependencies import get_file_service
 
+# The real shape FileUploadService.upload_files puts in `uploaded_files`
+# (src/services/file_upload_service.py). Keep this in sync with that method —
+# a fixture that invents fields makes every assertion below vacuous.
 UPLOAD_OK = {
-    "uploaded_files": [{"id": "file-1", "filename": "benchy.gcode",
-                        "checksum": "abc123"}],
+    "uploaded_files": [{
+        "file_id": "file-1",
+        "filename": "benchy.gcode",
+        "file_path": "/data/library/models/6f/1b/benchy.gcode",
+        "file_size": 2841923,
+        "file_type": "gcode",
+        "checksum": "abc123",
+    }],
     "failed_files": [],
     "total_count": 1, "success_count": 1, "failure_count": 0,
 }
@@ -126,8 +135,46 @@ class TestExports:
                                files=_gcode(), data={"metadata": "{}"})
 
         assert response.status_code == 201
-        assert response.json()["data"]["file"]["checksum"] == "abc123"
+        assert response.json()["data"]["file"] == {
+            "file_id": "file-1",
+            "filename": "benchy.gcode",
+            "file_size": 2841923,
+            "file_type": "gcode",
+            "checksum": "abc123",
+        }
         file_service.upload_files.assert_awaited_once()
+
+    def test_response_never_leaks_the_server_side_file_path(
+        self, client, key_service, file_service
+    ):
+        """Pins the wire contract: named fields only, no filesystem path."""
+        response = client.post("/api/v1/connect/exports", headers=AUTH,
+                               files=_gcode(), data={"metadata": "{}"})
+
+        file_data = response.json()["data"]["file"]
+        assert set(file_data) == {"file_id", "filename", "file_size",
+                                  "file_type", "checksum"}
+        assert "file_path" not in file_data
+        assert "/data/library" not in json.dumps(response.json())
+
+    def test_reports_a_null_checksum_when_the_library_did_not_ingest_the_file(
+        self, client, key_service, file_service
+    ):
+        """
+        The checksum comes from the library, which is optional and best-effort
+        (FileUploadService.process_file_after_upload swallows its failures), so
+        the field is nullable rather than absent.
+        """
+        file_service.upload_files.return_value = {
+            **UPLOAD_OK,
+            "uploaded_files": [{**UPLOAD_OK["uploaded_files"][0],
+                                "checksum": None}],
+        }
+        response = client.post("/api/v1/connect/exports", headers=AUTH,
+                               files=_gcode(), data={"metadata": "{}"})
+
+        assert response.status_code == 201
+        assert response.json()["data"]["file"]["checksum"] is None
 
     def test_passes_is_business_and_notes_through(
         self, client, key_service, file_service
