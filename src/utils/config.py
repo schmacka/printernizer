@@ -138,7 +138,7 @@ class PrinternizerSettings(BaseSettings):
         le=5000
     )
     allowed_upload_extensions: str = Field(
-        default=".3mf,.stl,.gcode,.obj,.ply",
+        default=".3mf,.stl,.gcode,.bgcode,.obj,.ply",
         env="ALLOWED_UPLOAD_EXTENSIONS",
         description="Comma-separated list of allowed file extensions for upload (with leading dot)."
     )
