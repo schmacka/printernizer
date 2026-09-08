@@ -337,7 +337,39 @@ by whichever push channel survives (§6).
 
 ### 5.6 Conversion (`convert.py`)
 
-- `.stl` → copied as `<checksum>-0.stl`.
+> **⚠️ REVISED 2026-09-08, during M2 acceptance. 3MF conversion is now OFF by
+> default** — `file_types` defaults to `[".stl"]`, and adding `".3mf"` opts in with
+> a warning. The mechanics below are unchanged and still apply when opted in.
+>
+> **Why.** Conversion is lossy in a way size alone does not convey: STL carries
+> geometry and nothing else, so colour assignments, multi-material and any
+> per-object settings baked into the 3MF are discarded — a three-colour model
+> arrives plain grey. Measured on the real library: 65× expansion on average, 118×
+> worst (24 MB → 2,841 MB), ~200 s for a full sync against 8 s for STL-only. Against
+> that, mirroring 4 of 19 files losslessly beats mirroring 16 lossily.
+>
+> **The fix is upstream, not here.** PrusaSlicer already loads 3MF internally; the
+> Lua binding layer simply does not expose it (§2 — `api.load_stl` is the only mesh
+> loader, and there is no project-open call). A `load_3mf`, or better a general
+> `api.project:load_file(path)` accepting any format PrusaSlicer knows, would remove
+> the need for `convert.py`, the per-entry cap, the size budget and the offset
+> handling entirely, and would let 3MFs load with their colours intact. The Lua API
+> is new in 3.0 alpha, which is the cheapest moment to propose an addition and
+> before the surface freezes. It is not Printernizer-specific: every plugin author
+> hits this the moment they want to load anything.
+>
+> Forking PrusaSlicer to add the binding was considered and rejected — the change is
+> small, but it would require every user to run a fork instead of Prusa's build, and
+> a permanent rebase against a large C++ codebase for tens of lines.
+>
+> **Plan for the upstream work:** `~/Developer/PrusaSlicer/.claude/PLAN-lua-3mf-loading.md`
+> (against a stock `version_3.0.0-alpha11` checkout). Nothing has been filed with
+> Prusa yet. Note their contribution policy routes feature requests to GitHub
+> **Discussions**, not the issue tracker, and runs no CI on pull requests — so the
+> plan opens a Discussion first and builds locally before proposing anything.
+
+- `.stl` → copied **byte-for-byte** as `<checksum>-0.stl` (`shutil.copyfile`), then
+  read back through `trimesh` only to validate. Library files are never rewritten.
 - `.3mf` → each object exported as `<checksum>-<i>.stl` via `trimesh`, **plus its
   offset from the model origin**. The generated command loads them as **one**
   `add_object` with parts 2..N as `other_volumes`, each carrying its own

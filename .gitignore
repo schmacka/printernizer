@@ -95,6 +95,8 @@ Thumbs.db
 *.sqlite3
 data/*.db*
 data/*.backup*
+# Runtime thumbnail cache — renders of the user's own models, not source
+data/preview-cache/
 *.backup-*
 
 # Log files
