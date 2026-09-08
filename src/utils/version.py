@@ -14,7 +14,7 @@ from pathlib import Path
 #: /api/v1/system/info and "2.7.0" in usage telemetry.
 #:
 #: Bump this on release (see RELEASE.md).
-FALLBACK_VERSION = "2.42.0"
+FALLBACK_VERSION = "2.43.0"
 
 
 def get_version(fallback: str = FALLBACK_VERSION) -> str:

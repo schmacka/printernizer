@@ -7,14 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-
-### Fixed
-- Version reporting is now consistent across every endpoint. Five call sites each
-  passed their own `fallback=` to `get_version()`, so a deployment without a git
-  repository — which is every Docker container and Home Assistant add-on — reported
-  itself as `2.42.0` on `/api/v1/health`, `unknown` on `/api/v1/system/info` and in
-  the debug router, and `2.7.0` in usage telemetry, all for the same build. The
-  fallback now lives once, as `FALLBACK_VERSION` in `src/utils/version.py`.
+## [2.43.0] - 2026-09-08
 
 ### Added
 - API keys for authenticating external tools, managed under Settings → Integrations
@@ -27,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Sides** count replaces the old numeric "facets" field, making the flat-sided
   polygon vase an explicit option. Parameter presets saved with the previous
   `facets` value still build correctly.
+
+### Fixed
+- Version reporting is now consistent across every endpoint. Five call sites each
+  passed their own `fallback=` to `get_version()`, so a deployment without a git
+  repository — which is every Docker container and Home Assistant add-on — reported
+  itself as `2.42.0` on `/api/v1/health`, `unknown` on `/api/v1/system/info` and in
+  the debug router, and `2.7.0` in usage telemetry, all for the same build. The
+  fallback now lives once, as `FALLBACK_VERSION` in `src/utils/version.py`.
 
 ### Notes
 - API keys protect only `/api/v1/connect/*`. The rest of the API and the web UI remain unauthenticated.
