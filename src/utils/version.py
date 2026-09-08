@@ -6,15 +6,26 @@ Extracts version information from git tags and provides fallback.
 import subprocess
 from pathlib import Path
 
+#: The version reported when git is unavailable — which is the normal case for
+#: the Docker image and the Home Assistant add-on, since neither ships a .git
+#: directory. This constant is the SINGLE source of that answer: call sites must
+#: not pass their own ``fallback=``. They used to, and the same running build
+#: reported itself as "2.42.0" on /api/v1/health, "unknown" on
+#: /api/v1/system/info and "2.7.0" in usage telemetry.
+#:
+#: Bump this on release (see RELEASE.md).
+FALLBACK_VERSION = "2.42.0"
 
-def get_version(fallback: str = "2.9.1") -> str:
+
+def get_version(fallback: str = FALLBACK_VERSION) -> str:
     """
     Get application version from git tags.
 
     Tries to extract version from git describe, falls back to hardcoded version.
 
     Args:
-        fallback: Version string to use if git is unavailable
+        fallback: Override the shared FALLBACK_VERSION. Callers should not
+            pass this — the default is the single source of truth.
 
     Returns:
         Version string (e.g., "2.3.0" or "2.3.0-3-g1234567")
@@ -46,12 +57,13 @@ def get_version(fallback: str = "2.9.1") -> str:
     return fallback
 
 
-def get_short_version(fallback: str = "2.9.1") -> str:
+def get_short_version(fallback: str = FALLBACK_VERSION) -> str:
     """
     Get short version (major.minor.patch only).
 
     Args:
-        fallback: Version string to use if git is unavailable
+        fallback: Override the shared FALLBACK_VERSION. Callers should not
+            pass this — the default is the single source of truth.
 
     Returns:
         Short version string (e.g., "2.3.0")

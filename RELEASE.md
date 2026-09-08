@@ -37,7 +37,7 @@ Printernizer follows [Semantic Versioning 2.0.0](https://semver.org/):
 All version numbers must be synchronized across these files:
 
 1. **CHANGELOG.md** - Release notes and version history
-2. **src/main.py** - `APP_VERSION = get_version(fallback="X.Y.Z")`
+2. **src/utils/version.py** - `FALLBACK_VERSION = "X.Y.Z"`
 
 ## Release Workflow
 
@@ -72,7 +72,7 @@ Add a new section under `## [Unreleased]`:
 
 Update the version number in:
 
-- [src/main.py:90](src/main.py#L90) - `APP_VERSION = get_version(fallback="X.Y.Z")`
+- [src/utils/version.py](src/utils/version.py) - `FALLBACK_VERSION = "X.Y.Z"` (the only place a fallback version is written)
 
 ### 3. Commit Version Bump
 
@@ -208,7 +208,7 @@ git pull origin master
 vim CHANGELOG.md
 
 # 3. Update version file
-vim src/main.py          # Change fallback="2.6.0"
+vim src/utils/version.py # Change FALLBACK_VERSION = "2.6.0"
 
 # 4. Commit
 git add CHANGELOG.md src/main.py

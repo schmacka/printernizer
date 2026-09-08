@@ -1,0 +1,30 @@
+solid probe
+facet normal 0 0 -1
+  outer loop
+    vertex 0 0 0
+    vertex 5 8.66 0
+    vertex 10 0 0
+  endloop
+endfacet
+facet normal 0 -1 0
+  outer loop
+    vertex 0 0 0
+    vertex 10 0 0
+    vertex 5 2.89 8.16
+  endloop
+endfacet
+facet normal 0.87 0.5 0
+  outer loop
+    vertex 10 0 0
+    vertex 5 8.66 0
+    vertex 5 2.89 8.16
+  endloop
+endfacet
+facet normal -0.87 0.5 0
+  outer loop
+    vertex 5 8.66 0
+    vertex 0 0 0
+    vertex 5 2.89 8.16
+  endloop
+endfacet
+endsolid probe

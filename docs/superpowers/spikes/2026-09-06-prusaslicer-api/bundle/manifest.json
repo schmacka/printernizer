@@ -1,0 +1,10 @@
+{
+  "id": "com.printernizer.spike",
+  "name": "Printernizer API Spike",
+  "version": "0.0.1",
+  "min_slicer_version": "3.0.0",
+  "author": "printernizer",
+  "license": "MIT",
+  "description": "Throwaway probes for the PrusaSlicer 3.0 Lua plugin API",
+  "required_apis": { "project.plugin": "1.0.0" }
+}

@@ -6,7 +6,7 @@ Version is extracted from **git tags** via the `get_version()` utility.
 
 ```python
 # src/main.py
-APP_VERSION = get_version(fallback="2.9.1")
+APP_VERSION = get_version()          # falls back to version.FALLBACK_VERSION
 ```
 
 If no git tag is available, the fallback version is used.
@@ -15,8 +15,8 @@ If no git tag is available, the fallback version is used.
 
 **Primary version source**: Git tags (format: `vX.Y.Z`)
 
-**Fallback locations** (update when releasing):
-1. `src/main.py` line ~94 - `get_version(fallback="X.Y.Z")`
+**Fallback location** (update when releasing):
+1. `src/utils/version.py` - `FALLBACK_VERSION = "X.Y.Z"`
 2. `CHANGELOG.md` - Version history with release notes
 
 **Note**: The HA add-on version in `printernizer-ha/config.yaml` is updated automatically by GitHub Actions.

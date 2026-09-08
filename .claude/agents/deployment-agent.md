@@ -89,7 +89,7 @@ docker-compose down
 ### Version Management
 
 **Version Files to Update**:
-1. `src/main.py` - Application version (fallback value)
+1. `src/utils/version.py` - `FALLBACK_VERSION` (the single fallback value)
 2. `CHANGELOG.md` - Version history
 
 **Note**: HA add-on version in `printernizer-ha/config.yaml` is automatically synced from `src/main.py`

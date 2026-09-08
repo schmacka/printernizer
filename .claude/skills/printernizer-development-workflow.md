@@ -82,7 +82,7 @@ Feature branch → development (PR + review) → Docker testing → master (PR +
 **Version is extracted from git tags** via `get_version()` utility in `src/utils/version.py`.
 
 **Files to update when releasing:**
-- `src/main.py` - Update fallback version in `get_version(fallback="X.Y.Z")`
+- `src/utils/version.py` - Update `FALLBACK_VERSION = "X.Y.Z"` (the single source)
 - `CHANGELOG.md` - Add version section with release notes
 
 **Note**: The HA add-on files (in [printernizer-ha](https://github.com/schmacka/printernizer-ha) repository) are updated automatically by GitHub Actions.

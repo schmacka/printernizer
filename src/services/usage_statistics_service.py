@@ -746,7 +746,7 @@ class UsageStatisticsService(BaseService):
         which provides runtime version detection for all deployment modes.
         """
         from src.utils.version import get_version
-        return get_version(fallback="2.7.0")
+        return get_version()
 
     async def _get_printer_fleet_stats(self) -> PrinterFleetStats:
         """
